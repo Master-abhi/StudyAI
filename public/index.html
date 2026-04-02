@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="AI-Powered Government Exam Preparation App for UPSC, SSC, CGPSC, CG Vyapam, Railway exams. Study smarter with AI-generated notes, MCQs, and mock tests.">
+  <meta name="theme-color" content="#0a0a14">
+  <title>ExamPrep AI — Smart Government Exam Preparation</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+</head>
+<body>
+
+  <!-- ══════════ HEADER ══════════ -->
+  <header class="app-header">
+    <div class="header-title">
+      <span class="logo-icon">🎓</span>
+      <span class="title-gradient">ExamPrep AI</span>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn" id="btn-settings" title="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <!-- ══════════ MAIN CONTENT ══════════ -->
+  <main class="app-content">
+
+    <!-- ──── Screen: Exam Selector ──── -->
+    <section class="screen active" id="screen-exams">
+      <div class="exam-selector-header">
+        <h1>🇮🇳 Choose Your Exam</h1>
+        <p>Select the exam you're preparing for</p>
+      </div>
+      <div class="exam-grid" id="exam-grid">
+        <!-- Exam cards inserted by JS -->
+      </div>
+    </section>
+
+    <!-- ──── Screen: Dashboard ──── -->
+    <section class="screen" id="screen-dashboard">
+      <div class="screen-title">📊 Dashboard</div>
+      <div class="dashboard-exam-badge" id="dashboard-exam-badge" title="Click to change exam">
+        <span id="dashboard-exam-icon">🏛️</span>
+        <span id="dashboard-exam-name">UPSC CSE</span>
+        <span>▾</span>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><span class="streak-fire">🔥</span></div>
+          <div class="stat-value streak" id="stat-streak">0</div>
+          <div class="stat-label">Day Streak</div>
+        </div>
+        <div class="stat-card">
+          <div class="circular-progress" id="circular-progress">
+            <svg width="70" height="70">
+              <circle class="progress-ring-bg" cx="35" cy="35" r="30" />
+              <circle class="progress-ring-fill" cx="35" cy="35" r="30" stroke-dasharray="188.5" stroke-dashoffset="188.5" />
+            </svg>
+            <span class="progress-text stat-value progress" id="stat-progress">0%</span>
+          </div>
+          <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📝</div>
+          <div class="stat-value tests" id="stat-tests">0</div>
+          <div class="stat-label">Tests Given</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <div class="stat-value topics" id="stat-topics">0</div>
+          <div class="stat-label">Topics Done</div>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="section-header">
+          <div class="section-title">📈 Subject Progress</div>
+        </div>
+        <div id="subject-progress-list">
+          <!-- Subject progress bars inserted by JS -->
+        </div>
+      </div>
+
+      <div class="section-title mb-12">⚡ Quick Actions</div>
+      <div class="quick-actions">
+        <button class="quick-action-btn" onclick="navigateTo('syllabus')">
+          <div class="qa-icon">📚</div>
+          <div class="qa-label">Study</div>
+        </button>
+        <button class="quick-action-btn" onclick="navigateTo('tests')">
+          <div class="qa-icon">🧠</div>
+          <div class="qa-label">Quick Quiz</div>
+        </button>
+        <button class="quick-action-btn" onclick="navigateTo('ai-chat')">
+          <div class="qa-icon">🤖</div>
+          <div class="qa-label">Ask AI</div>
+        </button>
+      </div>
+    </section>
+
+    <!-- ──── Screen: Syllabus ──── -->
+    <section class="screen" id="screen-syllabus">
+      <div class="screen-title">📚 Syllabus</div>
+
+      <div class="syllabus-controls">
+        <div class="syllabus-search">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="syllabus-search-input" placeholder="Search topics...">
+        </div>
+        <div class="lang-toggle" id="syllabus-lang-toggle">
+          <button class="lang-btn active" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="hi">हिं</button>
+        </div>
+      </div>
+
+      <div class="syllabus-overall" id="syllabus-overall">
+        <div class="syllabus-overall-text">
+          <h3>Overall Progress</h3>
+          <p id="syllabus-overall-detail">0 / 0 topics</p>
+        </div>
+        <div class="syllabus-overall-percent" id="syllabus-overall-percent">0%</div>
+      </div>
+
+      <div id="syllabus-accordion-list">
+        <!-- Subject accordions inserted by JS -->
+      </div>
+    </section>
+
+    <!-- ──── Screen: AI Chat ──── -->
+    <section class="screen" id="screen-ai-chat">
+      <div class="screen-title">🤖 AI Study Assistant</div>
+
+      <div class="chat-container">
+        <div class="chat-controls">
+          <div class="lang-toggle">
+            <button class="lang-btn active" data-lang="english">EN</button>
+            <button class="lang-btn" data-lang="hindi">हिं</button>
+            <button class="lang-btn" data-lang="mixed">Mix</button>
+          </div>
+          <button class="new-chat-btn" id="btn-new-chat">🗑️ New Chat</button>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-welcome" id="chat-welcome">
+            <div class="welcome-emoji">🤖</div>
+            <h3>AI Study Assistant</h3>
+            <p>Ask me anything about your exam topics. I can explain concepts, generate MCQs, and help with revision!</p>
+            <div class="quick-prompts">
+              <button class="quick-prompt-chip" data-prompt="Explain the Indian Constitution's Preamble in simple terms">📖 Explain Topic</button>
+              <button class="quick-prompt-chip" data-prompt="Generate 5 MCQs on Indian History for exam practice">📝 Give MCQs</button>
+              <button class="quick-prompt-chip" data-prompt="What are the most important current affairs topics for my exam this month?">📰 Current Affairs</button>
+              <button class="quick-prompt-chip" data-prompt="Give me a summary of the most frequently asked topics in previous year papers">📋 PYQ Analysis</button>
+              <button class="quick-prompt-chip" data-prompt="Create a short revision note on Indian Geography - Physical Features">🗒️ Quick Notes</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-container">
+          <textarea id="chat-input" placeholder="Ask anything about your exam..." rows="1"></textarea>
+          <button class="chat-send-btn" id="btn-chat-send" title="Send">➤</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──── Screen: Tests ──── -->
+    <section class="screen" id="screen-tests">
+      <div class="screen-title">🧠 Practice Tests</div>
+
+      <!-- Test Setup -->
+      <div id="test-setup">
+        <div class="test-mode-grid">
+          <div class="test-mode-card selected" data-mode="quiz">
+            <div class="mode-icon">⚡</div>
+            <div class="mode-name">Quick Quiz</div>
+            <div class="mode-desc">5 questions • Untimed</div>
+          </div>
+          <div class="test-mode-card" data-mode="mock">
+            <div class="mode-icon">🏆</div>
+            <div class="mode-name">Mock Test</div>
+            <div class="mode-desc">25 questions • 30 min</div>
+          </div>
+        </div>
+
+        <div class="test-config mb-16">
+          <label for="test-subject-select">Select Subject</label>
+          <select id="test-subject-select">
+            <option value="all">All Subjects (Mixed)</option>
+            <!-- Options inserted by JS -->
+          </select>
+        </div>
+
+        <div class="test-config mb-16">
+          <label for="test-lang-select">Language</label>
+          <select id="test-lang-select">
+            <option value="english">English</option>
+            <option value="hindi">Hindi (हिंदी)</option>
+            <option value="mixed">Mixed (Hinglish)</option>
+          </select>
+        </div>
+
+        <button class="start-test-btn" id="btn-start-test">🚀 Start Test</button>
+      </div>
+
+      <!-- Test Active -->
+      <div class="test-active" id="test-active">
+        <div class="test-header-bar">
+          <div class="test-progress-text" id="test-progress-text">Q 1/5</div>
+          <div class="test-timer hidden" id="test-timer">⏱️ 30:00</div>
+        </div>
+        <div class="timer-bar hidden" id="timer-bar">
+          <div class="timer-bar-fill" id="timer-bar-fill" style="width: 100%"></div>
+        </div>
+
+        <div id="question-container">
+          <!-- Question rendered by JS -->
+        </div>
+
+        <div class="test-nav-btns">
+          <button class="test-nav-btn secondary" id="btn-prev-q" disabled>← Previous</button>
+          <button class="test-nav-btn primary" id="btn-next-q">Next →</button>
+        </div>
+      </div>
+
+      <!-- Test Loading -->
+      <div class="loading-container hidden" id="test-loading">
+        <div class="spinner"></div>
+        <p>Generating questions with AI... 🤖</p>
+      </div>
+
+      <!-- Score Card -->
+      <div class="score-card hidden" id="score-card">
+        <div class="score-emoji" id="score-emoji">🎉</div>
+        <div class="score-title" id="score-title">Well Done!</div>
+        <div class="score-subtitle" id="score-subtitle">You scored 4/5 (80%)</div>
+
+        <div class="score-stats">
+          <div class="score-stat correct">
+            <div class="ss-value" id="score-correct">0</div>
+            <div class="ss-label">Correct</div>
+          </div>
+          <div class="score-stat wrong">
+            <div class="ss-value" id="score-wrong">0</div>
+            <div class="ss-label">Wrong</div>
+          </div>
+          <div class="score-stat skipped">
+            <div class="ss-value" id="score-skipped">0</div>
+            <div class="ss-label">Skipped</div>
+          </div>
+        </div>
+
+        <button class="start-test-btn" id="btn-review-test" style="margin-bottom: 10px; background: var(--bg-card); border: 1px solid var(--primary);">📋 Review Answers</button>
+        <button class="start-test-btn" id="btn-retake-test">🔄 Take Another Test</button>
+      </div>
+    </section>
+
+    <!-- ──── Screen: News ──── -->
+    <section class="screen" id="screen-news">
+      <div class="screen-title">📰 News & Jobs</div>
+
+      <div class="news-controls">
+        <div class="news-tabs">
+          <button class="news-tab active" data-category="all">All</button>
+          <button class="news-tab" data-category="exams">📝 Exam Alerts</button>
+          <button class="news-tab" data-category="jobs">💼 Jobs</button>
+          <button class="news-tab" data-category="affairs">📰 Current Affairs</button>
+        </div>
+        <div class="lang-toggle" id="news-lang-toggle">
+          <button class="lang-btn active" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="hi">हिं</button>
+        </div>
+      </div>
+
+      <div id="news-list">
+        <!-- News cards inserted by JS, skeleton shown while loading -->
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════ BOTTOM NAVIGATION ══════════ -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-screen="dashboard">
+      <span class="nav-icon">🏠</span>
+      <span>Home</span>
+    </button>
+    <button class="nav-item" data-screen="syllabus">
+      <span class="nav-icon">📚</span>
+      <span>Syllabus</span>
+    </button>
+    <button class="nav-item" data-screen="ai-chat">
+      <span class="nav-icon">🤖</span>
+      <span>AI Chat</span>
+    </button>
+    <button class="nav-item" data-screen="tests">
+      <span class="nav-icon">📝</span>
+      <span>Tests</span>
+    </button>
+    <button class="nav-item" data-screen="news">
+      <span class="nav-icon">📰</span>
+      <span>News</span>
+    </button>
+  </nav>
+
+  <!-- ══════════ MODALS ══════════ -->
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="modal-settings">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚙️ Settings</h2>
+        <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
+      </div>
+      <div class="settings-group">
+        <label>Current Exam</label>
+        <div class="dashboard-exam-badge" id="settings-current-exam" onclick="changeExam()" style="cursor: pointer; width: fit-content;">
+          <span id="settings-exam-name">Not Selected</span>
+          <span>✏️</span>
+        </div>
+      </div>
+      <div class="settings-group">
+        <label>API Status</label>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+          <span class="api-status" id="api-status-dot"></span>
+          <span id="api-status-text">Checking...</span>
+        </div>
+      </div>
+      <button class="settings-btn danger" onclick="clearProgress()">🗑️ Clear All Progress</button>
+      <button class="settings-btn danger" onclick="clearChatHistory()">💬 Clear Chat History</button>
+      <div style="text-align: center; margin-top: 16px; font-size: 0.7rem; color: var(--text-muted);">
+        ExamPrep AI v1.0 • Built with ❤️ for Indian Students
+      </div>
+    </div>
+  </div>
+
+  <!-- Reminder Modal -->
+  <div class="modal-overlay" id="modal-reminder">
+    <div class="modal-content">
+      <div class="reminder-content">
+        <div class="reminder-emoji">📖</div>
+        <h3>Time to Study! 💪</h3>
+        <p>Consistency is the key to cracking any exam. Even 30 minutes of focused study daily can make a huge difference. Keep your streak alive!</p>
+        <button class="reminder-btn" onclick="closeModal('modal-reminder')">Let's Go! 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Syllabus Modal -->
+  <div class="modal-overlay" id="modal-upload">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📤 Upload Syllabus</h2>
+        <button class="modal-close" onclick="closeModal('modal-upload')">✕</button>
+      </div>
+
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-icon">📄</div>
+        <p>Drag & drop or tap to upload</p>
+        <div class="file-types">PDF, TXT files supported (max 10MB)</div>
+        <input type="file" id="upload-file-input" accept=".pdf,.txt,.csv,.text" style="display: none;">
+      </div>
+      <div id="upload-file-name" style="font-size: 0.8rem; color: var(--primary-light); margin-bottom: 8px; display: none;"></div>
+
+      <div class="upload-divider">or paste text</div>
+
+      <div class="upload-text-area">
+        <textarea id="upload-text-input" placeholder="Paste your syllabus text here..."></textarea>
+      </div>
+
+      <div class="upload-name-input">
+        <input type="text" id="upload-name-input" placeholder="Syllabus name (e.g., My Custom Exam)">
+      </div>
+
+      <button class="upload-submit-btn" id="btn-upload-submit" onclick="submitSyllabus()">🤖 Parse with AI</button>
+
+      <div class="loading-container hidden" id="upload-loading">
+        <div class="spinner"></div>
+        <p>AI is parsing your syllabus...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Scripts -->
+  <script src="syllabus-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
