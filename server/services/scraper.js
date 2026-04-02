@@ -3,12 +3,6 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
-const CACHE_FILE = path.join(__dirname, '..', 'cache', 'news-cache.json');
-const CACHE_DIR = path.join(__dirname, '..', 'cache');
-
-if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
-}
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -34,7 +28,7 @@ async function scrapeSarkariResult() {
           title: title,
           description: `Latest update from Sarkari Result: ${title}`,
           category: title.toLowerCase().includes('admit') ? 'exams' :
-                    title.toLowerCase().includes('result') ? 'exams' : 'jobs',
+            title.toLowerCase().includes('result') ? 'exams' : 'jobs',
           date: new Date().toISOString().split('T')[0],
           source: 'Sarkari Result',
           url: url.startsWith('http') ? url : `https://www.sarkariresult.com${url}`,
@@ -130,8 +124,8 @@ async function scrapeGeneralNewsRSS() {
           // Skip if this is actually an exam/job article
           const titleLower = title.toLowerCase();
           if (titleLower.includes('recruitment') || titleLower.includes('vacancy') ||
-              titleLower.includes('sarkari naukri') || titleLower.includes('admit card') ||
-              titleLower.includes('answer key') || titleLower.includes('cut off')) {
+            titleLower.includes('sarkari naukri') || titleLower.includes('admit card') ||
+            titleLower.includes('answer key') || titleLower.includes('cut off')) {
             return;
           }
 
@@ -252,6 +246,7 @@ async function scrapeEmploymentNews() {
 
 function getFallbackNews() {
   return [
+    {
       title: 'Supreme Court Landmark Ruling on Right to Privacy',
       description: 'National • The Supreme Court expanded the scope of fundamental right to privacy in a landmark judgment.',
       category: 'affairs',
@@ -335,25 +330,11 @@ async function scrapeAll() {
     articles: allArticles.slice(0, 50)
   };
 
-  try {
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cacheData, null, 2));
-    console.log(`[Scraper] Cached ${cacheData.articles.length} articles`);
-  } catch (err) {
-    console.error('[Scraper] Failed to write cache:', err.message);
-  }
 
   return cacheData;
 }
 
 function getCachedNews() {
-  try {
-    if (fs.existsSync(CACHE_FILE)) {
-      const data = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
-      return data;
-    }
-  } catch (err) {
-    console.error('[Scraper] Failed to read cache:', err.message);
-  }
   return { lastUpdated: null, articles: getFallbackNews() };
 }
 

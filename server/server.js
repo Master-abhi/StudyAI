@@ -50,31 +50,5 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error. Please try again.' });
 });
 
-app.listen(PORT, async () => {
-  console.log(`
-  ╔══════════════════════════════════════════╗
-  ║   🎓 Exam Prep AI - Server Running      ║
-  ║   http://localhost:${PORT}                  ║
-  ╠══════════════════════════════════════════╣
-  ║   API Key: ${process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'your-api-key-here' ? '✅ Configured' : '❌ Not Set'}               ║
-  ╚══════════════════════════════════════════╝
-  `);
-
-  try {
-    await scrapeAll();
-    console.log('[Server] Initial news scrape complete');
-  } catch (err) {
-    console.error('[Server] Initial scrape failed:', err.message);
-  }
-});
-
-cron.schedule('0 * * * *', async () => {
-  console.log('[Cron] Running hourly news scrape...');
-  try {
-    await scrapeAll();
-  } catch (err) {
-    console.error('[Cron] Scrape failed:', err.message);
-  }
-});
 
 module.exports = app;
