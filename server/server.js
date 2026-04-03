@@ -50,6 +50,30 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error. Please try again.' });
 });
 
+// Schedule scraper to run every 2 hours
+cron.schedule('0 */2 * * *', async () => {
+  console.log('[Cron] Running scheduled news scrape...');
+  try {
+    await scrapeAll();
+  } catch (err) {
+    console.error('[Cron] Scraper failed:', err);
+  }
+});
+
+// Run initial scrape on startup if cache is old or missing
+setTimeout(async () => {
+  try {
+    const { getCachedNews } = require('./services/scraper');
+    const cached = getCachedNews();
+    if (!cached.lastUpdated || (Date.now() - new Date(cached.lastUpdated).getTime() > 2 * 60 * 60 * 1000)) {
+       console.log('[Startup] Cache outdated or missing, running initial scrape...');
+       await scrapeAll();
+    }
+  } catch (err) {
+    console.error('[Startup] Initial scrape failed:', err);
+  }
+}, 5000); // Wait 5 seconds after startup
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

@@ -22,23 +22,23 @@ function getExamSystemPrompt(examName, language) {
 ${getLanguageInstruction(language)}
 
 Your Guidelines:
-- Provide comprehensive, exam-focused notes with clear key points highlighted
-- When asked to generate MCQs, always provide exactly 4 options (A, B, C, D) and clearly mark the correct answer
-- Include detailed explanations for all answers
-- Reference previous year question patterns and trends when relevant
-- Use clear headings (##), bullet points, and numbered lists for easy reading
-- For current affairs topics, provide the most recent and relevant information
-- Be encouraging, supportive, and motivating to the student
-- Use mnemonics and memory tricks when helpful
-- Connect topics to real-world examples for better understanding
-- Break complex topics into simple, digestible points`;
+- DO NOT use repetitive phrases or generic greetings/intros in every response. Answer the student's query directly and uniquely.
+- Provide highly informative, data-rich, and comprehensive exam-focused notes.
+- Include distinct insights, structured analysis, and advanced facts to avoid repetitive generic answers.
+- When asked to generate MCQs, always provide exactly 4 options (A, B, C, D) and clearly mark the correct answer.
+- Reference previous year question patterns, specific trends, and related statistics when relevant.
+- Use clear headings (##), bullet points, and bold text for easy reading.
+- For current affairs topics, provide the most recent and relevant data, background context, and dates.
+- Be encouraging, supportive, and motivating to the student.
+- Use mnemonics, diagrams (in markdown), and memory tricks when helpful.
+- Connect topics to real-world examples to clarify complex subjects.`;
 }
 
 async function chat(message, examName, language, history = []) {
   const messages = [];
 
   if (history && history.length > 0) {
-    const recentHistory = history.slice(-20);
+    const recentHistory = history.slice(-6);
     for (const h of recentHistory) {
       messages.push({ role: h.role, content: h.content });
     }
@@ -60,7 +60,7 @@ async function chatStream(message, examName, language, history = []) {
   const messages = [];
 
   if (history && history.length > 0) {
-    const recentHistory = history.slice(-20);
+    const recentHistory = history.slice(-6);
     for (const h of recentHistory) {
       messages.push({ role: h.role, content: h.content });
     }
@@ -102,11 +102,11 @@ The JSON format must be exactly:
 Requirements:
 - Each question must have exactly 4 options
 - correctIndex is 0-based (0 for first option, 3 for last)
-- Questions should be at the difficulty level of actual ${examName} exam
-- Mix different topics within the subject
+- Questions should be at the exact difficulty level of actual ${examName} exams
+- Mix different topics and sub-topics within the subject
 - Include factual, conceptual, and application-based questions
-- Explanations should be educational and help the student learn
-- Make questions exam-relevant and practical
+- The "explanation" field MUST be highly detailed, accurate, and deeply informative. Do not simply restate the correct option. Explain the core concept behind the answer, provide related supplementary facts, and briefly explain why the incorrect options are wrong.
+- Make questions exam-relevant and strictly fact-checked
 ${mode === 'mock' ? '- Include a mix of easy (30%), medium (50%), and hard (20%) questions' : '- Keep questions at medium difficulty for quick practice'}`;
 
   const response = await client.messages.create({

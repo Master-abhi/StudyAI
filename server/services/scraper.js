@@ -3,7 +3,7 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
-
+const CACHE_FILE = path.join(__dirname, '..', 'cache', 'news-cache.json');
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -330,11 +330,28 @@ async function scrapeAll() {
     articles: allArticles.slice(0, 50)
   };
 
+  try {
+    if (!fs.existsSync(path.dirname(CACHE_FILE))) {
+      fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
+    }
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(cacheData, null, 2), 'utf-8');
+    console.log('[Scraper] Cache updated successfully');
+  } catch (err) {
+    console.error('[Scraper] Failed to save cache:', err.message);
+  }
 
   return cacheData;
 }
 
 function getCachedNews() {
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      const data = fs.readFileSync(CACHE_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('[Scraper] Error reading cache file. Falling back.', err.message);
+  }
   return { lastUpdated: null, articles: getFallbackNews() };
 }
 
