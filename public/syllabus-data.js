@@ -1,595 +1,878 @@
+/* ═══════════════════════════════════════════════════════════════
+   STUDY WORLD — CG VYAPAM Syllabus Data
+   All major Chhattisgarh Professional Examination Board exams
+   ═══════════════════════════════════════════════════════════════ */
+
 const SYLLABUS_DATA = {
-  "upsc": {
-    name: "UPSC CSE",
-    fullName: "Union Public Service Commission - Civil Services Examination",
-    icon: "🏛️",
-    description: "India's most prestigious competitive exam for IAS, IPS, IFS and other Central Services",
+
+  /* ─────────────────────────────────────────────────────────────
+     1. PATWARI / REVENUE INSPECTOR (RI)
+  ───────────────────────────────────────────────────────────── */
+  "cgv_patwari": {
+    name: "Patwari / RI",
+    fullName: "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    icon: "🏘️",
+    category: "administrative",
+    description: "Revenue Inspector & Patwari recruitment for land records & administrative work",
+    eligibility: "12th Pass / Graduate",
+    pattern: {
+      totalMarks: 100,
+      time: "2 Hours",
+      type: "Objective MCQ",
+      papers: [
+        { paper: "General Knowledge & Chhattisgarh GK", marks: 40 },
+        { paper: "Hindi Language", marks: 20 },
+        { paper: "Mathematics & Reasoning", marks: 30 },
+        { paper: "Computer Knowledge", marks: 10 }
+      ]
+    },
     subjects: [
       {
-        name: "Prelims - General Studies Paper I",
+        name: "छत्तीसगढ़ सामान्य ज्ञान (CG GK)",
+        nameHi: "छत्तीसगढ़ सामान्य ज्ञान (CG GK)",
         topics: [
-          { id: "upsc-pre-gs1-1", name: "Current Events of National Importance" },
-          { id: "upsc-pre-gs1-2", name: "Current Events of International Importance" },
-          { id: "upsc-pre-gs1-3", name: "History of India - Ancient India" },
-          { id: "upsc-pre-gs1-4", name: "History of India - Medieval India" },
-          { id: "upsc-pre-gs1-5", name: "History of India - Modern India" },
-          { id: "upsc-pre-gs1-6", name: "Indian National Movement" },
-          { id: "upsc-pre-gs1-7", name: "Physical Geography of India" },
-          { id: "upsc-pre-gs1-8", name: "Social Geography of India" },
-          { id: "upsc-pre-gs1-9", name: "Economic Geography of India" },
-          { id: "upsc-pre-gs1-10", name: "World Geography" },
-          { id: "upsc-pre-gs1-11", name: "Indian Polity - Constitution" },
-          { id: "upsc-pre-gs1-12", name: "Indian Polity - Political System & Governance" },
-          { id: "upsc-pre-gs1-13", name: "Panchayati Raj & Public Policy" },
-          { id: "upsc-pre-gs1-14", name: "Rights Issues & Welfare Schemes" },
-          { id: "upsc-pre-gs1-15", name: "Economic & Social Development" },
-          { id: "upsc-pre-gs1-16", name: "Sustainable Development & Poverty" },
-          { id: "upsc-pre-gs1-17", name: "Demographics & Social Sector Initiatives" },
-          { id: "upsc-pre-gs1-18", name: "Environmental Ecology & Biodiversity" },
-          { id: "upsc-pre-gs1-19", name: "Climate Change & Environmental Issues" },
-          { id: "upsc-pre-gs1-20", name: "General Science - Physics" },
-          { id: "upsc-pre-gs1-21", name: "General Science - Chemistry" },
-          { id: "upsc-pre-gs1-22", name: "General Science - Biology" }
+          { id: "pat-cg-1",  name: "CG History — Ancient Period", nameHi: "छत्तीसगढ़ का इतिहास — प्राचीन काल" },
+          { id: "pat-cg-2",  name: "CG History — Medieval Period", nameHi: "छत्तीसगढ़ का इतिहास — मध्यकालीन काल" },
+          { id: "pat-cg-3",  name: "CG History — Modern & Freedom Movement", nameHi: "छत्तीसगढ़ का इतिहास — आधुनिक काल व स्वतंत्रता आंदोलन" },
+          { id: "pat-cg-4",  name: "CG Geography — Rivers & Landforms", nameHi: "छत्तीसगढ़ की भौगोलिक संरचना एवं नदियाँ" },
+          { id: "pat-cg-5",  name: "CG Climate, Forests & Soil", nameHi: "छत्तीसगढ़ की जलवायु, वन एवं मिट्टी" },
+          { id: "pat-cg-6",  name: "CG Tribes (जनजातियाँ)", nameHi: "छत्तीसगढ़ की जनजातियाँ" },
+          { id: "pat-cg-7",  name: "CG Art, Culture, Dance & Folk Songs", nameHi: "CG की कला, संस्कृति, नृत्य एवं लोकगीत" },
+          { id: "pat-cg-8",  name: "CG Festivals & Fairs", nameHi: "CG के प्रमुख त्यौहार एवं मेले" },
+          { id: "pat-cg-9",  name: "CG Major Irrigation Projects", nameHi: "CG की प्रमुख सिंचाई परियोजनाएं" },
+          { id: "pat-cg-10", name: "CG Minerals — Coal, Iron Ore, Bauxite", nameHi: "CG के खनिज संसाधन (Coal, Iron Ore, Bauxite)" },
+          { id: "pat-cg-11", name: "CG Economy & Industries", nameHi: "CG की अर्थव्यवस्था एवं उद्योग" },
+          { id: "pat-cg-12", name: "CG Administration — Districts & Divisions", nameHi: "CG की प्रशासनिक व्यवस्था — जिले व संभाग" },
+          { id: "pat-cg-13", name: "CG Government Schemes", nameHi: "CG सरकार की प्रमुख योजनाएं" },
+          { id: "pat-cg-14", name: "CG Notable Personalities", nameHi: "CG के प्रमुख व्यक्तित्व" },
+          { id: "pat-cg-15", name: "CG Panchayati Raj System", nameHi: "CG में पंचायती राज व्यवस्था" },
+          { id: "pat-cg-16", name: "CG Current Affairs", nameHi: "CG की वर्तमान घटनाएं (Current Affairs)" }
         ]
       },
       {
-        name: "Prelims - CSAT (Paper II)",
+        name: "सामान्य ज्ञान (India GK)",
+        nameHi: "सामान्य ज्ञान (भारत)",
         topics: [
-          { id: "upsc-pre-csat-1", name: "Reading Comprehension" },
-          { id: "upsc-pre-csat-2", name: "Interpersonal & Communication Skills" },
-          { id: "upsc-pre-csat-3", name: "Logical Reasoning" },
-          { id: "upsc-pre-csat-4", name: "Analytical Ability" },
-          { id: "upsc-pre-csat-5", name: "Decision Making & Problem Solving" },
-          { id: "upsc-pre-csat-6", name: "General Mental Ability" },
-          { id: "upsc-pre-csat-7", name: "Basic Numeracy (Class X)" },
-          { id: "upsc-pre-csat-8", name: "Data Interpretation - Charts & Graphs" },
-          { id: "upsc-pre-csat-9", name: "Data Interpretation - Tables" },
-          { id: "upsc-pre-csat-10", name: "Data Sufficiency" }
+          { id: "pat-gk-1",  name: "India History — Ancient & Medieval", nameHi: "भारत का इतिहास — प्राचीन एवं मध्यकाल" },
+          { id: "pat-gk-2",  name: "India History — Modern Period", nameHi: "भारत का इतिहास — आधुनिक काल" },
+          { id: "pat-gk-3",  name: "India Geography — Physical", nameHi: "भारत का भूगोल — भौतिक" },
+          { id: "pat-gk-4",  name: "Indian Constitution — Basics", nameHi: "भारतीय संविधान — मूल बातें" },
+          { id: "pat-gk-5",  name: "Indian Polity", nameHi: "भारतीय राजव्यवस्था" },
+          { id: "pat-gk-6",  name: "Indian Economy", nameHi: "भारतीय अर्थव्यवस्था" },
+          { id: "pat-gk-7",  name: "General Science — Physics, Chemistry, Biology", nameHi: "सामान्य विज्ञान — भौतिकी, रसायन, जीव विज्ञान" },
+          { id: "pat-gk-8",  name: "National & International Current Affairs", nameHi: "राष्ट्रीय एवं अंतर्राष्ट्रीय करंट अफेयर्स" },
+          { id: "pat-gk-9",  name: "Sports, Awards & Important Dates", nameHi: "खेलकूद, पुरस्कार एवं महत्वपूर्ण तिथियाँ" }
         ]
       },
       {
-        name: "Mains - GS Paper I (Heritage & Culture)",
+        name: "हिंदी भाषा",
+        nameHi: "हिंदी भाषा",
         topics: [
-          { id: "upsc-main-gs1-1", name: "Indian Culture - Art Forms" },
-          { id: "upsc-main-gs1-2", name: "Indian Culture - Literature & Architecture" },
-          { id: "upsc-main-gs1-3", name: "Modern Indian History (1757-1947)" },
-          { id: "upsc-main-gs1-4", name: "Freedom Struggle & Leaders" },
-          { id: "upsc-main-gs1-5", name: "Post-Independence Consolidation" },
-          { id: "upsc-main-gs1-6", name: "World History - Events & Impact" },
-          { id: "upsc-main-gs1-7", name: "World History - Industrial Revolution" },
-          { id: "upsc-main-gs1-8", name: "World History - World Wars & Colonization" },
-          { id: "upsc-main-gs1-9", name: "Indian Society - Features & Diversity" },
-          { id: "upsc-main-gs1-10", name: "Role of Women & Women's Organizations" },
-          { id: "upsc-main-gs1-11", name: "Population & Urbanization Issues" },
-          { id: "upsc-main-gs1-12", name: "Globalization & Indian Society" },
-          { id: "upsc-main-gs1-13", name: "Social Empowerment & Communalism" },
-          { id: "upsc-main-gs1-14", name: "Salient Features of Physical Geography" },
-          { id: "upsc-main-gs1-15", name: "Distribution of Resources Worldwide" }
+          { id: "pat-hi-1", name: "Sandhi & Sandhi Viched (Junction)", nameHi: "संधि एवं संधि विच्छेद" },
+          { id: "pat-hi-2", name: "Samas (Compound Words)", nameHi: "समास (Compound Words)" },
+          { id: "pat-hi-3", name: "Upsarg & Pratyay (Prefix/Suffix)", nameHi: "उपसर्ग एवं प्रत्यय" },
+          { id: "pat-hi-4", name: "Antonyms (विलोम शब्द)", nameHi: "विलोम शब्द (Antonyms)" },
+          { id: "pat-hi-5", name: "Synonyms (पर्यायवाची शब्द)", nameHi: "पर्यायवाची शब्द (Synonyms)" },
+          { id: "pat-hi-6", name: "Anekarthi Shabd (Multiple Meanings)", nameHi: "अनेकार्थी शब्द" },
+          { id: "pat-hi-7", name: "Idioms & Proverbs (मुहावरे)", nameHi: "मुहावरे एवं लोकोक्तियां" },
+          { id: "pat-hi-8", name: "Sentence Correction & Spelling", nameHi: "वाक्य शुद्धि एवं वर्तनी शुद्धि" },
+          { id: "pat-hi-9", name: "Ras, Chhand, Alankar", nameHi: "रस, छंद, अलंकार" },
+          { id: "pat-hi-10", name: "Unseen Passage (अपठित गद्यांश)", nameHi: "अपठित गद्यांश" }
         ]
       },
       {
-        name: "Mains - GS Paper II (Governance & IR)",
+        name: "गणित एवं तर्कशक्ति",
+        nameHi: "गणित एवं तर्कशक्ति",
         topics: [
-          { id: "upsc-main-gs2-1", name: "Indian Constitution - Historical Underpinnings & Evolution" },
-          { id: "upsc-main-gs2-2", name: "Features, Amendments & Basic Structure" },
-          { id: "upsc-main-gs2-3", name: "Functions & Responsibilities of Union & States" },
-          { id: "upsc-main-gs2-4", name: "Federal Structure & Devolution of Powers" },
-          { id: "upsc-main-gs2-5", name: "Separation of Powers & Dispute Redressal" },
-          { id: "upsc-main-gs2-6", name: "Parliament & State Legislatures" },
-          { id: "upsc-main-gs2-7", name: "Executive & Judiciary Structure" },
-          { id: "upsc-main-gs2-8", name: "Statutory & Regulatory Bodies" },
-          { id: "upsc-main-gs2-9", name: "Government Policies & Interventions" },
-          { id: "upsc-main-gs2-10", name: "Welfare Schemes for Vulnerable Sections" },
-          { id: "upsc-main-gs2-11", name: "Healthcare, Education & Human Resources" },
-          { id: "upsc-main-gs2-12", name: "Governance - Transparency & Accountability" },
-          { id: "upsc-main-gs2-13", name: "India & Neighbors - Relations" },
-          { id: "upsc-main-gs2-14", name: "Bilateral, Regional & Global Groupings" },
-          { id: "upsc-main-gs2-15", name: "International Organizations - UN, WTO, etc." }
+          { id: "pat-ma-1",  name: "Number System (संख्या पद्धति)", nameHi: "संख्या पद्धति" },
+          { id: "pat-ma-2",  name: "Simplification (सरलीकरण)", nameHi: "सरलीकरण" },
+          { id: "pat-ma-3",  name: "Percentage (प्रतिशत)", nameHi: "प्रतिशत" },
+          { id: "pat-ma-4",  name: "Ratio & Proportion", nameHi: "अनुपात एवं समानुपात" },
+          { id: "pat-ma-5",  name: "Profit, Loss & Discount", nameHi: "लाभ, हानि एवं बट्टा" },
+          { id: "pat-ma-6",  name: "Simple & Compound Interest", nameHi: "साधारण एवं चक्रवृद्धि ब्याज" },
+          { id: "pat-ma-7",  name: "Time & Work", nameHi: "समय एवं कार्य" },
+          { id: "pat-ma-8",  name: "Speed, Time & Distance", nameHi: "समय, चाल एवं दूरी" },
+          { id: "pat-ma-9",  name: "Mensuration (क्षेत्रमिति)", nameHi: "क्षेत्रमिति" },
+          { id: "pat-ma-10", name: "Average & Mixture", nameHi: "औसत एवं मिश्रण" },
+          { id: "pat-ma-11", name: "Series & Letter Sequence", nameHi: "श्रृंखला एवं अक्षर श्रेणी" },
+          { id: "pat-ma-12", name: "Coding-Decoding", nameHi: "कोडिंग-डिकोडिंग" },
+          { id: "pat-ma-13", name: "Blood Relations", nameHi: "रक्त संबंध" },
+          { id: "pat-ma-14", name: "Direction Sense", nameHi: "दिशा ज्ञान" },
+          { id: "pat-ma-15", name: "Syllogism (न्याय निगमन)", nameHi: "न्याय निगमन (Syllogism)" },
+          { id: "pat-ma-16", name: "Venn Diagrams", nameHi: "वेन आरेख" }
         ]
       },
       {
-        name: "Mains - GS Paper III (Economy & Environment)",
+        name: "कंप्यूटर ज्ञान",
+        nameHi: "कंप्यूटर ज्ञान",
         topics: [
-          { id: "upsc-main-gs3-1", name: "Indian Economy - Planning & Growth" },
-          { id: "upsc-main-gs3-2", name: "Government Budgeting & Fiscal Policy" },
-          { id: "upsc-main-gs3-3", name: "Inclusive Growth & Issues" },
-          { id: "upsc-main-gs3-4", name: "Major Crops & Agricultural Issues" },
-          { id: "upsc-main-gs3-5", name: "Food Processing & Related Industries" },
-          { id: "upsc-main-gs3-6", name: "MSP, PDS & Food Security" },
-          { id: "upsc-main-gs3-7", name: "Land Reforms & Liberalization" },
-          { id: "upsc-main-gs3-8", name: "Infrastructure - Energy, Ports, Roads" },
-          { id: "upsc-main-gs3-9", name: "Investment & External Debt" },
-          { id: "upsc-main-gs3-10", name: "Science & Technology Developments" },
-          { id: "upsc-main-gs3-11", name: "Indigenization of Technology" },
-          { id: "upsc-main-gs3-12", name: "Space Technology & IT" },
-          { id: "upsc-main-gs3-13", name: "Environment - Conservation & Pollution" },
-          { id: "upsc-main-gs3-14", name: "Environmental Impact Assessment" },
-          { id: "upsc-main-gs3-15", name: "Disaster Management & NDMA" },
-          { id: "upsc-main-gs3-16", name: "Internal Security Challenges" },
-          { id: "upsc-main-gs3-17", name: "Cyber Security & Money Laundering" },
-          { id: "upsc-main-gs3-18", name: "Border Area Security & Terrorism" }
-        ]
-      },
-      {
-        name: "Mains - GS Paper IV (Ethics)",
-        topics: [
-          { id: "upsc-main-gs4-1", name: "Ethics & Human Interface" },
-          { id: "upsc-main-gs4-2", name: "Attitude - Content, Structure & Function" },
-          { id: "upsc-main-gs4-3", name: "Aptitude & Foundational Values" },
-          { id: "upsc-main-gs4-4", name: "Emotional Intelligence & Its Utilities" },
-          { id: "upsc-main-gs4-5", name: "Contributions of Moral Thinkers (Indian)" },
-          { id: "upsc-main-gs4-6", name: "Contributions of Moral Thinkers (Western)" },
-          { id: "upsc-main-gs4-7", name: "Public/Civil Service Values & Ethics" },
-          { id: "upsc-main-gs4-8", name: "Governance & Integrity Issues" },
-          { id: "upsc-main-gs4-9", name: "Corporate Governance" },
-          { id: "upsc-main-gs4-10", name: "Probity in Governance" },
-          { id: "upsc-main-gs4-11", name: "Philosophical Basis of Governance" },
-          { id: "upsc-main-gs4-12", name: "Case Studies on Ethics (Practice)" }
-        ]
-      },
-      {
-        name: "Mains - Essay",
-        topics: [
-          { id: "upsc-main-essay-1", name: "Essay Writing Techniques & Structure" },
-          { id: "upsc-main-essay-2", name: "Philosophical & Abstract Topics" },
-          { id: "upsc-main-essay-3", name: "Socio-Economic Topics" },
-          { id: "upsc-main-essay-4", name: "Political & Governance Topics" },
-          { id: "upsc-main-essay-5", name: "Science & Technology Topics" },
-          { id: "upsc-main-essay-6", name: "Environment & Ecology Topics" }
+          { id: "pat-comp-1", name: "Computer Fundamentals", nameHi: "कंप्यूटर की मूल बातें" },
+          { id: "pat-comp-2", name: "MS Office — Word, Excel, PowerPoint", nameHi: "MS Office — Word, Excel, PowerPoint" },
+          { id: "pat-comp-3", name: "Internet & Email", nameHi: "इंटरनेट एवं ईमेल" },
+          { id: "pat-comp-4", name: "Database Management (Basic)", nameHi: "डेटाबेस प्रबंधन (Basic)" },
+          { id: "pat-comp-5", name: "Cyber Security Basics", nameHi: "साइबर सुरक्षा की बुनियादी जानकारी" }
         ]
       }
     ]
   },
 
-  "ssc": {
-    name: "SSC CGL",
-    fullName: "Staff Selection Commission - Combined Graduate Level",
-    icon: "📋",
-    description: "For Group B & C posts in various Government Ministries and Departments",
+  /* ─────────────────────────────────────────────────────────────
+     2. POLICE CONSTABLE / SUB INSPECTOR (SI)
+  ───────────────────────────────────────────────────────────── */
+  "cgv_police": {
+    name: "Police Constable / SI",
+    fullName: "CGVYAPAM — Police Constable & Sub Inspector Exam",
+    icon: "👮",
+    category: "police",
+    description: "Chhattisgarh Police Constable and Sub-Inspector (GD & Executive) recruitment",
+    eligibility: "10th Pass (Constable) / 12th Pass (SI)",
+    pattern: {
+      totalMarks: 100,
+      time: "2 Hours",
+      type: "Objective MCQ + Physical Test",
+      papers: [
+        { paper: "सामान्य ज्ञान (GK + CG GK)", marks: 40 },
+        { paper: "हिंदी भाषा", marks: 20 },
+        { paper: "सामान्य गणित एवं तर्कशक्ति", marks: 30 },
+        { paper: "शारीरिक दक्षता परीक्षा (Physical)", marks: "Qualifying" }
+      ]
+    },
     subjects: [
       {
-        name: "General Intelligence & Reasoning",
+        name: "सामान्य ज्ञान (General Knowledge)",
+        nameHi: "सामान्य ज्ञान",
         topics: [
-          { id: "ssc-reason-1", name: "Semantic Analogies" },
-          { id: "ssc-reason-2", name: "Symbolic & Number Analogies" },
-          { id: "ssc-reason-3", name: "Figural Analogies" },
-          { id: "ssc-reason-4", name: "Classification - Semantic & Figural" },
-          { id: "ssc-reason-5", name: "Number & Letter Series" },
-          { id: "ssc-reason-6", name: "Figural Series & Patterns" },
-          { id: "ssc-reason-7", name: "Coding-Decoding" },
-          { id: "ssc-reason-8", name: "Syllogism" },
-          { id: "ssc-reason-9", name: "Blood Relations" },
-          { id: "ssc-reason-10", name: "Direction & Distance" },
-          { id: "ssc-reason-11", name: "Venn Diagrams" },
-          { id: "ssc-reason-12", name: "Statement & Conclusion" },
-          { id: "ssc-reason-13", name: "Decision Making" },
-          { id: "ssc-reason-14", name: "Word Building & Arrangement" },
-          { id: "ssc-reason-15", name: "Missing Numbers & Patterns" },
-          { id: "ssc-reason-16", name: "Mirror & Water Image" },
-          { id: "ssc-reason-17", name: "Embedded Figures" },
-          { id: "ssc-reason-18", name: "Paper Folding & Punching" },
-          { id: "ssc-reason-19", name: "Space Visualization" },
-          { id: "ssc-reason-20", name: "Seating Arrangement & Puzzles" }
+          { id: "pol-gk-1",  name: "India History — Ancient, Medieval, Modern", nameHi: "भारत का इतिहास — प्राचीन, मध्यकालीन, आधुनिक" },
+          { id: "pol-gk-2",  name: "India Geography", nameHi: "भारत का भूगोल" },
+          { id: "pol-gk-3",  name: "Indian Constitution & Polity", nameHi: "भारतीय संविधान एवं राजव्यवस्था" },
+          { id: "pol-gk-4",  name: "Indian Economy — Basics", nameHi: "भारतीय अर्थव्यवस्था की मूलभूत बातें" },
+          { id: "pol-gk-5",  name: "General Science", nameHi: "सामान्य विज्ञान" },
+          { id: "pol-gk-6",  name: "National & International Current Affairs", nameHi: "राष्ट्रीय एवं अंतर्राष्ट्रीय करंट अफेयर्स" },
+          { id: "pol-gk-7",  name: "Sports & Awards", nameHi: "खेलकूद एवं पुरस्कार" }
         ]
       },
       {
-        name: "Quantitative Aptitude",
+        name: "छत्तीसगढ़ सामान्य ज्ञान (CG GK)",
+        nameHi: "छत्तीसगढ़ सामान्य ज्ञान",
         topics: [
-          { id: "ssc-math-1", name: "Number System & HCF/LCM" },
-          { id: "ssc-math-2", name: "Decimals & Fractions" },
-          { id: "ssc-math-3", name: "Percentage" },
-          { id: "ssc-math-4", name: "Ratio & Proportion" },
-          { id: "ssc-math-5", name: "Averages" },
-          { id: "ssc-math-6", name: "Simple & Compound Interest" },
-          { id: "ssc-math-7", name: "Profit, Loss & Discount" },
-          { id: "ssc-math-8", name: "Partnership Business" },
-          { id: "ssc-math-9", name: "Mixture & Alligation" },
-          { id: "ssc-math-10", name: "Time & Work" },
-          { id: "ssc-math-11", name: "Time, Speed & Distance" },
-          { id: "ssc-math-12", name: "Pipes & Cisterns" },
-          { id: "ssc-math-13", name: "Basic Algebra & Surds" },
-          { id: "ssc-math-14", name: "Linear Equations" },
-          { id: "ssc-math-15", name: "Geometry - Triangles" },
-          { id: "ssc-math-16", name: "Geometry - Circles & Quadrilaterals" },
-          { id: "ssc-math-17", name: "Mensuration - 2D (Area & Perimeter)" },
-          { id: "ssc-math-18", name: "Mensuration - 3D (Volume & Surface Area)" },
-          { id: "ssc-math-19", name: "Trigonometry - Ratios & Identities" },
-          { id: "ssc-math-20", name: "Trigonometry - Heights & Distances" },
-          { id: "ssc-math-21", name: "Statistics - Mean, Median, Mode" },
-          { id: "ssc-math-22", name: "Data Interpretation - Bar & Pie Charts" },
-          { id: "ssc-math-23", name: "Probability" },
-          { id: "ssc-math-24", name: "Square Root & Cube Root" },
-          { id: "ssc-math-25", name: "Age Problems" }
+          { id: "pol-cg-1",  name: "CG History", nameHi: "CG का इतिहास" },
+          { id: "pol-cg-2",  name: "CG Geography — Rivers, Hills, Sanctuaries", nameHi: "CG का भूगोल — नदियाँ, पहाड़, अभयारण्य" },
+          { id: "pol-cg-3",  name: "CG Tribes & Culture", nameHi: "CG की जनजातियाँ एवं संस्कृति" },
+          { id: "pol-cg-4",  name: "CG Administration", nameHi: "CG की प्रशासनिक व्यवस्था" },
+          { id: "pol-cg-5",  name: "CG Government Schemes", nameHi: "CG की प्रमुख सरकारी योजनाएं" },
+          { id: "pol-cg-6",  name: "CG Industries & Minerals", nameHi: "CG के प्रमुख उद्योग एवं खनिज" },
+          { id: "pol-cg-7",  name: "CG Forest & Environment", nameHi: "CG का वन एवं पर्यावरण" },
+          { id: "pol-cg-8",  name: "CG Police Organization & Functions", nameHi: "CG पुलिस संगठन एवं कार्य" },
+          { id: "pol-cg-9",  name: "CG Current Affairs", nameHi: "CG करंट अफेयर्स" }
         ]
       },
       {
-        name: "English Comprehension",
+        name: "हिंदी भाषा",
+        nameHi: "हिंदी भाषा",
         topics: [
-          { id: "ssc-eng-1", name: "Reading Comprehension" },
-          { id: "ssc-eng-2", name: "Cloze Test" },
-          { id: "ssc-eng-3", name: "Error Spotting (Grammar)" },
-          { id: "ssc-eng-4", name: "Sentence Correction" },
-          { id: "ssc-eng-5", name: "Fill in the Blanks" },
-          { id: "ssc-eng-6", name: "Synonyms & Antonyms" },
-          { id: "ssc-eng-7", name: "One Word Substitution" },
-          { id: "ssc-eng-8", name: "Idioms & Phrases" },
-          { id: "ssc-eng-9", name: "Spelling Errors" },
-          { id: "ssc-eng-10", name: "Active & Passive Voice" },
-          { id: "ssc-eng-11", name: "Direct & Indirect Speech" },
-          { id: "ssc-eng-12", name: "Para Jumbles & Sentence Rearrangement" },
-          { id: "ssc-eng-13", name: "Vocabulary in Context" },
-          { id: "ssc-eng-14", name: "Sentence Improvement" },
-          { id: "ssc-eng-15", name: "Parts of Speech & Tenses" }
+          { id: "pol-hi-1", name: "Grammar — Sandhi, Samas, Karak", nameHi: "व्याकरण — संधि, समास, कारक" },
+          { id: "pol-hi-2", name: "Vocabulary — Antonyms, Synonyms, Anekarthi", nameHi: "शब्द भंडार — विलोम, पर्यायवाची, अनेकार्थी" },
+          { id: "pol-hi-3", name: "Idioms & Proverbs", nameHi: "मुहावरे एवं लोकोक्तियां" },
+          { id: "pol-hi-4", name: "Sentence Correction", nameHi: "वाक्य शुद्धि" },
+          { id: "pol-hi-5", name: "Unseen Passage", nameHi: "अपठित गद्यांश" }
         ]
       },
       {
-        name: "General Awareness",
+        name: "गणित एवं तर्कशक्ति",
+        nameHi: "गणित एवं तर्कशक्ति",
         topics: [
-          { id: "ssc-ga-1", name: "Indian History - Ancient" },
-          { id: "ssc-ga-2", name: "Indian History - Medieval" },
-          { id: "ssc-ga-3", name: "Indian History - Modern & Freedom Struggle" },
-          { id: "ssc-ga-4", name: "Indian Geography - Physical" },
-          { id: "ssc-ga-5", name: "Indian Geography - Economic" },
-          { id: "ssc-ga-6", name: "World Geography" },
-          { id: "ssc-ga-7", name: "Indian Polity & Constitution" },
-          { id: "ssc-ga-8", name: "Indian Economy - Basics" },
-          { id: "ssc-ga-9", name: "Indian Economy - Banking & Finance" },
-          { id: "ssc-ga-10", name: "General Science - Physics" },
-          { id: "ssc-ga-11", name: "General Science - Chemistry" },
-          { id: "ssc-ga-12", name: "General Science - Biology" },
-          { id: "ssc-ga-13", name: "Current Affairs - National" },
-          { id: "ssc-ga-14", name: "Current Affairs - International" },
-          { id: "ssc-ga-15", name: "Awards, Sports & Important Dates" },
-          { id: "ssc-ga-16", name: "Books, Authors & Cultural Events" },
-          { id: "ssc-ga-17", name: "Scientific Research & Discoveries" },
-          { id: "ssc-ga-18", name: "Computer Awareness Basics" },
-          { id: "ssc-ga-19", name: "Government Schemes & Programs" },
-          { id: "ssc-ga-20", name: "Environment & Ecology Basics" }
+          { id: "pol-ma-1",  name: "Number System", nameHi: "संख्या पद्धति" },
+          { id: "pol-ma-2",  name: "Percentage, Ratio, Average", nameHi: "प्रतिशत, अनुपात, औसत" },
+          { id: "pol-ma-3",  name: "Profit-Loss & Interest", nameHi: "लाभ-हानि एवं ब्याज" },
+          { id: "pol-ma-4",  name: "Time & Work", nameHi: "समय एवं कार्य" },
+          { id: "pol-ma-5",  name: "Mensuration", nameHi: "क्षेत्रमिति" },
+          { id: "pol-ma-6",  name: "Series, Coding, Sequence", nameHi: "श्रृंखला, कोडिंग, अनुक्रम" },
+          { id: "pol-ma-7",  name: "Blood Relations, Direction Sense", nameHi: "रक्त संबंध, दिशा ज्ञान" },
+          { id: "pol-ma-8",  name: "Syllogism", nameHi: "न्याय निगमन (Syllogism)" },
+          { id: "pol-ma-9",  name: "Logical Venn Diagrams", nameHi: "तार्किक वेन आरेख" }
         ]
       }
     ]
   },
 
-  "cgpsc": {
-    name: "CGPSC",
-    fullName: "Chhattisgarh Public Service Commission - State Service Exam",
+  /* ─────────────────────────────────────────────────────────────
+     3. FOREST GUARD (वनरक्षक)
+  ───────────────────────────────────────────────────────────── */
+  "cgv_forest": {
+    name: "Forest Guard (वनरक्षक)",
+    fullName: "CGVYAPAM — Vanrakshak / Forest Guard Exam",
+    icon: "🌳",
+    category: "forest",
+    description: "Forest Department recruitment including Vanrakshak and Forester Grade posts",
+    eligibility: "10th Pass / 12th Pass",
+    pattern: {
+      totalMarks: 100,
+      time: "2 Hours",
+      type: "Objective MCQ + Physical Test",
+      papers: [
+        { paper: "General Knowledge & CG GK", marks: 40 },
+        { paper: "Hindi Language", marks: 20 },
+        { paper: "Science & Environment", marks: 25 },
+        { paper: "Mathematics & Reasoning", marks: 15 }
+      ]
+    },
+    subjects: [
+      {
+        name: "पर्यावरण एवं वन विज्ञान",
+        nameHi: "पर्यावरण एवं वन विज्ञान",
+        topics: [
+          { id: "for-env-1",  name: "CG Forests & Forest Products", nameHi: "छत्तीसगढ़ के प्रमुख वन एवं वन उत्पाद" },
+          { id: "for-env-2",  name: "CG National Parks & Sanctuaries", nameHi: "CG के राष्ट्रीय उद्यान एवं अभयारण्य" },
+          { id: "for-env-3",  name: "Wildlife Conservation & Laws", nameHi: "वन्य जीव संरक्षण एवं कानून" },
+          { id: "for-env-4",  name: "Tree Species (Sal, Teak, Bamboo etc.)", nameHi: "वृक्षों की प्रजातियाँ (Sal, Teak, Bamboo etc.)" },
+          { id: "for-env-5",  name: "Ecosystem Basics", nameHi: "पारिस्थितिकी तंत्र (Ecosystem Basics)" },
+          { id: "for-env-6",  name: "Biodiversity & Conservation", nameHi: "जैव विविधता एवं संरक्षण" },
+          { id: "for-env-7",  name: "Air, Water & Soil Pollution", nameHi: "वायु, जल एवं मृदा प्रदूषण" },
+          { id: "for-env-8",  name: "Climate Change & Global Warming", nameHi: "जलवायु परिवर्तन एवं ग्लोबल वॉर्मिंग" },
+          { id: "for-env-9",  name: "Forest Department — Functions & Rights", nameHi: "वन विभाग के कार्य एवं अधिकार" }
+        ]
+      },
+      {
+        name: "छत्तीसगढ़ सामान्य ज्ञान",
+        nameHi: "छत्तीसगढ़ सामान्य ज्ञान",
+        topics: [
+          { id: "for-cg-1",  name: "CG Geography — Rivers, Plateaus, Hills", nameHi: "CG का भूगोल — नदियाँ, पठार, पर्वत" },
+          { id: "for-cg-2",  name: "CG History", nameHi: "CG का इतिहास" },
+          { id: "for-cg-3",  name: "CG Tribes & Forest Culture", nameHi: "CG की जनजातियाँ एवं वनवासी संस्कृति" },
+          { id: "for-cg-4",  name: "CG Forest Cover & Area", nameHi: "CG का वन आवरण एवं वन क्षेत्र" },
+          { id: "for-cg-5",  name: "CG Environment Schemes", nameHi: "CG सरकार की पर्यावरण योजनाएं" },
+          { id: "for-cg-6",  name: "CG Minerals & Natural Resources", nameHi: "CG के खनिज एवं प्राकृतिक संसाधन" }
+        ]
+      },
+      {
+        name: "सामान्य ज्ञान एवं विज्ञान",
+        nameHi: "सामान्य ज्ञान एवं विज्ञान",
+        topics: [
+          { id: "for-gk-1",  name: "India Geography & History", nameHi: "भारत का भूगोल एवं इतिहास" },
+          { id: "for-gk-2",  name: "Indian Constitution — Basics", nameHi: "भारतीय संविधान की मूल बातें" },
+          { id: "for-gk-3",  name: "Biology — Plants & Animals", nameHi: "जीव विज्ञान — पौधे एवं प्राणी" },
+          { id: "for-gk-4",  name: "Physics & Chemistry (Class 10)", nameHi: "भौतिकी एवं रसायन विज्ञान (Class 10 Level)" },
+          { id: "for-gk-5",  name: "Current Affairs (National + CG)", nameHi: "करंट अफेयर्स (National + CG)" }
+        ]
+      },
+      {
+        name: "हिंदी भाषा",
+        nameHi: "हिंदी भाषा",
+        topics: [
+          { id: "for-hi-1", name: "Hindi Grammar", nameHi: "हिंदी व्याकरण" },
+          { id: "for-hi-2", name: "Vocabulary", nameHi: "शब्द भंडार" },
+          { id: "for-hi-3", name: "Idioms & Proverbs", nameHi: "मुहावरे एवं लोकोक्तियां" },
+          { id: "for-hi-4", name: "Sentence Correction", nameHi: "वाक्य शुद्धि" }
+        ]
+      },
+      {
+        name: "गणित एवं तर्कशक्ति",
+        nameHi: "गणित एवं तर्कशक्ति",
+        topics: [
+          { id: "for-ma-1", name: "Basic Mathematics (10th Level)", nameHi: "बुनियादी गणित (10th Level)" },
+          { id: "for-ma-2", name: "Number Series & Reasoning", nameHi: "संख्या श्रृंखला एवं तर्कशक्ति" },
+          { id: "for-ma-3", name: "Blood Relations & Direction Sense", nameHi: "रक्त संबंध, दिशा ज्ञान" }
+        ]
+      }
+    ]
+  },
+
+  /* ─────────────────────────────────────────────────────────────
+     4. SHIKSHAK / TEACHER (व्याख्याता)
+  ───────────────────────────────────────────────────────────── */
+  "cgv_teacher": {
+    name: "Shikshak / Teacher (TET)",
+    fullName: "CGVYAPAM — Teacher Eligibility Test & Shiksha Karmi",
+    icon: "📖",
+    category: "teaching",
+    description: "Primary & Secondary school teacher recruitment including TET, Shiksha Karmi, and Lecturer posts",
+    eligibility: "B.Ed / DEd / TET qualified",
+    pattern: {
+      totalMarks: 150,
+      time: "2.5 Hours",
+      type: "Objective MCQ",
+      papers: [
+        { paper: "Child Development & Pedagogy", marks: 30 },
+        { paper: "Language I — Hindi", marks: 30 },
+        { paper: "Language II — English / Sanskrit", marks: 30 },
+        { paper: "Subject Specific (Math / Science / Social)", marks: 60 }
+      ]
+    },
+    subjects: [
+      {
+        name: "बाल विकास एवं शिक्षाशास्त्र (CDP)",
+        nameHi: "बाल विकास एवं शिक्षाशास्त्र",
+        topics: [
+          { id: "tea-cdp-1",  name: "Child Development Concepts & Learning", nameHi: "बाल विकास की अवधारणाएं एवं अधिगम" },
+          { id: "tea-cdp-2",  name: "Theories — Piaget, Vygotsky, Kohlberg", nameHi: "Piaget, Vygotsky, Kohlberg का सिद्धांत" },
+          { id: "tea-cdp-3",  name: "Intelligence & Multiple Intelligences (Gardner)", nameHi: "बुद्धि एवं बहु-बुद्धि सिद्धांत (Howard Gardner)" },
+          { id: "tea-cdp-4",  name: "Learning Problems — Dyslexia, ADHD", nameHi: "अधिगम की समस्याएं — Dyslexia, ADHD" },
+          { id: "tea-cdp-5",  name: "Inclusive Education", nameHi: "समावेशी शिक्षा (Inclusive Education)" },
+          { id: "tea-cdp-6",  name: "Assessment & Evaluation", nameHi: "मूल्यांकन एवं आकलन" },
+          { id: "tea-cdp-7",  name: "NCF 2005 & RTE Act 2009", nameHi: "NCF 2005 एवं RTE Act 2009" },
+          { id: "tea-cdp-8",  name: "Motivation & Learning", nameHi: "मोटिवेशन एवं अधिगम" },
+          { id: "tea-cdp-9",  name: "Language & Thought Development", nameHi: "भाषा एवं विचार का विकास" }
+        ]
+      },
+      {
+        name: "हिंदी भाषा (Language I)",
+        nameHi: "हिंदी भाषा (भाषा-I)",
+        topics: [
+          { id: "tea-hi-1", name: "Hindi Grammar — Complete", nameHi: "हिंदी व्याकरण — संपूर्ण" },
+          { id: "tea-hi-2", name: "Hindi Literature — Periods & Works", nameHi: "हिंदी साहित्य — काल एवं प्रमुख रचनाएं" },
+          { id: "tea-hi-3", name: "Language Teaching Methods", nameHi: "भाषा अध्यापन की विधियां" },
+          { id: "tea-hi-4", name: "Reading & Writing Skills", nameHi: "पठन-लेखन कौशल" },
+          { id: "tea-hi-5", name: "Unseen Passage (Prose & Poetry)", nameHi: "अपठित गद्यांश एवं पद्यांश" }
+        ]
+      },
+      {
+        name: "अंग्रेजी भाषा (Language II)",
+        nameHi: "अंग्रेजी भाषा (भाषा-II)",
+        topics: [
+          { id: "tea-en-1", name: "English Grammar — Tenses, Articles, Prepositions", nameHi: "English Grammar — All Tenses, Articles, Prepositions" },
+          { id: "tea-en-2", name: "Vocabulary — Synonyms, Antonyms, Idioms", nameHi: "Vocabulary — Synonyms, Antonyms, Idioms" },
+          { id: "tea-en-3", name: "Reading Comprehension", nameHi: "Reading Comprehension" },
+          { id: "tea-en-4", name: "Language Teaching Methodology", nameHi: "Language Teaching Methodology" },
+          { id: "tea-en-5", name: "Error Detection & Sentence Correction", nameHi: "Error Detection & Sentence Correction" }
+        ]
+      },
+      {
+        name: "गणित एवं विज्ञान (Primary Level)",
+        nameHi: "गणित एवं विज्ञान (प्राथमिक स्तर)",
+        topics: [
+          { id: "tea-ms-1",  name: "Number System & Arithmetic", nameHi: "संख्या प्रणाली एवं अंकगणित" },
+          { id: "tea-ms-2",  name: "Algebra Basics", nameHi: "बीजगणित की मूल बातें" },
+          { id: "tea-ms-3",  name: "Geometry — Triangles, Circles, Polygons", nameHi: "ज्यामिति — त्रिभुज, वृत्त, बहुभुज" },
+          { id: "tea-ms-4",  name: "Mensuration", nameHi: "क्षेत्रमिति (Mensuration)" },
+          { id: "tea-ms-5",  name: "General Science — Physics, Chemistry, Biology", nameHi: "सामान्य विज्ञान — भौतिकी, रसायन, जीव" },
+          { id: "tea-ms-6",  name: "Environmental Studies", nameHi: "पर्यावरण अध्ययन" }
+        ]
+      },
+      {
+        name: "सामाजिक विज्ञान (Social Studies)",
+        nameHi: "सामाजिक विज्ञान",
+        topics: [
+          { id: "tea-ss-1", name: "India History & Civilizations", nameHi: "भारत का इतिहास एवं सभ्यताएं" },
+          { id: "tea-ss-2", name: "Geography — India & World", nameHi: "भूगोल — भारत एवं विश्व" },
+          { id: "tea-ss-3", name: "Indian Constitution & Polity", nameHi: "भारतीय संविधान एवं राजव्यवस्था" },
+          { id: "tea-ss-4", name: "Economics Basics", nameHi: "अर्थशास्त्र की मूल बातें" },
+          { id: "tea-ss-5", name: "CG History & Culture", nameHi: "CG का इतिहास एवं संस्कृति" }
+        ]
+      }
+    ]
+  },
+
+  /* ─────────────────────────────────────────────────────────────
+     5. FOOD INSPECTOR (खाद्य निरीक्षक)
+  ───────────────────────────────────────────────────────────── */
+  "cgv_food": {
+    name: "Food Inspector (खाद्य निरीक्षक)",
+    fullName: "CGVYAPAM — Food Inspector Exam",
+    icon: "🌾",
+    category: "administrative",
+    description: "Food & Civil Supplies Department—food inspector, store keeper & allied posts",
+    eligibility: "Graduate (Science preferred)",
+    pattern: {
+      totalMarks: 100,
+      time: "2 Hours",
+      type: "Objective MCQ",
+      papers: [
+        { paper: "General Knowledge & CG GK", marks: 35 },
+        { paper: "Hindi Language", marks: 20 },
+        { paper: "Reasoning & Mathematics", marks: 25 },
+        { paper: "Food & Science Knowledge", marks: 20 }
+      ]
+    },
+    subjects: [
+      {
+        name: "खाद्य एवं विज्ञान ज्ञान",
+        nameHi: "खाद्य एवं विज्ञान ज्ञान",
+        topics: [
+          { id: "food-sci-1",  name: "Food Quality & Standards", nameHi: "खाद्य पदार्थों की गुणवत्ता एवं मानक" },
+          { id: "food-sci-2",  name: "FSSAI — Food Safety Standards", nameHi: "भारतीय खाद्य सुरक्षा मानक (FSSAI)" },
+          { id: "food-sci-3",  name: "Food Adulteration — Tests & Laws", nameHi: "खाद्य अपमिश्रण — जांच एवं कानून" },
+          { id: "food-sci-4",  name: "Essential Commodities Act", nameHi: "Essential Commodities Act" },
+          { id: "food-sci-5",  name: "CG Public Distribution System (PDS)", nameHi: "CG सार्वजनिक वितरण प्रणाली (PDS)" },
+          { id: "food-sci-6",  name: "Foodgrain Procurement & Storage Policy", nameHi: "खाद्यान्न खरीद एवं भंडारण नीति" },
+          { id: "food-sci-7",  name: "Chemistry — Acids, Bases, Salts", nameHi: "रसायन विज्ञान — अम्ल, क्षार, लवण" },
+          { id: "food-sci-8",  name: "Biology — Nutrition & Health", nameHi: "जीव विज्ञान — पोषण एवं स्वास्थ्य" }
+        ]
+      },
+      {
+        name: "छत्तीसगढ़ एवं भारत सामान्य ज्ञान",
+        nameHi: "छत्तीसगढ़ एवं भारत सामान्य ज्ञान",
+        topics: [
+          { id: "food-gk-1",  name: "CG History, Geography, Polity", nameHi: "CG का इतिहास, भूगोल, राजव्यवस्था" },
+          { id: "food-gk-2",  name: "CG Food & Agriculture Policy", nameHi: "CG की खाद्य व कृषि नीति" },
+          { id: "food-gk-3",  name: "Indian Constitution & Polity", nameHi: "भारतीय संविधान एवं राजव्यवस्था" },
+          { id: "food-gk-4",  name: "Indian Economy — Agriculture", nameHi: "भारतीय अर्थव्यवस्था — कृषि" },
+          { id: "food-gk-5",  name: "National & CG Current Affairs", nameHi: "राष्ट्रीय एवं CG करंट अफेयर्स" }
+        ]
+      },
+      {
+        name: "हिंदी भाषा",
+        nameHi: "हिंदी भाषा",
+        topics: [
+          { id: "food-hi-1", name: "Hindi Grammar", nameHi: "हिंदी व्याकरण" },
+          { id: "food-hi-2", name: "Vocabulary & Idioms", nameHi: "शब्द भंडार एवं मुहावरे" },
+          { id: "food-hi-3", name: "Sentence Correction", nameHi: "वाक्य शुद्धि" }
+        ]
+      },
+      {
+        name: "गणित एवं तर्कशक्ति",
+        nameHi: "गणित एवं तर्कशक्ति",
+        topics: [
+          { id: "food-ma-1", name: "Basic Mathematics", nameHi: "बुनियादी गणित" },
+          { id: "food-ma-2", name: "Number Series & Reasoning", nameHi: "संख्या श्रृंखला एवं तर्क" },
+          { id: "food-ma-3", name: "Problem Solving & Data Interpretation", nameHi: "समस्या समाधान एवं डेटा व्याख्या" }
+        ]
+      }
+    ]
+  },
+
+  /* ─────────────────────────────────────────────────────────────
+     6. SUB ENGINEER — CIVIL / ELECTRICAL / MECHANICAL
+  ───────────────────────────────────────────────────────────── */
+  "cgv_sub_eng": {
+    name: "Sub Engineer (Civil/Elec./Mech.)",
+    fullName: "CGVYAPAM — Sub Engineer (Civil, Electrical, Mechanical) Exam",
+    icon: "⚙️",
+    category: "technical",
+    description: "PWD, PHE & Electrical Department sub-engineer recruitment",
+    eligibility: "Diploma in Engineering (Civil/Electrical/Mechanical)",
+    pattern: {
+      totalMarks: 150,
+      time: "3 Hours",
+      type: "Objective MCQ",
+      papers: [
+        { paper: "सामान्य ज्ञान एवं हिंदी (GK + Hindi)", marks: 50 },
+        { paper: "Technical Subject (Civil/Elec./Mech.)", marks: 100 }
+      ]
+    },
+    subjects: [
+      {
+        name: "Civil Engineering — Diploma Level",
+        nameHi: "सिविल इंजीनियरिंग — डिप्लोमा स्तर",
+        topics: [
+          { id: "se-civ-1",  name: "Building Materials — Brick, Cement, Steel, Timber", nameHi: "निर्माण सामग्री — ईंट, सीमेंट, स्टील, लकड़ी" },
+          { id: "se-civ-2",  name: "Surveying — Chain, Compass, Levelling", nameHi: "सर्वेक्षण — चेन, कम्पास, लेवलिंग" },
+          { id: "se-civ-3",  name: "Soil Mechanics — Classification, Bearing Capacity", nameHi: "मृदा यांत्रिकी — वर्गीकरण, वहन क्षमता" },
+          { id: "se-civ-4",  name: "Concrete Technology — Mix Design, Testing", nameHi: "कंक्रीट तकनीक — मिक्स डिजाइन, परीक्षण" },
+          { id: "se-civ-5",  name: "Structural Analysis — Beams, Columns, Slabs", nameHi: "संरचनात्मक विश्लेषण — बीम, स्तंभ, स्लैब" },
+          { id: "se-civ-6",  name: "RCC Design — IS Code Basics", nameHi: "RCC डिजाइन — IS Code Basics" },
+          { id: "se-civ-7",  name: "Road Construction — BT, WBM, Flexible Pavement", nameHi: "सड़क निर्माण — BT, WBM, लचीला फुटपाथ" },
+          { id: "se-civ-8",  name: "Irrigation Engineering — CG Projects", nameHi: "सिंचाई इंजीनियरिंग — CG परियोजनाएं" },
+          { id: "se-civ-9",  name: "Water Supply & Sanitation", nameHi: "जल आपूर्ति एवं स्वच्छता" },
+          { id: "se-civ-10", name: "Estimating, Costing & Valuation", nameHi: "अनुमान, लागत एवं मूल्यांकन" },
+          { id: "se-civ-11", name: "Drawing & Specification Reading", nameHi: "ड्राइंग एवं विशिष्टता पठन" }
+        ]
+      },
+      {
+        name: "Electrical Engineering — Diploma Level",
+        nameHi: "विद्युत इंजीनियरिंग — डिप्लोमा स्तर",
+        topics: [
+          { id: "se-ele-1",  name: "Basic Electrical — Ohm's Law, KVL, KCL", nameHi: "बुनियादी विद्युत — ओम का नियम, KVL, KCL" },
+          { id: "se-ele-2",  name: "AC Circuits — Single & Three Phase", nameHi: "AC परिपथ — एकल एवं तीन चरण" },
+          { id: "se-ele-3",  name: "Transformers — Types, Working, Tests", nameHi: "ट्रांसफार्मर — प्रकार, कार्यप्र णाली, परीक्षण" },
+          { id: "se-ele-4",  name: "DC & AC Machines", nameHi: "DC एवं AC मशीनें" },
+          { id: "se-ele-5",  name: "Power Systems — Transmission & Distribution", nameHi: "शक्ति तंत्र — पारेषण एवं वितरण" },
+          { id: "se-ele-6",  name: "Control Systems Basics", nameHi: "नियंत्रण तंत्र की मूल बातें" },
+          { id: "se-ele-7",  name: "Electrical Wiring, Earthing & Protection", nameHi: "विद्युत वायरिंग, अर्थिंग एवं सुरक्षा" },
+          { id: "se-ele-8",  name: "Electronics Basics — Diodes, Transistors", nameHi: "इलेक्ट्रॉनिक्स — डायोड, ट्रांजिस्टर" },
+          { id: "se-ele-9",  name: "Electrical Measurements & Instruments", nameHi: "विद्युत मापन एवं उपकरण" }
+        ]
+      },
+      {
+        name: "Mechanical Engineering — Diploma Level",
+        nameHi: "यांत्रिक इंजीनियरिंग — डिप्लोमा स्तर",
+        topics: [
+          { id: "se-mec-1",  name: "Engineering Mechanics — Statics & Dynamics", nameHi: "इंजीनियरिंग मैकेनिक्स — स्थैतिकी एवं गतिकी" },
+          { id: "se-mec-2",  name: "Strength of Materials", nameHi: "सामग्री की शक्ति" },
+          { id: "se-mec-3",  name: "Thermodynamics & Heat Engines", nameHi: "ऊष्मागतिकी एवं ताप इंजन" },
+          { id: "se-mec-4",  name: "Manufacturing Processes", nameHi: "विनिर्माण प्रक्रियाएं" },
+          { id: "se-mec-5",  name: "Machine Design — Basics", nameHi: "मशीन डिजाइन — मूल बातें" },
+          { id: "se-mec-6",  name: "Fluid Mechanics & Hydraulics", nameHi: "तरल यांत्रिकी एवं जलगतिकी" },
+          { id: "se-mec-7",  name: "Workshop Technology & Metrology", nameHi: "वर्कशाप तकनीक एवं मेट्रोलॉजी" }
+        ]
+      },
+      {
+        name: "सामान्य ज्ञान एवं हिंदी",
+        nameHi: "सामान्य ज्ञान एवं हिंदी",
+        topics: [
+          { id: "se-gk-1", name: "CG History, Geography, Polity", nameHi: "CG इतिहास, भूगोल, राजव्यवस्था" },
+          { id: "se-gk-2", name: "India History & Geography", nameHi: "भारत का इतिहास एवं भूगोल" },
+          { id: "se-gk-3", name: "Indian Constitution", nameHi: "भारतीय संविधान" },
+          { id: "se-gk-4", name: "Science & Technology Current Affairs", nameHi: "विज्ञान एवं प्रौद्योगिकी करंट अफेयर्स" },
+          { id: "se-gk-5", name: "Hindi Grammar & Vocabulary", nameHi: "हिंदी व्याकरण एवं शब्द भंडार" }
+        ]
+      }
+    ]
+  },
+
+  /* ─────────────────────────────────────────────────────────────
+     7. NAIB TEHSILDAR / DEPUTY COLLECTOR EXAM (CGPSC-CGVYAPAM Allied)
+  ───────────────────────────────────────────────────────────── */
+  "cgv_naib": {
+    name: "Naib Tehsildar / Revenue",
+    fullName: "CGVYAPAM — Naib Tehsildar & Revenue Dept. Exam",
     icon: "🏢",
-    description: "State civil services exam for administrative positions in Chhattisgarh",
+    category: "administrative",
+    description: "Revenue & district administration recruitment — Naib Tehsildar, RI, Peon posts",
+    eligibility: "Graduate",
+    pattern: {
+      totalMarks: 200,
+      time: "3 Hours",
+      type: "Objective MCQ",
+      papers: [
+        { paper: "Paper-I: General Studies & CG GK", marks: 100 },
+        { paper: "Paper-II: Hindi & Reasoning / Aptitude", marks: 100 }
+      ]
+    },
     subjects: [
       {
-        name: "Prelims - General Studies",
+        name: "सामान्य अध्ययन — भारत (General Studies)",
+        nameHi: "सामान्य अध्ययन (भारत)",
         topics: [
-          { id: "cgpsc-pre-1", name: "History of India - Ancient & Medieval" },
-          { id: "cgpsc-pre-2", name: "History of India - Modern Period" },
-          { id: "cgpsc-pre-3", name: "Indian National Movement" },
-          { id: "cgpsc-pre-4", name: "History of Chhattisgarh" },
-          { id: "cgpsc-pre-5", name: "CG's Contribution to Freedom Movement" },
-          { id: "cgpsc-pre-6", name: "Physical Geography of India" },
-          { id: "cgpsc-pre-7", name: "Geography of Chhattisgarh" },
-          { id: "cgpsc-pre-8", name: "Constitution of India & Governance" },
-          { id: "cgpsc-pre-9", name: "Administrative Structure of CG" },
-          { id: "cgpsc-pre-10", name: "Local Government & Panchayati Raj in CG" },
-          { id: "cgpsc-pre-11", name: "Indian Economy - Basics" },
-          { id: "cgpsc-pre-12", name: "Economy of Chhattisgarh" },
-          { id: "cgpsc-pre-13", name: "Forest & Agriculture of CG" },
-          { id: "cgpsc-pre-14", name: "General Science & Technology" },
-          { id: "cgpsc-pre-15", name: "Indian Art, Culture & Philosophy" },
-          { id: "cgpsc-pre-16", name: "Tribes of Chhattisgarh" },
-          { id: "cgpsc-pre-17", name: "CG Traditions, Festivals & Folk Culture" },
-          { id: "cgpsc-pre-18", name: "CG Energy, Water & Mineral Resources" },
-          { id: "cgpsc-pre-19", name: "Environment & Ecology" },
-          { id: "cgpsc-pre-20", name: "Current Affairs - National & State" },
-          { id: "cgpsc-pre-21", name: "Sports & Important Events" }
+          { id: "nt-gs-1",  name: "India History — Ancient, Medieval", nameHi: "भारत का इतिहास — प्राचीन, मध्यकालीन" },
+          { id: "nt-gs-2",  name: "India History — Modern Period", nameHi: "भारत का इतिहास — आधुनिक काल" },
+          { id: "nt-gs-3",  name: "India Geography", nameHi: "भारत का भूगोल" },
+          { id: "nt-gs-4",  name: "Indian Constitution — Fundamental Rights, DPSP", nameHi: "भारतीय संविधान — मूल अधिकार, DPSP" },
+          { id: "nt-gs-5",  name: "Indian Polity — Centre, State, Judiciary", nameHi: "भारतीय राजव्यवस्था — केंद्र, राज्य, न्यायपालिका" },
+          { id: "nt-gs-6",  name: "Indian Economy", nameHi: "भारतीय अर्थव्यवस्था" },
+          { id: "nt-gs-7",  name: "General Science", nameHi: "सामान्य विज्ञान" },
+          { id: "nt-gs-8",  name: "Environment & Ecology", nameHi: "पर्यावरण एवं पारिस्थितिकी" },
+          { id: "nt-gs-9",  name: "National Current Affairs", nameHi: "राष्ट्रीय करंट अफेयर्स" }
         ]
       },
       {
-        name: "Prelims - Aptitude Test (CSAT)",
+        name: "छत्तीसगढ़ विशेष GK (CG Special)",
+        nameHi: "छत्तीसगढ़ विशेष GK",
         topics: [
-          { id: "cgpsc-csat-1", name: "Logical Reasoning" },
-          { id: "cgpsc-csat-2", name: "Analytical Ability" },
-          { id: "cgpsc-csat-3", name: "Decision Making & Problem Solving" },
-          { id: "cgpsc-csat-4", name: "General Mental Ability" },
-          { id: "cgpsc-csat-5", name: "Basic Numeracy (Class 10)" },
-          { id: "cgpsc-csat-6", name: "Data Interpretation" },
-          { id: "cgpsc-csat-7", name: "Communication Skills" },
-          { id: "cgpsc-csat-8", name: "Hindi Language Knowledge" },
-          { id: "cgpsc-csat-9", name: "Chhattisgarhi Language Basics" },
-          { id: "cgpsc-csat-10", name: "Reading Comprehension" }
+          { id: "nt-cg-1",  name: "CG History — Ancient to Modern", nameHi: "CG का इतिहास — प्राचीन से आधुनिक" },
+          { id: "nt-cg-2",  name: "CG Geography — Rivers, Climate, Soil", nameHi: "CG का भूगोल — नदी, जलवायु, मिट्टी" },
+          { id: "nt-cg-3",  name: "CG Tribes & Social Structure", nameHi: "CG की जनजातियाँ एवं सामाजिक संरचना" },
+          { id: "nt-cg-4",  name: "CG Culture, Art & Literature", nameHi: "CG की संस्कृति, कला एवं साहित्य" },
+          { id: "nt-cg-5",  name: "CG Administrative Structure", nameHi: "CG की प्रशासनिक संरचना" },
+          { id: "nt-cg-6",  name: "CG Economy & Agriculture", nameHi: "CG की अर्थव्यवस्था एवं कृषि" },
+          { id: "nt-cg-7",  name: "CG Industries & Mineral Wealth", nameHi: "CG के उद्योग एवं खनिज संपदा" },
+          { id: "nt-cg-8",  name: "CG Flagship Government Schemes", nameHi: "CG सरकार की फ्लैगशिप योजनाएं" },
+          { id: "nt-cg-9",  name: "CG Current Affairs", nameHi: "CG की वर्तमान घटनाएं" },
+          { id: "nt-cg-10", name: "Revenue Administration & Land Records", nameHi: "राजस्व प्रशासन एवं भूमि अभिलेख प्रणाली" }
         ]
       },
       {
-        name: "Mains - Paper I (Language)",
+        name: "हिंदी भाषा (विस्तृत)",
+        nameHi: "हिंदी भाषा (विस्तृत)",
         topics: [
-          { id: "cgpsc-main1-1", name: "Hindi Essay Writing" },
-          { id: "cgpsc-main1-2", name: "Hindi Grammar" },
-          { id: "cgpsc-main1-3", name: "Hindi Comprehension" },
-          { id: "cgpsc-main1-4", name: "English Essay Writing" },
-          { id: "cgpsc-main1-5", name: "English Grammar" },
-          { id: "cgpsc-main1-6", name: "English Comprehension" },
-          { id: "cgpsc-main1-7", name: "Chhattisgarhi Language & Literature" }
+          { id: "nt-hi-1",  name: "Hindi Grammar — Sandhi, Samas, Karak, Vachan", nameHi: "हिंदी व्याकरण — संधि, समास, कारक, वचन" },
+          { id: "nt-hi-2",  name: "Upsarg, Pratyay, Tatsam-Tadbhav", nameHi: "उपसर्ग, प्रत्यय, तत्सम-तद्भव" },
+          { id: "nt-hi-3",  name: "Antonyms, Synonyms, Multi-meaning Words", nameHi: "विलोम, पर्यायवाची, अनेकार्थी शब्द" },
+          { id: "nt-hi-4",  name: "Idioms & Proverbs", nameHi: "मुहावरे एवं लोकोक्तियां" },
+          { id: "nt-hi-5",  name: "Sentence Correction & Spelling", nameHi: "वाक्य शुद्धि एवं वर्तनी" },
+          { id: "nt-hi-6",  name: "Hindi Authors & Literary Works", nameHi: "हिंदी साहित्यकार एवं रचनाएं" },
+          { id: "nt-hi-7",  name: "Unseen Passage", nameHi: "अपठित गद्यांश" }
         ]
       },
       {
-        name: "Mains - Paper II (Essay)",
+        name: "तर्कशक्ति एवं अभिक्षमता",
+        nameHi: "तर्कशक्ति एवं अभिक्षमता",
         topics: [
-          { id: "cgpsc-main2-1", name: "National Issues Essay Writing" },
-          { id: "cgpsc-main2-2", name: "International Issues Essay Writing" },
-          { id: "cgpsc-main2-3", name: "Chhattisgarh State Issues Essay" },
-          { id: "cgpsc-main2-4", name: "Social & Cultural Topics" },
-          { id: "cgpsc-main2-5", name: "Science & Technology Topics" }
-        ]
-      },
-      {
-        name: "Mains - Paper III (History & Constitution)",
-        topics: [
-          { id: "cgpsc-main3-1", name: "Indian History - Freedom Struggle Details" },
-          { id: "cgpsc-main3-2", name: "Post-Independence India" },
-          { id: "cgpsc-main3-3", name: "History of Chhattisgarh (Detailed)" },
-          { id: "cgpsc-main3-4", name: "Indian Constitution - Features & Amendments" },
-          { id: "cgpsc-main3-5", name: "Fundamental Rights & DPSP" },
-          { id: "cgpsc-main3-6", name: "Public Administration - Union & State" },
-          { id: "cgpsc-main3-7", name: "Judiciary System" },
-          { id: "cgpsc-main3-8", name: "District & Revenue Administration in CG" }
-        ]
-      },
-      {
-        name: "Mains - Paper IV (Science & Technology)",
-        topics: [
-          { id: "cgpsc-main4-1", name: "General Science (Physics)" },
-          { id: "cgpsc-main4-2", name: "General Science (Chemistry)" },
-          { id: "cgpsc-main4-3", name: "General Science (Biology)" },
-          { id: "cgpsc-main4-4", name: "Information Technology & Computers" },
-          { id: "cgpsc-main4-5", name: "Space Technology & ISRO" },
-          { id: "cgpsc-main4-6", name: "Biotechnology & Nanotechnology" },
-          { id: "cgpsc-main4-7", name: "Energy Resources & Renewable Energy" },
-          { id: "cgpsc-main4-8", name: "Environmental Science & Conservation" },
-          { id: "cgpsc-main4-9", name: "Biodiversity & Wildlife" },
-          { id: "cgpsc-main4-10", name: "Pollution & Waste Management" }
-        ]
-      },
-      {
-        name: "Mains - Paper V (Economics & Geography)",
-        topics: [
-          { id: "cgpsc-main5-1", name: "Indian Economy - Planning & Reforms" },
-          { id: "cgpsc-main5-2", name: "Economic Development Indicators" },
-          { id: "cgpsc-main5-3", name: "Banking & Financial Institutions" },
-          { id: "cgpsc-main5-4", name: "CG Economy & Budget" },
-          { id: "cgpsc-main5-5", name: "CG Agriculture & Industry" },
-          { id: "cgpsc-main5-6", name: "Physical Geography of India" },
-          { id: "cgpsc-main5-7", name: "CG Geography - Rivers, Soil, Climate" },
-          { id: "cgpsc-main5-8", name: "Natural Resources of CG" },
-          { id: "cgpsc-main5-9", name: "International Trade & WTO" }
-        ]
-      },
-      {
-        name: "Mains - Paper VI (Philosophy & Sociology)",
-        topics: [
-          { id: "cgpsc-main6-1", name: "Indian Philosophy - Schools of Thought" },
-          { id: "cgpsc-main6-2", name: "Western Philosophy - Key Thinkers" },
-          { id: "cgpsc-main6-3", name: "Ethics & Values in Administration" },
-          { id: "cgpsc-main6-4", name: "Indian Society - Structure & Change" },
-          { id: "cgpsc-main6-5", name: "Chhattisgarh Society - Tribes & Communities" },
-          { id: "cgpsc-main6-6", name: "Social Problems & Solutions" },
-          { id: "cgpsc-main6-7", name: "Women Empowerment & Gender Issues" },
-          { id: "cgpsc-main6-8", name: "Rural Sociology & Community Development" }
+          { id: "nt-re-1",  name: "Number Series & Letter Sequence", nameHi: "संख्या श्रृंखला एवं अक्षर श्रेणी" },
+          { id: "nt-re-2",  name: "Coding-Decoding", nameHi: "कोडिंग-डिकोडिंग" },
+          { id: "nt-re-3",  name: "Blood Relations", nameHi: "रक्त संबंध" },
+          { id: "nt-re-4",  name: "Direction & Distance", nameHi: "दिशा एवं दूरी" },
+          { id: "nt-re-5",  name: "Syllogism", nameHi: "न्याय निगमन (Syllogism)" },
+          { id: "nt-re-6",  name: "Ranking & Arrangement", nameHi: "क्रम व्यवस्था (Ranking & Arrangement)" },
+          { id: "nt-re-7",  name: "Data Sufficiency", nameHi: "डेटा पर्याप्तता" },
+          { id: "nt-re-8",  name: "Numerical Aptitude", nameHi: "संख्यात्मक अभिक्षमता (Numeracy)" }
         ]
       }
     ]
   },
 
-  "cgvyapam": {
-    name: "CG Vyapam",
-    fullName: "Chhattisgarh Professional Examination Board",
-    icon: "📝",
-    description: "Various state-level recruitment exams for Chhattisgarh government posts",
+  /* ─────────────────────────────────────────────────────────────
+     8. NURSING / HEALTH DEPARTMENT (ANM / Staff Nurse / Mitanin)
+  ───────────────────────────────────────────────────────────── */
+  "cgv_health": {
+    name: "Staff Nurse / ANM / Health",
+    fullName: "CGVYAPAM — Staff Nurse, ANM & Health Department Exam",
+    icon: "🏥",
+    category: "health",
+    description: "Health department recruitment — Staff Nurse, ANM, Lab Technician, Pharmacist",
+    eligibility: "ANM / GNM / B.Sc Nursing",
+    pattern: {
+      totalMarks: 150,
+      time: "2.5 Hours",
+      type: "Objective MCQ",
+      papers: [
+        { paper: "General Knowledge & CG GK", marks: 30 },
+        { paper: "Hindi Language", marks: 20 },
+        { paper: "Nursing / Health Subject", marks: 100 }
+      ]
+    },
     subjects: [
       {
-        name: "General Knowledge (India)",
+        name: "Nursing & Health Science",
+        nameHi: "नर्सिंग एवं स्वास्थ्य विज्ञान",
         topics: [
-          { id: "cgv-gk-1", name: "Indian History - Major Events & Dynasties" },
-          { id: "cgv-gk-2", name: "Modern India & Freedom Struggle" },
-          { id: "cgv-gk-3", name: "Indian Geography - Physical Features" },
-          { id: "cgv-gk-4", name: "Indian Geography - Agriculture & Resources" },
-          { id: "cgv-gk-5", name: "Indian Polity - Constitution Basics" },
-          { id: "cgv-gk-6", name: "Indian Economy - Fundamentals" },
-          { id: "cgv-gk-7", name: "General Science - Physics Basics" },
-          { id: "cgv-gk-8", name: "General Science - Chemistry Basics" },
-          { id: "cgv-gk-9", name: "General Science - Biology & Health" },
-          { id: "cgv-gk-10", name: "Current Affairs & Government Schemes" }
+          { id: "nur-1",  name: "Anatomy & Physiology — Human Body Systems", nameHi: "शारीरिक रचना एवं शरीर क्रिया विज्ञान" },
+          { id: "nur-2",  name: "Microbiology — Bacteria, Virus, Fungi", nameHi: "सूक्ष्म जीव विज्ञान — बैक्टीरिया, वायरस, फफूंद" },
+          { id: "nur-3",  name: "Pharmacology Basics — Drug Classification", nameHi: "फार्माकोलॉजी — औषधि वर्गीकरण" },
+          { id: "nur-4",  name: "Community Health Nursing", nameHi: "सामुदायिक स्वास्थ्य नर्सिंग" },
+          { id: "nur-5",  name: "Child Health Nursing (Paediatric)", nameHi: "बाल स्वास्थ्य नर्सिंग (Paediatric)" },
+          { id: "nur-6",  name: "Midwifery & Obstetric Nursing", nameHi: "प्रसूति एवं स्त्री रोग नर्सिंग" },
+          { id: "nur-7",  name: "Medical-Surgical Nursing", nameHi: "चिकित्सा-शल्य नर्सिंग" },
+          { id: "nur-8",  name: "Mental Health Nursing", nameHi: "मानसिक स्वास्थ्य नर्सिंग" },
+          { id: "nur-9",  name: "First Aid & Emergency Care", nameHi: "प्राथमिक चिकित्सा एवं आपातकालीन देखभाल" },
+          { id: "nur-10", name: "Nutrition & Dietetics", nameHi: "पोषण एवं आहार विज्ञान" },
+          { id: "nur-11", name: "National Health Programs (NHM, Ayushman etc.)", nameHi: "राष्ट्रीय स्वास्थ्य कार्यक्रम (NHM, आयुष्मान आदि)" },
+          { id: "nur-12", name: "CG Health Schemes — Mukhyamantri Suposhan, etc.", nameHi: "CG स्वास्थ्य योजनाएं — मुख्यमंत्री सुपोषण आदि" }
         ]
       },
       {
-        name: "Chhattisgarh Specific GK",
+        name: "सामान्य ज्ञान (CG + India)",
+        nameHi: "सामान्य ज्ञान (CG + भारत)",
         topics: [
-          { id: "cgv-cg-1", name: "History of Chhattisgarh" },
-          { id: "cgv-cg-2", name: "Geography of CG - Rivers & Mountains" },
-          { id: "cgv-cg-3", name: "CG Economy & Industries" },
-          { id: "cgv-cg-4", name: "Tribes of Chhattisgarh" },
-          { id: "cgv-cg-5", name: "CG Art, Dance & Music" },
-          { id: "cgv-cg-6", name: "CG Literature & Language" },
-          { id: "cgv-cg-7", name: "CG Festivals & Traditions" },
-          { id: "cgv-cg-8", name: "CG Government Schemes & Programs" },
-          { id: "cgv-cg-9", name: "CG Current Affairs" },
-          { id: "cgv-cg-10", name: "CG Famous Personalities" },
-          { id: "cgv-cg-11", name: "CG Forest & Wildlife" },
-          { id: "cgv-cg-12", name: "CG Administrative Structure" }
+          { id: "nur-gk-1", name: "CG History, Geography & Culture", nameHi: "CG का इतिहास, भूगोल, संस्कृति" },
+          { id: "nur-gk-2", name: "Indian Constitution & Health Rights", nameHi: "भारतीय संविधान एवं स्वास्थ्य अधिकार" },
+          { id: "nur-gk-3", name: "National & CG Health Current Affairs", nameHi: "राष्ट्रीय एवं CG स्वास्थ्य करंट अफेयर्स" }
         ]
       },
       {
-        name: "Hindi Language",
+        name: "हिंदी भाषा",
+        nameHi: "हिंदी भाषा",
         topics: [
-          { id: "cgv-hindi-1", name: "Hindi Grammar - Sandhi & Samas" },
-          { id: "cgv-hindi-2", name: "Hindi Grammar - Vakya Shuddhi" },
-          { id: "cgv-hindi-3", name: "Muhavare & Lokoktiyan" },
-          { id: "cgv-hindi-4", name: "Anekarthi Shabd & Vilom Shabd" },
-          { id: "cgv-hindi-5", name: "Paryayvachi Shabd" },
-          { id: "cgv-hindi-6", name: "Comprehension (Apathit Gadyansh)" },
-          { id: "cgv-hindi-7", name: "Hindi Literature Basics" }
-        ]
-      },
-      {
-        name: "English Language",
-        topics: [
-          { id: "cgv-eng-1", name: "English Grammar - Tenses" },
-          { id: "cgv-eng-2", name: "English Grammar - Articles & Prepositions" },
-          { id: "cgv-eng-3", name: "Vocabulary - Synonyms & Antonyms" },
-          { id: "cgv-eng-4", name: "Sentence Correction" },
-          { id: "cgv-eng-5", name: "Reading Comprehension" },
-          { id: "cgv-eng-6", name: "Fill in the Blanks" }
-        ]
-      },
-      {
-        name: "Mathematics",
-        topics: [
-          { id: "cgv-math-1", name: "Number System" },
-          { id: "cgv-math-2", name: "Simplification & Approximation" },
-          { id: "cgv-math-3", name: "Percentage & Ratio" },
-          { id: "cgv-math-4", name: "Profit, Loss & Discount" },
-          { id: "cgv-math-5", name: "Simple & Compound Interest" },
-          { id: "cgv-math-6", name: "Time & Work" },
-          { id: "cgv-math-7", name: "Time, Speed & Distance" },
-          { id: "cgv-math-8", name: "Average & Allegation" },
-          { id: "cgv-math-9", name: "Geometry & Mensuration" },
-          { id: "cgv-math-10", name: "Basic Algebra" },
-          { id: "cgv-math-11", name: "Data Interpretation" },
-          { id: "cgv-math-12", name: "Trigonometry Basics" }
-        ]
-      },
-      {
-        name: "Reasoning & Mental Ability",
-        topics: [
-          { id: "cgv-reason-1", name: "Number & Letter Series" },
-          { id: "cgv-reason-2", name: "Coding-Decoding" },
-          { id: "cgv-reason-3", name: "Analogy" },
-          { id: "cgv-reason-4", name: "Classification" },
-          { id: "cgv-reason-5", name: "Blood Relations" },
-          { id: "cgv-reason-6", name: "Direction & Ranking" },
-          { id: "cgv-reason-7", name: "Syllogism" },
-          { id: "cgv-reason-8", name: "Puzzles & Seating Arrangement" },
-          { id: "cgv-reason-9", name: "Mirror & Water Image" },
-          { id: "cgv-reason-10", name: "Venn Diagram" },
-          { id: "cgv-reason-11", name: "Calendar & Clock" },
-          { id: "cgv-reason-12", name: "Figure Counting" }
-        ]
-      },
-      {
-        name: "Computer Knowledge",
-        topics: [
-          { id: "cgv-comp-1", name: "Computer Fundamentals & History" },
-          { id: "cgv-comp-2", name: "Hardware & Software Basics" },
-          { id: "cgv-comp-3", name: "Operating System Concepts" },
-          { id: "cgv-comp-4", name: "MS Office - Word, Excel, PowerPoint" },
-          { id: "cgv-comp-5", name: "Internet & Email Basics" },
-          { id: "cgv-comp-6", name: "Networking & Cyber Security Basics" }
+          { id: "nur-hi-1", name: "Hindi Grammar", nameHi: "हिंदी व्याकरण" },
+          { id: "nur-hi-2", name: "Vocabulary & Sentence Correction", nameHi: "शब्द भंडार एवं वाक्य शुद्धि" }
         ]
       }
     ]
   },
 
-  "railway": {
-    name: "Railway Exams",
-    fullName: "RRB NTPC & Group D - Indian Railway Recruitment",
-    icon: "🚂",
-    description: "Railway recruitment exams for Non-Technical Popular Categories & Group D posts",
+  /* ─────────────────────────────────────────────────────────────
+     9. ACCOUNTANT / JUNIOR ACCOUNTANT
+  ───────────────────────────────────────────────────────────── */
+  "cgv_accountant": {
+    name: "Accountant / Junior Accountant",
+    fullName: "CGVYAPAM — Accountant & Junior Accountant Exam",
+    icon: "💼",
+    category: "administrative",
+    description: "Treasury, Finance & Accounts department recruitment for Accountant and Junior Accountant posts",
+    eligibility: "B.Com / Graduate with Accounts",
+    pattern: {
+      totalMarks: 200,
+      time: "3 Hours",
+      type: "Objective MCQ",
+      papers: [
+        { paper: "General Knowledge & CG GK", marks: 50 },
+        { paper: "Hindi Language", marks: 25 },
+        { paper: "Reasoning & Mathematics", marks: 50 },
+        { paper: "Accountancy & Commerce", marks: 75 }
+      ]
+    },
     subjects: [
       {
-        name: "Mathematics",
+        name: "लेखाशास्त्र (Accountancy)",
+        nameHi: "लेखाशास्त्र",
         topics: [
-          { id: "rr-math-1", name: "Number System & BODMAS" },
-          { id: "rr-math-2", name: "Decimals & Fractions" },
-          { id: "rr-math-3", name: "LCM & HCF" },
-          { id: "rr-math-4", name: "Percentage" },
-          { id: "rr-math-5", name: "Ratio & Proportion" },
-          { id: "rr-math-6", name: "Average" },
-          { id: "rr-math-7", name: "Simple & Compound Interest" },
-          { id: "rr-math-8", name: "Profit, Loss & Discount" },
-          { id: "rr-math-9", name: "Time & Work" },
-          { id: "rr-math-10", name: "Time, Speed & Distance" },
-          { id: "rr-math-11", name: "Pipes & Cisterns" },
-          { id: "rr-math-12", name: "Age Problems" },
-          { id: "rr-math-13", name: "Square Root & Cube Root" },
-          { id: "rr-math-14", name: "Mensuration (2D & 3D)" },
-          { id: "rr-math-15", name: "Elementary Algebra" },
-          { id: "rr-math-16", name: "Geometry - Triangles & Circles" },
-          { id: "rr-math-17", name: "Trigonometry - Basics" },
-          { id: "rr-math-18", name: "Elementary Statistics" },
-          { id: "rr-math-19", name: "Calendar & Clock" },
-          { id: "rr-math-20", name: "Data Interpretation" }
+          { id: "acc-1",  name: "Fundamentals of Accounting — Concepts & Principles", nameHi: "लेखांकन की मूल अवधारणाएं एवं सिद्धांत" },
+          { id: "acc-2",  name: "Journal, Ledger & Trial Balance", nameHi: "जर्नल, खाता बही एवं तलपट" },
+          { id: "acc-3",  name: "Final Accounts — P&L, Balance Sheet", nameHi: "अंतिम खाते — P&L, Balance Sheet" },
+          { id: "acc-4",  name: "Depreciation Methods (SLM & WDV)", nameHi: "मूल्यह्रास विधियां (SLM & WDV)" },
+          { id: "acc-5",  name: "Bank Reconciliation Statement (BRS)", nameHi: "बैंक समाधान विवरण (BRS)" },
+          { id: "acc-6",  name: "Partnership Accounts — Admission, Retirement", nameHi: "साझेदारी खाते — प्रवेश, निवृत्ति" },
+          { id: "acc-7",  name: "Company Accounts — Shares & Debentures", nameHi: "कंपनी खाते — शेयर एवं ऋणपत्र" },
+          { id: "acc-8",  name: "Ratio Analysis & Financial Statement Analysis", nameHi: "अनुपात विश्लेषण एवं वित्तीय विवरण विश्लेषण" },
+          { id: "acc-9",  name: "GST — Basics & Application", nameHi: "GST — मूल बातें एवं अनुप्रयोग" },
+          { id: "acc-10", name: "Government Accounting — CG Treasury Rules", nameHi: "सरकारी लेखांकन — CG कोषागार नियम" },
+          { id: "acc-11", name: "Tally ERP / Computer Accounting", nameHi: "Tally ERP / कंप्यूटर लेखांकन" },
+          { id: "acc-12", name: "Auditing Basics", nameHi: "लेखापरीक्षण की मूल बातें" }
         ]
       },
       {
-        name: "General Intelligence & Reasoning",
+        name: "वाणिज्य एवं अर्थशास्त्र (Commerce)",
+        nameHi: "वाणिज्य एवं अर्थशास्त्र",
         topics: [
-          { id: "rr-reason-1", name: "Analogies (Verbal & Non-Verbal)" },
-          { id: "rr-reason-2", name: "Number & Letter Series" },
-          { id: "rr-reason-3", name: "Coding & Decoding" },
-          { id: "rr-reason-4", name: "Mathematical Operations" },
-          { id: "rr-reason-5", name: "Similarities & Differences" },
-          { id: "rr-reason-6", name: "Blood Relations" },
-          { id: "rr-reason-7", name: "Syllogism" },
-          { id: "rr-reason-8", name: "Jumbling & Arrangement" },
-          { id: "rr-reason-9", name: "Venn Diagrams" },
-          { id: "rr-reason-10", name: "Puzzles & Seating Arrangement" },
-          { id: "rr-reason-11", name: "Data Sufficiency" },
-          { id: "rr-reason-12", name: "Statement & Conclusion" },
-          { id: "rr-reason-13", name: "Decision Making" },
-          { id: "rr-reason-14", name: "Direction & Distance" },
-          { id: "rr-reason-15", name: "Classification" },
-          { id: "rr-reason-16", name: "Map & Graph Interpretation" },
-          { id: "rr-reason-17", name: "Mirror & Water Image" },
-          { id: "rr-reason-18", name: "Embedded & Complete Figures" }
+          { id: "acc-com-1", name: "Business Organization — Types of Companies", nameHi: "व्यापारिक संगठन — कंपनी के प्रकार" },
+          { id: "acc-com-2", name: "Banking & Financial Services", nameHi: "बैंकिंग एवं वित्तीय सेवाएं" },
+          { id: "acc-com-3", name: "Insurance — Types & Principles", nameHi: "बीमा — प्रकार एवं सिद्धांत" },
+          { id: "acc-com-4", name: "Indian Tax System — Income Tax, GST", nameHi: "भारतीय कर प्रणाली — आयकर, GST" },
+          { id: "acc-com-5", name: "Budget & Finance Bill", nameHi: "बजट एवं वित्त विधेयक" },
+          { id: "acc-com-6", name: "Indian Economy — Money & Credit", nameHi: "भारतीय अर्थव्यवस्था — मुद्रा एवं साख" }
         ]
       },
       {
-        name: "General Awareness",
+        name: "गणित एवं तर्कशक्ति",
+        nameHi: "गणित एवं तर्कशक्ति",
         topics: [
-          { id: "rr-ga-1", name: "Current Events - National" },
-          { id: "rr-ga-2", name: "Current Events - International" },
-          { id: "rr-ga-3", name: "Indian History & Freedom Struggle" },
-          { id: "rr-ga-4", name: "Indian Geography" },
-          { id: "rr-ga-5", name: "World Geography" },
-          { id: "rr-ga-6", name: "Indian Polity & Constitution" },
-          { id: "rr-ga-7", name: "Indian Economy & Budget" },
-          { id: "rr-ga-8", name: "Art, Culture & Heritage of India" },
-          { id: "rr-ga-9", name: "Games & Sports" },
-          { id: "rr-ga-10", name: "Indian Literature & Monuments" },
-          { id: "rr-ga-11", name: "General Science - Physics (Class 10)" },
-          { id: "rr-ga-12", name: "General Science - Chemistry (Class 10)" },
-          { id: "rr-ga-13", name: "General Science - Biology (Class 10)" },
-          { id: "rr-ga-14", name: "Space Technology & Nuclear Programs" },
-          { id: "rr-ga-15", name: "UN & International Organizations" },
-          { id: "rr-ga-16", name: "Environmental Issues" },
-          { id: "rr-ga-17", name: "Computer & IT Basics" },
-          { id: "rr-ga-18", name: "Government Schemes & Programs" },
-          { id: "rr-ga-19", name: "Famous Personalities & Awards" },
-          { id: "rr-ga-20", name: "Indian Railways - History & Facts" },
-          { id: "rr-ga-21", name: "Books, Authors & Important Days" },
-          { id: "rr-ga-22", name: "Scientific Discoveries & Inventions" }
+          { id: "acc-ma-1", name: "Arithmetic — Percentage, Ratio, Profit-Loss", nameHi: "अंकगणित — प्रतिशत, अनुपात, लाभ-हानि" },
+          { id: "acc-ma-2", name: "Simple & Compound Interest", nameHi: "साधारण एवं चक्रवृद्धि ब्याज" },
+          { id: "acc-ma-3", name: "Data Interpretation — Tables, Charts", nameHi: "डेटा व्याख्या — तालिकाएं, चार्ट" },
+          { id: "acc-ma-4", name: "Logical Reasoning & Aptitude", nameHi: "तार्किक तर्कशक्ति एवं अभिक्षमता" },
+          { id: "acc-ma-5", name: "Number Series & Coding-Decoding", nameHi: "संख्या श्रृंखला एवं कोडिंग-डिकोडिंग" }
         ]
       },
       {
-        name: "General Science (Group D Specific)",
+        name: "छत्तीसगढ़ एवं भारत सामान्य ज्ञान",
+        nameHi: "छत्तीसगढ़ एवं भारत सामान्य ज्ञान",
         topics: [
-          { id: "rr-sci-1", name: "Physics - Motion & Laws of Motion" },
-          { id: "rr-sci-2", name: "Physics - Work, Energy & Power" },
-          { id: "rr-sci-3", name: "Physics - Light & Sound" },
-          { id: "rr-sci-4", name: "Physics - Electricity & Magnetism" },
-          { id: "rr-sci-5", name: "Physics - Heat & Thermodynamics" },
-          { id: "rr-sci-6", name: "Chemistry - Atoms & Molecules" },
-          { id: "rr-sci-7", name: "Chemistry - Chemical Reactions" },
-          { id: "rr-sci-8", name: "Chemistry - Acids, Bases & Salts" },
-          { id: "rr-sci-9", name: "Chemistry - Metals & Non-Metals" },
-          { id: "rr-sci-10", name: "Chemistry - Carbon Compounds" },
-          { id: "rr-sci-11", name: "Chemistry - Periodic Table" },
-          { id: "rr-sci-12", name: "Biology - Cell Structure & Function" },
-          { id: "rr-sci-13", name: "Biology - Human Body Systems" },
-          { id: "rr-sci-14", name: "Biology - Diseases & Nutrition" },
-          { id: "rr-sci-15", name: "Biology - Plant Kingdom & Reproduction" },
-          { id: "rr-sci-16", name: "Biology - Genetics & Evolution" },
-          { id: "rr-sci-17", name: "Biology - Ecology & Environment" },
-          { id: "rr-sci-18", name: "Science & Technology in Daily Life" }
+          { id: "acc-gk-1", name: "CG History, Geography & Administration", nameHi: "CG का इतिहास, भूगोल एवं प्रशासन" },
+          { id: "acc-gk-2", name: "CG Budget & Finance Department", nameHi: "CG बजट एवं वित्त विभाग" },
+          { id: "acc-gk-3", name: "Indian Constitution & Financial Laws", nameHi: "भारतीय संविधान एवं वित्तीय कानून" },
+          { id: "acc-gk-4", name: "National & CG Current Affairs", nameHi: "राष्ट्रीय एवं CG करंट अफेयर्स" }
+        ]
+      },
+      {
+        name: "हिंदी भाषा",
+        nameHi: "हिंदी भाषा",
+        topics: [
+          { id: "acc-hi-1", name: "Hindi Grammar — Complete", nameHi: "हिंदी व्याकरण" },
+          { id: "acc-hi-2", name: "Official & Business Hindi Writing", nameHi: "कार्यालयी एवं व्यापारिक हिंदी लेखन" },
+          { id: "acc-hi-3", name: "Vocabulary, Idioms & Proverbs", nameHi: "शब्द भंडार, मुहावरे एवं लोकोक्तियां" }
+        ]
+      }
+    ]
+  },
+
+  /* ─────────────────────────────────────────────────────────────
+     10. STENO / DATA ENTRY OPERATOR (DEO)
+  ───────────────────────────────────────────────────────────── */
+  "cgv_steno_deo": {
+    name: "Steno / Data Entry Operator",
+    fullName: "CGVYAPAM — Stenographer & Data Entry Operator Exam",
+    icon: "⌨️",
+    category: "administrative",
+    description: "Secretariat & government office recruitment for Steno, DEO & Typist posts",
+    eligibility: "12th Pass + Typing/Steno Speed Certificate",
+    pattern: {
+      totalMarks: 100,
+      time: "2 Hours + Skill Test",
+      type: "Objective MCQ + Typing/Steno Test",
+      papers: [
+        { paper: "General Knowledge & CG GK", marks: 30 },
+        { paper: "Hindi Language", marks: 25 },
+        { paper: "Computer & MS Office", marks: 20 },
+        { paper: "General Reasoning", marks: 25 },
+        { paper: "Steno / Typing Speed Test", marks: "Qualifying" }
+      ]
+    },
+    subjects: [
+      {
+        name: "कंप्यूटर एवं टाइपिंग कौशल",
+        nameHi: "कंप्यूटर एवं टाइपिंग कौशल",
+        topics: [
+          { id: "deo-comp-1", name: "Computer Fundamentals & Operating System", nameHi: "कंप्यूटर की मूल बातें एवं ऑपरेटिंग सिस्टम" },
+          { id: "deo-comp-2", name: "MS Word — Formatting, Tables, Mail Merge", nameHi: "MS Word — फॉर्मेटिंग, टेबल, मेल मर्ज" },
+          { id: "deo-comp-3", name: "MS Excel — Formulas, Charts, VLOOKUP", nameHi: "MS Excel — सूत्र, चार्ट, VLOOKUP" },
+          { id: "deo-comp-4", name: "MS PowerPoint — Presentation Skills", nameHi: "MS PowerPoint — प्रेजेंटेशन कौशल" },
+          { id: "deo-comp-5", name: "Internet, Email & Cyber Safety", nameHi: "इंटरनेट, ईमेल एवं साइबर सुरक्षा" },
+          { id: "deo-comp-6", name: "Hindi & English Typing — Speed & Accuracy", nameHi: "हिंदी एवं अंग्रेजी टाइपिंग — गति एवं शुद्धता" },
+          { id: "deo-comp-7", name: "Shorthand / Stenography Basics", nameHi: "आशुलिपि / स्टेनोग्राफी मूल बातें" },
+          { id: "deo-comp-8", name: "Database & Spreadsheet Management", nameHi: "डेटाबेस एवं स्प्रेडशीट प्रबंधन" }
+        ]
+      },
+      {
+        name: "हिंदी भाषा (विस्तृत)",
+        nameHi: "हिंदी भाषा (विस्तृत)",
+        topics: [
+          { id: "deo-hi-1", name: "Hindi Grammar — Comprehensive", nameHi: "हिंदी व्याकरण — संपूर्ण" },
+          { id: "deo-hi-2", name: "Official Hindi — Note, Letter, Report Writing", nameHi: "कार्यालयी हिंदी — नोट, पत्र, रिपोर्ट लेखन" },
+          { id: "deo-hi-3", name: "Vocabulary, Synonyms, Antonyms", nameHi: "शब्द भंडार — पर्यायवाची, विलोम शब्द" },
+          { id: "deo-hi-4", name: "Idioms & Proverbs", nameHi: "मुहावरे एवं लोकोक्तियां" },
+          { id: "deo-hi-5", name: "Unseen Passage & Precis Writing", nameHi: "अपठित गद्यांश एवं संक्षेपण" }
+        ]
+      },
+      {
+        name: "सामान्य ज्ञान (CG + India)",
+        nameHi: "सामान्य ज्ञान (CG + भारत)",
+        topics: [
+          { id: "deo-gk-1", name: "CG History, Geography & Culture", nameHi: "CG का इतिहास, भूगोल एवं संस्कृति" },
+          { id: "deo-gk-2", name: "CG Administration & Government Schemes", nameHi: "CG प्रशासन एवं सरकारी योजनाएं" },
+          { id: "deo-gk-3", name: "India History & Geography", nameHi: "भारत का इतिहास एवं भूगोल" },
+          { id: "deo-gk-4", name: "Indian Constitution Basics", nameHi: "भारतीय संविधान की मूल बातें" },
+          { id: "deo-gk-5", name: "National & CG Current Affairs", nameHi: "राष्ट्रीय एवं CG करंट अफेयर्स" }
+        ]
+      },
+      {
+        name: "तर्कशक्ति (General Reasoning)",
+        nameHi: "सामान्य तर्कशक्ति",
+        topics: [
+          { id: "deo-re-1", name: "Series & Pattern Recognition", nameHi: "श्रृंखला एवं पैटर्न पहचान" },
+          { id: "deo-re-2", name: "Coding-Decoding & Analogy", nameHi: "कोडिंग-डिकोडिंग एवं सादृश्य" },
+          { id: "deo-re-3", name: "Blood Relations & Direction", nameHi: "रक्त संबंध एवं दिशा ज्ञान" },
+          { id: "deo-re-4", name: "Arrangement & Ranking", nameHi: "क्रम व्यवस्था एवं रैंकिंग" },
+          { id: "deo-re-5", name: "Data Sufficiency & Logical Reasoning", nameHi: "डेटा पर्याप्तता एवं तार्किक तर्क" }
+        ]
+      }
+    ]
+  },
+
+  /* ─────────────────────────────────────────────────────────────
+     11. LAB TECHNICIAN / RADIOGRAPHER
+  ───────────────────────────────────────────────────────────── */
+  "cgv_lab_tech": {
+    name: "Lab Technician / Radiographer",
+    fullName: "CGVYAPAM — Laboratory Technician & Allied Health Science Exam",
+    icon: "🔬",
+    category: "health",
+    description: "Health department recruitment for Lab Technician, Radiographer, Physiotherapist & allied posts",
+    eligibility: "DMLT / B.Sc MLT / Diploma in relevant field",
+    pattern: {
+      totalMarks: 150,
+      time: "2.5 Hours",
+      type: "Objective MCQ",
+      papers: [
+        { paper: "General Knowledge & CG GK", marks: 30 },
+        { paper: "Hindi Language", marks: 20 },
+        { paper: "Technical Subject (Lab Science)", marks: 100 }
+      ]
+    },
+    subjects: [
+      {
+        name: "Laboratory Science — Technical",
+        nameHi: "प्रयोगशाला विज्ञान — तकनीकी",
+        topics: [
+          { id: "lab-1",  name: "Human Anatomy & Physiology", nameHi: "मानव शारीरिक रचना एवं शरीर क्रिया विज्ञान" },
+          { id: "lab-2",  name: "Biochemistry — Blood, Urine, Serum Analysis", nameHi: "जैव रसायन — रक्त, मूत्र, सीरम विश्लेषण" },
+          { id: "lab-3",  name: "Haematology — CBC, Blood Groups, ESR", nameHi: "रुधिर विज्ञान — CBC, रक्त समूह, ESR" },
+          { id: "lab-4",  name: "Microbiology & Serology", nameHi: "सूक्ष्म जीव विज्ञान एवं सीरो विज्ञान" },
+          { id: "lab-5",  name: "Histopathology & Cytology", nameHi: "ऊतक विकृति विज्ञान एवं कोशिका विज्ञान" },
+          { id: "lab-6",  name: "Radiology & Imaging — X-Ray, CT, MRI, USG", nameHi: "रेडियोलॉजी एवं इमेजिंग — X-Ray, CT, MRI" },
+          { id: "lab-7",  name: "Laboratory Equipment & Quality Control", nameHi: "प्रयोगशाला उपकरण एवं गुणवत्ता नियंत्रण" },
+          { id: "lab-8",  name: "Clinical Pathology — Stool, Sputum Tests", nameHi: "क्लिनिकल पैथोलॉजी — मल, थूक परीक्षण" },
+          { id: "lab-9",  name: "Blood Banking & Transfusion", nameHi: "रक्त बैंकिंग एवं आधान" },
+          { id: "lab-10", name: "Lab Safety & Biosafety Protocols", nameHi: "प्रयोगशाला सुरक्षा एवं जैव सुरक्षा नियम" },
+          { id: "lab-11", name: "National & CG Health Programs", nameHi: "राष्ट्रीय एवं CG स्वास्थ्य कार्यक्रम" }
+        ]
+      },
+      {
+        name: "जीव विज्ञान एवं रसायन (Supporting Science)",
+        nameHi: "जीव विज्ञान एवं रसायन",
+        topics: [
+          { id: "lab-bio-1", name: "Cell Biology & Genetics", nameHi: "कोशिका जीव विज्ञान एवं आनुवंशिकी" },
+          { id: "lab-bio-2", name: "Organic Chemistry — Functional Groups", nameHi: "कार्बनिक रसायन — कार्यात्मक समूह" },
+          { id: "lab-bio-3", name: "Immunology Basics", nameHi: "प्रतिरक्षा विज्ञान की मूल बातें" },
+          { id: "lab-bio-4", name: "Enzymes & Hormones", nameHi: "एंजाइम एवं हार्मोन" }
+        ]
+      },
+      {
+        name: "सामान्य ज्ञान (CG + India)",
+        nameHi: "सामान्य ज्ञान",
+        topics: [
+          { id: "lab-gk-1", name: "CG History, Geography & Culture", nameHi: "CG का इतिहास, भूगोल एवं संस्कृति" },
+          { id: "lab-gk-2", name: "Indian Constitution & Health Rights", nameHi: "भारतीय संविधान एवं स्वास्थ्य अधिकार" },
+          { id: "lab-gk-3", name: "National Health Programs & CG Health Schemes", nameHi: "राष्ट्रीय स्वास्थ्य कार्यक्रम एवं CG स्वास्थ्य योजनाएं" }
+        ]
+      },
+      {
+        name: "हिंदी भाषा",
+        nameHi: "हिंदी भाषा",
+        topics: [
+          { id: "lab-hi-1", name: "Hindi Grammar", nameHi: "हिंदी व्याकरण" },
+          { id: "lab-hi-2", name: "Vocabulary & Sentence Correction", nameHi: "शब्द भंडार एवं वाक्य शुद्धि" }
         ]
       }
     ]
   }
+
 };

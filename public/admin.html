@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - ExamPrep AI</title>
+  <style>
+    :root {
+      --bg-dark: #0a0a14;
+      --bg-card: #151520;
+      --primary: #6c5ce7;
+      --primary-dark: #4834d4;
+      --text: #e0e0e0;
+      --text-muted: #8b8b99;
+      --error: #ff4757;
+      --success: #2ed573;
+    }
+    body {
+      margin: 0; padding: 0; font-family: 'Inter', sans-serif;
+      background: var(--bg-dark); color: var(--text);
+      display: flex; flex-direction: column; min-height: 100vh;
+    }
+    .container { max-width: 800px; margin: 50px auto; width: 90%; }
+    .card { background: var(--bg-card); padding: 30px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    h1, h2 { color: white; margin-top: 0; }
+    input, select, button { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #333; background: #222; color: white; box-sizing: border-box; }
+    button { background: var(--primary); color: white; cursor: pointer; font-weight: bold; border: none; transition: 0.2s; }
+    button:hover { background: var(--primary-dark); }
+    .toast { position: fixed; top: 20px; right: 20px; background: var(--primary); padding: 10px 20px; border-radius: 8px; transform: translateX(150%); transition: 0.3s; z-index: 1000; }
+    .toast.show { transform: translateX(0); }
+    .toast.error { background: var(--error); }
+    .toast.success { background: var(--success); color: #000; }
+    .hidden { display: none !important; }
+    .materials-list { list-style: none; padding: 0; }
+    .materials-list li { background: #222; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .toggle-container { display: flex; gap: 10px; }
+    .toggle-container button { flex: 1; }
+    .toggle-container button.active { background: #2ed573; color: black; }
+  </style>
+</head>
+<body>
+  <div class="toast" id="toast">Message</div>
+
+  <div class="container" id="login-container">
+    <div class="card">
+      <h1>Admin Login</h1>
+      <input type="text" id="admin-id" placeholder="Admin ID">
+      <input type="password" id="admin-pass" placeholder="Password">
+      <button onclick="loginAdmin()">Login Securely</button>
+    </div>
+  </div>
+
+  <div class="container hidden" id="dashboard-container">
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+      <h1 style="margin: 0;">Admin Dashboard</h1>
+      <button onclick="logout()" style="width: auto; margin: 0; background: var(--error);">Logout</button>
+    </div>
+
+    <div class="card">
+      <h2>🤖 AI Settings</h2>
+      <p>Select which AI handles the generation:</p>
+      <div class="toggle-container" id="ai-toggle">
+        <button id="btn-groq" onclick="setAI('groq')">Groq (Fast)</button>
+        <button id="btn-claude" onclick="setAI('claude')">Claude (Accurate)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📤 Upload Material</h2>
+      <p>Upload PDF materials to train the Syllabus Topics learning module.</p>
+      <select id="mat-type">
+        <option value="study">Study Material</option>
+        <option value="syllabus">Syllabus</option>
+        <option value="mock">Mock Test Reference</option>
+      </select>
+      <input type="text" id="mat-title" placeholder="Document Title (e.g. UPSC Geography)">
+      <input type="file" id="mat-file" accept=".pdf">
+      <button onclick="uploadMaterial()">Upload & Extract</button>
+    </div>
+
+    <div class="card">
+      <h2>📚 Uploaded Materials</h2>
+      <ul class="materials-list" id="materials-list"></ul>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

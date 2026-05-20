@@ -1,9 +1,9 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const fs = require('fs');
-const path = require('path');
+const { db } = require('../firebase-admin');
 
-const CACHE_FILE = path.join(__dirname, '..', 'cache', 'news-cache.json');
+const NEWS_DOC = db.collection('news').doc('cache');
+
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -25,7 +25,7 @@ async function scrapeSarkariResult() {
       const url = $(el).attr('href') || '';
       if (title && title.length > 10) {
         articles.push({
-          title: title,
+          title,
           description: `Latest update from Sarkari Result: ${title}`,
           category: title.toLowerCase().includes('admit') ? 'exams' :
             title.toLowerCase().includes('result') ? 'exams' : 'jobs',
@@ -74,11 +74,10 @@ async function scrapeExamNewsRSS() {
           if (titleLower.includes('recruitment') || titleLower.includes('vacancy') || titleLower.includes('naukri') || titleLower.includes('bharti') || titleLower.includes('apply')) {
             category = 'jobs';
           }
-
           articles.push({
-            title: title,
+            title,
             description: `Source: ${source || 'Google News'}`,
-            category: category,
+            category,
             date: pubDate ? new Date(pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             source: source || 'Google News',
             url: link,
@@ -121,22 +120,20 @@ async function scrapeGeneralNewsRSS() {
         const source = $(el).find('source').text().trim();
 
         if (title) {
-          // Skip if this is actually an exam/job article
           const titleLower = title.toLowerCase();
           if (titleLower.includes('recruitment') || titleLower.includes('vacancy') ||
             titleLower.includes('sarkari naukri') || titleLower.includes('admit card') ||
             titleLower.includes('answer key') || titleLower.includes('cut off')) {
             return;
           }
-
           articles.push({
-            title: title,
+            title,
             description: `${tag} • Source: ${source || 'Google News'}`,
             category: 'affairs',
             date: pubDate ? new Date(pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             source: source || 'Google News',
             url: link,
-            icon: icon,
+            icon,
             lang: 'en'
           });
         }
@@ -177,13 +174,13 @@ async function scrapeHindiNewsRSS() {
 
         if (title) {
           articles.push({
-            title: title,
+            title,
             description: `${tag} • स्रोत: ${source || 'Google समाचार'}`,
-            category: category,
+            category,
             date: pubDate ? new Date(pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             source: source || 'Google समाचार',
             url: link,
-            icon: icon,
+            icon,
             lang: 'hi'
           });
         }
@@ -204,7 +201,6 @@ async function scrapeEmploymentNews() {
     });
     const $ = cheerio.load(data);
 
-    // Generic navigation links to exclude
     const genericPhrases = [
       'find domestic', 'find international', 'find skill', 'find job',
       'participate in', 'links to govt', 'jobs for differently',
@@ -221,13 +217,12 @@ async function scrapeEmploymentNews() {
       const title = $(el).text().trim();
       const url = $(el).attr('href') || '';
       if (title && title.length > 10 && title.length < 200) {
-        // Skip generic navigation links
         const titleLower = title.toLowerCase();
         const isGeneric = genericPhrases.some(phrase => titleLower.includes(phrase));
         if (isGeneric) return;
 
         articles.push({
-          title: title,
+          title,
           description: 'Government vacancy notification from NCS Portal',
           category: 'jobs',
           date: new Date().toISOString().split('T')[0],
@@ -280,7 +275,6 @@ async function scrapeAll() {
   ]);
 
   let allArticles = [];
-
   if (sarkari.status === 'fulfilled') allArticles.push(...sarkari.value);
   if (examNews.status === 'fulfilled') allArticles.push(...examNews.value);
   if (generalNews.status === 'fulfilled') allArticles.push(...generalNews.value);
@@ -294,7 +288,7 @@ async function scrapeAll() {
 
   allArticles = deduplicateArticles(allArticles);
 
-  // Group by category and interleave for a diverse "All" feed
+  // Group by category and interleave for a diverse feed
   const byCategory = { exams: [], jobs: [], affairs: [] };
   allArticles.forEach(a => {
     const cat = a.category || 'affairs';
@@ -302,10 +296,8 @@ async function scrapeAll() {
     byCategory[cat].push(a);
   });
 
-  // Sort each category by date
   Object.values(byCategory).forEach(arr => arr.sort((a, b) => new Date(b.date) - new Date(a.date)));
 
-  // Interleave: take one from each category in round-robin
   const interleaved = [];
   const categories = Object.keys(byCategory).filter(k => byCategory[k].length > 0);
   const indices = {};
@@ -323,34 +315,34 @@ async function scrapeAll() {
     }
   }
 
-  allArticles = interleaved;
-
   const cacheData = {
     lastUpdated: new Date().toISOString(),
-    articles: allArticles.slice(0, 50)
+    articles: interleaved.slice(0, 50)
   };
 
+  // Save to Firestore instead of local file
   try {
-    if (!fs.existsSync(path.dirname(CACHE_FILE))) {
-      fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
-    }
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cacheData, null, 2), 'utf-8');
-    console.log('[Scraper] Cache updated successfully');
+    await NEWS_DOC.set(cacheData);
+    console.log('[Scraper] Cache updated in Firestore ✅');
   } catch (err) {
-    console.error('[Scraper] Failed to save cache:', err.message);
+    console.error('[Scraper] Failed to save cache to Firestore:', err.message);
   }
 
   return cacheData;
 }
 
-function getCachedNews() {
+/**
+ * Reads cached news from Firestore.
+ * Now async — await this function.
+ */
+async function getCachedNews() {
   try {
-    if (fs.existsSync(CACHE_FILE)) {
-      const data = fs.readFileSync(CACHE_FILE, 'utf-8');
-      return JSON.parse(data);
+    const doc = await NEWS_DOC.get();
+    if (doc.exists) {
+      return doc.data();
     }
   } catch (err) {
-    console.error('[Scraper] Error reading cache file. Falling back.', err.message);
+    console.error('[Scraper] Error reading Firestore cache:', err.message);
   }
   return { lastUpdated: null, articles: getFallbackNews() };
 }

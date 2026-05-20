@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="AI-Powered Government Exam Preparation App for UPSC, SSC, CGPSC, CG Vyapam, Railway exams. Study smarter with AI-generated notes, MCQs, and mock tests.">
-  <meta name="theme-color" content="#0a0a14">
-  <title>ExamPrep AI — Smart Government Exam Preparation</title>
+  <meta name="description" content="Study World — Professional CG Vyapam Exam Preparation Platform for Patwari, Police, Forest Guard, Teacher, Sub Engineer and all Chhattisgarh state exams. AI-powered study, MCQs & syllabus tracking.">  
+  <meta name="theme-color" content="#070d0a">
+  <title>Study World — Smart Government Exam Preparation</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
 </head>
@@ -15,9 +15,10 @@
   <header class="app-header">
     <div class="header-title">
       <span class="logo-icon">🎓</span>
-      <span class="title-gradient">ExamPrep AI</span>
+      <span class="title-gradient">Study World</span>
     </div>
     <div class="header-actions">
+      <button class="header-btn" id="btn-profile" title="Profile">👤</button>
       <button class="header-btn" id="btn-settings" title="Settings">⚙️</button>
     </div>
   </header>
@@ -28,17 +29,110 @@
     <!-- ──── Screen: Exam Selector ──── -->
     <section class="screen active" id="screen-exams">
       <div class="exam-selector-header">
-        <h1>🇮🇳 Choose Your Exam</h1>
-        <p>Select the exam you're preparing for</p>
+        <h1>🏛️ CG Vyapam Exams</h1>
+        <p>Chhattisgarh Professional Examination Board — Select Your Exam</p>
       </div>
       <div class="exam-grid" id="exam-grid">
         <!-- Exam cards inserted by JS -->
       </div>
     </section>
 
+    <!-- ──── Screen: Profile ──── -->
+    <section class="screen" id="screen-profile">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profile-avatar">👤</div>
+        <div class="profile-name" id="profile-name">Guest User</div>
+        <div class="profile-plan" id="profile-plan">Free Plan</div>
+      </div>
+
+      <div class="profile-stats-grid">
+        <div class="profile-stat-card">
+          <div class="profile-stat-icon">🔥</div>
+          <div class="profile-stat-value" id="profile-streak">0</div>
+          <div class="profile-stat-label">Day Streak</div>
+        </div>
+        <div class="profile-stat-card">
+          <div class="profile-stat-icon">🏆</div>
+          <div class="profile-stat-value" id="profile-mock-tests">0</div>
+          <div class="profile-stat-label">Mock Tests</div>
+        </div>
+        <div class="profile-stat-card">
+          <div class="profile-stat-icon">📝</div>
+          <div class="profile-stat-value" id="profile-mcqs">0</div>
+          <div class="profile-stat-label">MCQs Solved</div>
+        </div>
+        <div class="profile-stat-card">
+          <div class="profile-stat-icon">⭐</div>
+          <div class="profile-stat-value" id="profile-points">0</div>
+          <div class="profile-stat-label">Total Points</div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">📋 Exam Info</div>
+        <div class="profile-info-row">
+          <span class="profile-info-label">Selected Exam</span>
+          <span class="profile-info-value" id="profile-exam">Not Selected</span>
+        </div>
+        <div class="profile-info-row">
+          <span class="profile-info-label">Your Level</span>
+          <span class="profile-info-value" id="profile-level">Beginner</span>
+        </div>
+      </div>
+
+      <!-- Performance Analytics (MongoDB) -->
+      <div class="profile-section" id="profile-analytics-section">
+        <div class="profile-section-title">📊 Performance Analytics</div>
+        
+        <div class="profile-analytics-grid">
+          <div class="profile-analytics-card">
+            <div class="profile-analytics-icon">🎯</div>
+            <div class="profile-analytics-value" id="profile-analytics-accuracy">--</div>
+            <div class="profile-analytics-label">Accuracy</div>
+          </div>
+          <div class="profile-analytics-card">
+            <div class="profile-analytics-icon">⏱️</div>
+            <div class="profile-analytics-value" id="profile-analytics-time">--</div>
+            <div class="profile-analytics-label">Study Time</div>
+          </div>
+          <div class="profile-analytics-card">
+            <div class="profile-analytics-icon">🔥</div>
+            <div class="profile-analytics-value" id="profile-analytics-streak">--</div>
+            <div class="profile-analytics-label">Streak</div>
+          </div>
+        </div>
+
+        <div class="profile-analytics-weekly">
+          <div class="profile-section-subtitle">📅 Weekly Activity</div>
+          <div class="profile-weekly-bars" id="profile-weekly-bars"></div>
+        </div>
+
+        <div class="profile-subject-performance">
+          <div class="profile-section-subtitle">📚 Subject Performance</div>
+          <div class="profile-subject-table" id="profile-subject-table"></div>
+        </div>
+
+        <div class="profile-ai-plan">
+          <div class="profile-section-subtitle">🤖 AI Study Plan</div>
+          <div class="profile-ai-plan-content" id="profile-ai-plan-content">
+            <div class="profile-loading">Loading your personalized plan...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">📊 Subject Performance</div>
+        <div class="profile-subject-list" id="profile-subject-list">
+          <!-- Subject performance inserted by JS -->
+        </div>
+      </div>
+
+      <button class="profile-edit-btn" onclick="navigateTo('dashboard')">← Back to Dashboard</button>
+    </section>
+
     <!-- ──── Screen: Dashboard ──── -->
     <section class="screen" id="screen-dashboard">
-      <div class="screen-title">📊 Dashboard</div>
+      <div class="screen-title" id="greeting-title">📊 Hi Student !</div>
       <div class="dashboard-exam-badge" id="dashboard-exam-badge" title="Click to change exam">
         <span id="dashboard-exam-icon">🏛️</span>
         <span id="dashboard-exam-name">UPSC CSE</span>
@@ -101,16 +195,21 @@
 
     <!-- ──── Screen: Syllabus ──── -->
     <section class="screen" id="screen-syllabus">
-      <div class="screen-title">📚 Syllabus</div>
+      <div class="screen-title">📚 Syllabus & Exam Pattern</div>
+
+      <!-- Exam Pattern Card -->
+      <div class="exam-pattern-card" id="exam-pattern-card" style="display:none;">
+        <div class="pattern-header">
+          <span class="pattern-label">📋 Exam Pattern</span>
+          <div class="pattern-meta" id="pattern-meta"></div>
+        </div>
+        <div class="pattern-papers" id="pattern-papers"></div>
+      </div>
 
       <div class="syllabus-controls">
         <div class="syllabus-search">
           <span class="search-icon">🔍</span>
-          <input type="text" id="syllabus-search-input" placeholder="Search topics...">
-        </div>
-        <div class="lang-toggle" id="syllabus-lang-toggle">
-          <button class="lang-btn active" data-lang="en">EN</button>
-          <button class="lang-btn" data-lang="hi">हिं</button>
+          <input type="text" id="syllabus-search-input" placeholder="विषय खोजें...">
         </div>
       </div>
 
@@ -133,25 +232,20 @@
 
       <div class="chat-container">
         <div class="chat-controls">
-          <div class="lang-toggle">
-            <button class="lang-btn active" data-lang="english">EN</button>
-            <button class="lang-btn" data-lang="hindi">हिं</button>
-            <button class="lang-btn" data-lang="mixed">Mix</button>
-          </div>
           <button class="new-chat-btn" id="btn-new-chat">🗑️ New Chat</button>
         </div>
 
         <div class="chat-messages" id="chat-messages">
           <div class="chat-welcome" id="chat-welcome">
             <div class="welcome-emoji">🤖</div>
-            <h3>AI Study Assistant</h3>
-            <p>Ask me anything about your exam topics. I can explain concepts, generate MCQs, and help with revision!</p>
+            <h3>CGVYAPAM AI Educator</h3>
+            <p>Ask me anything about CG Vyapam exams — CG GK, syllabus, MCQs, exam pattern, and CG current affairs!</p>
             <div class="quick-prompts">
-              <button class="quick-prompt-chip" data-prompt="Explain the Indian Constitution's Preamble in simple terms">📖 Explain Topic</button>
-              <button class="quick-prompt-chip" data-prompt="Generate 5 MCQs on Indian History for exam practice">📝 Give MCQs</button>
-              <button class="quick-prompt-chip" data-prompt="What are the most important current affairs topics for my exam this month?">📰 Current Affairs</button>
-              <button class="quick-prompt-chip" data-prompt="Give me a summary of the most frequently asked topics in previous year papers">📋 PYQ Analysis</button>
-              <button class="quick-prompt-chip" data-prompt="Create a short revision note on Indian Geography - Physical Features">🗒️ Quick Notes</button>
+              <button class="quick-prompt-chip" data-prompt="छत्तीसगढ़ के प्रमुख राष्ट्रीय उद्यान और अभयारण्य बताओ">🌳 CG वन एवं अभयारण्य</button>
+              <button class="quick-prompt-chip" data-prompt="Generate 5 MCQs on CG History for Patwari exam practice">📝 CG History MCQs</button>
+              <button class="quick-prompt-chip" data-prompt="छत्तीसगढ़ की प्रमुख जनजातियाँ और उनकी विशेषताएं बताओ">🏘️ CG Tribes</button>
+              <button class="quick-prompt-chip" data-prompt="CG Vyapam exam latest notifications and current affairs 2024-25">📰 CG Current Affairs</button>
+              <button class="quick-prompt-chip" data-prompt="Patwari exam ke liye sabse important topics kya hain?">🎯 Important Topics</button>
             </div>
           </div>
         </div>
@@ -180,6 +274,11 @@
             <div class="mode-name">Mock Test</div>
             <div class="mode-desc">25 questions • 30 min</div>
           </div>
+          <div class="test-mode-card" data-mode="pyq">
+            <div class="mode-icon">📚</div>
+            <div class="mode-name">Previous Papers</div>
+            <div class="mode-desc">Pre-loaded PYQs</div>
+          </div>
         </div>
 
         <div class="test-config mb-16">
@@ -193,8 +292,8 @@
         <div class="test-config mb-16">
           <label for="test-lang-select">Language</label>
           <select id="test-lang-select">
-            <option value="english">English</option>
             <option value="hindi">Hindi (हिंदी)</option>
+            <option value="english">English</option>
             <option value="mixed">Mixed (Hinglish)</option>
           </select>
         </div>
@@ -256,21 +355,58 @@
 
     <!-- ──── Screen: News ──── -->
     <section class="screen" id="screen-news">
-      <div class="screen-title">📰 News & Jobs</div>
-
-      <div class="news-controls">
-        <div class="news-tabs">
-          <button class="news-tab active" data-category="all">All</button>
-          <button class="news-tab" data-category="exams">📝 Exam Alerts</button>
-          <button class="news-tab" data-category="jobs">💼 Jobs</button>
-          <button class="news-tab" data-category="affairs">📰 Current Affairs</button>
-        </div>
-        <div class="lang-toggle" id="news-lang-toggle">
-          <button class="lang-btn active" data-lang="en">EN</button>
-          <button class="lang-btn" data-lang="hi">हिं</button>
+      <!-- Breaking News Ticker -->
+      <div class="news-ticker-wrap" id="news-ticker-wrap" style="display:none;">
+        <span class="news-ticker-label">🔴 LIVE</span>
+        <div class="news-ticker-track">
+          <div class="news-ticker-inner" id="news-ticker-inner"></div>
         </div>
       </div>
 
+      <!-- Header Row -->
+      <div class="news-header-row">
+        <div class="screen-title" style="margin-bottom:0;">📰 समाचार &amp; नौकरी</div>
+        <div class="news-meta-row">
+          <span class="news-update-time" id="news-update-time">Updating...</span>
+          <button class="news-refresh-btn" id="news-refresh-btn" title="Refresh News">↻</button>
+        </div>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="news-search-wrap">
+        <span class="news-search-icon">🔍</span>
+        <input type="text" id="news-search-input" class="news-search-input" placeholder="Search news, jobs, alerts...">
+        <button class="news-search-clear" id="news-search-clear" style="display:none;">✕</button>
+      </div>
+
+      <!-- Category Tabs -->
+      <div class="news-tabs-wrap">
+        <div class="news-tabs" id="news-tabs">
+          <button class="news-tab active" data-category="all">
+            <span class="news-tab-icon">📋</span> All
+          </button>
+          <button class="news-tab" data-category="exams">
+            <span class="news-tab-icon">📝</span> Exam Alerts
+          </button>
+          <button class="news-tab" data-category="jobs">
+            <span class="news-tab-icon">💼</span> Jobs
+          </button>
+          <button class="news-tab" data-category="affairs">
+            <span class="news-tab-icon">🗞️</span> Current Affairs
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="news-stats-bar" id="news-stats-bar" style="display:none;">
+        <span class="news-stat-item" id="news-stat-total">0 Articles</span>
+        <span class="news-stat-sep">•</span>
+        <span class="news-stat-item" id="news-stat-jobs">0 Jobs</span>
+        <span class="news-stat-sep">•</span>
+        <span class="news-stat-item" id="news-stat-exams">0 Alerts</span>
+      </div>
+
+      <!-- News List -->
       <div id="news-list">
         <!-- News cards inserted by JS, skeleton shown while loading -->
         <div class="skeleton skeleton-card"></div>
@@ -322,6 +458,13 @@
         </div>
       </div>
       <div class="settings-group">
+        <label>भाषा / Language</label>
+        <div class="lang-toggle" id="settings-lang-toggle" style="display: inline-flex; margin-top: 6px;">
+          <button class="lang-btn active" data-lang="hi">हिं हिंदी</button>
+          <button class="lang-btn" data-lang="en">EN English</button>
+        </div>
+      </div>
+      <div class="settings-group">
         <label>API Status</label>
         <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
           <span class="api-status" id="api-status-dot"></span>
@@ -330,8 +473,9 @@
       </div>
       <button class="settings-btn danger" onclick="clearProgress()">🗑️ Clear All Progress</button>
       <button class="settings-btn danger" onclick="clearChatHistory()">💬 Clear Chat History</button>
+      <button class="settings-btn danger" style="border: 1px solid rgba(255, 255, 255, 0.2); background: transparent; color: white;" onclick="userLogout()">🚪 Log Out</button>
       <div style="text-align: center; margin-top: 16px; font-size: 0.7rem; color: var(--text-muted);">
-        ExamPrep AI v1.0 • Built with ❤️ for Indian Students
+        Study World v1.0 • Built with ❤️ for Indian Students
       </div>
     </div>
   </div>
@@ -383,11 +527,97 @@
     </div>
   </div>
 
+  <!-- News Detail Modal -->
+  <div class="modal-overlay" id="modal-news-detail">
+    <div class="modal-content news-detail-modal">
+      <!-- Category badge + close -->
+      <div class="nd-top-bar">
+        <span class="nd-category-badge" id="nd-category-badge">📰 News</span>
+        <button class="modal-close" onclick="closeModal('modal-news-detail')">✕</button>
+      </div>
+
+      <!-- Article Title -->
+      <h2 class="nd-title" id="nd-title"></h2>
+
+      <!-- Meta row -->
+      <div class="nd-meta">
+        <span class="nd-meta-item" id="nd-date">📅 Today</span>
+        <span class="nd-meta-dot">•</span>
+        <span class="nd-meta-item" id="nd-source">📡 Source</span>
+      </div>
+
+      <!-- Description -->
+      <div class="nd-desc-box" id="nd-desc"></div>
+
+      <!-- Exam Relevance hint -->
+      <div class="nd-relevance-tag" id="nd-relevance-tag" style="display:none;">
+        <span>⚠️ Exam Relevance:</span> <span id="nd-relevance-text"></span>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="nd-action-row">
+        <button class="nd-btn-primary" id="nd-ask-ai-btn">🤖 Ask AI About This</button>
+        <button class="nd-btn-secondary" id="nd-read-more-btn">🌐 Open Article</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal (Blocking) -->
+  <div class="modal-overlay" id="modal-auth" style="background: var(--bg-dark); z-index: 9999;">
+    <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2>🔒 Login / Sign Up</h2>
+      </div>
+      <div id="auth-forms">
+        <div id="login-form">
+          <input type="text" id="login-id" class="settings-btn" placeholder="UserID" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
+          <input type="password" id="login-pass" class="settings-btn" placeholder="Password" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
+          <div id="login-error" style="color:#ff4757; font-size:0.82rem; text-align:center; margin-bottom:8px; display:none;"></div>
+          <button class="start-test-btn" id="btn-login" onclick="userLogin()">Login</button>
+          <p style="text-align: center; margin-top: 10px; font-size: 0.9rem;">Need an account? <a href="#" onclick="toggleAuthMode()" style="color: var(--primary);">Sign Up</a></p>
+        </div>
+        <div id="signup-form" class="hidden">
+          <input type="text" id="signup-name" class="settings-btn" placeholder="Full Name" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
+          <input type="text" id="signup-mobile" class="settings-btn" placeholder="Mobile Number" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
+          <input type="text" id="signup-id" class="settings-btn" placeholder="Create UserID (e.g. abhi_123)" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
+          <input type="password" id="signup-pass" class="settings-btn" placeholder="Password (min 6 chars)" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
+          <div id="signup-error" style="color:#ff4757; font-size:0.82rem; text-align:center; margin-bottom:8px; display:none;"></div>
+          <button class="start-test-btn" id="btn-signup" onclick="userSignup()">Sign Up</button>
+          <p style="text-align: center; margin-top: 10px; font-size: 0.9rem;">Already have an account? <a href="#" onclick="toggleAuthMode()" style="color: var(--primary);">Login</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Topic Study Modal -->
+  <div class="modal-overlay" id="modal-topic-study">
+    <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h2 id="study-topic-title" style="font-size: 1.2rem;">📚 Topic Study</h2>
+        <button class="modal-close" onclick="closeModal('modal-topic-study')">✕</button>
+      </div>
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;" id="study-tabs">
+        <button class="settings-btn active" id="btn-tab-notes" onclick="tabStudy('notes')" style="flex: 1; padding: 10px; border: 1px solid var(--primary); background: rgba(108, 92, 231, 0.2);">📝 PDF Notes</button>
+        <button class="settings-btn" id="btn-tab-youtube" onclick="tabStudy('youtube')" style="flex: 1; padding: 10px; border: 1px solid var(--primary); background: transparent;">📺 YouTube AI</button>
+      </div>
+      <div class="news-detail-content" style="overflow-y: auto; flex: 1; padding: 10px 0;" id="study-content-area">
+         <!-- Content updated by JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <!-- Scripts -->
+  <!-- Firebase SDK (must load before app.js) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+
+  <!-- App Scripts -->
   <script src="syllabus-data.js"></script>
+  <script src="cgpsc-data.js"></script>
+  <script src="tests-data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

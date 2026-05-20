@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const claude = require('../services/groq');
+const ai = require('../services/aiManager');
 
 router.post('/', async (req, res) => {
   try {
-    const { examId, examName, subject, mode, language } = req.body;
+    const { examId, examName, subject, mode, language, subjects } = req.body;
 
     if (!examId || !examName) {
       return res.status(400).json({ error: 'examId and examName are required' });
@@ -14,10 +14,11 @@ router.post('/', async (req, res) => {
     const questionCount = testMode === 'mock' ? 25 : 5;
     const subjectName = subject || 'all';
     const lang = language || 'english';
+    const examSubjects = subjects || [];
 
     console.log(`[Test] Generating ${testMode} (${questionCount} Qs) for ${examName} - ${subjectName}`);
 
-    const result = await claude.generateTest(examId, examName, subjectName, testMode, questionCount, lang);
+    const result = await ai.generateTest(examId, examName, subjectName, testMode, questionCount, lang, examSubjects);
 
     res.json({
       mode: testMode,

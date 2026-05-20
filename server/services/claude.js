@@ -78,10 +78,19 @@ async function chatStream(message, examName, language, history = []) {
   return stream;
 }
 
-async function generateTest(examId, examName, subject, mode, questionCount, language) {
+async function generateTest(examId, examName, subject, mode, questionCount, language, examSubjects = []) {
   const langInstruction = getLanguageInstruction(language);
 
-  const prompt = `Generate exactly ${questionCount} multiple choice questions for the ${examName} exam${subject !== 'all' ? `, specifically for the subject: ${subject}` : ', covering various subjects from the syllabus'}.
+  let subjectContext = '';
+  if (subject !== 'all' && subject) {
+    subjectContext = `specifically for the subject: ${subject}`;
+  } else if (examSubjects.length > 0) {
+    subjectContext = `covering questions from these subjects: ${examSubjects.slice(0, 8).join(', ')}${examSubjects.length > 8 ? ' and more' : ''}`;
+  } else {
+    subjectContext = 'covering various subjects from the syllabus';
+  }
+
+  const prompt = `Generate exactly ${questionCount} multiple choice questions for the ${examName} exam, ${subjectContext}.
 
 ${langInstruction}
 
@@ -103,16 +112,17 @@ Requirements:
 - Each question must have exactly 4 options
 - correctIndex is 0-based (0 for first option, 3 for last)
 - Questions should be at the exact difficulty level of actual ${examName} exams
-- Mix different topics and sub-topics within the subject
+- Mix different topics and sub-topics across the selected subjects
 - Include factual, conceptual, and application-based questions
 - The "explanation" field MUST be highly detailed, accurate, and deeply informative. Do not simply restate the correct option. Explain the core concept behind the answer, provide related supplementary facts, and briefly explain why the incorrect options are wrong.
 - Make questions exam-relevant and strictly fact-checked
+- Distribute questions evenly across the different subjects/topics selected
 ${mode === 'mock' ? '- Include a mix of easy (30%), medium (50%), and hard (20%) questions' : '- Keep questions at medium difficulty for quick practice'}`;
 
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: 8192,
-    system: `You are an expert question paper setter for Indian government competitive exams. You generate high-quality MCQs that match the actual exam pattern and difficulty level. You ONLY respond with valid JSON, never any other format.`,
+    system: `You are an expert question paper setter for ${examName} exam. You generate high-quality MCQs that match the actual exam pattern and difficulty level. Your questions should cover all relevant subjects and topics as specified in the exam syllabus. You ONLY respond with valid JSON, never any other format.`,
     messages: [{ role: 'user', content: prompt }]
   });
 
@@ -129,12 +139,44 @@ ${mode === 'mock' ? '- Include a mix of easy (30%), medium (50%), and hard (20%)
     if (!parsed.questions || !Array.isArray(parsed.questions)) {
       throw new Error('Invalid response format: missing questions array');
     }
-    for (const q of parsed.questions) {
-      if (!q.question || !q.options || q.options.length !== 4 || typeof q.correctIndex !== 'number' || !q.explanation) {
+    
+    const shuffledQuestions = parsed.questions.map(q => {
+      if (!q.question || !q.options || q.options.length !== 4 || !q.explanation) {
         throw new Error('Invalid question format');
       }
-    }
-    return parsed;
+      
+      let correctIdx = q.correctIndex;
+      if (typeof correctIdx === 'undefined' || correctIdx === null) {
+        if (typeof q.correctAnswer === 'number') correctIdx = q.correctAnswer;
+        else if (typeof q.answer === 'number') correctIdx = q.answer;
+        else correctIdx = 0;
+      }
+      
+      if (correctIdx < 0 || correctIdx > 3) correctIdx = 0;
+      
+      const correctOption = q.options[correctIdx];
+      const shuffledOptions = [...q.options];
+      let newCorrectIdx;
+      
+      if (Math.random() > 0.5) {
+        for (let i = shuffledOptions.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+        }
+        newCorrectIdx = shuffledOptions.indexOf(correctOption);
+      } else {
+        newCorrectIdx = correctIdx;
+      }
+      
+      return {
+        question: q.question,
+        options: shuffledOptions,
+        correctIndex: newCorrectIdx,
+        explanation: q.explanation
+      };
+    });
+    
+    return { questions: shuffledQuestions };
   } catch (e) {
     console.error('Failed to parse test JSON:', e.message);
     console.error('Raw response:', text.substring(0, 500));

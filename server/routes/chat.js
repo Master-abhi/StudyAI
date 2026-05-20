@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const claude = require('../services/groq');
+const ai = require('../services/aiManager');
 
 router.post('/', async (req, res) => {
   try {
@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
       };
 
       try {
-        const streamObj = await claude.chatStream(message, exam, lang, history || []);
+        const streamObj = await ai.chatStream(message, exam, lang, history || []);
 
         req.on('close', () => {
           ended = true;
@@ -62,7 +62,7 @@ router.post('/', async (req, res) => {
         safeEnd();
       }
     } else {
-      const reply = await claude.chat(message, exam, lang, history || []);
+      const reply = await ai.chat(message, exam, lang, history || []);
       res.json({ reply });
     }
   } catch (err) {

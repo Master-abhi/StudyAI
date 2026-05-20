@@ -1,0 +1,20 @@
+name: Refresh News Cache
+
+on:
+  schedule:
+    # Run every 2 hours (UTC) — equivalent to every 2 hours IST offset by 30 min
+    - cron: '30 */2 * * *'
+  workflow_dispatch:
+    # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  refresh-news:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping news refresh endpoint
+        run: |
+          echo "Triggering news refresh at $(date)"
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" \
+            -X POST \
+            "${{ secrets.VERCEL_API_URL }}/api/news/refresh"
+          echo "News refresh triggered ✅"
