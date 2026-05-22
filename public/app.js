@@ -39,7 +39,7 @@ let testState = {
 // ═══════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
-  checkUserAuth();
+  checkUserAuth();   // Auth state set hogi async — loadState baad mein refresh karega
   loadState();
   initNavigation();
   initExamSelector();
@@ -327,7 +327,10 @@ function renderSubjectProgress(exam, progress) {
   container.innerHTML = html;
 }
 
-function updateProfile() {
+async function updateProfile() {
+  // Load server data into localStorage before rendering
+  await loadUserDataFromServer();
+
   const userName = localStorage.getItem('userName') || 'Guest User';
   document.getElementById('profile-name').textContent = userName;
   document.getElementById('profile-avatar').textContent = userName !== 'Guest User' ? '👨‍🎓' : '👤';
@@ -359,116 +362,233 @@ function updateProfile() {
   loadMongoAnalytics();
 }
 
+async function syncUserData() {
+  const headers = await getAuthHeaders();
+  if (!headers.Authorization) return;
+
+  const subjects = {};
+  const progress = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith(KEYS.subjectScores)) {
+      const exam = key.slice(KEYS.subjectScores.length);
+      if (exam) subjects[exam] = JSON.parse(localStorage.getItem(key) || '{}');
+    }
+    if (key.startsWith(KEYS.progress)) {
+      const exam = key.slice(KEYS.progress.length);
+      if (exam) progress[exam] = JSON.parse(localStorage.getItem(key) || '{}');
+    }
+  }
+
+  try {
+    const res = await fetch('/api/user/sync', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        testResults: JSON.parse(localStorage.getItem(KEYS.testResults) || '[]'),
+        points: parseInt(localStorage.getItem(KEYS.points) || '0'),
+        mcqsSolved: parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0'),
+        streak: JSON.parse(localStorage.getItem(KEYS.streak) || '{"lastDate":"","count":0}'),
+        subjects, progress
+      })
+    });
+    if (!res.ok) console.error('[Sync] Server error:', await res.text());
+  } catch (err) {
+    console.error('[Sync] Failed:', err);
+  }
+}
+
+async function loadUserDataFromServer() {
+  const headers = await getAuthHeaders();
+  if (!headers.Authorization) return;
+
+  try {
+    const res = await fetch('/api/user/data', { headers });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || Object.keys(data).length === 0) return;
+
+    if (data.testResults && data.testResults.length) localStorage.setItem(KEYS.testResults, JSON.stringify(data.testResults));
+    if (data.points !== undefined && data.points !== null) localStorage.setItem(KEYS.points, String(data.points));
+    if (data.mcqsSolved !== undefined && data.mcqsSolved !== null) localStorage.setItem(KEYS.mcqsSolved, String(data.mcqsSolved));
+    if (data.streak && data.streak.count !== undefined) localStorage.setItem(KEYS.streak, JSON.stringify(data.streak));
+    if (data.subjects) {
+      Object.entries(data.subjects).forEach(([exam, scores]) => {
+        localStorage.setItem(KEYS.subjectScores + exam, JSON.stringify(scores));
+      });
+    }
+    if (data.progress) {
+      Object.entries(data.progress).forEach(([exam, prog]) => {
+        localStorage.setItem(KEYS.progress + exam, JSON.stringify(prog));
+      });
+    }
+  } catch (err) {
+    console.error('[Load Data] Failed:', err);
+  }
+}
+
+function getLocalAnalytics() {
+  const testResults = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
+  const correct = testResults.reduce((sum, t) => sum + t.score, 0);
+  const total = testResults.reduce((sum, t) => sum + t.total, 0);
+  const points = parseInt(localStorage.getItem(KEYS.points) || '0');
+  const mcqs = parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0');
+  const streak = getStreak();
+  const key = KEYS.subjectScores + currentExam;
+  const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
+
+  return {
+    accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+    studyTime: Math.round(points / 10),
+    streak: streak.count,
+    totalAttempted: total || mcqs,
+    subjectScores,
+    hasData: total > 0 || points > 0 || Object.keys(subjectScores).length > 0
+  };
+}
+
 async function loadMongoAnalytics() {
   const section = document.getElementById('profile-analytics-section');
+  const local = getLocalAnalytics();
   const headers = await getAuthHeaders();
-  
+
   section.style.display = 'block';
 
   if (!headers.Authorization) {
-    document.getElementById('profile-analytics-accuracy').textContent = '--';
-    document.getElementById('profile-analytics-time').textContent = '--';
-    document.getElementById('profile-analytics-streak').textContent = '--';
-    document.getElementById('profile-subject-table').innerHTML = '<div class="profile-loading">🔐 Please login to view your performance analytics</div>';
-    document.getElementById('profile-ai-plan-content').innerHTML = 'Login to get AI study plan';
-    document.getElementById('profile-weekly-bars').innerHTML = '<div class="profile-loading">Login to see weekly activity</div>';
+    document.getElementById('profile-analytics-accuracy').textContent = local.accuracy + '%';
+    document.getElementById('profile-analytics-time').textContent = local.studyTime + 'm';
+    document.getElementById('profile-analytics-streak').textContent = local.streak;
+    renderLocalSubjectTable(local.subjectScores);
+    renderLocalWeeklyGraph();
+    document.getElementById('profile-ai-plan-content').innerHTML = local.hasData
+      ? '📝 Login to get AI study plan based on your progress!'
+      : '👤 Browsing as Guest — take tests to see your stats!';
     return;
   }
 
   try {
-    const [overviewRes, subjectsRes] = await Promise.all([
-      fetch('/api/analytics/overview', { headers }),
-      fetch('/api/analytics/subjects', { headers })
+    const [userRes, overviewRes, subjectsRes] = await Promise.all([
+      fetch('/api/user/data', { headers }).catch(() => null),
+      fetch('/api/analytics/overview', { headers }).catch(() => null),
+      fetch('/api/analytics/subjects', { headers }).catch(() => null)
     ]);
 
-    if (!overviewRes.ok || !subjectsRes.ok) {
-      throw new Error('API Error');
+    const userData = userRes?.ok ? await userRes.json() : null;
+
+    let accuracy = local.accuracy;
+    let studyTime = local.studyTime;
+    let streakVal = local.streak;
+    let weeklyData = null;
+    let subjectsData = null;
+
+    // Compute from userData (most accurate)
+    if (userData) {
+      if (userData.testResults?.length) {
+        const correct = userData.testResults.reduce((s, t) => s + t.score, 0);
+        const total = userData.testResults.reduce((s, t) => s + t.total, 0);
+        accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+      }
+      if (userData.points !== undefined && userData.points !== null) {
+        studyTime = Math.round(Number(userData.points) / 10);
+      }
+      if (userData.streak?.count !== undefined) {
+        streakVal = userData.streak.count;
+      }
+      const examKey = currentExam || '';
+      if (userData.subjects?.[examKey]) {
+        subjectsData = Object.entries(userData.subjects[examKey]).map(([name, data]) => ({
+          name, accuracy: Math.round(data.totalScore / data.count), total: data.count,
+          status: (data.totalScore / data.count) >= 75 ? 'strong' : (data.totalScore / data.count) < 50 ? 'weak' : 'average'
+        }));
+      }
     }
 
-    const overview = await overviewRes.json();
-    const subjectsData = await subjectsRes.json();
+    // Fall back to old analytics API
+    if (overviewRes?.ok) {
+      const overview = await overviewRes.json();
+      if (overview.overallAccuracy) accuracy = overview.overallAccuracy;
+      if (overview.totalStudyTime) studyTime = overview.totalStudyTime;
+      if (overview.currentStreak) streakVal = overview.currentStreak;
+      if (overview.weeklyActivity) weeklyData = overview.weeklyActivity;
+    }
 
-    document.getElementById('profile-analytics-accuracy').textContent = (overview.overallAccuracy || 0) + '%';
-    document.getElementById('profile-analytics-time').textContent = (overview.totalStudyTime || 0) + 'm';
-    document.getElementById('profile-analytics-streak').textContent = overview.currentStreak || 0;
+    if (subjectsRes?.ok && !subjectsData) {
+      subjectsData = await subjectsRes.json();
+    }
 
-    renderProfileWeeklyActivity(overview.weeklyActivity || []);
-    renderProfileSubjectTable(subjectsData || []);
+    document.getElementById('profile-analytics-accuracy').textContent = accuracy + '%';
+    document.getElementById('profile-analytics-time').textContent = studyTime + 'm';
+    document.getElementById('profile-analytics-streak').textContent = streakVal;
+
+    if (weeklyData) renderProfileWeeklyActivity(weeklyData);
+    else renderLocalWeeklyGraph();
+
+    if (subjectsData?.length) renderProfileSubjectTable(subjectsData);
+    else renderLocalSubjectTable(local.subjectScores);
+
     loadProfileAIPlan();
 
   } catch (err) {
     console.error('[Profile Analytics Error]:', err);
-    loadMongoAnalyticsFallback();
+    document.getElementById('profile-analytics-accuracy').textContent = local.accuracy + '%';
+    document.getElementById('profile-analytics-time').textContent = local.studyTime + 'm';
+    document.getElementById('profile-analytics-streak').textContent = local.streak;
+    renderLocalSubjectTable(local.subjectScores);
+    renderLocalWeeklyGraph();
+    document.getElementById('profile-ai-plan-content').innerHTML = local.hasData
+      ? '📝 Take more tests to get personalized recommendations!'
+      : '📝 Start taking tests to see your performance!';
   }
 }
 
-function loadMongoAnalyticsFallback() {
-  const mcqs = parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0');
-  const points = parseInt(localStorage.getItem(KEYS.points) || '0');
+function renderLocalSubjectTable(subjectScores) {
+  const container = document.getElementById('profile-subject-table');
+  const entries = Object.entries(subjectScores);
+  if (entries.length === 0) {
+    container.innerHTML = '<div class="profile-loading">Take tests to see subject performance!</div>';
+    return;
+  }
+  let html = '';
+  for (const [name, data] of entries) {
+    const avg = Math.round(data.totalScore / data.count);
+    let color = '#ffc107';
+    if (avg >= 75) color = '#00e676';
+    else if (avg < 50) color = '#ff9800';
+    html += `<div class="profile-subject-row">
+      <span class="profile-subject-row-name">${name}</span>
+      <div class="profile-subject-row-bar"><div class="profile-subject-row-bar-fill" style="width: ${avg}%; background: ${color}"></div></div>
+      <span class="profile-subject-row-accuracy" style="color: ${color}">${avg}%</span>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function renderLocalWeeklyGraph() {
+  const container = document.getElementById('profile-weekly-bars');
   const testResults = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
-  
-  const correct = testResults.reduce((sum, t) => sum + t.score, 0);
-  const total = testResults.reduce((sum, t) => sum + t.total, 0);
-  const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
-  
-  const streak = getStreak();
-  
-  document.getElementById('profile-analytics-accuracy').textContent = accuracy + '%';
-  document.getElementById('profile-analytics-time').textContent = Math.round(points/10) + 'm';
-  document.getElementById('profile-analytics-streak').textContent = streak.count;
-  
-  const weeklyContainer = document.getElementById('profile-weekly-bars');
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const today = new Date().getDay();
   const dayMap = [1, 2, 3, 4, 5, 6, 0];
-  
   let html = '';
   for (let i = 0; i < 7; i++) {
     const count = (dayMap[i] === today) ? Math.floor(testResults.length / 7) + 1 : Math.floor(testResults.length / 7);
     const height = Math.max(count * 10, 4);
     html += `<div class="profile-weekly-bar"><div class="profile-weekly-bar-fill" style="height: ${height}px"></div><div class="profile-weekly-bar-label">${days[i]}</div></div>`;
   }
-  weeklyContainer.innerHTML = html;
-  
-  const subjectContainer = document.getElementById('profile-subject-table');
-  const key = KEYS.subjectScores + currentExam;
-  const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
-  
-  if (Object.keys(subjectScores).length === 0) {
-    subjectContainer.innerHTML = '<div class="profile-loading">Take tests to see subject performance!</div>';
-    return;
-  }
-  
-  let tableHtml = '';
-  for (const [name, data] of Object.entries(subjectScores)) {
-    const avg = Math.round(data.totalScore / data.count);
-    let color = '#ffc107';
-    if (avg >= 75) color = '#00e676';
-    else if (avg < 50) color = '#ff9800';
-    
-    tableHtml += `<div class="profile-subject-row">
-      <span class="profile-subject-row-name">${name}</span>
-      <div class="profile-subject-row-bar"><div class="profile-subject-row-bar-fill" style="width: ${avg}%; background: ${color}"></div></div>
-      <span class="profile-subject-row-accuracy" style="color: ${color}">${avg}%</span>
-    </div>`;
-  }
-  subjectContainer.innerHTML = tableHtml || '<div class="profile-loading">Take more tests to see data!</div>';
-  
-  document.getElementById('profile-ai-plan-content').innerHTML = '📝 Take more subject-wise tests to get AI recommendations!\n\n💡 Tip: Select specific subjects in tests to track your performance better.';
+  container.innerHTML = html;
 }
 
 function renderProfileWeeklyActivity(weeklyData) {
   const container = document.getElementById('profile-weekly-bars');
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  
-  const maxCount = Math.max(...weeklyData.map(w => w.count), 1);
-  
+
+  const counts = weeklyData.map(d => typeof d === 'number' ? d : (d?.count || 0));
+  const maxCount = Math.max(...counts, 1);
+
   let html = '';
   for (let i = 0; i < 7; i++) {
-    const dayData = weeklyData[i];
-    const count = dayData?.count || 0;
+    const count = counts[i] || 0;
     const height = Math.max((count / maxCount) * 50, 4);
-    
     html += `
       <div class="profile-weekly-bar">
         <div class="profile-weekly-bar-fill" style="height: ${height}px"></div>
@@ -575,7 +695,6 @@ function analyzeSubjectPerformance(exam) {
       if (recentAvg - olderAvg > 10) trend = 'improving';
       else if (olderAvg - recentAvg > 10) trend = 'declining';
     }
-    
     return {
       name,
       avgScore: Math.round(data.totalScore / data.count),
@@ -587,11 +706,12 @@ function analyzeSubjectPerformance(exam) {
     };
   }).filter(s => s.tests > 0);
 
+  const strongEl = document.getElementById('profile-strong-subjects');
+  const weakEl = document.getElementById('profile-weak-subjects');
+
   if (subjectData.length === 0) {
-    document.getElementById('profile-strong-subjects').innerHTML = 
-      '<div class="analysis-empty">📊 Take more subject-wise tests to get detailed analysis!</div>';
-    document.getElementById('profile-weak-subjects').innerHTML = 
-      '<div class="analysis-empty">📝 Start with Quick Quiz or Mock Test to track your performance.</div>';
+    if (strongEl) strongEl.innerHTML = '<div class="analysis-empty">📊 Take more subject-wise tests to get detailed analysis!</div>';
+    if (weakEl) weakEl.innerHTML = '<div class="analysis-empty">📝 Start with Quick Quiz or Mock Test to track your performance.</div>';
     return;
   }
 
@@ -600,42 +720,43 @@ function analyzeSubjectPerformance(exam) {
   const strongSubjects = subjectData.filter(s => s.avgScore >= 55);
   const weakSubjects = subjectData.filter(s => s.avgScore < 55);
 
-  const strongContainer = document.getElementById('profile-strong-subjects');
-  const weakContainer = document.getElementById('profile-weak-subjects');
-
-  if (strongSubjects.length > 0) {
-    strongContainer.innerHTML = strongSubjects.slice(0, 4).map(s => {
-      const trendIcon = s.trend === 'improving' ? '📈' : s.trend === 'declining' ? '📉' : '➡️';
-      return `
-        <div class="analysis-item">
-          <span class="analysis-subject-name">${s.name}</span>
-          <div class="analysis-subject-stats">
-            <span class="analysis-score good">${s.avgScore}%</span>
-            <span class="analysis-trend">${trendIcon}</span>
-          </div>
-          <div class="analysis-meta">${s.tests} tests • Best: ${s.bestScore}%</div>
-        </div>`;
-    }).join('');
-  } else {
-    strongContainer.innerHTML = '<div class="analysis-empty">Keep practicing to build strong subjects!</div>';
+  if (strongEl) {
+    if (strongSubjects.length > 0) {
+      strongEl.innerHTML = strongSubjects.slice(0, 4).map(s => {
+        const trendIcon = s.trend === 'improving' ? '📈' : s.trend === 'declining' ? '📉' : '➡️';
+        return `
+          <div class="analysis-item">
+            <span class="analysis-subject-name">${s.name}</span>
+            <div class="analysis-subject-stats">
+              <span class="analysis-score good">${s.avgScore}%</span>
+              <span class="analysis-trend">${trendIcon}</span>
+            </div>
+            <div class="analysis-meta">${s.tests} tests • Best: ${s.bestScore}%</div>
+          </div>`;
+      }).join('');
+    } else {
+      strongEl.innerHTML = '<div class="analysis-empty">Keep practicing to build strong subjects!</div>';
+    }
   }
 
-  if (weakSubjects.length > 0) {
-    weakContainer.innerHTML = weakSubjects.slice(0, 4).map(s => {
-      const topicSuggestion = getWeakTopicSuggestion(exam, s.name, progress);
-      const trendIcon = s.trend === 'improving' ? '📈' : s.trend === 'declining' ? '📉' : '➡️';
-      return `
-        <div class="analysis-item">
-          <span class="analysis-subject-name">${s.name}</span>
-          <div class="analysis-subject-stats">
-            <span class="analysis-score poor">${s.avgScore}%</span>
-            <span class="analysis-trend">${trendIcon}</span>
-          </div>
-          <div class="analysis-meta">${s.tests} tests • Focus: ${topicSuggestion}</div>
-        </div>`;
-    }).join('');
-  } else {
-    weakContainer.innerHTML = '<div class="analysis-empty">🎉 Excellent! No weak areas identified yet!</div>';
+  if (weakEl) {
+    if (weakSubjects.length > 0) {
+      weakEl.innerHTML = weakSubjects.slice(0, 4).map(s => {
+        const topicSuggestion = getWeakTopicSuggestion(exam, s.name, progress);
+        const trendIcon = s.trend === 'improving' ? '📈' : s.trend === 'declining' ? '📉' : '➡️';
+        return `
+          <div class="analysis-item">
+            <span class="analysis-subject-name">${s.name}</span>
+            <div class="analysis-subject-stats">
+              <span class="analysis-score poor">${s.avgScore}%</span>
+              <span class="analysis-trend">${trendIcon}</span>
+            </div>
+            <div class="analysis-meta">${s.tests} tests • Focus: ${topicSuggestion}</div>
+          </div>`;
+      }).join('');
+    } else {
+      weakEl.innerHTML = '<div class="analysis-empty">🎉 Excellent! No weak areas identified yet!</div>';
+    }
   }
   
   renderDetailedPerformance(exam);
@@ -655,6 +776,7 @@ function getWeakTopicSuggestion(exam, subjectName, progress) {
 
 function renderDetailedPerformance(exam) {
   const container = document.getElementById('subject-performance-list');
+  if (!container) return;
   const key = KEYS.subjectScores + currentExam;
   const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
   const progress = getProgress();
@@ -710,6 +832,7 @@ function renderDetailedPerformance(exam) {
 
 function generateRecommendations(exam) {
   const container = document.getElementById('recommendations-box');
+  if (!container) return;
   const key = KEYS.subjectScores + currentExam;
   const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
   const progress = getProgress();
@@ -1677,6 +1800,7 @@ function finishTest() {
   });
 
   updateStreak();
+  syncUserData().catch(err => console.error('[Sync] Failed after test:', err));
 }
 
 function reviewTest() {
@@ -2281,13 +2405,30 @@ function checkUserAuth() {
       // Close auth modal if open
       document.getElementById('modal-auth')?.classList.remove('visible');
 
-      // Navigate to exam selector if no exam selected
+      // Load server data FIRST — takes priority over local localStorage
+      await loadUserDataFromServer();
+
+      // Navigate to exam selector if no exam selected (after data loaded)
       if (!currentExam) {
-        navigateTo('exams');
+        // Check if exam was restored from server progress
+        const savedExam = localStorage.getItem('examprep_selectedExam');
+        if (savedExam && getExamData(savedExam)) {
+          currentExam = savedExam;
+          navigateTo('dashboard');
+        } else {
+          navigateTo('exams');
+        }
       }
 
       // Re-render exam grid to show/hide admin options
       if (typeof renderExamGrid === 'function') renderExamGrid();
+
+      // Refresh dashboard if currently on dashboard screen
+      if (currentScreen === 'dashboard' && currentExam) {
+        updateDashboard();
+      }
+
+      showToast(`Welcome back, ${user.displayName || user.email.split('@')[0]}! 👋`);
 
     } else if (!isGuest) {
       // User signed out & not guest — show auth modal
@@ -2305,7 +2446,21 @@ function checkUserAuth() {
 function userLogout() {
   if (!confirm('Are you sure you want to log out?')) return;
   firebase.auth().signOut().then(() => {
-    localStorage.removeItem('userName');
+    const keysToRemove = [
+      KEYS.streak, KEYS.testsGiven, KEYS.testResults,
+      KEYS.reminderShown, KEYS.chatHistory, KEYS.points, KEYS.mcqsSolved,
+      'userName', 'guestMode'
+    ];
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+
+    const prefixes = [KEYS.progress, KEYS.subjectScores];
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (prefixes.some(p => key.startsWith(p))) {
+        localStorage.removeItem(key);
+      }
+    }
+
     window.location.reload();
   }).catch(err => {
     showToast('Logout failed: ' + err.message, 'error');
