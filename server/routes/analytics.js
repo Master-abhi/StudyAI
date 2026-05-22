@@ -1,15 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { admin, db } = require('../firebase-admin');
+const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 
-function getUserId(req) {
-  const uid = req.headers['x-user-id'];
-  return uid || 'anonymous';
-}
+router.use(verifyFirebaseToken);
 
 router.get('/overview', async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.user.uid;
 
     let data = {
       overallAccuracy: 0,
@@ -19,15 +17,13 @@ router.get('/overview', async (req, res) => {
       weeklyActivity: [0, 0, 0, 0, 0, 0, 0],
     };
 
-    if (userId !== 'anonymous') {
-      try {
-        const doc = await db.collection('analytics').doc(userId).get();
-        if (doc.exists) {
-          data = { ...data, ...doc.data() };
-        }
-      } catch (e) {
-        console.error('[Analytics] Firestore read error:', e.message);
+    try {
+      const doc = await db.collection('analytics').doc(userId).get();
+      if (doc.exists) {
+        data = { ...data, ...doc.data() };
       }
+    } catch (e) {
+      console.error('[Analytics] Firestore read error:', e.message);
     }
 
     res.json(data);
@@ -39,19 +35,17 @@ router.get('/overview', async (req, res) => {
 
 router.get('/subjects', async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.user.uid;
     let subjects = [];
 
-    if (userId !== 'anonymous') {
-      try {
-        const snapshot = await db.collection('analytics')
-          .doc(userId)
-          .collection('subjects')
-          .get();
-        subjects = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      } catch (e) {
-        console.error('[Analytics] Subjects read error:', e.message);
-      }
+    try {
+      const snapshot = await db.collection('analytics')
+        .doc(userId)
+        .collection('subjects')
+        .get();
+      subjects = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.error('[Analytics] Subjects read error:', e.message);
     }
 
     res.json(subjects);
@@ -63,11 +57,11 @@ router.get('/subjects', async (req, res) => {
 
 router.get('/topics', async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.user.uid;
     const subject = req.query.subject;
     let topics = [];
 
-    if (userId !== 'anonymous' && subject) {
+    if (subject) {
       try {
         const snapshot = await db.collection('analytics')
           .doc(userId)
@@ -90,20 +84,18 @@ router.get('/topics', async (req, res) => {
 
 router.post('/record', async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.user.uid;
     const { subject, topic, correct, total, studyTime } = req.body;
 
-    if (userId !== 'anonymous') {
-      try {
-        const ref = db.collection('analytics').doc(userId);
-        await ref.set({
-          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-          totalStudyTime: admin.firestore.FieldValue.increment(studyTime || 0),
-          totalAttempted: admin.firestore.FieldValue.increment(total || 0),
-        }, { merge: true });
-      } catch (e) {
-        console.error('[Analytics] Record write error:', e.message);
-      }
+    try {
+      const ref = db.collection('analytics').doc(userId);
+      await ref.set({
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        totalStudyTime: admin.firestore.FieldValue.increment(studyTime || 0),
+        totalAttempted: admin.firestore.FieldValue.increment(total || 0),
+      }, { merge: true });
+    } catch (e) {
+      console.error('[Analytics] Record write error:', e.message);
     }
 
     res.json({ success: true });
@@ -115,7 +107,7 @@ router.post('/record', async (req, res) => {
 
 router.post('/improvement-plan', async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.user.uid;
     const plan = {
       focusAreas: ['General Awareness', 'Quantitative Aptitude'],
       dailyGoal: 'Study 2 hours daily',
