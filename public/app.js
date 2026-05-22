@@ -1250,8 +1250,14 @@ async function sendMessage() {
     hideTypingIndicator();
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || 'Failed to get response');
+      let errMsg;
+      try {
+        const err = await response.json();
+        errMsg = err.error || 'Failed to get response';
+      } catch {
+        errMsg = await response.text();
+      }
+      throw new Error(errMsg);
     }
 
     const contentType = response.headers.get('Content-Type');
