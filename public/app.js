@@ -400,27 +400,58 @@ async function syncUserData() {
 }
 
 async function loadUserDataFromServer() {
-  const headers = await getAuthHeaders();
-  if (!headers.Authorization) {
-    console.log('[Load Data] No auth token — skipping server load');
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    console.log('[Load Data] No user logged in');
     return false;
   }
 
   try {
-    const res = await fetch('/api/user/data', { headers });
-    if (!res.ok) {
-      console.warn('[Load Data] Server returned:', res.status);
-      return false;
+    let data = null;
+
+    // ── Method 1: Direct Firestore client SDK (fastest & most reliable) ──
+    if (typeof firebase.firestore === 'function') {
+      try {
+        const firestoreDb = firebase.firestore();
+        const doc = await firestoreDb.collection('users').doc(user.uid).get();
+        if (doc.exists) {
+          data = doc.data();
+          console.log('[Load Data] ✅ Firestore client SDK:', Object.keys(data));
+        } else {
+          console.log('[Load Data] No Firestore doc for uid:', user.uid);
+        }
+      } catch (fsErr) {
+        console.warn('[Load Data] Firestore SDK error, trying API:', fsErr.message);
+      }
     }
-    const data = await res.json();
+
+    // ── Method 2: Fallback to server API ─────────────────────────────────
+    if (!data) {
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch('/api/user/data', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && Object.keys(json).length > 0) {
+            data = json;
+            console.log('[Load Data] ✅ Server API:', Object.keys(data));
+          }
+        } else {
+          console.warn('[Load Data] API returned:', res.status);
+        }
+      } catch (apiErr) {
+        console.warn('[Load Data] API error:', apiErr.message);
+      }
+    }
+
     if (!data || Object.keys(data).length === 0) {
-      console.log('[Load Data] No data found on server for this user');
+      console.log('[Load Data] No data — fresh account');
       return false;
     }
 
-    console.log('[Load Data] Server data received:', Object.keys(data));
-
-    // Restore all fields from server into localStorage
+    // ── Restore ALL fields into localStorage ─────────────────────────────
     if (data.testResults && data.testResults.length) {
       localStorage.setItem(KEYS.testResults, JSON.stringify(data.testResults));
     }
@@ -441,28 +472,22 @@ async function loadUserDataFromServer() {
     if (data.progress) {
       Object.entries(data.progress).forEach(([exam, prog]) => {
         localStorage.setItem(KEYS.progress + exam, JSON.stringify(prog));
-        console.log(`[Load Data] Restored progress for exam: ${exam}, topics: ${Object.keys(prog).length}`);
+        console.log(`[Load Data] Progress: exam=${exam}, topics=${Object.keys(prog).length}`);
       });
     }
-    // Restore selected exam from server data (in case localStorage was cleared)
     if (data.selectedExam && !localStorage.getItem(KEYS.selectedExam)) {
       localStorage.setItem(KEYS.selectedExam, data.selectedExam);
-    }
-
-    // ── Re-render UI with fresh data ──────────────────────────────────────
-    // If user already has an exam selected, refresh dashboard immediately
-    if (currentExam) {
-      if (currentScreen === 'dashboard') updateDashboard();
-      if (currentScreen === 'syllabus') renderSyllabus();
-      if (currentScreen === 'profile') updateProfile();
+      console.log('[Load Data] selectedExam restored:', data.selectedExam);
     }
 
     return true;
+
   } catch (err) {
-    console.error('[Load Data] Failed:', err);
+    console.error('[Load Data] Critical error:', err);
     return false;
   }
 }
+
 
 function getLocalAnalytics() {
   const testResults = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');

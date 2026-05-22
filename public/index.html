@@ -125,6 +125,32 @@
         <div class="profile-subject-list" id="profile-subject-list">
           <!-- Subject performance inserted by JS -->
         </div>
+        <div class="profile-analysis">
+          <div class="profile-analysis-column">
+            <div class="profile-analysis-heading strong-heading">✅ Strong Subjects</div>
+            <div class="profile-strong-subjects" id="profile-strong-subjects">
+              <div class="analysis-empty">Take more tests to see analysis</div>
+            </div>
+          </div>
+          <div class="profile-analysis-column">
+            <div class="profile-analysis-heading weak-heading">⚠️ Weak Subjects</div>
+            <div class="profile-weak-subjects" id="profile-weak-subjects">
+              <div class="analysis-empty">Take more tests to see analysis</div>
+            </div>
+          </div>
+        </div>
+        <div class="profile-detailed-performance" id="profile-detailed-performance">
+          <div class="profile-section-subtitle">📋 Detailed Performance</div>
+          <div class="subject-performance-list" id="subject-performance-list">
+            <div class="analysis-empty">Take tests to see detailed performance</div>
+          </div>
+        </div>
+        <div class="profile-recommendations" id="profile-recommendations">
+          <div class="profile-section-subtitle">💡 Recommendations</div>
+          <div class="recommendations-box" id="recommendations-box">
+            <div class="analysis-empty">Take more tests to get recommendations</div>
+          </div>
+        </div>
       </div>
 
       <button class="profile-edit-btn" onclick="navigateTo('dashboard')">← Back to Dashboard</button>
@@ -614,6 +640,7 @@
   <!-- Firebase SDK (must load before app.js) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js"></script>
 
   <!-- App Scripts -->
