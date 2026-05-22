@@ -2,21 +2,10 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
-const { parseSyllabusFromText, parseSyllabusFromFile } = require('../services/syllabusParser');
+const { extractTextFromPDF } = require('../services/syllabusParser');
+const { parseSyllabus } = require('../services/aiManager');
 
-const uploadDir = path.join(__dirname, '..', '..', 'public', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueName = `syllabus-${Date.now()}-${Math.round(Math.random() * 1000)}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['application/pdf', 'text/plain', 'text/csv'];
@@ -38,21 +27,22 @@ const upload = multer({
 
 router.post('/', upload.single('syllabusFile'), async (req, res) => {
   try {
-    let result;
+    let text;
 
     if (req.file) {
-      console.log(`[Syllabus] Parsing uploaded file: ${req.file.originalname}`);
-      result = await parseSyllabusFromFile(req.file.path, req.file.mimetype);
-
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (e) {}
+      if (req.file.mimetype === 'application/pdf') {
+        console.log(`[Syllabus] Parsing uploaded PDF: ${req.file.originalname}`);
+        text = await extractTextFromPDF(req.file.buffer);
+      } else {
+        text = req.file.buffer.toString('utf-8');
+      }
     } else if (req.body.text) {
-      console.log('[Syllabus] Parsing pasted text');
-      result = await parseSyllabusFromText(req.body.text);
+      text = req.body.text;
     } else {
       return res.status(400).json({ error: 'Please upload a file or provide syllabus text.' });
     }
+
+    const result = await parseSyllabus(text);
 
     const name = req.body.name || req.file?.originalname?.replace(/\.[^.]+$/, '') || 'Custom Syllabus';
 
@@ -63,11 +53,6 @@ router.post('/', upload.single('syllabusFile'), async (req, res) => {
     });
   } catch (err) {
     console.error('[Syllabus Parse Error]:', err.message);
-
-    if (req.file) {
-      try { fs.unlinkSync(req.file.path); } catch (e) {}
-    }
-
     res.status(500).json({ error: err.message || 'Failed to parse syllabus.' });
   }
 });
