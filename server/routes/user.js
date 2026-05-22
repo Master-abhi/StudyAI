@@ -17,7 +17,7 @@ router.get('/data', async (req, res) => {
 
 router.post('/sync', async (req, res) => {
   try {
-    const { testResults, points, mcqsSolved, streak, subjects, progress } = req.body;
+    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam } = req.body;
 
     // Build update object — only overwrite fields that have real data
     // This prevents an empty local state from wiping out existing server data
@@ -29,6 +29,7 @@ router.post('/sync', async (req, res) => {
     if (streak && streak.count > 0) update.streak = streak;
     if (subjects && Object.keys(subjects).length > 0) update.subjects = subjects;
     if (progress && Object.keys(progress).length > 0) update.progress = progress;
+    if (selectedExam && typeof selectedExam === 'string' && selectedExam.length > 0) update.selectedExam = selectedExam;
 
     update.updatedAt = admin.firestore.FieldValue.serverTimestamp();
 

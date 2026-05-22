@@ -389,6 +389,7 @@ async function syncUserData() {
         points: parseInt(localStorage.getItem(KEYS.points) || '0'),
         mcqsSolved: parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0'),
         streak: JSON.parse(localStorage.getItem(KEYS.streak) || '{"lastDate":"","count":0}'),
+        selectedExam: localStorage.getItem(KEYS.selectedExam) || '',
         subjects, progress
       })
     });
@@ -400,18 +401,38 @@ async function syncUserData() {
 
 async function loadUserDataFromServer() {
   const headers = await getAuthHeaders();
-  if (!headers.Authorization) return;
+  if (!headers.Authorization) {
+    console.log('[Load Data] No auth token — skipping server load');
+    return false;
+  }
 
   try {
     const res = await fetch('/api/user/data', { headers });
-    if (!res.ok) return;
+    if (!res.ok) {
+      console.warn('[Load Data] Server returned:', res.status);
+      return false;
+    }
     const data = await res.json();
-    if (!data || Object.keys(data).length === 0) return;
+    if (!data || Object.keys(data).length === 0) {
+      console.log('[Load Data] No data found on server for this user');
+      return false;
+    }
 
-    if (data.testResults && data.testResults.length) localStorage.setItem(KEYS.testResults, JSON.stringify(data.testResults));
-    if (data.points !== undefined && data.points !== null) localStorage.setItem(KEYS.points, String(data.points));
-    if (data.mcqsSolved !== undefined && data.mcqsSolved !== null) localStorage.setItem(KEYS.mcqsSolved, String(data.mcqsSolved));
-    if (data.streak && data.streak.count !== undefined) localStorage.setItem(KEYS.streak, JSON.stringify(data.streak));
+    console.log('[Load Data] Server data received:', Object.keys(data));
+
+    // Restore all fields from server into localStorage
+    if (data.testResults && data.testResults.length) {
+      localStorage.setItem(KEYS.testResults, JSON.stringify(data.testResults));
+    }
+    if (data.points !== undefined && data.points !== null) {
+      localStorage.setItem(KEYS.points, String(data.points));
+    }
+    if (data.mcqsSolved !== undefined && data.mcqsSolved !== null) {
+      localStorage.setItem(KEYS.mcqsSolved, String(data.mcqsSolved));
+    }
+    if (data.streak && data.streak.count !== undefined) {
+      localStorage.setItem(KEYS.streak, JSON.stringify(data.streak));
+    }
     if (data.subjects) {
       Object.entries(data.subjects).forEach(([exam, scores]) => {
         localStorage.setItem(KEYS.subjectScores + exam, JSON.stringify(scores));
@@ -420,10 +441,26 @@ async function loadUserDataFromServer() {
     if (data.progress) {
       Object.entries(data.progress).forEach(([exam, prog]) => {
         localStorage.setItem(KEYS.progress + exam, JSON.stringify(prog));
+        console.log(`[Load Data] Restored progress for exam: ${exam}, topics: ${Object.keys(prog).length}`);
       });
     }
+    // Restore selected exam from server data (in case localStorage was cleared)
+    if (data.selectedExam && !localStorage.getItem(KEYS.selectedExam)) {
+      localStorage.setItem(KEYS.selectedExam, data.selectedExam);
+    }
+
+    // ── Re-render UI with fresh data ──────────────────────────────────────
+    // If user already has an exam selected, refresh dashboard immediately
+    if (currentExam) {
+      if (currentScreen === 'dashboard') updateDashboard();
+      if (currentScreen === 'syllabus') renderSyllabus();
+      if (currentScreen === 'profile') updateProfile();
+    }
+
+    return true;
   } catch (err) {
     console.error('[Load Data] Failed:', err);
+    return false;
   }
 }
 
@@ -1152,6 +1189,9 @@ function toggleTopic(topicId, checked) {
   if (item) item.classList.toggle('completed', checked);
 
   updateSyllabusOverall();
+
+  // Sync syllabus progress to Firestore immediately
+  syncUserData().catch(err => console.error('[Sync] toggleTopic failed:', err));
 }
 
 function markAllSubject(subjectIdx, markComplete) {
@@ -1171,6 +1211,9 @@ function markAllSubject(subjectIdx, markComplete) {
   saveProgress(progress);
   renderSyllabus();
   showToast(markComplete ? 'All topics marked complete ✅' : 'All topics unmarked ↩️');
+
+  // Sync all subject progress to Firestore
+  syncUserData().catch(err => console.error('[Sync] markAllSubject failed:', err));
 }
 
 function updateSyllabusOverall() {
@@ -2386,11 +2429,9 @@ function continueAsGuest() {
 }
 
 function checkUserAuth() {
-  const isGuest = localStorage.getItem('guestMode') === 'true';
-
   firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
-      // User is signed in
+      console.log('[Auth] User signed in:', user.uid);
       localStorage.setItem('userName', user.displayName || user.email.split('@')[0]);
       localStorage.removeItem('guestMode');
 
@@ -2405,40 +2446,40 @@ function checkUserAuth() {
       // Close auth modal if open
       document.getElementById('modal-auth')?.classList.remove('visible');
 
-      // Load server data FIRST — takes priority over local localStorage
-      await loadUserDataFromServer();
+      // ── STEP 1: Load ALL data from server first (most up-to-date source)
+      const dataLoaded = await loadUserDataFromServer();
+      console.log('[Auth] Server data loaded:', dataLoaded);
 
-      // Navigate to exam selector if no exam selected (after data loaded)
+      // ── STEP 2: Restore currentExam from localStorage (may have been set by server load)
       if (!currentExam) {
-        // Check if exam was restored from server progress
-        const savedExam = localStorage.getItem('examprep_selectedExam');
+        const savedExam = localStorage.getItem(KEYS.selectedExam);
         if (savedExam && getExamData(savedExam)) {
           currentExam = savedExam;
-          navigateTo('dashboard');
-        } else {
-          navigateTo('exams');
+          console.log('[Auth] Exam restored from localStorage:', savedExam);
         }
+      }
+
+      // ── STEP 3: Navigate & render with restored data
+      if (currentExam) {
+        navigateTo('dashboard'); // This calls updateDashboard() which uses fresh localStorage
+      } else {
+        navigateTo('exams');
       }
 
       // Re-render exam grid to show/hide admin options
       if (typeof renderExamGrid === 'function') renderExamGrid();
 
-      // Refresh dashboard if currently on dashboard screen
-      if (currentScreen === 'dashboard' && currentExam) {
-        updateDashboard();
-      }
-
       showToast(`Welcome back, ${user.displayName || user.email.split('@')[0]}! 👋`);
 
-    } else if (!isGuest) {
+    } else if (localStorage.getItem('guestMode') === 'true') {
+      // Guest mode — just update UI
+      _isAdmin = false;
+      document.getElementById('modal-auth')?.classList.remove('visible');
+    } else {
       // User signed out & not guest — show auth modal
       _isAdmin = false;
       localStorage.removeItem('userName');
       document.getElementById('modal-auth')?.classList.add('visible');
-    } else {
-      // Guest mode — just update UI
-      _isAdmin = false;
-      document.getElementById('modal-auth')?.classList.remove('visible');
     }
   });
 }
