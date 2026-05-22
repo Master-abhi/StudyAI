@@ -7,7 +7,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const cron = require('node-cron');
 
 // Initialize Firebase Admin SDK at startup
 require('./firebase-admin');
@@ -19,7 +18,6 @@ const syllabusRoutes = require('./routes/syllabus');
 const adminRoutes = require('./routes/admin');
 const studyRoutes = require('./routes/study');
 // NOTE: auth routes removed — authentication is now handled by Firebase Auth client SDK
-const { scrapeAll, getCachedNews } = require('./services/scraper');
 const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
@@ -65,29 +63,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error. Please try again.' });
 });
 
-// Schedule scraper every 2 hours (node-cron works on persistent servers like Render)
-// On Vercel (serverless), use GitHub Actions instead — see .github/workflows/refresh-news.yml
-cron.schedule('0 */2 * * *', async () => {
-  console.log('[Cron] Running scheduled news scrape...');
-  try {
-    await scrapeAll();
-  } catch (err) {
-    console.error('[Cron] Scraper failed:', err);
-  }
-});
-
-// Run initial scrape on startup if Firestore cache is old or missing
-setTimeout(async () => {
-  try {
-    const cached = await getCachedNews(); // async — reads from Firestore
-    if (!cached.lastUpdated || (Date.now() - new Date(cached.lastUpdated).getTime() > 2 * 60 * 60 * 1000)) {
-      console.log('[Startup] Cache outdated or missing, running initial scrape...');
-      await scrapeAll();
-    }
-  } catch (err) {
-    console.error('[Startup] Initial scrape failed:', err);
-  }
-}, 5000);
+// Schedule scraper runs via GitHub Action: .github/workflows/refresh-news.yml
+// On Vercel (serverless), node-cron does NOT work — the Action calls POST /api/news/refresh
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
