@@ -361,11 +361,11 @@ function updateProfile() {
 
 async function loadMongoAnalytics() {
   const section = document.getElementById('profile-analytics-section');
-  const token = localStorage.getItem('userToken');
+  const headers = await getAuthHeaders();
   
   section.style.display = 'block';
 
-  if (!token) {
+  if (!headers.Authorization) {
     document.getElementById('profile-analytics-accuracy').textContent = '--';
     document.getElementById('profile-analytics-time').textContent = '--';
     document.getElementById('profile-analytics-streak').textContent = '--';
@@ -377,8 +377,8 @@ async function loadMongoAnalytics() {
 
   try {
     const [overviewRes, subjectsRes] = await Promise.all([
-      fetch('/api/analytics/overview', { headers: { 'Authorization': `Bearer ${token}` } }),
-      fetch('/api/analytics/subjects', { headers: { 'Authorization': `Bearer ${token}` } })
+      fetch('/api/analytics/overview', { headers }),
+      fetch('/api/analytics/subjects', { headers })
     ]);
 
     if (!overviewRes.ok || !subjectsRes.ok) {
@@ -393,7 +393,7 @@ async function loadMongoAnalytics() {
     document.getElementById('profile-analytics-streak').textContent = overview.currentStreak || 0;
 
     renderProfileWeeklyActivity(overview.weeklyActivity || []);
-    renderProfileSubjectTable(subjectsData.subjects || []);
+    renderProfileSubjectTable(subjectsData || []);
     loadProfileAIPlan();
 
   } catch (err) {
@@ -512,19 +512,17 @@ function renderProfileSubjectTable(subjects) {
 
 async function loadProfileAIPlan() {
   const container = document.getElementById('profile-ai-plan-content');
-  const token = localStorage.getItem('userToken');
+  const headers = await getAuthHeaders();
   
-  if (!token) {
+  if (!headers.Authorization) {
     container.innerHTML = 'Login to get AI study plan';
     return;
   }
 
   try {
-    const res = await fetch('/api/analytics/improvement-plan', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const res = await fetch('/api/analytics/improvement-plan', { headers });
     const data = await res.json();
-    container.innerHTML = data.plan || 'Take more tests to get personalized recommendations!';
+    container.innerHTML = data.recommendation || 'Take more tests to get personalized recommendations!';
   } catch (err) {
     container.innerHTML = 'Unable to load plan';
   }
@@ -2468,8 +2466,8 @@ async function tabStudy(type) {
 let currentAnalyticsSubject = null;
 
 async function loadAnalytics() {
-  const token = localStorage.getItem('userToken');
-  if (!token) {
+  const headers = await getAuthHeaders();
+  if (!headers.Authorization) {
     showToast('Please login to view analytics', 'error');
     navigateTo('dashboard');
     return;
@@ -2479,8 +2477,8 @@ async function loadAnalytics() {
 
   try {
     const [overviewRes, subjectsRes] = await Promise.all([
-      fetch('/api/analytics/overview', { headers: { 'Authorization': `Bearer ${token}` } }),
-      fetch('/api/analytics/subjects', { headers: { 'Authorization': `Bearer ${token}` } })
+      fetch('/api/analytics/overview', { headers }),
+      fetch('/api/analytics/subjects', { headers })
     ]);
 
     if (!overviewRes.ok || !subjectsRes.ok) {
@@ -2496,7 +2494,7 @@ async function loadAnalytics() {
     document.getElementById('analytics-streak').textContent = overview.currentStreak || 0;
 
     renderWeeklyGraph(overview.weeklyActivity || []);
-    renderSubjectsList(subjectsData.subjects || []);
+    renderSubjectsList(subjectsData || []);
     loadImprovementPlan();
 
   } catch (err) {
@@ -2569,7 +2567,7 @@ function renderSubjectsList(subjects) {
 
 async function analyticsShowTopics(subjectName) {
   currentAnalyticsSubject = subjectName;
-  const token = localStorage.getItem('userToken');
+  const headers = await getAuthHeaders();
   
   document.getElementById('analytics-subjects-list').classList.add('hidden');
   document.getElementById('analytics-topics-view').classList.remove('hidden');
@@ -2580,14 +2578,14 @@ async function analyticsShowTopics(subjectName) {
   
   try {
     const res = await fetch(`/api/analytics/topics?subject=${encodeURIComponent(subjectName)}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers
     });
     
     const data = await res.json();
     
-    if (data.topics && data.topics.length > 0) {
+    if (data && data.length > 0) {
       let html = '';
-      data.topics.forEach(topic => {
+      data.forEach(topic => {
         let statusClass = topic.status === 'strong' ? 'strong' : topic.status === 'weak' ? 'weak' : 'average';
         let badgeText = topic.status === 'strong' ? '💪 Strong' : topic.status === 'weak' ? '⚠️ Weak' : ' average';
         
@@ -2620,9 +2618,9 @@ function analyticsShowSubjects() {
 
 async function loadImprovementPlan() {
   const container = document.getElementById('analytics-improvement');
-  const token = localStorage.getItem('userToken');
+  const headers = await getAuthHeaders();
   
-  if (!token) {
+  if (!headers.Authorization) {
     container.innerHTML = '<div class="empty-state">Login to get AI-powered study plan</div>';
     return;
   }
@@ -2630,14 +2628,12 @@ async function loadImprovementPlan() {
   container.innerHTML = '<div class="analytics-improvement-loading">🤖 Generating your personalized study plan...</div>';
   
   try {
-    const res = await fetch('/api/analytics/improvement-plan', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const res = await fetch('/api/analytics/improvement-plan', { headers });
     
     const data = await res.json();
     
-    if (data.plan) {
-      container.innerHTML = data.plan;
+    if (data.recommendation) {
+      container.innerHTML = data.recommendation;
     } else {
       container.innerHTML = '<div class="empty-state">Take more tests to get personalized recommendations!</div>';
     }
@@ -2647,15 +2643,15 @@ async function loadImprovementPlan() {
 }
 
 async function recordQuizAttempt(examId, subject, topic, questionId, isCorrect, timeTaken) {
-  const token = localStorage.getItem('userToken');
-  if (!token) return;
+  const headers = await getAuthHeaders();
+  if (!headers.Authorization) return;
   
   try {
     await fetch('/api/analytics/record', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...headers
       },
       body: JSON.stringify({ examId, subject, topic, questionId, isCorrect, timeTaken })
     });

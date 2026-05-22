@@ -43,7 +43,18 @@ router.get('/subjects', async (req, res) => {
         .doc(userId)
         .collection('subjects')
         .get();
-      subjects = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      subjects = snapshot.docs.map(d => {
+        const s = d.data();
+        return {
+          id: d.id,
+          name: d.id,
+          total: s.total || 0,
+          correct: s.correct || 0,
+          accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0,
+          status: s.total > 0 ? (s.correct / s.total >= 0.75 ? 'strong' : s.correct / s.total < 0.5 ? 'weak' : 'average') : 'average',
+          ...s
+        };
+      });
     } catch (e) {
       console.error('[Analytics] Subjects read error:', e.message);
     }
@@ -69,13 +80,22 @@ router.get('/topics', async (req, res) => {
           .doc(subject)
           .collection('topics')
           .get();
-        topics = snapshot.docs.map(d => ({ name: d.id, ...d.data() }));
+        topics = snapshot.docs.map(d => {
+          const t = d.data();
+          return {
+            name: d.id,
+            total: t.total || 0,
+            correct: t.correct || 0,
+            accuracy: t.total > 0 ? Math.round((t.correct / t.total) * 100) : 0,
+            status: t.total > 0 ? (t.correct / t.total >= 0.75 ? 'strong' : t.correct / t.total < 0.5 ? 'weak' : 'average') : 'average',
+            ...t
+          };
+        });
       } catch (e) {
         console.error('[Analytics] Topics read error:', e.message);
       }
-    }
 
-    res.json(topics);
+      res.json(topics);
   } catch (err) {
     console.error('[Analytics Topics Error]:', err.message);
     res.status(500).json({ error: 'Failed to load topic analytics' });
@@ -85,15 +105,37 @@ router.get('/topics', async (req, res) => {
 router.post('/record', async (req, res) => {
   try {
     const userId = req.user.uid;
-    const { subject, topic, correct, total, studyTime } = req.body;
+    const { subject, topic, examId, questionId, isCorrect, timeTaken, correct, total, studyTime } = req.body;
 
     try {
-      const ref = db.collection('analytics').doc(userId);
-      await ref.set({
+      const recordRef = db.collection('analytics').doc(userId);
+      const subjRef = db.collection('analytics').doc(userId).collection('subjects').doc(subject || 'General');
+      const topicRef = subjRef.collection('topics').doc(topic || 'General');
+
+      const batch = db.batch();
+      batch.set(recordRef, {
         lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-        totalStudyTime: admin.firestore.FieldValue.increment(studyTime || 0),
-        totalAttempted: admin.firestore.FieldValue.increment(total || 0),
+        totalStudyTime: admin.firestore.FieldValue.increment(studyTime || timeTaken || 0),
+        totalAttempted: admin.firestore.FieldValue.increment(total || (isCorrect !== undefined ? 1 : 0)),
       }, { merge: true });
+
+      if (subject) {
+        batch.set(subjRef, {
+          total: admin.firestore.FieldValue.increment(total || (isCorrect !== undefined ? 1 : 0)),
+          correct: admin.firestore.FieldValue.increment(correct || (isCorrect ? 1 : 0)),
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+
+      if (topic) {
+        batch.set(topicRef, {
+          total: admin.firestore.FieldValue.increment(total || (isCorrect !== undefined ? 1 : 0)),
+          correct: admin.firestore.FieldValue.increment(correct || (isCorrect ? 1 : 0)),
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+
+      await batch.commit();
     } catch (e) {
       console.error('[Analytics] Record write error:', e.message);
     }
