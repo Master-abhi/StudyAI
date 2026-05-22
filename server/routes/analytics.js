@@ -94,8 +94,9 @@ router.get('/topics', async (req, res) => {
       } catch (e) {
         console.error('[Analytics] Topics read error:', e.message);
       }
+    }
 
-      res.json(topics);
+    res.json(topics);
   } catch (err) {
     console.error('[Analytics Topics Error]:', err.message);
     res.status(500).json({ error: 'Failed to load topic analytics' });
