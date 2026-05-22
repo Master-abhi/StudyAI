@@ -2148,7 +2148,7 @@ function closeModal(id) {
 
 document.querySelectorAll('.modal-overlay').forEach(modal => {
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
+    if (e.target === modal && modal.id !== 'modal-auth') {
       modal.classList.remove('visible');
     }
   });
@@ -2250,11 +2250,22 @@ function clearChatHistory() {
  * Called on app init — listens for Firebase auth state changes.
  * Replaces old localStorage token check.
  */
+function continueAsGuest() {
+  localStorage.setItem('userName', 'Guest');
+  localStorage.setItem('guestMode', 'true');
+  document.getElementById('modal-auth')?.classList.remove('visible');
+  showToast('Browsing as Guest 👤');
+  if (typeof renderExamGrid === 'function') renderExamGrid();
+}
+
 function checkUserAuth() {
+  const isGuest = localStorage.getItem('guestMode') === 'true';
+
   firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
       // User is signed in
       localStorage.setItem('userName', user.displayName || user.email.split('@')[0]);
+      localStorage.removeItem('guestMode');
 
       // Check admin custom claim
       try {
@@ -2270,11 +2281,15 @@ function checkUserAuth() {
       // Re-render exam grid to show/hide admin options
       if (typeof renderExamGrid === 'function') renderExamGrid();
 
-    } else {
-      // User signed out — show auth modal
+    } else if (!isGuest) {
+      // User signed out & not guest — show auth modal
       _isAdmin = false;
       localStorage.removeItem('userName');
       document.getElementById('modal-auth')?.classList.add('visible');
+    } else {
+      // Guest mode — just update UI
+      _isAdmin = false;
+      document.getElementById('modal-auth')?.classList.remove('visible');
     }
   });
 }
