@@ -2254,8 +2254,11 @@ function continueAsGuest() {
   localStorage.setItem('userName', 'Guest');
   localStorage.setItem('guestMode', 'true');
   document.getElementById('modal-auth')?.classList.remove('visible');
-  showToast('Browsing as Guest 👤');
+  currentExam = null;
+  localStorage.removeItem(KEYS.selectedExam);
+  navigateTo('exams');
   if (typeof renderExamGrid === 'function') renderExamGrid();
+  showToast('Browsing as Guest 👤 Select an exam to start!');
 }
 
 function checkUserAuth() {
@@ -2277,6 +2280,11 @@ function checkUserAuth() {
 
       // Close auth modal if open
       document.getElementById('modal-auth')?.classList.remove('visible');
+
+      // Navigate to exam selector if no exam selected
+      if (!currentExam) {
+        navigateTo('exams');
+      }
 
       // Re-render exam grid to show/hide admin options
       if (typeof renderExamGrid === 'function') renderExamGrid();
