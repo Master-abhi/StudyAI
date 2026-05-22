@@ -2,16 +2,16 @@ if (typeof global.File === 'undefined') {
   global.File = class File {};
 }
 
-// Initialize Firebase Admin SDK at startup
-require('./firebase-admin');
+require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const cron = require('node-cron');
-require('dotenv').config();
 
-const connectDB = require('./config/database');
+// Initialize Firebase Admin SDK at startup
+require('./firebase-admin');
+
 const chatRoutes = require('./routes/chat');
 const testRoutes = require('./routes/test');
 const newsRoutes = require('./routes/news');
@@ -21,7 +21,6 @@ const studyRoutes = require('./routes/study');
 // NOTE: auth routes removed — authentication is now handled by Firebase Auth client SDK
 const { scrapeAll, getCachedNews } = require('./services/scraper');
 const analyticsRoutes = require('./routes/analytics');
-
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,8 +38,6 @@ app.use('/api/parse-syllabus', syllabusRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/study', studyRoutes);
 app.use('/api/analytics', analyticsRoutes);
-
-connectDB();
 
 app.get('/api/health', (req, res) => {
   res.json({

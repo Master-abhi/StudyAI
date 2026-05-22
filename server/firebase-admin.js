@@ -4,10 +4,20 @@ if (!admin.apps.length) {
   let credential;
 
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    // Production / Vercel: stored as base64-encoded JSON string
     try {
-      const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, 'base64').toString('utf-8');
-      const serviceAccount = JSON.parse(decoded);
+      let raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+      // Try base64 decode first; if it produces valid JSON, use it
+      let json;
+      try {
+        const decoded = Buffer.from(raw, 'base64').toString('utf-8');
+        json = JSON.parse(decoded);
+      } catch {
+        // Not base64 – try parsing raw string directly
+        json = JSON.parse(raw);
+      }
+
+      const serviceAccount = json;
       credential = admin.credential.cert(serviceAccount);
     } catch (e) {
       console.error('[Firebase Admin] Failed to parse FIREBASE_SERVICE_ACCOUNT env var:', e.message);
