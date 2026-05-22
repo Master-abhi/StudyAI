@@ -14,12 +14,12 @@
 // Security is enforced by Firestore/Storage Rules on the server.
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyC1zPetkyHD_07pr_ZIqLBE942NxIOJMxw",
   authDomain: "cg-guru.firebaseapp.com",
   projectId: "cg-guru",
   storageBucket: "cg-guru.firebasestorage.app",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  messagingSenderId: "166390114183",
+  appId: "1:166390114183:web:397f8c629cebf14ec71522"
 };
 
 // Initialize Firebase
