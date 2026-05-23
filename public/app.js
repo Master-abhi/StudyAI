@@ -67,6 +67,8 @@ function loadState() {
   if (savedChat) {
     try { chatHistory = JSON.parse(savedChat); } catch (e) { chatHistory = []; }
   }
+
+  if (typeof userState !== 'undefined') userState.refreshFromLocal('initialLocal');
 }
 
 function getExamData(examId) {
@@ -118,6 +120,7 @@ function stopRealtimeListeners() {
   _analyticsOverviewData = null;
   _analyticsSubjectsData = null;
   _userDataReadyPromise = Promise.resolve(false);
+  if (typeof userState !== 'undefined') userState.clearSession();
 }
 
 function getFirestoreClient() {
@@ -129,6 +132,199 @@ function getFirestoreClient() {
     return null;
   }
 }
+
+const userState = (() => {
+  const subscribers = new Set();
+  const state = {
+    uid: null,
+    displayName: '',
+    isGuest: false,
+    isAdmin: false,
+    userData: null,
+    analyticsOverview: null,
+    analyticsSubjects: [],
+    remoteLoaded: false
+  };
+
+  function notify(reason) {
+    subscribers.forEach(callback => {
+      try {
+        callback({ ...state }, reason);
+      } catch (err) {
+        console.error('[UserState] Subscriber failed:', err);
+      }
+    });
+  }
+
+  function readJson(key, fallback) {
+    try {
+      return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function readSubjects() {
+    const subjects = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(KEYS.subjectScores)) {
+        const exam = key.slice(KEYS.subjectScores.length);
+        if (exam) subjects[exam] = readJson(key, {});
+      }
+    }
+    return subjects;
+  }
+
+  function readProgress() {
+    const progress = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(KEYS.progress)) {
+        const exam = key.slice(KEYS.progress.length);
+        if (exam) progress[exam] = readJson(key, {});
+      }
+    }
+    return progress;
+  }
+
+  function snapshotFromLocal() {
+    return {
+      testResults: readJson(KEYS.testResults, []),
+      points: parseInt(localStorage.getItem(KEYS.points) || '0'),
+      mcqsSolved: parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0'),
+      streak: readJson(KEYS.streak, { lastDate: '', count: 0 }),
+      selectedExam: localStorage.getItem(KEYS.selectedExam) || '',
+      subjects: readSubjects(),
+      progress: readProgress()
+    };
+  }
+
+  function persistUserData(data) {
+    if (!data || Object.keys(data).length === 0) return false;
+
+    if (data.testResults && data.testResults.length) localStorage.setItem(KEYS.testResults, JSON.stringify(data.testResults));
+    if (data.points !== undefined && data.points !== null) localStorage.setItem(KEYS.points, String(data.points));
+    if (data.mcqsSolved !== undefined && data.mcqsSolved !== null) localStorage.setItem(KEYS.mcqsSolved, String(data.mcqsSolved));
+    if (data.streak && data.streak.count !== undefined) localStorage.setItem(KEYS.streak, JSON.stringify(data.streak));
+    if (data.subjects) {
+      Object.entries(data.subjects).forEach(([exam, scores]) => {
+        localStorage.setItem(KEYS.subjectScores + exam, JSON.stringify(scores));
+      });
+    }
+    if (data.progress) {
+      Object.entries(data.progress).forEach(([exam, prog]) => {
+        localStorage.setItem(KEYS.progress + exam, JSON.stringify(prog));
+      });
+    }
+    if (data.selectedExam) {
+      localStorage.setItem(KEYS.selectedExam, data.selectedExam);
+      if (!currentExam) {
+        const examData = getExamData(data.selectedExam);
+        if (examData) currentExam = data.selectedExam;
+      }
+    }
+
+    return true;
+  }
+
+  return {
+    subscribe(callback) {
+      subscribers.add(callback);
+      return () => subscribers.delete(callback);
+    },
+    setAuthUser(user, { displayName = '', isAdmin = false } = {}) {
+      state.uid = user?.uid || null;
+      state.displayName = displayName;
+      state.isGuest = false;
+      state.isAdmin = isAdmin;
+      notify('auth');
+    },
+    setGuest() {
+      state.uid = null;
+      state.displayName = 'Guest';
+      state.isGuest = true;
+      state.isAdmin = false;
+      state.userData = snapshotFromLocal();
+      state.remoteLoaded = false;
+      notify('guest');
+    },
+    clearSession() {
+      state.uid = null;
+      state.displayName = '';
+      state.isGuest = false;
+      state.isAdmin = false;
+      state.userData = null;
+      state.analyticsOverview = null;
+      state.analyticsSubjects = [];
+      state.remoteLoaded = false;
+      notify('clear');
+    },
+    applyRemoteData(data) {
+      const applied = persistUserData(data);
+      if (!applied) {
+        state.remoteLoaded = false;
+        return false;
+      }
+      state.userData = snapshotFromLocal();
+      state.remoteLoaded = true;
+      notify('userData');
+      return true;
+    },
+    refreshFromLocal(reason = 'local') {
+      state.userData = snapshotFromLocal();
+      notify(reason);
+    },
+    setAnalyticsOverview(data) {
+      state.analyticsOverview = data || null;
+      notify('analyticsOverview');
+    },
+    setAnalyticsSubjects(subjects) {
+      state.analyticsSubjects = Array.isArray(subjects) ? subjects : [];
+      notify('analyticsSubjects');
+    },
+    getSnapshot() {
+      return { ...state };
+    },
+    getUserData() {
+      if (!state.userData) state.userData = snapshotFromLocal();
+      return state.userData;
+    },
+    getLocalAnalytics(examId = currentExam) {
+      const userData = this.getUserData();
+      const testResults = userData.testResults || [];
+      const correct = testResults.reduce((sum, t) => sum + (t.score || 0), 0);
+      const total = testResults.reduce((sum, t) => sum + (t.total || 0), 0);
+      const points = userData.points || 0;
+      const mcqs = userData.mcqsSolved || 0;
+      const streak = userData.streak || { count: 0 };
+      const subjectScores = userData.subjects?.[examId] || {};
+
+      return {
+        accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+        studyTime: Math.round(points / 10),
+        streak: streak.count || 0,
+        totalAttempted: total || mcqs,
+        subjectScores,
+        hasData: total > 0 || points > 0 || Object.keys(subjectScores).length > 0
+      };
+    }
+  };
+})();
+
+userState.subscribe((snapshot, reason) => {
+  if (reason === 'auth' || reason === 'clear' || reason === 'guest') return;
+
+  if (reason === 'analyticsOverview' || reason === 'analyticsSubjects') {
+    if (currentScreen === 'profile' && typeof renderProfileAnalyticsFromState === 'function') renderProfileAnalyticsFromState();
+    if (currentScreen === 'analytics' && typeof renderAnalyticsScreenFromState === 'function') renderAnalyticsScreenFromState();
+    return;
+  }
+
+  if (currentScreen === 'dashboard' && typeof updateDashboard === 'function') updateDashboard();
+  if (currentScreen === 'syllabus' && typeof renderSyllabus === 'function') renderSyllabus();
+  if (currentScreen === 'profile' && typeof updateProfile === 'function') updateProfile();
+});
 
 function isAdmin() {
   return _isAdmin;
@@ -292,6 +488,7 @@ function renderExamGrid() {
 function selectExam(examId) {
   currentExam = examId;
   localStorage.setItem(KEYS.selectedExam, examId);
+  userState.refreshFromLocal('selectedExam');
   updateStreak();
   navigateTo('dashboard');
   showToast(`Selected: ${getExamData(examId).name} ✅`);
@@ -300,6 +497,7 @@ function selectExam(examId) {
 function changeExam() {
   currentExam = null;
   localStorage.removeItem(KEYS.selectedExam);
+  userState.refreshFromLocal('selectedExam');
   renderExamGrid();
   navigateTo('exams');
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -411,31 +609,21 @@ async function syncUserData() {
   const headers = await getAuthHeaders();
   if (!headers.Authorization) return;
 
-  const subjects = {};
-  const progress = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key.startsWith(KEYS.subjectScores)) {
-      const exam = key.slice(KEYS.subjectScores.length);
-      if (exam) subjects[exam] = JSON.parse(localStorage.getItem(key) || '{}');
-    }
-    if (key.startsWith(KEYS.progress)) {
-      const exam = key.slice(KEYS.progress.length);
-      if (exam) progress[exam] = JSON.parse(localStorage.getItem(key) || '{}');
-    }
-  }
+  userState.refreshFromLocal('sync');
+  const userData = userState.getUserData();
 
   try {
     const res = await fetch('/api/user/sync', {
       method: 'POST',
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        testResults: JSON.parse(localStorage.getItem(KEYS.testResults) || '[]'),
-        points: parseInt(localStorage.getItem(KEYS.points) || '0'),
-        mcqsSolved: parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0'),
-        streak: JSON.parse(localStorage.getItem(KEYS.streak) || '{"lastDate":"","count":0}'),
-        selectedExam: localStorage.getItem(KEYS.selectedExam) || '',
-        subjects, progress,
+        testResults: userData.testResults || [],
+        points: userData.points || 0,
+        mcqsSolved: userData.mcqsSolved || 0,
+        streak: userData.streak || { lastDate: '', count: 0 },
+        selectedExam: userData.selectedExam || '',
+        subjects: userData.subjects || {},
+        progress: userData.progress || {},
         mobile: ''
       })
     });
@@ -446,35 +634,7 @@ async function syncUserData() {
 }
 
 function applyUserData(data) {
-  if (!data || Object.keys(data).length === 0) return false;
-
-  if (data.testResults && data.testResults.length) localStorage.setItem(KEYS.testResults, JSON.stringify(data.testResults));
-  if (data.points !== undefined && data.points !== null) localStorage.setItem(KEYS.points, String(data.points));
-  if (data.mcqsSolved !== undefined && data.mcqsSolved !== null) localStorage.setItem(KEYS.mcqsSolved, String(data.mcqsSolved));
-  if (data.streak && data.streak.count !== undefined) localStorage.setItem(KEYS.streak, JSON.stringify(data.streak));
-  if (data.subjects) {
-    Object.entries(data.subjects).forEach(([exam, scores]) => {
-      localStorage.setItem(KEYS.subjectScores + exam, JSON.stringify(scores));
-    });
-  }
-  if (data.progress) {
-    Object.entries(data.progress).forEach(([exam, prog]) => {
-      localStorage.setItem(KEYS.progress + exam, JSON.stringify(prog));
-    });
-  }
-  if (data.selectedExam) {
-    localStorage.setItem(KEYS.selectedExam, data.selectedExam);
-    if (!currentExam) {
-      const examData = getExamData(data.selectedExam);
-      if (examData) currentExam = data.selectedExam;
-    }
-  }
-
-  if (currentScreen === 'dashboard') updateDashboard();
-  if (currentScreen === 'syllabus') renderSyllabus();
-  if (currentScreen === 'profile') updateProfile();
-
-  return true;
+  return userState.applyRemoteData(data);
 }
 
 function startUserDataListener(user) {
@@ -522,23 +682,7 @@ async function loadUserDataFromServer() {
 
 
 function getLocalAnalytics() {
-  const testResults = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
-  const correct = testResults.reduce((sum, t) => sum + t.score, 0);
-  const total = testResults.reduce((sum, t) => sum + t.total, 0);
-  const points = parseInt(localStorage.getItem(KEYS.points) || '0');
-  const mcqs = parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0');
-  const streak = getStreak();
-  const key = KEYS.subjectScores + currentExam;
-  const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
-
-  return {
-    accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
-    studyTime: Math.round(points / 10),
-    streak: streak.count,
-    totalAttempted: total || mcqs,
-    subjectScores,
-    hasData: total > 0 || points > 0 || Object.keys(subjectScores).length > 0
-  };
+  return userState.getLocalAnalytics(currentExam);
 }
 
 function formatAnalyticsSubjects(snapshot) {
@@ -564,6 +708,7 @@ function renderProfileAnalyticsFromState() {
   if (!section) return;
 
   const local = getLocalAnalytics();
+  const state = userState.getSnapshot();
   section.style.display = 'block';
 
   let accuracy = local.accuracy;
@@ -572,15 +717,15 @@ function renderProfileAnalyticsFromState() {
   let weeklyData = null;
   let subjectsData = null;
 
-  if (_analyticsOverviewData) {
-    if (_analyticsOverviewData.overallAccuracy) accuracy = _analyticsOverviewData.overallAccuracy;
-    if (_analyticsOverviewData.totalStudyTime) studyTime = _analyticsOverviewData.totalStudyTime;
-    if (_analyticsOverviewData.currentStreak) streakVal = _analyticsOverviewData.currentStreak;
-    if (_analyticsOverviewData.weeklyActivity) weeklyData = _analyticsOverviewData.weeklyActivity;
+  if (state.analyticsOverview) {
+    if (state.analyticsOverview.overallAccuracy) accuracy = state.analyticsOverview.overallAccuracy;
+    if (state.analyticsOverview.totalStudyTime) studyTime = state.analyticsOverview.totalStudyTime;
+    if (state.analyticsOverview.currentStreak) streakVal = state.analyticsOverview.currentStreak;
+    if (state.analyticsOverview.weeklyActivity) weeklyData = state.analyticsOverview.weeklyActivity;
   }
 
   const examKey = currentExam || '';
-  const localSubjectScores = JSON.parse(localStorage.getItem(KEYS.subjectScores + examKey) || '{}');
+  const localSubjectScores = state.userData?.subjects?.[examKey] || {};
   if (Object.keys(localSubjectScores).length) {
     subjectsData = Object.entries(localSubjectScores)
       .filter(([, data]) => data.count > 0)
@@ -591,8 +736,8 @@ function renderProfileAnalyticsFromState() {
           status: avg >= 75 ? 'strong' : avg < 50 ? 'weak' : 'average'
         };
       });
-  } else if (_analyticsSubjectsData?.length) {
-    subjectsData = _analyticsSubjectsData;
+  } else if (state.analyticsSubjects?.length) {
+    subjectsData = state.analyticsSubjects;
   }
 
   document.getElementById('profile-analytics-accuracy').textContent = accuracy + '%';
@@ -612,14 +757,15 @@ function renderAnalyticsScreenFromState() {
   const subjectsContainer = document.getElementById('analytics-subjects-list');
   if (!subjectsContainer) return;
 
-  const overview = _analyticsOverviewData || {};
+  const state = userState.getSnapshot();
+  const overview = state.analyticsOverview || {};
   document.getElementById('analytics-accuracy').textContent = (overview.overallAccuracy || 0) + '%';
   document.getElementById('analytics-total-mcqs').textContent = overview.totalAttempted || 0;
   document.getElementById('analytics-study-time').textContent = (overview.totalStudyTime || 0) + 'm';
   document.getElementById('analytics-streak').textContent = overview.currentStreak || 0;
 
   renderWeeklyGraph(overview.weeklyActivity || []);
-  renderSubjectsList(_analyticsSubjectsData || []);
+  renderSubjectsList(state.analyticsSubjects || []);
   loadImprovementPlan();
 }
 
@@ -635,16 +781,14 @@ function startAnalyticsListeners(user) {
 
   _analyticsOverviewUnsubscribe = analyticsRef.onSnapshot((doc) => {
     _analyticsOverviewData = doc.exists ? doc.data() : null;
-    if (currentScreen === 'profile') renderProfileAnalyticsFromState();
-    if (currentScreen === 'analytics') renderAnalyticsScreenFromState();
+    userState.setAnalyticsOverview(_analyticsOverviewData);
   }, (err) => {
     console.warn('[Firestore] Analytics overview listener failed:', err);
   });
 
   _analyticsSubjectsUnsubscribe = analyticsRef.collection('subjects').onSnapshot((snapshot) => {
     _analyticsSubjectsData = formatAnalyticsSubjects(snapshot);
-    if (currentScreen === 'profile') renderProfileAnalyticsFromState();
-    if (currentScreen === 'analytics') renderAnalyticsScreenFromState();
+    userState.setAnalyticsSubjects(_analyticsSubjectsData);
   }, (err) => {
     console.warn('[Firestore] Analytics subjects listener failed:', err);
   });
@@ -1084,6 +1228,7 @@ function trackTestPerformance(subjectName, score, total) {
   }
 
   localStorage.setItem(key, JSON.stringify(subjectScores));
+  userState.refreshFromLocal('subjectScores');
   console.log('[Profile] Tracked:', subjectName, '- Score:', percent + '%', '- Total tests:', subjectScores[subjectName].count);
 }
 
@@ -1102,6 +1247,7 @@ function getProgress() {
 
 function saveProgress(progress) {
   localStorage.setItem(KEYS.progress + currentExam, JSON.stringify(progress));
+  userState.refreshFromLocal('progress');
 }
 
 // ═══════════════════════════════════════════
@@ -1132,6 +1278,7 @@ function updateStreak() {
 
   streak.lastDate = today;
   localStorage.setItem(KEYS.streak, JSON.stringify(streak));
+  userState.refreshFromLocal('streak');
 }
 
 // ═══════════════════════════════════════════
@@ -1931,6 +2078,7 @@ function finishTest() {
   const earnedPoints = (correct * 10) + (testState.mode === 'mock' ? 20 : 0);
   const currentPoints = parseInt(localStorage.getItem(KEYS.points) || '0');
   localStorage.setItem(KEYS.points, (currentPoints + earnedPoints).toString());
+  userState.refreshFromLocal('testResult');
 
   const subjectName = testState.selectedSubject;
   if (subjectName && subjectName !== 'all') {
@@ -2528,6 +2676,7 @@ function continueAsGuest() {
   document.getElementById('modal-auth')?.classList.remove('visible');
   currentExam = null;
   localStorage.removeItem(KEYS.selectedExam);
+  userState.setGuest();
   if (!_authReady) _authReady = true;
   navigateTo('exams');
   if (typeof renderExamGrid === 'function') renderExamGrid();
@@ -2558,6 +2707,7 @@ async function checkUserAuth() {
         } catch (e) {
           _isAdmin = false;
         }
+        userState.setAuthUser(user, { displayName, isAdmin: _isAdmin });
 
         authModal?.classList.remove('visible');
 
@@ -2586,6 +2736,7 @@ async function checkUserAuth() {
       } else if (localStorage.getItem('guestMode') === 'true') {
         _isAdmin = false;
         stopRealtimeListeners();
+        userState.setGuest();
         if (!_authReady) {
           _authReady = true;
           if (currentExam) navigateTo('dashboard');
@@ -2846,7 +2997,8 @@ async function loadAnalytics() {
     return;
   }
 
-  if (!_analyticsOverviewData && !_analyticsSubjectsData) {
+  const state = userState.getSnapshot();
+  if (!state.analyticsOverview && !state.analyticsSubjects?.length) {
     document.getElementById('analytics-subjects-list').innerHTML = '<div class="skeleton" style="height: 60px; margin-bottom: 10px;"></div>'.repeat(3);
     return;
   }
