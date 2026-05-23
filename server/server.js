@@ -19,6 +19,7 @@ const adminRoutes = require('./routes/admin');
 const studyRoutes = require('./routes/study');
 // NOTE: auth routes removed — authentication is now handled by Firebase Auth client SDK
 const analyticsRoutes = require('./routes/analytics');
+const userRoutes = require('./routes/user');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,6 +37,7 @@ app.use('/api/parse-syllabus', syllabusRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/study', studyRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/user', userRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

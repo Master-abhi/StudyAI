@@ -31,5 +31,23 @@ service cloud.firestore {
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+
+    // â”€â”€ Analytics â”€â”€
+    // Users can listen to their own aggregate analytics.
+    // Writes stay server-only through the Admin SDK.
+    match /analytics/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+
+      match /subjects/{subjectId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+
+        match /topics/{topicId} {
+          allow read: if request.auth != null && request.auth.uid == uid;
+          allow write: if false;
+        }
+      }
+    }
   }
 }

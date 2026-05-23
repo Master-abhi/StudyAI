@@ -2,6 +2,25 @@ const express = require('express');
 const router = express.Router();
 const { getCachedNews, scrapeAll } = require('../services/scraper');
 
+function verifyRefreshSecret(req, res, next) {
+  const configuredSecret = process.env.NEWS_REFRESH_SECRET;
+  const providedSecret = req.get('x-refresh-secret');
+
+  if (!configuredSecret && process.env.NODE_ENV !== 'production') {
+    return next();
+  }
+
+  if (!configuredSecret) {
+    return res.status(503).json({ error: 'News refresh secret is not configured' });
+  }
+
+  if (providedSecret !== configuredSecret) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid refresh secret' });
+  }
+
+  next();
+}
+
 // GET /api/news — reads cache from Firestore
 router.get('/', async (req, res) => {
   try {
@@ -26,7 +45,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/news/refresh — triggers a fresh scrape and updates Firestore
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', verifyRefreshSecret, async (req, res) => {
   try {
     const result = await scrapeAll();
     res.json({

@@ -5,6 +5,37 @@ const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 
 router.use(verifyFirebaseToken);
 
+const MAX_RECORD_TOTAL = 100;
+const MAX_STUDY_SECONDS = 60 * 60;
+
+function clampInteger(value, min, max) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.min(Math.max(Math.trunc(value), min), max);
+}
+
+function cleanDocId(value, fallback) {
+  if (typeof value !== 'string') return fallback;
+  const cleaned = value.trim().replace(/[\/#?[\]]/g, ' ').replace(/\s+/g, ' ').slice(0, 120);
+  return cleaned || fallback;
+}
+
+function cleanRecordInput(body) {
+  const explicitTotal = clampInteger(body.total, 0, MAX_RECORD_TOTAL);
+  const explicitCorrect = clampInteger(body.correct, 0, explicitTotal ?? MAX_RECORD_TOTAL);
+  const hasBooleanResult = typeof body.isCorrect === 'boolean';
+  const total = explicitTotal ?? (hasBooleanResult ? 1 : 0);
+  const correct = Math.min(explicitCorrect ?? (body.isCorrect === true ? 1 : 0), total);
+  const studyTime = clampInteger(body.studyTime ?? body.timeTaken, 0, MAX_STUDY_SECONDS) ?? 0;
+
+  return {
+    subject: cleanDocId(body.subject, 'General'),
+    topic: cleanDocId(body.topic, ''),
+    total,
+    correct,
+    studyTime
+  };
+}
+
 router.get('/overview', async (req, res) => {
   try {
     const userId = req.user.uid;
@@ -106,32 +137,36 @@ router.get('/topics', async (req, res) => {
 router.post('/record', async (req, res) => {
   try {
     const userId = req.user.uid;
-    const { subject, topic, examId, questionId, isCorrect, timeTaken, correct, total, studyTime } = req.body;
+    const record = cleanRecordInput(req.body);
+
+    if (record.total === 0 && record.studyTime === 0) {
+      return res.json({ success: true, skipped: true });
+    }
 
     try {
       const recordRef = db.collection('analytics').doc(userId);
-      const subjRef = db.collection('analytics').doc(userId).collection('subjects').doc(subject || 'General');
-      const topicRef = subjRef.collection('topics').doc(topic || 'General');
+      const subjRef = db.collection('analytics').doc(userId).collection('subjects').doc(record.subject);
+      const topicRef = record.topic ? subjRef.collection('topics').doc(record.topic) : null;
 
       const batch = db.batch();
       batch.set(recordRef, {
         lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-        totalStudyTime: admin.firestore.FieldValue.increment(studyTime || timeTaken || 0),
-        totalAttempted: admin.firestore.FieldValue.increment(total || (isCorrect !== undefined ? 1 : 0)),
+        totalStudyTime: admin.firestore.FieldValue.increment(record.studyTime),
+        totalAttempted: admin.firestore.FieldValue.increment(record.total),
       }, { merge: true });
 
-      if (subject) {
+      if (record.subject) {
         batch.set(subjRef, {
-          total: admin.firestore.FieldValue.increment(total || (isCorrect !== undefined ? 1 : 0)),
-          correct: admin.firestore.FieldValue.increment(correct || (isCorrect ? 1 : 0)),
+          total: admin.firestore.FieldValue.increment(record.total),
+          correct: admin.firestore.FieldValue.increment(record.correct),
           lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
       }
 
-      if (topic) {
+      if (topicRef) {
         batch.set(topicRef, {
-          total: admin.firestore.FieldValue.increment(total || (isCorrect !== undefined ? 1 : 0)),
-          correct: admin.firestore.FieldValue.increment(correct || (isCorrect ? 1 : 0)),
+          total: admin.firestore.FieldValue.increment(record.total),
+          correct: admin.firestore.FieldValue.increment(record.correct),
           lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
       }

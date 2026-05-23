@@ -2801,6 +2801,47 @@ input, textarea, select { font-family: inherit; outline: none; }
   font-style: italic;
 }
 
+.profile-analysis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.profile-analysis-column {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.profile-analysis-heading {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-analysis-heading.strong-heading {
+  color: var(--success);
+}
+
+.profile-analysis-heading.weak-heading {
+  color: var(--error);
+}
+
+.profile-strong-subjects,
+.profile-weak-subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-detailed-performance,
+.profile-recommendations {
+  margin-top: 12px;
+}
+
 .profile-edit-btn {
   width: 100%;
   padding: 14px;

@@ -5,36 +5,142 @@ const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 
 router.use(verifyFirebaseToken);
 
+const MAX_TEST_RESULTS = 50;
+const MAX_POINTS = 1000000;
+const MAX_MCQS_SOLVED = 1000000;
+const MAX_STREAK = 5000;
+const MAX_EXAMS = 100;
+const MAX_ITEMS_PER_EXAM = 2000;
+
+function clampInteger(value, min, max) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.min(Math.max(Math.trunc(value), min), max);
+}
+
+function cleanString(value, maxLength) {
+  if (typeof value !== 'string') return null;
+  const cleaned = value.trim();
+  if (!cleaned) return null;
+  return cleaned.slice(0, maxLength);
+}
+
+function cleanExamId(value) {
+  const cleaned = cleanString(value, 80);
+  if (!cleaned || !/^[a-zA-Z0-9_-]+$/.test(cleaned)) return null;
+  return cleaned;
+}
+
+function cleanStreak(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const count = clampInteger(value.count, 0, MAX_STREAK);
+  const lastDate = cleanString(value.lastDate, 10);
+  if (count === null) return null;
+  return {
+    count,
+    lastDate: lastDate && /^\d{4}-\d{2}-\d{2}$/.test(lastDate) ? lastDate : ''
+  };
+}
+
+function cleanTestResults(value) {
+  if (!Array.isArray(value)) return null;
+  return value.slice(-MAX_TEST_RESULTS).map((result) => {
+    if (!result || typeof result !== 'object' || Array.isArray(result)) return null;
+    const total = clampInteger(result.total, 0, 500);
+    const score = clampInteger(result.score, 0, total ?? 500);
+    const percent = clampInteger(result.percent, 0, 100);
+    return {
+      date: cleanString(result.date, 40) || new Date().toISOString(),
+      exam: cleanExamId(result.exam) || '',
+      mode: cleanString(result.mode, 20) || 'quiz',
+      score: score ?? 0,
+      total: total ?? 0,
+      percent: percent ?? 0
+    };
+  }).filter(Boolean);
+}
+
+function cleanNestedObject(value, leafCleaner) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+
+  const output = {};
+  for (const [examId, examValue] of Object.entries(value).slice(0, MAX_EXAMS)) {
+    const cleanId = cleanExamId(examId);
+    if (!cleanId || !examValue || typeof examValue !== 'object' || Array.isArray(examValue)) continue;
+
+    const cleanExamValue = {};
+    for (const [key, itemValue] of Object.entries(examValue).slice(0, MAX_ITEMS_PER_EXAM)) {
+      const cleanKey = cleanString(key, 120);
+      if (!cleanKey) continue;
+      const cleanedItem = leafCleaner(itemValue);
+      if (cleanedItem !== null) cleanExamValue[cleanKey] = cleanedItem;
+    }
+
+    output[cleanId] = cleanExamValue;
+  }
+
+  return output;
+}
+
+function cleanSubjectScore(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const count = clampInteger(value.count, 0, 10000) ?? 0;
+  const totalScore = clampInteger(value.totalScore, 0, count * 100) ?? 0;
+  const lastScore = clampInteger(value.lastScore, 0, 100) ?? 0;
+  const bestScore = clampInteger(value.bestScore, 0, 100) ?? 0;
+  const worstScore = clampInteger(value.worstScore, 0, 100) ?? 0;
+  const recentScores = Array.isArray(value.recentScores)
+    ? value.recentScores
+      .map((score) => clampInteger(score, 0, 100))
+      .filter((score) => score !== null)
+      .slice(-5)
+    : [];
+
+  return {
+    totalScore,
+    count,
+    lastScore,
+    bestScore,
+    worstScore,
+    recentScores
+  };
+}
+
 router.get('/data', async (req, res) => {
   try {
     const doc = await db.collection('users').doc(req.user.uid).get();
     res.json(doc.exists ? doc.data() : {});
   } catch (err) {
     console.error('[User Data] Read error:', err.message);
-    res.json({});
+    res.status(500).json({ error: 'Failed to load user data' });
   }
 });
 
 router.post('/sync', async (req, res) => {
   try {
-    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam } = req.body;
+    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile } = req.body;
 
-    // Build update object — only overwrite fields that have real data
-    // This prevents an empty local state from wiping out existing server data
     const update = {};
+    const cleanResults = cleanTestResults(testResults);
+    const cleanPoints = clampInteger(points, 0, MAX_POINTS);
+    const cleanMcqsSolved = clampInteger(mcqsSolved, 0, MAX_MCQS_SOLVED);
+    const cleanStreakValue = cleanStreak(streak);
+    const cleanSubjects = cleanNestedObject(subjects, cleanSubjectScore);
+    const cleanProgress = cleanNestedObject(progress, (value) => value === true ? true : null);
+    const cleanSelectedExam = cleanExamId(selectedExam);
+    const cleanMobile = cleanString(mobile, 20);
 
-    if (Array.isArray(testResults) && testResults.length > 0) update.testResults = testResults;
-    if (typeof points === 'number' && points > 0) update.points = points;
-    if (typeof mcqsSolved === 'number' && mcqsSolved > 0) update.mcqsSolved = mcqsSolved;
-    if (streak && streak.count > 0) update.streak = streak;
-    if (subjects && Object.keys(subjects).length > 0) update.subjects = subjects;
-    if (progress && Object.keys(progress).length > 0) update.progress = progress;
-    if (selectedExam && typeof selectedExam === 'string' && selectedExam.length > 0) update.selectedExam = selectedExam;
+    if (cleanResults) update.testResults = cleanResults;
+    if (cleanPoints !== null) update.points = cleanPoints;
+    if (cleanMcqsSolved !== null) update.mcqsSolved = cleanMcqsSolved;
+    if (cleanStreakValue) update.streak = cleanStreakValue;
+    if (cleanSubjects) update.subjects = cleanSubjects;
+    if (cleanProgress) update.progress = cleanProgress;
+    if (cleanSelectedExam) update.selectedExam = cleanSelectedExam;
+    if (cleanMobile) update.mobile = cleanMobile;
 
     update.updatedAt = admin.firestore.FieldValue.serverTimestamp();
 
     if (Object.keys(update).length <= 1) {
-      // Only updatedAt — nothing meaningful to sync
       return res.json({ success: true, skipped: true });
     }
 

@@ -9,11 +9,18 @@ function showToast(msg, type = 'success') {
   setTimeout(() => { toast.classList.remove('show'); }, 3000);
 }
 
+const adminAuthPersistenceReady = firebase.auth()
+  .setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+  .catch((err) => {
+    console.warn('[Admin Auth] Persistence setup failed:', err);
+  });
+
 /**
  * Get Firebase ID token for authenticated API calls.
  * Automatically refreshes if expired.
  */
 async function getAuthHeader() {
+  await adminAuthPersistenceReady;
   const user = firebase.auth().currentUser;
   if (!user) return {};
   const token = await user.getIdToken();
@@ -21,7 +28,8 @@ async function getAuthHeader() {
 }
 
 // ── Auth State Listener ──
-firebase.auth().onAuthStateChanged(async (user) => {
+adminAuthPersistenceReady.then(() => {
+  firebase.auth().onAuthStateChanged(async (user) => {
   if (user) {
     // Check admin custom claim
     const tokenResult = await user.getIdTokenResult();
@@ -38,6 +46,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
     document.getElementById('login-container').classList.remove('hidden');
     document.getElementById('dashboard-container').classList.add('hidden');
   }
+  });
 });
 
 async function loginAdmin() {
@@ -53,6 +62,7 @@ async function loginAdmin() {
   const email = `${id.toLowerCase()}@studyworld.app`;
 
   try {
+    await adminAuthPersistenceReady;
     await firebase.auth().signInWithEmailAndPassword(email, pass);
     // onAuthStateChanged will check admin claim and show dashboard
   } catch (err) {

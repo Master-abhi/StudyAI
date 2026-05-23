@@ -39,8 +39,8 @@ let testState = {
 // ═══════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
-  checkUserAuth();   // Auth state set hogi async — loadState baad mein refresh karega
   loadState();
+  checkUserAuth();
   initNavigation();
   initExamSelector();
   initChat();
@@ -52,16 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadState() {
-  // Restore saved language (default Hindi)
   const savedLang = localStorage.getItem(KEYS.language) || 'hi';
-  setGlobalLanguage(savedLang, false); // apply without re-rendering
+  setGlobalLanguage(savedLang, false);
 
   const savedExam = localStorage.getItem(KEYS.selectedExam);
   if (savedExam) {
     const examData = getExamData(savedExam);
     if (examData) {
       currentExam = savedExam;
-      navigateTo('dashboard');
     }
   }
 
@@ -72,8 +70,8 @@ function loadState() {
 }
 
 function getExamData(examId) {
-  if (SYLLABUS_DATA[examId]) return SYLLABUS_DATA[examId];
-  if (CGPSC_EXAM_DATA && CGPSC_EXAM_DATA[examId]) return CGPSC_EXAM_DATA[examId];
+  if (typeof SYLLABUS_DATA !== 'undefined' && SYLLABUS_DATA[examId]) return SYLLABUS_DATA[examId];
+  if (typeof CGPSC_EXAM_DATA !== 'undefined' && CGPSC_EXAM_DATA && CGPSC_EXAM_DATA[examId]) return CGPSC_EXAM_DATA[examId];
 
   const customSyllabi = getCustomSyllabi();
   const custom = customSyllabi.find(s => s.id === examId);
@@ -82,9 +80,55 @@ function getExamData(examId) {
   return null;
 }
 
-// Decode JWT payload client-side to check role (legacy — now replaced by Firebase custom claims)
-// isAdmin() reads from _isAdmin cache set by onAuthStateChanged below
 let _isAdmin = false;
+let _authReady = false;
+let _firebaseAuthResolved = false;
+let _resolveFirebaseAuthReady;
+let _userDataUnsubscribe = null;
+let _userDataReadyPromise = Promise.resolve(false);
+let _analyticsOverviewUnsubscribe = null;
+let _analyticsSubjectsUnsubscribe = null;
+let _analyticsTopicsUnsubscribe = null;
+let _analyticsOverviewData = null;
+let _analyticsSubjectsData = null;
+const firebaseAuthReady = new Promise(resolve => {
+  _resolveFirebaseAuthReady = resolve;
+});
+
+function markFirebaseAuthResolved() {
+  if (_firebaseAuthResolved) return;
+  _firebaseAuthResolved = true;
+  if (_resolveFirebaseAuthReady) _resolveFirebaseAuthReady();
+}
+
+async function waitForFirebaseAuthReady() {
+  if (_firebaseAuthResolved) return;
+  await firebaseAuthReady;
+}
+
+function stopRealtimeListeners() {
+  [_userDataUnsubscribe, _analyticsOverviewUnsubscribe, _analyticsSubjectsUnsubscribe, _analyticsTopicsUnsubscribe]
+    .forEach(unsubscribe => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    });
+  _userDataUnsubscribe = null;
+  _analyticsOverviewUnsubscribe = null;
+  _analyticsSubjectsUnsubscribe = null;
+  _analyticsTopicsUnsubscribe = null;
+  _analyticsOverviewData = null;
+  _analyticsSubjectsData = null;
+  _userDataReadyPromise = Promise.resolve(false);
+}
+
+function getFirestoreClient() {
+  if (typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return null;
+  try {
+    return firebase.firestore();
+  } catch (err) {
+    console.warn('[Firestore] Client unavailable:', err);
+    return null;
+  }
+}
 
 function isAdmin() {
   return _isAdmin;
@@ -94,11 +138,12 @@ function isAdmin() {
  * Returns Authorization header with current Firebase ID token.
  * Used for routes that require authentication (admin endpoints).
  */
-async function getAuthHeaders() {
+async function getAuthHeaders(forceRefresh = false) {
+  await waitForFirebaseAuthReady();
   const user = firebase.auth().currentUser;
   if (!user) return {};
   try {
-    const token = await user.getIdToken();
+    const token = await user.getIdToken(forceRefresh);
     return { 'Authorization': `Bearer ${token}` };
   } catch (e) {
     return {};
@@ -131,16 +176,16 @@ function initNavigation() {
     });
   });
 
-  document.getElementById('btn-settings').addEventListener('click', () => {
+  document.getElementById('btn-settings')?.addEventListener('click', () => {
     openModal('modal-settings');
     updateSettingsModal();
   });
 
-  document.getElementById('btn-profile').addEventListener('click', () => {
+  document.getElementById('btn-profile')?.addEventListener('click', () => {
     navigateTo('profile');
   });
 
-  document.getElementById('dashboard-exam-badge').addEventListener('click', changeExam);
+  document.getElementById('dashboard-exam-badge')?.addEventListener('click', changeExam);
 }
 
 function navigateTo(screenName) {
@@ -390,7 +435,8 @@ async function syncUserData() {
         mcqsSolved: parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0'),
         streak: JSON.parse(localStorage.getItem(KEYS.streak) || '{"lastDate":"","count":0}'),
         selectedExam: localStorage.getItem(KEYS.selectedExam) || '',
-        subjects, progress
+        subjects, progress,
+        mobile: ''
       })
     });
     if (!res.ok) console.error('[Sync] Server error:', await res.text());
@@ -399,91 +445,77 @@ async function syncUserData() {
   }
 }
 
-async function loadUserDataFromServer() {
-  const user = firebase.auth().currentUser;
-  if (!user) {
-    console.log('[Load Data] No user logged in');
-    return false;
+function applyUserData(data) {
+  if (!data || Object.keys(data).length === 0) return false;
+
+  if (data.testResults && data.testResults.length) localStorage.setItem(KEYS.testResults, JSON.stringify(data.testResults));
+  if (data.points !== undefined && data.points !== null) localStorage.setItem(KEYS.points, String(data.points));
+  if (data.mcqsSolved !== undefined && data.mcqsSolved !== null) localStorage.setItem(KEYS.mcqsSolved, String(data.mcqsSolved));
+  if (data.streak && data.streak.count !== undefined) localStorage.setItem(KEYS.streak, JSON.stringify(data.streak));
+  if (data.subjects) {
+    Object.entries(data.subjects).forEach(([exam, scores]) => {
+      localStorage.setItem(KEYS.subjectScores + exam, JSON.stringify(scores));
+    });
+  }
+  if (data.progress) {
+    Object.entries(data.progress).forEach(([exam, prog]) => {
+      localStorage.setItem(KEYS.progress + exam, JSON.stringify(prog));
+    });
+  }
+  if (data.selectedExam) {
+    localStorage.setItem(KEYS.selectedExam, data.selectedExam);
+    if (!currentExam) {
+      const examData = getExamData(data.selectedExam);
+      if (examData) currentExam = data.selectedExam;
+    }
   }
 
+  if (currentScreen === 'dashboard') updateDashboard();
+  if (currentScreen === 'syllabus') renderSyllabus();
+  if (currentScreen === 'profile') updateProfile();
+
+  return true;
+}
+
+function startUserDataListener(user) {
+  const firestoreDb = getFirestoreClient();
+  if (!user || !firestoreDb) {
+    _userDataReadyPromise = Promise.resolve(false);
+    return _userDataReadyPromise;
+  }
+
+  if (_userDataUnsubscribe) _userDataUnsubscribe();
+
+  let resolveInitial;
+  _userDataReadyPromise = new Promise(resolve => {
+    resolveInitial = resolve;
+  });
+
+  _userDataUnsubscribe = firestoreDb.collection('users').doc(user.uid).onSnapshot((doc) => {
+    const applied = doc.exists ? applyUserData(doc.data()) : false;
+    resolveInitial(applied);
+  }, (err) => {
+    console.warn('[Firestore] User data listener failed:', err);
+    resolveInitial(false);
+  });
+
+  return _userDataReadyPromise;
+}
+
+async function loadUserDataFromServer() {
+  const listenerLoaded = await _userDataReadyPromise;
+  if (listenerLoaded) return true;
+
+  const headers = await getAuthHeaders();
+  if (!headers.Authorization) return false;
+
   try {
-    let data = null;
-
-    // ── Method 1: Direct Firestore client SDK (fastest & most reliable) ──
-    if (typeof firebase.firestore === 'function') {
-      try {
-        const firestoreDb = firebase.firestore();
-        const doc = await firestoreDb.collection('users').doc(user.uid).get();
-        if (doc.exists) {
-          data = doc.data();
-          console.log('[Load Data] ✅ Firestore client SDK:', Object.keys(data));
-        } else {
-          console.log('[Load Data] No Firestore doc for uid:', user.uid);
-        }
-      } catch (fsErr) {
-        console.warn('[Load Data] Firestore SDK error, trying API:', fsErr.message);
-      }
-    }
-
-    // ── Method 2: Fallback to server API ─────────────────────────────────
-    if (!data) {
-      try {
-        const token = await user.getIdToken();
-        const res = await fetch('/api/user/data', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json && Object.keys(json).length > 0) {
-            data = json;
-            console.log('[Load Data] ✅ Server API:', Object.keys(data));
-          }
-        } else {
-          console.warn('[Load Data] API returned:', res.status);
-        }
-      } catch (apiErr) {
-        console.warn('[Load Data] API error:', apiErr.message);
-      }
-    }
-
-    if (!data || Object.keys(data).length === 0) {
-      console.log('[Load Data] No data — fresh account');
-      return false;
-    }
-
-    // ── Restore ALL fields into localStorage ─────────────────────────────
-    if (data.testResults && data.testResults.length) {
-      localStorage.setItem(KEYS.testResults, JSON.stringify(data.testResults));
-    }
-    if (data.points !== undefined && data.points !== null) {
-      localStorage.setItem(KEYS.points, String(data.points));
-    }
-    if (data.mcqsSolved !== undefined && data.mcqsSolved !== null) {
-      localStorage.setItem(KEYS.mcqsSolved, String(data.mcqsSolved));
-    }
-    if (data.streak && data.streak.count !== undefined) {
-      localStorage.setItem(KEYS.streak, JSON.stringify(data.streak));
-    }
-    if (data.subjects) {
-      Object.entries(data.subjects).forEach(([exam, scores]) => {
-        localStorage.setItem(KEYS.subjectScores + exam, JSON.stringify(scores));
-      });
-    }
-    if (data.progress) {
-      Object.entries(data.progress).forEach(([exam, prog]) => {
-        localStorage.setItem(KEYS.progress + exam, JSON.stringify(prog));
-        console.log(`[Load Data] Progress: exam=${exam}, topics=${Object.keys(prog).length}`);
-      });
-    }
-    if (data.selectedExam && !localStorage.getItem(KEYS.selectedExam)) {
-      localStorage.setItem(KEYS.selectedExam, data.selectedExam);
-      console.log('[Load Data] selectedExam restored:', data.selectedExam);
-    }
-
-    return true;
-
+    const res = await fetch('/api/user/data', { headers });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return applyUserData(data);
   } catch (err) {
-    console.error('[Load Data] Critical error:', err);
+    console.error('[Load Data] Failed:', err);
     return false;
   }
 }
@@ -509,11 +541,121 @@ function getLocalAnalytics() {
   };
 }
 
+function formatAnalyticsSubjects(snapshot) {
+  return snapshot.docs.map(d => {
+    const s = d.data();
+    const total = s.total || 0;
+    const correct = s.correct || 0;
+    const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+    return {
+      id: d.id,
+      name: d.id,
+      total,
+      correct,
+      accuracy,
+      status: total > 0 ? (accuracy >= 75 ? 'strong' : accuracy < 50 ? 'weak' : 'average') : 'average',
+      ...s
+    };
+  });
+}
+
+function renderProfileAnalyticsFromState() {
+  const section = document.getElementById('profile-analytics-section');
+  if (!section) return;
+
+  const local = getLocalAnalytics();
+  section.style.display = 'block';
+
+  let accuracy = local.accuracy;
+  let studyTime = local.studyTime;
+  let streakVal = local.streak;
+  let weeklyData = null;
+  let subjectsData = null;
+
+  if (_analyticsOverviewData) {
+    if (_analyticsOverviewData.overallAccuracy) accuracy = _analyticsOverviewData.overallAccuracy;
+    if (_analyticsOverviewData.totalStudyTime) studyTime = _analyticsOverviewData.totalStudyTime;
+    if (_analyticsOverviewData.currentStreak) streakVal = _analyticsOverviewData.currentStreak;
+    if (_analyticsOverviewData.weeklyActivity) weeklyData = _analyticsOverviewData.weeklyActivity;
+  }
+
+  const examKey = currentExam || '';
+  const localSubjectScores = JSON.parse(localStorage.getItem(KEYS.subjectScores + examKey) || '{}');
+  if (Object.keys(localSubjectScores).length) {
+    subjectsData = Object.entries(localSubjectScores)
+      .filter(([, data]) => data.count > 0)
+      .map(([name, data]) => {
+        const avg = Math.round(data.totalScore / data.count);
+        return {
+          name, accuracy: avg, total: data.count,
+          status: avg >= 75 ? 'strong' : avg < 50 ? 'weak' : 'average'
+        };
+      });
+  } else if (_analyticsSubjectsData?.length) {
+    subjectsData = _analyticsSubjectsData;
+  }
+
+  document.getElementById('profile-analytics-accuracy').textContent = accuracy + '%';
+  document.getElementById('profile-analytics-time').textContent = studyTime + 'm';
+  document.getElementById('profile-analytics-streak').textContent = streakVal;
+
+  if (weeklyData) renderProfileWeeklyActivity(weeklyData);
+  else renderLocalWeeklyGraph();
+
+  if (subjectsData?.length) renderProfileSubjectTable(subjectsData);
+  else renderLocalSubjectTable(local.subjectScores);
+
+  loadProfileAIPlan();
+}
+
+function renderAnalyticsScreenFromState() {
+  const subjectsContainer = document.getElementById('analytics-subjects-list');
+  if (!subjectsContainer) return;
+
+  const overview = _analyticsOverviewData || {};
+  document.getElementById('analytics-accuracy').textContent = (overview.overallAccuracy || 0) + '%';
+  document.getElementById('analytics-total-mcqs').textContent = overview.totalAttempted || 0;
+  document.getElementById('analytics-study-time').textContent = (overview.totalStudyTime || 0) + 'm';
+  document.getElementById('analytics-streak').textContent = overview.currentStreak || 0;
+
+  renderWeeklyGraph(overview.weeklyActivity || []);
+  renderSubjectsList(_analyticsSubjectsData || []);
+  loadImprovementPlan();
+}
+
+function startAnalyticsListeners(user) {
+  const firestoreDb = getFirestoreClient();
+  if (!user || !firestoreDb) return;
+
+  if (_analyticsOverviewUnsubscribe) _analyticsOverviewUnsubscribe();
+  if (_analyticsSubjectsUnsubscribe) _analyticsSubjectsUnsubscribe();
+  if (_analyticsTopicsUnsubscribe) _analyticsTopicsUnsubscribe();
+
+  const analyticsRef = firestoreDb.collection('analytics').doc(user.uid);
+
+  _analyticsOverviewUnsubscribe = analyticsRef.onSnapshot((doc) => {
+    _analyticsOverviewData = doc.exists ? doc.data() : null;
+    if (currentScreen === 'profile') renderProfileAnalyticsFromState();
+    if (currentScreen === 'analytics') renderAnalyticsScreenFromState();
+  }, (err) => {
+    console.warn('[Firestore] Analytics overview listener failed:', err);
+  });
+
+  _analyticsSubjectsUnsubscribe = analyticsRef.collection('subjects').onSnapshot((snapshot) => {
+    _analyticsSubjectsData = formatAnalyticsSubjects(snapshot);
+    if (currentScreen === 'profile') renderProfileAnalyticsFromState();
+    if (currentScreen === 'analytics') renderAnalyticsScreenFromState();
+  }, (err) => {
+    console.warn('[Firestore] Analytics subjects listener failed:', err);
+  });
+}
+
 async function loadMongoAnalytics() {
   const section = document.getElementById('profile-analytics-section');
   const local = getLocalAnalytics();
   const headers = await getAuthHeaders();
 
+  if (!section) return;
   section.style.display = 'block';
 
   if (!headers.Authorization) {
@@ -523,86 +665,13 @@ async function loadMongoAnalytics() {
     renderLocalSubjectTable(local.subjectScores);
     renderLocalWeeklyGraph();
     document.getElementById('profile-ai-plan-content').innerHTML = local.hasData
-      ? '📝 Login to get AI study plan based on your progress!'
-      : '👤 Browsing as Guest — take tests to see your stats!';
+      ? '?? Login to get AI study plan based on your progress!'
+      : '?? Browsing as Guest ? take tests to see your stats!';
     return;
   }
 
-  try {
-    const [userRes, overviewRes, subjectsRes] = await Promise.all([
-      fetch('/api/user/data', { headers }).catch(() => null),
-      fetch('/api/analytics/overview', { headers }).catch(() => null),
-      fetch('/api/analytics/subjects', { headers }).catch(() => null)
-    ]);
-
-    const userData = userRes?.ok ? await userRes.json() : null;
-
-    let accuracy = local.accuracy;
-    let studyTime = local.studyTime;
-    let streakVal = local.streak;
-    let weeklyData = null;
-    let subjectsData = null;
-
-    // Compute from userData (most accurate)
-    if (userData) {
-      if (userData.testResults?.length) {
-        const correct = userData.testResults.reduce((s, t) => s + t.score, 0);
-        const total = userData.testResults.reduce((s, t) => s + t.total, 0);
-        accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
-      }
-      if (userData.points !== undefined && userData.points !== null) {
-        studyTime = Math.round(Number(userData.points) / 10);
-      }
-      if (userData.streak?.count !== undefined) {
-        streakVal = userData.streak.count;
-      }
-      const examKey = currentExam || '';
-      if (userData.subjects?.[examKey]) {
-        subjectsData = Object.entries(userData.subjects[examKey]).map(([name, data]) => ({
-          name, accuracy: Math.round(data.totalScore / data.count), total: data.count,
-          status: (data.totalScore / data.count) >= 75 ? 'strong' : (data.totalScore / data.count) < 50 ? 'weak' : 'average'
-        }));
-      }
-    }
-
-    // Fall back to old analytics API
-    if (overviewRes?.ok) {
-      const overview = await overviewRes.json();
-      if (overview.overallAccuracy) accuracy = overview.overallAccuracy;
-      if (overview.totalStudyTime) studyTime = overview.totalStudyTime;
-      if (overview.currentStreak) streakVal = overview.currentStreak;
-      if (overview.weeklyActivity) weeklyData = overview.weeklyActivity;
-    }
-
-    if (subjectsRes?.ok && !subjectsData) {
-      subjectsData = await subjectsRes.json();
-    }
-
-    document.getElementById('profile-analytics-accuracy').textContent = accuracy + '%';
-    document.getElementById('profile-analytics-time').textContent = studyTime + 'm';
-    document.getElementById('profile-analytics-streak').textContent = streakVal;
-
-    if (weeklyData) renderProfileWeeklyActivity(weeklyData);
-    else renderLocalWeeklyGraph();
-
-    if (subjectsData?.length) renderProfileSubjectTable(subjectsData);
-    else renderLocalSubjectTable(local.subjectScores);
-
-    loadProfileAIPlan();
-
-  } catch (err) {
-    console.error('[Profile Analytics Error]:', err);
-    document.getElementById('profile-analytics-accuracy').textContent = local.accuracy + '%';
-    document.getElementById('profile-analytics-time').textContent = local.studyTime + 'm';
-    document.getElementById('profile-analytics-streak').textContent = local.streak;
-    renderLocalSubjectTable(local.subjectScores);
-    renderLocalWeeklyGraph();
-    document.getElementById('profile-ai-plan-content').innerHTML = local.hasData
-      ? '📝 Take more tests to get personalized recommendations!'
-      : '📝 Start taking tests to see your performance!';
-  }
+  renderProfileAnalyticsFromState();
 }
-
 function renderLocalSubjectTable(subjectScores) {
   const container = document.getElementById('profile-subject-table');
   const entries = Object.entries(subjectScores);
@@ -612,7 +681,7 @@ function renderLocalSubjectTable(subjectScores) {
   }
   let html = '';
   for (const [name, data] of entries) {
-    const avg = Math.round(data.totalScore / data.count);
+    const avg = data.count > 0 ? Math.round(data.totalScore / data.count) : 0;
     let color = '#ffc107';
     if (avg >= 75) color = '#00e676';
     else if (avg < 50) color = '#ff9800';
@@ -628,14 +697,20 @@ function renderLocalSubjectTable(subjectScores) {
 function renderLocalWeeklyGraph() {
   const container = document.getElementById('profile-weekly-bars');
   const testResults = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const today = new Date().getDay();
-  const dayMap = [1, 2, 3, 4, 5, 6, 0];
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+  testResults.forEach(t => {
+    try {
+      const d = new Date(t.date);
+      dayCounts[d.getDay()]++;
+    } catch (e) { /* skip invalid dates */ }
+  });
+  const maxCount = Math.max(...dayCounts, 1);
   let html = '';
-  for (let i = 0; i < 7; i++) {
-    const count = (dayMap[i] === today) ? Math.floor(testResults.length / 7) + 1 : Math.floor(testResults.length / 7);
-    const height = Math.max(count * 10, 4);
-    html += `<div class="profile-weekly-bar"><div class="profile-weekly-bar-fill" style="height: ${height}px"></div><div class="profile-weekly-bar-label">${days[i]}</div></div>`;
+  for (let i = 1; i <= 7; i++) {
+    const count = dayCounts[i % 7];
+    const height = Math.max((count / maxCount) * 50, 4);
+    html += `<div class="profile-weekly-bar"><div class="profile-weekly-bar-fill" style="height: ${height}px"></div><div class="profile-weekly-bar-label">${days[i % 7]}</div></div>`;
   }
   container.innerHTML = html;
 }
@@ -662,7 +737,7 @@ function renderProfileWeeklyActivity(weeklyData) {
 
 function renderProfileSubjectTable(subjects) {
   const container = document.getElementById('profile-subject-table');
-  
+
   if (!subjects || subjects.length === 0) {
     container.innerHTML = '<div class="profile-loading">Take tests to see subject performance!</div>';
     return;
@@ -673,12 +748,14 @@ function renderProfileSubjectTable(subjects) {
     let color = '#ffc107';
     if (subj.accuracy >= 75) color = '#00e676';
     else if (subj.accuracy < 50) color = '#ff9800';
-    
+
     let statusClass = 'average';
     let statusText = 'Average';
     if (subj.status === 'strong') { statusClass = 'strong'; statusText = 'Strong'; }
     if (subj.status === 'weak') { statusClass = 'weak'; statusText = 'Weak'; }
-    
+
+    const statusColor = statusClass === 'strong' ? '#00e676' : statusClass === 'weak' ? '#ff9800' : '#ffc107';
+
     html += `
       <div class="profile-subject-row">
         <span class="profile-subject-row-name">${subj.name}</span>
@@ -686,7 +763,7 @@ function renderProfileSubjectTable(subjects) {
           <div class="profile-subject-row-bar-fill" style="width: ${subj.accuracy}%; background: ${color}"></div>
         </div>
         <span class="profile-subject-row-accuracy" style="color: ${color}">${subj.accuracy}%</span>
-        <span class="profile-subject-row-status" style="background: ${statusClass === 'strong' ? 'rgba(0,230,118,0.15)' : statusClass === 'weak' ? 'rgba(255,152,0,0.15)' : 'rgba(255,193,7,0.15)'}; color: ${color}">${statusText}</span>
+        <span class="profile-subject-row-status" style="background: ${statusClass === 'strong' ? 'rgba(0,230,118,0.15)' : statusClass === 'weak' ? 'rgba(255,152,0,0.15)' : 'rgba(255,193,7,0.15)'}; color: ${statusColor}">${statusText}</span>
       </div>`;
   });
   container.innerHTML = html;
@@ -695,7 +772,7 @@ function renderProfileSubjectTable(subjects) {
 async function loadProfileAIPlan() {
   const container = document.getElementById('profile-ai-plan-content');
   const headers = await getAuthHeaders();
-  
+
   if (!headers.Authorization) {
     container.innerHTML = 'Login to get AI study plan';
     return;
@@ -747,7 +824,7 @@ function analyzeSubjectPerformance(exam) {
   const key = KEYS.subjectScores + currentExam;
   const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
   const progress = getProgress();
-  
+
   const subjectData = Object.entries(subjectScores).map(([name, data]) => {
     const recent = data.recentScores || [];
     let trend = 'stable';
@@ -759,7 +836,7 @@ function analyzeSubjectPerformance(exam) {
     }
     return {
       name,
-      avgScore: Math.round(data.totalScore / data.count),
+      avgScore: data.count > 0 ? Math.round(data.totalScore / data.count) : 0,
       tests: data.count,
       lastScore: data.lastScore || 0,
       bestScore: data.bestScore || 0,
@@ -820,7 +897,7 @@ function analyzeSubjectPerformance(exam) {
       weakEl.innerHTML = '<div class="analysis-empty">🎉 Excellent! No weak areas identified yet!</div>';
     }
   }
-  
+
   renderDetailedPerformance(exam);
   generateRecommendations(exam);
 }
@@ -828,10 +905,10 @@ function analyzeSubjectPerformance(exam) {
 function getWeakTopicSuggestion(exam, subjectName, progress) {
   const subject = exam.subjects.find(s => s.name === subjectName || s.nameHi === subjectName);
   if (!subject || !subject.topics) return 'Complete syllabus topics';
-  
+
   const incompleteTopics = subject.topics.filter(t => !progress[t.id]);
   if (incompleteTopics.length === 0) return 'Revise all topics';
-  
+
   const randomTopics = incompleteTopics.slice(0, 2).map(t => t.nameHi || t.name);
   return randomTopics.join(', ');
 }
@@ -842,33 +919,33 @@ function renderDetailedPerformance(exam) {
   const key = KEYS.subjectScores + currentExam;
   const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
   const progress = getProgress();
-  
+
   if (Object.keys(subjectScores).length === 0) {
     container.innerHTML = '<div class="analysis-empty">Take tests to see detailed performance!</div>';
     return;
   }
-  
+
   let html = '';
   exam.subjects.forEach(subject => {
     const data = subjectScores[subject.name];
     if (!data) return;
-    
-    const avgScore = Math.round(data.totalScore / data.count);
-    const trend = data.recentScores?.length >= 2 
-      ? (data.recentScores[data.recentScores.length - 1] > data.recentScores[data.recentScores.length - 2] ? '↑' 
+
+    const avgScore = data.count > 0 ? Math.round(data.totalScore / data.count) : 0;
+    const trend = data.recentScores?.length >= 2
+      ? (data.recentScores[data.recentScores.length - 1] > data.recentScores[data.recentScores.length - 2] ? '↑'
         : data.recentScores[data.recentScores.length - 1] < data.recentScores[data.recentScores.length - 2] ? '↓' : '→')
       : '→';
-    
+
     let colorClass = 'neutral';
     if (avgScore >= 70) colorClass = 'excellent';
     else if (avgScore >= 55) colorClass = 'good';
     else if (avgScore >= 40) colorClass = 'average';
     else colorClass = 'poor';
-    
+
     const completedTopics = subject.topics.filter(t => progress[t.id]).length;
     const totalTopics = subject.topics.length;
     const syllabusProgress = Math.round((completedTopics / totalTopics) * 100);
-    
+
     html += `
       <div class="detail-subject-card">
         <div class="detail-subject-header">
@@ -888,7 +965,7 @@ function renderDetailedPerformance(exam) {
         </div>
       </div>`;
   });
-  
+
   container.innerHTML = html || '<div class="analysis-empty">No performance data available yet.</div>';
 }
 
@@ -898,14 +975,14 @@ function generateRecommendations(exam) {
   const key = KEYS.subjectScores + currentExam;
   const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
   const progress = getProgress();
-  
+
   const recommendations = [];
-  
+
   const allTopics = getAllTopics();
   const completedTopics = allTopics.filter(t => progress[t.id]).length;
   const totalTopics = allTopics.length;
   const syllabusPercent = Math.round((completedTopics / totalTopics) * 100);
-  
+
   if (syllabusPercent < 30) {
     recommendations.push({
       icon: '📚',
@@ -913,28 +990,28 @@ function generateRecommendations(exam) {
       desc: `Only ${completedTopics} of ${totalTopics} topics completed. Focus on covering the entire syllabus before deep diving.`
     });
   }
-  
+
   const weakSubjects = Object.entries(subjectScores)
     .filter(([name, data]) => data.totalScore / data.count < 55)
     .sort((a, b) => (a[1].totalScore/a[1].count) - (b[1].totalScore/b[1].count));
-  
+
   if (weakSubjects.length > 0) {
     const weakest = weakSubjects[0];
     const subject = exam.subjects.find(s => s.name === weakest[0] || s.nameHi === weakest[0]);
     const incompleteTopics = subject?.topics?.filter(t => !progress[t.id]) || [];
     const focusTopic = incompleteTopics[0]?.nameHi || incompleteTopics[0]?.name || 'key topics';
-    
+
     recommendations.push({
       icon: '🎯',
       title: `Focus on ${weakest[0]}`,
       desc: `Your weakest subject (${Math.round(weakest[1].totalScore/weakest[1].count)}%). Start with "${focusTopic}" to build fundamentals.`
     });
   }
-  
+
   const strongSubjects = Object.entries(subjectScores)
     .filter(([name, data]) => data.totalScore / data.count >= 60)
     .sort((a, b) => (b[1].totalScore/b[1].count) - (a[1].totalScore/a[1].count));
-  
+
   if (strongSubjects.length > 0) {
     recommendations.push({
       icon: '⭐',
@@ -942,7 +1019,7 @@ function generateRecommendations(exam) {
       desc: `Your strongest subject (${Math.round(strongSubjects[0][1].totalScore/strongSubjects[0][1].count)}%). Keep practicing to maintain momentum!`
     });
   }
-  
+
   const testResults = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
   const recentTests = testResults.filter(r => r.exam === currentExam).slice(-5);
   if (recentTests.length >= 3) {
@@ -955,7 +1032,7 @@ function generateRecommendations(exam) {
       });
     }
   }
-  
+
   if (recommendations.length === 0) {
     recommendations.push({
       icon: '🚀',
@@ -963,7 +1040,7 @@ function generateRecommendations(exam) {
       desc: 'Take your first test to get personalized recommendations!'
     });
   }
-  
+
   container.innerHTML = recommendations.map(r => `
     <div class="recommendation-item">
       <span class="rec-icon">${r.icon}</span>
@@ -977,33 +1054,35 @@ function generateRecommendations(exam) {
 
 function trackTestPerformance(subjectName, score, total) {
   if (!currentExam) return;
-  
+
   const key = KEYS.subjectScores + currentExam;
   const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
-  
+
   const percent = Math.round((score / total) * 100);
-  
+
   if (!subjectScores[subjectName]) {
-    subjectScores[subjectName] = { 
-      totalScore: 0, 
-      count: 0, 
+    subjectScores[subjectName] = {
+      totalScore: 0,
+      count: 0,
       lastScore: 0,
       bestScore: 0,
       worstScore: 100,
       recentScores: []
     };
   }
-  
+
   subjectScores[subjectName].totalScore += percent;
   subjectScores[subjectName].count += 1;
   subjectScores[subjectName].lastScore = percent;
   subjectScores[subjectName].bestScore = Math.max(subjectScores[subjectName].bestScore, percent);
-  subjectScores[subjectName].worstScore = Math.min(subjectScores[subjectName].worstScore, percent);
-  subjectScores[subjectName].recentScores.push(percent);
+  if (!isNaN(percent)) {
+    subjectScores[subjectName].worstScore = Math.min(subjectScores[subjectName].worstScore, percent);
+    subjectScores[subjectName].recentScores.push(percent);
+  }
   if (subjectScores[subjectName].recentScores.length > 5) {
     subjectScores[subjectName].recentScores.shift();
   }
-  
+
   localStorage.setItem(key, JSON.stringify(subjectScores));
   console.log('[Profile] Tracked:', subjectName, '- Score:', percent + '%', '- Total tests:', subjectScores[subjectName].count);
 }
@@ -1047,7 +1126,7 @@ function updateStreak() {
 
   if (streak.lastDate === yesterdayStr) {
     streak.count += 1;
-  } else if (streak.lastDate !== today) {
+  } else {
     streak.count = 1;
   }
 
@@ -2390,21 +2469,21 @@ function updateSettingsModal() {
 
 async function checkApiStatus() {
   try {
-    const response = await fetch('/api/health');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch('/api/health', { signal: controller.signal });
+    clearTimeout(timeoutId);
     const data = await response.json();
     const dot = document.getElementById('api-status-dot');
     const text = document.getElementById('api-status-text');
+    if (!dot || !text) return;
 
-    if (data.apiKeyConfigured) {
-      dot.className = 'api-status connected';
-      text.textContent = 'API key configured ✅';
-    } else {
-      dot.className = 'api-status disconnected';
-      text.textContent = 'API key not set — update server/.env';
-    }
+    dot.className = data.apiKeyConfigured ? 'api-status connected' : 'api-status disconnected';
+    text.textContent = data.apiKeyConfigured ? 'API key configured ✅' : 'API key not set — update server/.env';
   } catch (e) {
     const dot = document.getElementById('api-status-dot');
     const text = document.getElementById('api-status-text');
+    if (!dot || !text) return;
     dot.className = 'api-status disconnected';
     text.textContent = 'Server not running ❌';
   }
@@ -2443,68 +2522,88 @@ function clearChatHistory() {
  * Replaces old localStorage token check.
  */
 function continueAsGuest() {
+  stopRealtimeListeners();
   localStorage.setItem('userName', 'Guest');
   localStorage.setItem('guestMode', 'true');
   document.getElementById('modal-auth')?.classList.remove('visible');
   currentExam = null;
   localStorage.removeItem(KEYS.selectedExam);
+  if (!_authReady) _authReady = true;
   navigateTo('exams');
   if (typeof renderExamGrid === 'function') renderExamGrid();
   showToast('Browsing as Guest 👤 Select an exam to start!');
 }
 
-function checkUserAuth() {
+async function checkUserAuth() {
+  try {
+    await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  } catch (err) {
+    console.warn('[Auth] Persistence setup failed:', err);
+  }
+
   firebase.auth().onAuthStateChanged(async (user) => {
-    if (user) {
-      console.log('[Auth] User signed in:', user.uid);
-      localStorage.setItem('userName', user.displayName || user.email.split('@')[0]);
-      localStorage.removeItem('guestMode');
+    try {
+      markFirebaseAuthResolved();
 
-      // Check admin custom claim
-      try {
-        const tokenResult = await user.getIdTokenResult();
-        _isAdmin = tokenResult.claims.admin === true;
-      } catch (e) {
-        _isAdmin = false;
-      }
+      if (user) {
+        const authModal = document.getElementById('modal-auth');
+        const wasAuthModalVisible = authModal?.classList.contains('visible');
+        const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+        if (!window._isSignupFlow) localStorage.setItem('userName', displayName);
+        localStorage.removeItem('guestMode');
 
-      // Close auth modal if open
-      document.getElementById('modal-auth')?.classList.remove('visible');
-
-      // ── STEP 1: Load ALL data from server first (most up-to-date source)
-      const dataLoaded = await loadUserDataFromServer();
-      console.log('[Auth] Server data loaded:', dataLoaded);
-
-      // ── STEP 2: Restore currentExam from localStorage (may have been set by server load)
-      if (!currentExam) {
-        const savedExam = localStorage.getItem(KEYS.selectedExam);
-        if (savedExam && getExamData(savedExam)) {
-          currentExam = savedExam;
-          console.log('[Auth] Exam restored from localStorage:', savedExam);
+        try {
+          const tokenResult = await user.getIdTokenResult();
+          _isAdmin = tokenResult.claims.admin === true;
+        } catch (e) {
+          _isAdmin = false;
         }
-      }
 
-      // ── STEP 3: Navigate & render with restored data
-      if (currentExam) {
-        navigateTo('dashboard'); // This calls updateDashboard() which uses fresh localStorage
+        authModal?.classList.remove('visible');
+
+        startAnalyticsListeners(user);
+        await startUserDataListener(user);
+
+        if (!currentExam) {
+          const savedExam = localStorage.getItem(KEYS.selectedExam);
+          if (savedExam && getExamData(savedExam)) {
+            currentExam = savedExam;
+          }
+        }
+
+        if (!_authReady || wasAuthModalVisible) {
+          _authReady = true;
+          if (currentExam) navigateTo('dashboard');
+          else navigateTo('exams');
+          if (typeof renderExamGrid === 'function') renderExamGrid();
+        }
+
+        if (!window._isSignupFlow) {
+          showToast(`Welcome back, ${displayName}! 👋`);
+        }
+        window._isSignupFlow = false;
+
+      } else if (localStorage.getItem('guestMode') === 'true') {
+        _isAdmin = false;
+        stopRealtimeListeners();
+        if (!_authReady) {
+          _authReady = true;
+          if (currentExam) navigateTo('dashboard');
+          else navigateTo('exams');
+          document.getElementById('modal-auth')?.classList.remove('visible');
+        }
       } else {
-        navigateTo('exams');
+        _isAdmin = false;
+        stopRealtimeListeners();
+        localStorage.removeItem('userName');
+        if (!_authReady) {
+          _authReady = true;
+          navigateTo('exams');
+        }
+        document.getElementById('modal-auth')?.classList.add('visible');
       }
-
-      // Re-render exam grid to show/hide admin options
-      if (typeof renderExamGrid === 'function') renderExamGrid();
-
-      showToast(`Welcome back, ${user.displayName || user.email.split('@')[0]}! 👋`);
-
-    } else if (localStorage.getItem('guestMode') === 'true') {
-      // Guest mode — just update UI
-      _isAdmin = false;
-      document.getElementById('modal-auth')?.classList.remove('visible');
-    } else {
-      // User signed out & not guest — show auth modal
-      _isAdmin = false;
-      localStorage.removeItem('userName');
-      document.getElementById('modal-auth')?.classList.add('visible');
+    } catch (err) {
+      console.error('[Auth] Handler error:', err);
     }
   });
 }
@@ -2512,22 +2611,24 @@ function checkUserAuth() {
 function userLogout() {
   if (!confirm('Are you sure you want to log out?')) return;
   firebase.auth().signOut().then(() => {
-    const keysToRemove = [
+    stopRealtimeListeners();
+    const progressKeys = [
       KEYS.streak, KEYS.testsGiven, KEYS.testResults,
       KEYS.reminderShown, KEYS.chatHistory, KEYS.points, KEYS.mcqsSolved,
       'userName', 'guestMode'
     ];
-    keysToRemove.forEach(k => localStorage.removeItem(k));
+    progressKeys.forEach(k => localStorage.removeItem(k));
 
     const prefixes = [KEYS.progress, KEYS.subjectScores];
-    for (let i = localStorage.length - 1; i >= 0; i--) {
+    const toRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (prefixes.some(p => key.startsWith(p))) {
-        localStorage.removeItem(key);
-      }
+      if (key && prefixes.some(p => key.startsWith(p))) toRemove.push(key);
     }
+    toRemove.forEach(k => localStorage.removeItem(k));
 
-    window.location.reload();
+    currentExam = null;
+    showToast('Logged out successfully', 'success');
   }).catch(err => {
     showToast('Logout failed: ' + err.message, 'error');
   });
@@ -2536,8 +2637,11 @@ function userLogout() {
 function toggleAuthMode() {
   const login = document.getElementById('login-form');
   const signup = document.getElementById('signup-form');
-  document.getElementById('login-error').style.display = 'none';
-  document.getElementById('signup-error').style.display = 'none';
+  const loginErrEl = document.getElementById('login-error');
+  const signupErrEl = document.getElementById('signup-error');
+  if (loginErrEl) loginErrEl.style.display = 'none';
+  if (signupErrEl) signupErrEl.style.display = 'none';
+  if (!login || !signup) return;
   if (login.classList.contains('hidden')) {
     login.classList.remove('hidden');
     signup.classList.add('hidden');
@@ -2552,10 +2656,11 @@ function toggleAuthMode() {
  * so users still type their UserID, not an email.
  */
 async function userLogin() {
-  const userID = document.getElementById('login-id').value.trim();
-  const pass = document.getElementById('login-pass').value;
+  const userID = document.getElementById('login-id')?.value?.trim() || '';
+  const pass = document.getElementById('login-pass')?.value || '';
   const errEl = document.getElementById('login-error');
   const btn = document.getElementById('btn-login');
+  if (!errEl || !btn) return;
 
   if (!userID || !pass) {
     errEl.textContent = 'Please fill all fields';
@@ -2593,13 +2698,14 @@ async function userLogin() {
  * then saves name & mobile to Firestore via server (or just displayName).
  */
 async function userSignup() {
-  const name = document.getElementById('signup-name').value.trim();
-  const mobile = document.getElementById('signup-mobile').value.trim();
-  const userID = document.getElementById('signup-id').value.trim();
-  const pass = document.getElementById('signup-pass').value;
+  const name = document.getElementById('signup-name')?.value.trim() || '';
+  const mobile = document.getElementById('signup-mobile')?.value.trim() || '';
+  const userID = document.getElementById('signup-id')?.value.trim() || '';
+  const pass = document.getElementById('signup-pass')?.value || '';
   const errEl = document.getElementById('signup-error');
   const btn = document.getElementById('btn-signup');
 
+  if (!errEl || !btn) return;
   if (!name || !mobile || !userID || !pass) {
     errEl.textContent = 'Please fill all fields';
     errEl.style.display = 'block';
@@ -2622,14 +2728,37 @@ async function userSignup() {
 
   const email = `${userID.toLowerCase()}@studyworld.app`;
 
+  // Flag to prevent onAuthStateChanged from overwriting userName/toast
+  window._isSignupFlow = true;
+
   try {
     const cred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
-    // Set display name so we know the user's real name
-    await cred.user.updateProfile({ displayName: name });
+    try {
+      await cred.user.updateProfile({ displayName: name });
+    } catch (profileErr) {
+      console.warn('[Signup] Profile update failed (account still created):', profileErr);
+    }
     localStorage.setItem('userName', name);
     showToast('Account created! Welcome 🎉');
-    // onAuthStateChanged will close the modal
+    window._isSignupFlow = false;
+
+    // Save mobile to Firestore via sync
+    if (mobile) {
+      try {
+        const token = await firebase.auth().currentUser?.getIdToken(true);
+        if (token) {
+          await fetch('/api/user/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ mobile })
+          });
+        }
+      } catch (syncErr) {
+        console.warn('[Signup] Mobile sync failed:', syncErr);
+      }
+    }
   } catch (err) {
+    window._isSignupFlow = false;
     let msg = 'Signup failed. Please try again.';
     if (err.code === 'auth/email-already-in-use') msg = 'UserID already taken. Try another.';
     else if (err.code === 'auth/weak-password') msg = 'Password is too weak (min 6 chars).';
@@ -2717,55 +2846,27 @@ async function loadAnalytics() {
     return;
   }
 
-  document.getElementById('analytics-subjects-list').innerHTML = '<div class="skeleton" style="height: 60px; margin-bottom: 10px;"></div>'.repeat(3);
-
-  try {
-    const [overviewRes, subjectsRes] = await Promise.all([
-      fetch('/api/analytics/overview', { headers }),
-      fetch('/api/analytics/subjects', { headers })
-    ]);
-
-    if (!overviewRes.ok || !subjectsRes.ok) {
-      throw new Error('Failed to load analytics');
-    }
-
-    const overview = await overviewRes.json();
-    const subjectsData = await subjectsRes.json();
-
-    document.getElementById('analytics-accuracy').textContent = overview.overallAccuracy + '%';
-    document.getElementById('analytics-total-mcqs').textContent = overview.totalAttempted || 0;
-    document.getElementById('analytics-study-time').textContent = (overview.totalStudyTime || 0) + 'm';
-    document.getElementById('analytics-streak').textContent = overview.currentStreak || 0;
-
-    renderWeeklyGraph(overview.weeklyActivity || []);
-    renderSubjectsList(subjectsData || []);
-    loadImprovementPlan();
-
-  } catch (err) {
-    console.error('[Analytics Error]:', err);
-    document.getElementById('analytics-subjects-list').innerHTML = 
-      '<div class="empty-state"><p>Unable to load analytics. Make sure you are logged in.</p></div>';
+  if (!_analyticsOverviewData && !_analyticsSubjectsData) {
+    document.getElementById('analytics-subjects-list').innerHTML = '<div class="skeleton" style="height: 60px; margin-bottom: 10px;"></div>'.repeat(3);
+    return;
   }
+
+  renderAnalyticsScreenFromState();
 }
 
 function renderWeeklyGraph(weeklyData) {
   const container = document.getElementById('analytics-weekly-graph');
+  if (!container) return;
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const today = new Date().getDay();
-  const dayMap = [1, 2, 3, 4, 5, 6, 0];
-  
-  const maxCount = Math.max(...weeklyData.map(w => w.count), 1);
-  
+
+  const counts = weeklyData.map(d => typeof d === 'number' ? d : (d?.count || 0));
+  const maxCount = Math.max(...counts, 1);
+
   let html = '';
   for (let i = 0; i < 7; i++) {
-    const dayIndex = dayMap[i];
-    const dayData = weeklyData.find(w => {
-      const d = new Date(w.date);
-      return d.getDay() === dayIndex;
-    });
-    const count = dayData?.count || 0;
+    const count = counts[i] || 0;
     const height = Math.max((count / maxCount) * 80, 4);
-    
+
     html += `
       <div class="analytics-weekly-bar">
         <div class="analytics-bar-count">${count}</div>
@@ -2778,7 +2879,7 @@ function renderWeeklyGraph(weeklyData) {
 
 function renderSubjectsList(subjects) {
   const container = document.getElementById('analytics-subjects-list');
-  
+
   if (subjects.length === 0) {
     container.innerHTML = '<div class="empty-state"><p>No subject data yet. Take some tests to see your performance!</p></div>';
     return;
@@ -2789,7 +2890,7 @@ function renderSubjectsList(subjects) {
     let statusClass = 'average';
     if (subj.status === 'strong') statusClass = 'strong';
     if (subj.status === 'weak') statusClass = 'weak';
-    
+
     html += `
       <div class="analytics-subject-card" onclick="analyticsShowTopics('${subj.name}')">
         <div class="analytics-subject-header">
@@ -2805,34 +2906,68 @@ function renderSubjectsList(subjects) {
         </div>
       </div>`;
   });
-  
+
   container.innerHTML = html;
 }
 
 async function analyticsShowTopics(subjectName) {
   currentAnalyticsSubject = subjectName;
-  const headers = await getAuthHeaders();
-  
+  const user = firebase.auth().currentUser;
+  const firestoreDb = getFirestoreClient();
+
   document.getElementById('analytics-subjects-list').classList.add('hidden');
   document.getElementById('analytics-topics-view').classList.remove('hidden');
   document.getElementById('analytics-topics-title').textContent = subjectName;
-  
+
   const container = document.getElementById('analytics-topics-list');
   container.innerHTML = '<div class="skeleton skeleton-card"></div>';
-  
+
+  if (_analyticsTopicsUnsubscribe) _analyticsTopicsUnsubscribe();
+
+  if (user && firestoreDb) {
+    _analyticsTopicsUnsubscribe = firestoreDb.collection('analytics')
+      .doc(user.uid)
+      .collection('subjects')
+      .doc(subjectName)
+      .collection('topics')
+      .onSnapshot((snapshot) => {
+        const data = snapshot.docs.map(d => {
+          const t = d.data();
+          const total = t.total || 0;
+          const correct = t.correct || 0;
+          const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+          return {
+            name: d.id,
+            total,
+            correct,
+            accuracy,
+            status: total > 0 ? (accuracy >= 75 ? 'strong' : accuracy < 50 ? 'weak' : 'average') : 'average',
+            ...t
+          };
+        });
+
+        renderAnalyticsTopics(data);
+      }, (err) => {
+        console.warn('[Firestore] Analytics topics listener failed:', err);
+        container.innerHTML = '<div class="empty-state"><p>Error loading topics.</p></div>';
+      });
+    return;
+  }
+
   try {
+    const headers = await getAuthHeaders();
     const res = await fetch(`/api/analytics/topics?subject=${encodeURIComponent(subjectName)}`, {
       headers
     });
-    
+
     const data = await res.json();
-    
+
     if (data && data.length > 0) {
       let html = '';
       data.forEach(topic => {
         let statusClass = topic.status === 'strong' ? 'strong' : topic.status === 'weak' ? 'weak' : 'average';
         let badgeText = topic.status === 'strong' ? '💪 Strong' : topic.status === 'weak' ? '⚠️ Weak' : ' average';
-        
+
         html += `
           <div class="analytics-topic-card">
             <div class="analytics-topic-info">
@@ -2854,8 +2989,40 @@ async function analyticsShowTopics(subjectName) {
   }
 }
 
+function renderAnalyticsTopics(data) {
+  const container = document.getElementById('analytics-topics-list');
+  if (!container) return;
+
+  if (data && data.length > 0) {
+    let html = '';
+    data.forEach(topic => {
+      let statusClass = topic.status === 'strong' ? 'strong' : topic.status === 'weak' ? 'weak' : 'average';
+      let badgeText = topic.status === 'strong' ? 'ðŸ’ª Strong' : topic.status === 'weak' ? 'âš ï¸ Weak' : ' average';
+
+      html += `
+        <div class="analytics-topic-card">
+          <div class="analytics-topic-info">
+            <div class="analytics-topic-name">${topic.name}</div>
+            <div class="analytics-topic-stats">${topic.total} questions â€¢ ${topic.correct} correct</div>
+          </div>
+          <div class="analytics-topic-right">
+            <div class="analytics-topic-accuracy" style="color: var(--${statusClass === 'strong' ? 'success' : statusClass === 'weak' ? 'warning' : 'text-secondary'})">${topic.accuracy}%</div>
+            <span class="analytics-topic-badge" style="background: var(--${statusClass === 'strong' ? 'success-bg' : statusClass === 'weak' ? 'warning-bg' : 'bg-elevated'}); color: var(--${statusClass === 'strong' ? 'success' : statusClass === 'weak' ? 'warning' : 'text-muted'})">${badgeText}</span>
+          </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+  } else {
+    container.innerHTML = '<div class="empty-state"><p>No topic data for this subject yet.</p></div>';
+  }
+}
+
 function analyticsShowSubjects() {
   currentAnalyticsSubject = null;
+  if (_analyticsTopicsUnsubscribe) {
+    _analyticsTopicsUnsubscribe();
+    _analyticsTopicsUnsubscribe = null;
+  }
   document.getElementById('analytics-subjects-list').classList.remove('hidden');
   document.getElementById('analytics-topics-view').classList.add('hidden');
 }
@@ -2863,19 +3030,19 @@ function analyticsShowSubjects() {
 async function loadImprovementPlan() {
   const container = document.getElementById('analytics-improvement');
   const headers = await getAuthHeaders();
-  
+
   if (!headers.Authorization) {
     container.innerHTML = '<div class="empty-state">Login to get AI-powered study plan</div>';
     return;
   }
-  
+
   container.innerHTML = '<div class="analytics-improvement-loading">🤖 Generating your personalized study plan...</div>';
-  
+
   try {
     const res = await fetch('/api/analytics/improvement-plan', { headers });
-    
+
     const data = await res.json();
-    
+
     if (data.recommendation) {
       container.innerHTML = data.recommendation;
     } else {
@@ -2889,11 +3056,11 @@ async function loadImprovementPlan() {
 async function recordQuizAttempt(examId, subject, topic, questionId, isCorrect, timeTaken) {
   const headers = await getAuthHeaders();
   if (!headers.Authorization) return;
-  
+
   try {
     await fetch('/api/analytics/record', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         ...headers
       },

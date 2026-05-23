@@ -16,5 +16,6 @@ jobs:
           echo "Triggering news refresh at $(date)"
           curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" \
             -X POST \
+            -H "x-refresh-secret: ${{ secrets.NEWS_REFRESH_SECRET }}" \
             "${{ secrets.VERCEL_API_URL }}/api/news/refresh"
           echo "News refresh triggered ✅"
