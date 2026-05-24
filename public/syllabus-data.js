@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   STUDY WORLD — CG VYAPAM Syllabus Data
+   CG Guru — CG VYAPAM Syllabus Data
    All major Chhattisgarh Professional Examination Board exams
    ═══════════════════════════════════════════════════════════════ */
 

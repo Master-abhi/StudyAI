@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="Study World — Professional CG Vyapam Exam Preparation Platform for Patwari, Police, Forest Guard, Teacher, Sub Engineer and all Chhattisgarh state exams. AI-powered study, MCQs & syllabus tracking.">  
-  <meta name="theme-color" content="#070d0a">
-  <title>Study World — Smart Government Exam Preparation</title>
+  <meta name="description" content="CG Guru — Professional CG Vyapam Exam Preparation Platform for Patwari, Police, Forest Guard, Teacher, Sub Engineer and all Chhattisgarh state exams. AI-powered study, MCQs & syllabus tracking.">  
+  <meta name="theme-color" content="#0B0E14">
+  <title>CG Guru — Smart Government Exam Preparation</title>
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
 </head>
 <body>
@@ -15,7 +16,7 @@
   <header class="app-header">
     <div class="header-title">
       <span class="logo-icon">🎓</span>
-      <span class="title-gradient">Study World</span>
+      <span class="title-gradient">CG Guru</span>
     </div>
     <div class="header-actions">
       <button class="header-btn" id="btn-profile" title="Profile">👤</button>
@@ -64,7 +65,7 @@
         <div class="profile-stat-card">
           <div class="profile-stat-icon">⭐</div>
           <div class="profile-stat-value" id="profile-points">0</div>
-          <div class="profile-stat-label">Total Points</div>
+          <div class="profile-stat-label">Total XP</div>
         </div>
       </div>
 
@@ -158,65 +159,94 @@
 
     <!-- ──── Screen: Dashboard ──── -->
     <section class="screen" id="screen-dashboard">
-      <div class="screen-title" id="greeting-title">📊 Hi Student !</div>
-      <div class="dashboard-exam-badge" id="dashboard-exam-badge" title="Click to change exam">
-        <span id="dashboard-exam-icon">🏛️</span>
-        <span id="dashboard-exam-name">UPSC CSE</span>
-        <span>▾</span>
-      </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon"><span class="streak-fire">🔥</span></div>
-          <div class="stat-value streak" id="stat-streak">0</div>
-          <div class="stat-label">Day Streak</div>
-        </div>
-        <div class="stat-card">
-          <div class="circular-progress" id="circular-progress">
-            <svg width="70" height="70">
-              <circle class="progress-ring-bg" cx="35" cy="35" r="30" />
-              <circle class="progress-ring-fill" cx="35" cy="35" r="30" stroke-dasharray="188.5" stroke-dashoffset="188.5" />
-            </svg>
-            <span class="progress-text stat-value progress" id="stat-progress">0%</span>
+      <!-- Hero Header -->
+      <div class="dash-hero">
+        <div class="dash-hero-top">
+          <div class="dash-greet">
+            <p class="dash-greet-sub">Namaste 🙏</p>
+            <p class="dash-greet-name" id="greeting-title">Student</p>
           </div>
-          <div class="stat-label">Completed</div>
+          <div class="dash-avatar" id="dash-avatar">A</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-icon">📝</div>
-          <div class="stat-value tests" id="stat-tests">0</div>
-          <div class="stat-label">Tests Given</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📚</div>
-          <div class="stat-value topics" id="stat-topics">0</div>
-          <div class="stat-label">Topics Done</div>
-        </div>
-      </div>
-
-      <div class="progress-section">
-        <div class="section-header">
-          <div class="section-title">📈 Subject Progress</div>
-        </div>
-        <div id="subject-progress-list">
-          <!-- Subject progress bars inserted by JS -->
+        <!-- Streak Badge -->
+        <div class="streak-badge">
+          <span class="streak-flame">🔥</span>
+          <div class="streak-info">
+            <p class="streak-count" id="stat-streak">0</p>
+            <p class="streak-label">Day Streak</p>
+          </div>
+          <div class="streak-xp">
+            <p id="dash-points">0 XP</p>
+            <p id="dash-level">Level 1</p>
+          </div>
         </div>
       </div>
 
-      <div class="section-title mb-12">⚡ Quick Actions</div>
-      <div class="quick-actions">
-        <button class="quick-action-btn" onclick="navigateTo('syllabus')">
-          <div class="qa-icon">📚</div>
-          <div class="qa-label">Study</div>
+      <!-- Exam Badge -->
+      <div class="exam-badge-pill" id="dashboard-exam-badge" onclick="changeExam()">
+        <span id="dashboard-exam-icon">🏛️</span>
+        <div class="ebp-info">
+          <p id="dashboard-exam-name">Select Exam</p>
+          <p id="dash-days-left" class="ebp-sub">Tap to select</p>
+        </div>
+        <span class="ebp-change">Change →</span>
+      </div>
+
+      <!-- Quick Stats Row -->
+      <div class="dash-stats-row">
+        <div class="dash-stat-card">
+          <div class="circular-progress" id="circular-progress">
+            <svg width="56" height="56">
+              <circle class="progress-ring-bg" cx="28" cy="28" r="22"/>
+              <circle class="progress-ring-fill" cx="28" cy="28" r="22"
+                stroke-dasharray="138.2" stroke-dashoffset="138.2"/>
+            </svg>
+            <span class="progress-text" id="stat-progress">0%</span>
+          </div>
+          <p class="dsc-label">Completed</p>
+        </div>
+        <div class="dash-stat-card">
+          <p class="dsc-num" id="stat-tests">0</p>
+          <p class="dsc-label">Tests Given</p>
+        </div>
+        <div class="dash-stat-card">
+          <p class="dsc-num" id="stat-topics">0</p>
+          <p class="dsc-label">Topics Done</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <p class="section-label">Quick Practice</p>
+      <div class="qa-grid">
+        <button class="qa-card qa-orange" onclick="startPracticeMode('quiz')">
+          <span class="qa-icon">📝</span>
+          <p class="qa-name">Daily Quiz</p>
+          <p class="qa-sub">20 MCQs • CG GK</p>
         </button>
-        <button class="quick-action-btn" onclick="navigateTo('tests')">
-          <div class="qa-icon">🧠</div>
-          <div class="qa-label">Quick Quiz</div>
+        <button class="qa-card qa-blue" onclick="startPracticeMode('mock')">
+          <span class="qa-icon">🧪</span>
+          <p class="qa-name">Mock Test</p>
+          <p class="qa-sub">Full Pattern</p>
         </button>
-        <button class="quick-action-btn" onclick="navigateTo('ai-chat')">
-          <div class="qa-icon">🤖</div>
-          <div class="qa-label">Ask AI</div>
+        <button class="qa-card qa-green" onclick="navigateTo('ai-chat')">
+          <span class="qa-icon">🤖</span>
+          <p class="qa-name">AI Tutor</p>
+          <p class="qa-sub">Doubt solve karo</p>
+        </button>
+        <button class="qa-card qa-purple" onclick="navigateTo('syllabus')">
+          <span class="qa-icon">📚</span>
+          <p class="qa-name">Syllabus</p>
+          <p class="qa-sub">Track progress</p>
         </button>
       </div>
+
+      <!-- Today's Tasks -->
+      <p class="section-label">Subject Progress</p>
+      <div id="subject-progress-list">
+        <!-- Inserted by updateDashboard() -->
+      </div>
+
     </section>
 
     <!-- ──── Screen: Syllabus ──── -->
@@ -441,29 +471,28 @@
       </div>
     </section>
 
+
+
   </main>
 
   <!-- ══════════ BOTTOM NAVIGATION ══════════ -->
   <nav class="bottom-nav">
-    <button class="nav-item active" data-screen="dashboard">
+    <button class="nav-item" data-screen="dashboard">
       <span class="nav-icon">🏠</span>
       <span>Home</span>
     </button>
-    <button class="nav-item" data-screen="syllabus">
-      <span class="nav-icon">📚</span>
-      <span>Syllabus</span>
-    </button>
-    <button class="nav-item" data-screen="ai-chat">
-      <span class="nav-icon">🤖</span>
-      <span>AI Chat</span>
-    </button>
     <button class="nav-item" data-screen="tests">
       <span class="nav-icon">📝</span>
-      <span>Tests</span>
+      <span>Practice</span>
     </button>
+
     <button class="nav-item" data-screen="news">
       <span class="nav-icon">📰</span>
       <span>News</span>
+    </button>
+    <button class="nav-item" data-screen="profile">
+      <span class="nav-icon">👤</span>
+      <span>Profile</span>
     </button>
   </nav>
 
@@ -499,9 +528,9 @@
       </div>
       <button class="settings-btn danger" onclick="clearProgress()">🗑️ Clear All Progress</button>
       <button class="settings-btn danger" onclick="clearChatHistory()">💬 Clear Chat History</button>
-      <button class="settings-btn danger" style="border: 1px solid rgba(255, 255, 255, 0.2); background: transparent; color: white;" onclick="userLogout()">🚪 Log Out</button>
+      <button id="settings-auth-btn" class="settings-btn danger" style="border: 1px solid rgba(255, 255, 255, 0.2); background: transparent; color: white;" onclick="userLogout()">🚪 Log Out</button>
       <div style="text-align: center; margin-top: 16px; font-size: 0.7rem; color: var(--text-muted);">
-        Study World v1.0 • Built with ❤️ for Indian Students
+        CG Guru v1.0 • Built with ❤️ for Indian Students
       </div>
     </div>
   </div>
@@ -575,9 +604,23 @@
       <!-- Description -->
       <div class="nd-desc-box" id="nd-desc"></div>
 
+      <!-- AI Summarized Detail Box -->
+      <div class="nd-summary-section">
+        <div class="nd-summary-header">
+          <span class="nd-summary-title">✨ CG Guru AI Detailed Summary</span>
+        </div>
+        <div class="nd-summary-content" id="nd-summary-content">
+          <!-- Dynamically populated or skeleton loader -->
+        </div>
+      </div>
+
       <!-- Exam Relevance hint -->
       <div class="nd-relevance-tag" id="nd-relevance-tag" style="display:none;">
-        <span>⚠️ Exam Relevance:</span> <span id="nd-relevance-text"></span>
+        <span class="nd-relevance-icon">⚠️</span>
+        <div class="nd-relevance-body">
+          <span class="nd-relevance-label">Exam Relevance:</span>
+          <span id="nd-relevance-text"></span>
+        </div>
       </div>
 
       <!-- Action Buttons -->
@@ -589,24 +632,24 @@
   </div>
 
   <!-- Auth Modal (Blocking) -->
-  <div class="modal-overlay" id="modal-auth" style="background: var(--bg-dark); z-index: 9999;">
+  <div class="modal-overlay" id="modal-auth" style="z-index: 9999;">
     <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
       <div class="modal-header">
         <h2>🔒 Login / Sign Up</h2>
       </div>
       <div id="auth-forms">
         <div id="login-form">
-          <input type="text" id="login-id" class="settings-btn" placeholder="UserID" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
-          <input type="password" id="login-pass" class="settings-btn" placeholder="Password" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
+          <input type="text" id="login-id" class="modal-input" placeholder="UserID">
+          <input type="password" id="login-pass" class="modal-input" placeholder="Password">
           <div id="login-error" style="color:#ff4757; font-size:0.82rem; text-align:center; margin-bottom:8px; display:none;"></div>
           <button class="start-test-btn" id="btn-login" onclick="userLogin()">Login</button>
           <p style="text-align: center; margin-top: 10px; font-size: 0.9rem;">Need an account? <a href="#" onclick="toggleAuthMode()" style="color: var(--primary);">Sign Up</a></p>
         </div>
         <div id="signup-form" class="hidden">
-          <input type="text" id="signup-name" class="settings-btn" placeholder="Full Name" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
-          <input type="text" id="signup-mobile" class="settings-btn" placeholder="Mobile Number" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
-          <input type="text" id="signup-id" class="settings-btn" placeholder="Create UserID (e.g. abhi_123)" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
-          <input type="password" id="signup-pass" class="settings-btn" placeholder="Password (min 6 chars)" style="text-align: left; background: #222; border: 1px solid #444; color: white;">
+          <input type="text" id="signup-name" class="modal-input" placeholder="Full Name">
+          <input type="text" id="signup-mobile" class="modal-input" placeholder="Mobile Number">
+          <input type="text" id="signup-id" class="modal-input" placeholder="Create UserID (e.g. abhi_123)">
+          <input type="password" id="signup-pass" class="modal-input" placeholder="Password (min 6 chars)">
           <div id="signup-error" style="color:#ff4757; font-size:0.82rem; text-align:center; margin-bottom:8px; display:none;"></div>
           <button class="start-test-btn" id="btn-signup" onclick="userSignup()">Sign Up</button>
           <p style="text-align: center; margin-top: 10px; font-size: 0.9rem;">Already have an account? <a href="#" onclick="toggleAuthMode()" style="color: var(--primary);">Login</a></p>
@@ -625,7 +668,7 @@
         <button class="modal-close" onclick="closeModal('modal-topic-study')">✕</button>
       </div>
       <div style="display: flex; gap: 10px; margin-bottom: 10px;" id="study-tabs">
-        <button class="settings-btn active" id="btn-tab-notes" onclick="tabStudy('notes')" style="flex: 1; padding: 10px; border: 1px solid var(--primary); background: rgba(108, 92, 231, 0.2);">📝 PDF Notes</button>
+        <button class="settings-btn active" id="btn-tab-notes" onclick="tabStudy('notes')" style="flex: 1; padding: 10px; border: 1px solid var(--primary); background: var(--saffron-dim);">📝 PDF Notes</button>
         <button class="settings-btn" id="btn-tab-youtube" onclick="tabStudy('youtube')" style="flex: 1; padding: 10px; border: 1px solid var(--primary); background: transparent;">📺 YouTube AI</button>
       </div>
       <div class="news-detail-content" style="overflow-y: auto; flex: 1; padding: 10px 0;" id="study-content-area">

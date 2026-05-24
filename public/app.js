@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════
-   Study World — CG Vyapam Exam Prep
+   CG Guru — CG Vyapam Exam Prep
    ═══════════════════════════════════════════ */
 
 // ── Storage Keys ──
@@ -133,6 +133,77 @@ function getFirestoreClient() {
   }
 }
 
+function mergeGuestData(remote, local) {
+  const r = remote || {};
+  const l = local || {};
+  const merged = { ...r };
+
+  merged.points = (r.points || 0) + (l.points || 0);
+  merged.mcqsSolved = (r.mcqsSolved || 0) + (l.mcqsSolved || 0);
+  merged.selectedExam = r.selectedExam || l.selectedExam || '';
+
+  const rStreak = r.streak || { count: 0, lastDate: '' };
+  const lStreak = l.streak || { count: 0, lastDate: '' };
+  merged.streak = {
+    count: Math.max(rStreak.count || 0, lStreak.count || 0),
+    lastDate: rStreak.lastDate || lStreak.lastDate || ''
+  };
+
+  const rResults = Array.isArray(r.testResults) ? r.testResults : [];
+  const lResults = Array.isArray(l.testResults) ? l.testResults : [];
+  const seenDates = new Set(rResults.map(res => res.date));
+  const uniqueLocalResults = lResults.filter(res => !seenDates.has(res.date));
+  merged.testResults = [...rResults, ...uniqueLocalResults];
+
+  merged.progress = { ...r.progress };
+  if (l.progress) {
+    Object.entries(l.progress).forEach(([examId, lExamProg]) => {
+      if (!merged.progress[examId]) {
+        merged.progress[examId] = {};
+      }
+      merged.progress[examId] = {
+        ...merged.progress[examId],
+        ...lExamProg
+      };
+    });
+  }
+
+  merged.subjects = { ...r.subjects };
+  if (l.subjects) {
+    Object.entries(l.subjects).forEach(([examId, lExamSubj]) => {
+      if (!merged.subjects[examId]) {
+        merged.subjects[examId] = {};
+      }
+      const rExamSubj = merged.subjects[examId];
+      Object.entries(lExamSubj).forEach(([subjName, lScoreObj]) => {
+        const rScoreObj = rExamSubj[subjName];
+        if (!rScoreObj) {
+          rExamSubj[subjName] = lScoreObj;
+        } else {
+          const count = (rScoreObj.count || 0) + (lScoreObj.count || 0);
+          const totalScore = (rScoreObj.totalScore || 0) + (lScoreObj.totalScore || 0);
+          const recentScores = [...(rScoreObj.recentScores || []), ...(lScoreObj.recentScores || [])].slice(-5);
+          const bestScore = Math.max(rScoreObj.bestScore || 0, lScoreObj.bestScore || 0);
+          const worstScore = Math.min(
+            rScoreObj.worstScore !== undefined ? rScoreObj.worstScore : 100,
+            lScoreObj.worstScore !== undefined ? lScoreObj.worstScore : 100
+          );
+          rExamSubj[subjName] = {
+            count,
+            totalScore,
+            lastScore: lScoreObj.lastScore || rScoreObj.lastScore || 0,
+            bestScore,
+            worstScore: worstScore === 100 ? 0 : worstScore,
+            recentScores
+          };
+        }
+      });
+    });
+  }
+
+  return merged;
+}
+
 const userState = (() => {
   const subscribers = new Set();
   const state = {
@@ -261,11 +332,32 @@ const userState = (() => {
       notify('clear');
     },
     applyRemoteData(data) {
-      const applied = persistUserData(data);
+      let finalData = data || {};
+      const isGuest = localStorage.getItem('guestMode') === 'true';
+
+      if (isGuest) {
+        console.log('[Auth Merge] Merging guest progress with remote account data...');
+        const localGuestData = snapshotFromLocal();
+        finalData = mergeGuestData(finalData, localGuestData);
+      }
+
+      const applied = persistUserData(finalData);
       if (!applied) {
         state.remoteLoaded = false;
         return false;
       }
+
+      if (isGuest) {
+        // Remove guestMode now that data has been merged and persisted locally
+        localStorage.removeItem('guestMode');
+        // Immediately sync the merged progress back to the server
+        syncUserData().then(() => {
+          console.log('[Auth Merge] Merged data synced to server successfully.');
+        }).catch(err => {
+          console.error('[Auth Merge] Syncing merged data failed:', err);
+        });
+      }
+
       state.userData = snapshotFromLocal();
       state.remoteLoaded = true;
       notify('userData');
@@ -392,6 +484,18 @@ function navigateTo(screenName) {
     currentScreen = screenName;
   }
 
+  const bottomNav = document.querySelector('.bottom-nav');
+  const appContent = document.querySelector('.app-content');
+  if (bottomNav) {
+    if (screenName === 'exams') {
+      bottomNav.style.display = 'none';
+      if (appContent) appContent.style.paddingBottom = '0px';
+    } else {
+      bottomNav.style.display = 'flex';
+      if (appContent) appContent.style.paddingBottom = '72px';
+    }
+  }
+
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.screen === screenName);
   });
@@ -435,51 +539,78 @@ function renderExamGrid() {
     );
     if (examsInCategory.length === 0) return;
 
-    html += `<div class="exam-category-label">${cat.label}</div>`;
+    html += `
+      <div class="exam-category-section">
+        <div class="exam-category-header">
+          <div class="exam-category-label">${cat.label}</div>
+          <div class="exam-category-count">${examsInCategory.length} ${examsInCategory.length === 1 ? 'Exam' : 'Exams'}</div>
+        </div>
+        <div class="exam-category-list">`;
 
     examsInCategory.forEach(([id, exam]) => {
       html += `
-        <div class="exam-card" onclick="selectExam('${id}')">
-          <div class="exam-card-icon">${exam.icon}</div>
-          <div class="exam-card-info">
-            <h3>${exam.name}</h3>
-            <p>${exam.description}</p>
-            <span class="exam-eligibility">✅ ${exam.eligibility || ''}</span>
-          </div>
-          <div class="exam-card-arrow">→</div>
-        </div>`;
+          <div class="exam-card" onclick="selectExam('${id}')">
+            <div class="exam-card-icon">${exam.icon}</div>
+            <div class="exam-card-info">
+              <h3>${exam.name}</h3>
+              <p>${exam.description}</p>
+              ${exam.eligibility ? `<span class="exam-eligibility">✅ ${exam.eligibility}</span>` : ''}
+            </div>
+            <div class="exam-card-arrow">→</div>
+          </div>`;
     });
+
+    html += `
+        </div>
+      </div>`;
   });
 
   // Add custom syllabi from storage
   const customSyllabi = getCustomSyllabi();
   if (customSyllabi.length > 0) {
-    html += `<div class="exam-category-label">📄 Custom Syllabi</div>`;
+    html += `
+      <div class="exam-category-section">
+        <div class="exam-category-header">
+          <div class="exam-category-label">📄 Custom Syllabi</div>
+          <div class="exam-category-count">${customSyllabi.length} ${customSyllabi.length === 1 ? 'Syllabus' : 'Syllabi'}</div>
+        </div>
+        <div class="exam-category-list">`;
+
     customSyllabi.forEach(s => {
       html += `
-        <div class="exam-card" onclick="selectExam('${s.id}')">
-          <div class="exam-card-icon">${s.icon || '📄'}</div>
-          <div class="exam-card-info">
-            <h3>${s.name}</h3>
-            <p>${s.description || 'Custom uploaded syllabus'}</p>
-          </div>
-          <div class="exam-card-arrow">→</div>
-        </div>`;
+          <div class="exam-card" onclick="selectExam('${s.id}')">
+            <div class="exam-card-icon">${s.icon || '📄'}</div>
+            <div class="exam-card-info">
+              <h3>${s.name}</h3>
+              <p>${s.description || 'Custom uploaded syllabus'}</p>
+            </div>
+            <div class="exam-card-arrow">→</div>
+          </div>`;
     });
+
+    html += `
+        </div>
+      </div>`;
   }
 
   // Upload custom syllabus card — admins only
   if (isAdmin()) {
     html += `
-    <div class="exam-category-label">➕ Custom</div>
-    <div class="exam-card upload-card" onclick="openModal('modal-upload')">
-      <div class="exam-card-icon">📤</div>
-      <div class="exam-card-info">
-        <h3>Upload Custom Syllabus</h3>
-        <p>Upload any PDF/TXT syllabus — AI will parse & track it for you</p>
-      </div>
-      <div class="exam-card-arrow">→</div>
-    </div>`;
+      <div class="exam-category-section">
+        <div class="exam-category-header">
+          <div class="exam-category-label">➕ Custom Operations</div>
+        </div>
+        <div class="exam-category-list">
+          <div class="exam-card upload-card" onclick="openModal('modal-upload')">
+            <div class="exam-card-icon">📤</div>
+            <div class="exam-card-info">
+              <h3>Upload Custom Syllabus</h3>
+              <p>Upload any PDF/TXT syllabus — AI will parse & track it for you</p>
+            </div>
+            <div class="exam-card-arrow">→</div>
+          </div>
+        </div>
+      </div>`;
   }
 
   grid.innerHTML = html;
@@ -514,12 +645,15 @@ function updateDashboard() {
   const exam = getExamData(currentExam);
   if (!exam) return;
 
-  document.getElementById('dashboard-exam-icon').textContent = exam.icon || '📄';
-  document.getElementById('dashboard-exam-name').textContent = exam.name;
+  const iconEl = document.getElementById('dashboard-exam-icon');
+  if (iconEl) iconEl.textContent = exam.icon || '🏛️';
+  
+  const nameEl = document.getElementById('dashboard-exam-name');
+  if (nameEl) nameEl.textContent = exam.name;
 
   const titleEl = document.getElementById('greeting-title');
-  if (titleEl && localStorage.getItem('userName')) {
-    titleEl.innerHTML = `📊 Hi ${localStorage.getItem('userName')} !`;
+  if (titleEl) {
+    titleEl.textContent = localStorage.getItem('userName') || 'Student';
   }
 
   const progress = getProgress();
@@ -528,26 +662,35 @@ function updateDashboard() {
   const totalTopics = allTopics.length;
   const percent = totalTopics > 0 ? Math.round((completedCount / totalTopics) * 100) : 0;
 
-  document.getElementById('stat-progress').textContent = percent + '%';
-  document.getElementById('stat-topics').textContent = completedCount;
+  const progressEl = document.getElementById('stat-progress');
+  if (progressEl) progressEl.textContent = percent + '%';
+  
+  const topicsEl = document.getElementById('stat-topics');
+  if (topicsEl) topicsEl.textContent = completedCount;
 
-  const circumference = 2 * Math.PI * 30;
+  const circumference = 138.2;
   const offset = circumference - (percent / 100) * circumference;
   const ring = document.querySelector('.progress-ring-fill');
-  ring.style.strokeDasharray = circumference;
-  ring.style.strokeDashoffset = offset;
+  if (ring) {
+    ring.style.strokeDasharray = circumference;
+    ring.style.strokeDashoffset = offset;
+  }
 
   const streak = getStreak();
-  document.getElementById('stat-streak').textContent = streak.count;
+  const streakEl = document.getElementById('stat-streak');
+  if (streakEl) streakEl.textContent = streak.count;
 
   const testsGiven = parseInt(localStorage.getItem(KEYS.testsGiven) || '0');
-  document.getElementById('stat-tests').textContent = testsGiven;
+  const testsEl = document.getElementById('stat-tests');
+  if (testsEl) testsEl.textContent = testsGiven;
 
+  updateDashboardLevel();
   renderSubjectProgress(exam, progress);
 }
 
 function renderSubjectProgress(exam, progress) {
   const container = document.getElementById('subject-progress-list');
+  if (!container) return;
   let html = '';
 
   exam.subjects.forEach(subject => {
@@ -556,13 +699,13 @@ function renderSubjectProgress(exam, progress) {
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     html += `
-      <div class="subject-progress-item">
-        <div class="subject-progress-header">
-          <span class="subject-name">${subject.name}</span>
-          <span class="subject-percent">${pct}%</span>
+      <div class="subject-prog-item">
+        <div class="spi-top">
+          <span class="spi-name">${subject.name}</span>
+          <span class="spi-pct">${pct}%</span>
         </div>
-        <div class="progress-bar-track">
-          <div class="progress-bar-fill" style="width: ${pct}%"></div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: ${pct}%"></div>
         </div>
       </div>`;
   });
@@ -757,16 +900,51 @@ function renderAnalyticsScreenFromState() {
   const subjectsContainer = document.getElementById('analytics-subjects-list');
   if (!subjectsContainer) return;
 
+  const local = getLocalAnalytics();
   const state = userState.getSnapshot();
   const overview = state.analyticsOverview || {};
-  document.getElementById('analytics-accuracy').textContent = (overview.overallAccuracy || 0) + '%';
-  document.getElementById('analytics-total-mcqs').textContent = overview.totalAttempted || 0;
-  document.getElementById('analytics-study-time').textContent = (overview.totalStudyTime || 0) + 'm';
-  document.getElementById('analytics-streak').textContent = overview.currentStreak || 0;
 
-  renderWeeklyGraph(overview.weeklyActivity || []);
-  renderSubjectsList(state.analyticsSubjects || []);
-  loadImprovementPlan();
+  let accuracy = overview.overallAccuracy !== undefined ? overview.overallAccuracy : local.accuracy;
+  let mcqs = overview.totalAttempted !== undefined ? overview.totalAttempted : local.totalAttempted;
+  let studyTime = overview.totalStudyTime !== undefined ? overview.totalStudyTime : local.studyTime;
+  let streak = overview.currentStreak !== undefined ? overview.currentStreak : local.streak;
+
+  const accEl = document.getElementById('analytics-accuracy');
+  if (accEl) accEl.textContent = accuracy + '%';
+
+  const mcqsEl = document.getElementById('analytics-total-mcqs');
+  if (mcqsEl) mcqsEl.textContent = mcqs;
+
+  const timeEl = document.getElementById('analytics-study-time');
+  if (timeEl) timeEl.textContent = studyTime + 'm';
+
+  const streakEl = document.getElementById('analytics-streak');
+  if (streakEl) streakEl.textContent = '🔥' + streak;
+
+  renderWeeklyBars(overview.weeklyActivity || []);
+
+  let subjects = [];
+  if (state.analyticsSubjects && state.analyticsSubjects.length > 0) {
+    subjects = state.analyticsSubjects;
+  } else {
+    // Fallback to local subjectScores
+    const examData = getExamData(currentExam);
+    if (examData && examData.subjects) {
+      subjects = examData.subjects.map(sub => {
+        const localData = local.subjectScores[sub.name] || { totalScore: 0, count: 0 };
+        const accuracy = localData.count > 0 ? Math.round(localData.totalScore / localData.count) : 0;
+        return {
+          name: sub.name,
+          accuracy: accuracy,
+          total: localData.count * 10,
+          status: localData.count > 0 ? (accuracy >= 75 ? 'strong' : accuracy < 50 ? 'weak' : 'average') : 'average'
+        };
+      });
+    }
+  }
+
+  renderSubjectsList(subjects);
+  loadAnalyticsAIPlan();
 }
 
 function startAnalyticsListeners(user) {
@@ -826,9 +1004,9 @@ function renderLocalSubjectTable(subjectScores) {
   let html = '';
   for (const [name, data] of entries) {
     const avg = data.count > 0 ? Math.round(data.totalScore / data.count) : 0;
-    let color = '#ffc107';
-    if (avg >= 75) color = '#00e676';
-    else if (avg < 50) color = '#ff9800';
+    let color = 'var(--gold)';
+    if (avg >= 75) color = 'var(--green-l)';
+    else if (avg < 50) color = 'var(--red)';
     html += `<div class="profile-subject-row">
       <span class="profile-subject-row-name">${name}</span>
       <div class="profile-subject-row-bar"><div class="profile-subject-row-bar-fill" style="width: ${avg}%; background: ${color}"></div></div>
@@ -889,16 +1067,17 @@ function renderProfileSubjectTable(subjects) {
 
   let html = '';
   subjects.slice(0, 6).forEach(subj => {
-    let color = '#ffc107';
-    if (subj.accuracy >= 75) color = '#00e676';
-    else if (subj.accuracy < 50) color = '#ff9800';
+    let color = 'var(--gold)';
+    if (subj.accuracy >= 75) color = 'var(--green-l)';
+    else if (subj.accuracy < 50) color = 'var(--red)';
 
     let statusClass = 'average';
     let statusText = 'Average';
     if (subj.status === 'strong') { statusClass = 'strong'; statusText = 'Strong'; }
     if (subj.status === 'weak') { statusClass = 'weak'; statusText = 'Weak'; }
 
-    const statusColor = statusClass === 'strong' ? '#00e676' : statusClass === 'weak' ? '#ff9800' : '#ffc107';
+    const statusColor = statusClass === 'strong' ? 'var(--green-l)' : statusClass === 'weak' ? 'var(--red)' : 'var(--gold)';
+    const statusBg = statusClass === 'strong' ? 'var(--green-dim)' : statusClass === 'weak' ? 'var(--red-dim)' : 'var(--gold-dim)';
 
     html += `
       <div class="profile-subject-row">
@@ -907,7 +1086,7 @@ function renderProfileSubjectTable(subjects) {
           <div class="profile-subject-row-bar-fill" style="width: ${subj.accuracy}%; background: ${color}"></div>
         </div>
         <span class="profile-subject-row-accuracy" style="color: ${color}">${subj.accuracy}%</span>
-        <span class="profile-subject-row-status" style="background: ${statusClass === 'strong' ? 'rgba(0,230,118,0.15)' : statusClass === 'weak' ? 'rgba(255,152,0,0.15)' : 'rgba(255,193,7,0.15)'}; color: ${statusColor}">${statusText}</span>
+        <span class="profile-subject-row-status" style="background: ${statusBg}; color: ${statusColor}">${statusText}</span>
       </div>`;
   });
   container.innerHTML = html;
@@ -1370,8 +1549,13 @@ function renderSyllabus() {
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
     const subjectDisplayName = getTranslatedText(subject.name, subject);
 
+    // Keep accordion open state during live re-rendering/sync
+    const prevEl = document.getElementById(`accordion-${sIdx}`);
+    const isOpen = prevEl ? prevEl.classList.contains('open') : false;
+    const openClass = isOpen ? 'open' : '';
+
     html += `
-      <div class="subject-accordion" id="accordion-${sIdx}">
+      <div class="subject-accordion ${openClass}" id="accordion-${sIdx}">
         <button class="subject-accordion-header" onclick="toggleAccordion(${sIdx})">
           <div class="accordion-left">
             <span class="accordion-subject-name">${subjectDisplayName}</span>
@@ -1397,7 +1581,7 @@ function renderSyllabus() {
       const studyNameEsc = studyName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
       // Study button (PDF Notes & YouTube AI) — visible to admins only
       const studyBtn = isAdmin()
-        ? `<button class="settings-btn" style="padding: 4px 10px; font-size: 0.75rem; background: var(--bg-card); border: 1px solid var(--primary);" onclick="openStudyTopic('${studyNameEsc}')">📖 Study</button>`
+        ? `<button class="topic-study-btn" onclick="openStudyTopic('${studyNameEsc}')">📖 Study</button>`
         : '';
       html += `
           <div class="topic-item ${completedClass}" id="topic-${topic.id}">
@@ -1734,31 +1918,35 @@ async function sendMessage() {
 
 function appendChatBubble(type, content, timestamp, doScroll = true) {
   const container = document.getElementById('chat-messages');
-  const bubble = document.createElement('div');
-  bubble.className = `chat-bubble ${type}`;
+  const msgWrapper = document.createElement('div');
+  msgWrapper.className = `chat-message ${type}`;
 
   const formattedContent = type === 'ai' && content ? formatMarkdown(content) : escapeHtml(content);
 
-  bubble.innerHTML = `
-    <div class="bubble-content">${formattedContent}</div>
-    ${timestamp ? `<div class="bubble-time">${timestamp}</div>` : ''}`;
+  msgWrapper.innerHTML = `
+    <div class="chat-bubble">
+      <div class="bubble-content">${formattedContent}</div>
+      ${timestamp ? `<div class="bubble-time">${timestamp}</div>` : ''}
+    </div>`;
 
-  container.appendChild(bubble);
+  container.appendChild(msgWrapper);
   if (doScroll) scrollChatToBottom();
-  return bubble;
+  return msgWrapper;
 }
 
 function showTypingIndicator() {
   const container = document.getElementById('chat-messages');
   const typing = document.createElement('div');
-  typing.className = 'chat-bubble ai';
+  typing.className = 'chat-message ai';
   typing.id = 'typing-indicator';
   typing.innerHTML = `
-    <div class="bubble-content">
-      <div class="typing-indicator">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
+    <div class="chat-bubble">
+      <div class="bubble-content">
+        <div class="typing-indicator">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
       </div>
     </div>`;
   container.appendChild(typing);
@@ -1895,6 +2083,7 @@ async function startTest() {
     testState.questions = questionsResponse;
     testState.currentIndex = 0;
     testState.answers = new Array(questionsResponse.length).fill(null);
+    testState.isReviewing = false;
 
     document.getElementById('test-loading').classList.add('hidden');
     document.getElementById('test-active').classList.add('visible');
@@ -1923,7 +2112,8 @@ function renderQuestion() {
 
   document.getElementById('test-progress-text').textContent = `Q ${idx + 1}/${total}`;
 
-  const answered = testState.answers[idx] !== null;
+  const isQuizMode = testState.mode === 'quiz';
+  const answered = isQuizMode ? (testState.answers[idx] !== null) : !!testState.isReviewing;
   const selectedIdx = testState.answers[idx];
 
   let html = `
@@ -1934,7 +2124,7 @@ function renderQuestion() {
 
   const letters = ['A', 'B', 'C', 'D'];
   q.options.forEach((opt, optIdx) => {
-    let classes = 'option-card';
+    let classes = 'option-item';
     if (answered) {
       if (optIdx === q.correctIndex) classes += ' correct';
       else if (optIdx === selectedIdx && optIdx !== q.correctIndex) classes += ' wrong';
@@ -1973,7 +2163,13 @@ function renderQuestion() {
 
 function selectOption(optIdx) {
   const idx = testState.currentIndex;
-  if (testState.answers[idx] !== null) return;
+  const isQuizMode = testState.mode === 'quiz';
+
+  if (isQuizMode) {
+    if (testState.answers[idx] !== null) return;
+  } else {
+    if (testState.isReviewing) return;
+  }
 
   testState.answers[idx] = optIdx;
   renderQuestion();
@@ -2079,6 +2275,7 @@ function finishTest() {
   const currentPoints = parseInt(localStorage.getItem(KEYS.points) || '0');
   localStorage.setItem(KEYS.points, (currentPoints + earnedPoints).toString());
   userState.refreshFromLocal('testResult');
+  showXPPopup(earnedPoints);
 
   const subjectName = testState.selectedSubject;
   if (subjectName && subjectName !== 'all') {
@@ -2102,6 +2299,7 @@ function reviewTest() {
   document.getElementById('score-card').classList.add('hidden');
   document.getElementById('test-active').classList.add('visible');
   testState.currentIndex = 0;
+  testState.isReviewing = true;
 
   testState.questions.forEach((q, i) => {
     if (testState.answers[i] === null) {
@@ -2117,6 +2315,7 @@ function resetTest() {
   testState.currentIndex = 0;
   testState.answers = [];
   testState.selectedSubject = 'all';
+  testState.isReviewing = false;
   if (testState.timerInterval) clearInterval(testState.timerInterval);
 
   document.getElementById('score-card').classList.add('hidden');
@@ -2155,7 +2354,7 @@ function initNewsScreen() {
   if (refreshBtn) {
     refreshBtn.addEventListener('click', async () => {
       refreshBtn.classList.add('spinning');
-      await refreshNews();
+      await refreshNews(false);
       refreshBtn.classList.remove('spinning');
     });
   }
@@ -2178,9 +2377,23 @@ function initNewsScreen() {
       renderNewsCards();
     });
   }
+
+  // Auto-refresh news/jobs every 30 minutes (30 * 60 * 1000 = 1,800,000 ms)
+  setInterval(() => {
+    if (currentScreen === 'news') {
+      const btn = document.getElementById('news-refresh-btn');
+      if (btn) btn.classList.add('spinning');
+      refreshNews(true).finally(() => {
+        if (btn) btn.classList.remove('spinning');
+      });
+    } else {
+      // Quiet background fetch
+      refreshNews(true).catch(() => {});
+    }
+  }, 1800000);
 }
 
-async function refreshNews() {
+async function refreshNews(silent = false) {
   try {
     const res = await fetch('/api/news/refresh', { method: 'POST' });
     if (!res.ok) throw new Error('Refresh failed');
@@ -2188,7 +2401,9 @@ async function refreshNews() {
     newsLastUpdated = data.lastUpdated;
     await loadNews();
   } catch (err) {
-    showToast('Could not refresh news 📡', 'error');
+    if (!silent) {
+      showToast('Could not refresh news 📡', 'error');
+    }
   }
 }
 
@@ -2379,6 +2594,39 @@ function buildNewsCard(article, index) {
     </div>`;
 }
 
+function formatNewsMarkdown(text) {
+  if (!text) return '';
+  let formatted = text;
+  // Bold formatting: **text**
+  formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  const lines = formatted.split('\n');
+  let inList = false;
+  const newLines = lines.map(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•')) {
+      const content = trimmed.substring(1).trim();
+      let listPrefix = '';
+      if (!inList) {
+        inList = true;
+        listPrefix = '<ul class="nd-summary-list">';
+      }
+      return `${listPrefix}<li>${content}</li>`;
+    } else {
+      let suffix = '';
+      if (inList) {
+        inList = false;
+        suffix = '</ul>';
+      }
+      return suffix + (trimmed ? `<p class="nd-summary-paragraph">${trimmed}</p>` : '');
+    }
+  });
+  if (inList) {
+    newLines.push('</ul>');
+  }
+  return newLines.join('');
+}
+
 function openNewsArticle(index, isHero = false) {
   const filtered = getFilteredNews();
   const article = filtered[index];
@@ -2396,6 +2644,54 @@ function openNewsArticle(index, isHero = false) {
   document.getElementById('nd-date').textContent = article.date ? `📅 ${article.date}` : '📅 Today';
   document.getElementById('nd-source').textContent = article.source ? `📡 ${article.source}` : '📡 ExamPrep AI';
   document.getElementById('nd-desc').textContent = article.description || 'No detailed description available.';
+
+  // AI Summary Logic
+  const summaryContent = document.getElementById('nd-summary-content');
+  if (summaryContent) {
+    if (article.summary) {
+      summaryContent.innerHTML = formatNewsMarkdown(article.summary);
+    } else {
+      // Show shimmering skeleton loading
+      summaryContent.innerHTML = `
+        <div class="nd-shimmer">
+          <div class="nd-shimmer-line nd-shimmer-line-1"></div>
+          <div class="nd-shimmer-line nd-shimmer-line-2"></div>
+          <div class="nd-shimmer-line nd-shimmer-line-3"></div>
+          <div class="nd-shimmer-line nd-shimmer-line-4"></div>
+        </div>
+      `;
+
+      // Fetch summary from backend
+      const lang = chatLanguage || 'hindi';
+      fetch('/api/news/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: article.title,
+          category: article.category,
+          source: article.source,
+          language: lang
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.summary) {
+          article.summary = data.summary;
+          // Check if article is still the one open
+          const currentTitle = document.getElementById('nd-title').textContent;
+          if (currentTitle === article.title) {
+            summaryContent.innerHTML = formatNewsMarkdown(article.summary);
+          }
+        } else {
+          summaryContent.innerHTML = `<p class="nd-error-text">Failed to generate detailed summary. Use the "Open Article" button to read details.</p>`;
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching summary:', err);
+        summaryContent.innerHTML = `<p class="nd-error-text">Unable to load AI summary. Please check your internet connection.</p>`;
+      });
+    }
+  }
 
   // Exam relevance hint
   const relTag = document.getElementById('nd-relevance-tag');
@@ -2612,6 +2908,30 @@ function updateSettingsModal() {
     });
   }
 
+  // Update Log Out / Log In button dynamically based on Guest Mode
+  const authBtn = document.getElementById('settings-auth-btn');
+  if (authBtn) {
+    const isGuest = userState.getSnapshot().isGuest;
+    if (isGuest) {
+      authBtn.textContent = '🔑 Log In / Sign Up';
+      authBtn.className = 'settings-btn';
+      authBtn.style.background = 'linear-gradient(135deg, var(--saffron), var(--gold))';
+      authBtn.style.color = '#000';
+      authBtn.style.border = 'none';
+      authBtn.onclick = () => {
+        closeModal('modal-settings');
+        openModal('modal-auth');
+      };
+    } else {
+      authBtn.textContent = '🚪 Log Out';
+      authBtn.className = 'settings-btn danger';
+      authBtn.style.background = 'transparent';
+      authBtn.style.color = 'white';
+      authBtn.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+      authBtn.onclick = () => userLogout();
+    }
+  }
+
   checkApiStatus();
 }
 
@@ -2699,7 +3019,7 @@ async function checkUserAuth() {
         const wasAuthModalVisible = authModal?.classList.contains('visible');
         const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
         if (!window._isSignupFlow) localStorage.setItem('userName', displayName);
-        localStorage.removeItem('guestMode');
+        // Note: guestMode is removed inside userState.applyRemoteData to allow merging progress.
 
         try {
           const tokenResult = await user.getIdTokenResult();
@@ -2938,7 +3258,7 @@ async function openStudyTopic(topicName) {
 async function tabStudy(type) {
   document.getElementById('btn-tab-notes').style.background = 'transparent';
   document.getElementById('btn-tab-youtube').style.background = 'transparent';
-  document.getElementById(`btn-tab-${type}`).style.background = 'rgba(108, 92, 231, 0.2)';
+  document.getElementById(`btn-tab-${type}`).style.background = 'var(--saffron-dim)';
 
   const area = document.getElementById('study-content-area');
   area.innerHTML = '<div class="spinner"></div><p style="text-align:center;color:#888;">AI is preparing your study material...</p>';
@@ -2987,43 +3307,36 @@ async function tabStudy(type) {
 //            ANALYTICS SCREEN
 // ═══════════════════════════════════════════
 
-let currentAnalyticsSubject = null;
-
-async function loadAnalytics() {
-  const headers = await getAuthHeaders();
-  if (!headers.Authorization) {
-    showToast('Please login to view analytics', 'error');
-    navigateTo('dashboard');
-    return;
-  }
-
-  const state = userState.getSnapshot();
-  if (!state.analyticsOverview && !state.analyticsSubjects?.length) {
-    document.getElementById('analytics-subjects-list').innerHTML = '<div class="skeleton" style="height: 60px; margin-bottom: 10px;"></div>'.repeat(3);
-    return;
-  }
-
+async function loadAnalyticsScreen() {
+  // Render from existing state first (instant)
   renderAnalyticsScreenFromState();
+
+  // Load AI improvement plan
+  loadAnalyticsAIPlan();
 }
 
-function renderWeeklyGraph(weeklyData) {
-  const container = document.getElementById('analytics-weekly-graph');
+function renderWeeklyBars(weeklyData) {
+  const container = document.getElementById('analytics-weekly-bars');
   if (!container) return;
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const counts = weeklyData.map(d => typeof d === 'number' ? d : (d?.count || 0));
   const maxCount = Math.max(...counts, 1);
+  const today = new Date().getDay(); // 0=Sun, 1=Mon...
+  const todayIdx = today === 0 ? 6 : today - 1; // Convert to Mon=0 index
 
   let html = '';
   for (let i = 0; i < 7; i++) {
     const count = counts[i] || 0;
-    const height = Math.max((count / maxCount) * 80, 4);
+    const heightPx = Math.max(Math.round((count / maxCount) * 56), 4);
+    const isToday = i === todayIdx;
+    const barColor = isToday ? 'var(--saffron)' : 'var(--green-l)';
 
     html += `
-      <div class="analytics-weekly-bar">
-        <div class="analytics-bar-count">${count}</div>
-        <div class="analytics-bar-fill" style="height: ${height}px"></div>
-        <div class="analytics-bar-label">${days[i]}</div>
+      <div class="wb-col">
+        <div class="wb-count">${count}</div>
+        <div class="wb-bar" style="height: ${heightPx}px; background: ${barColor}"></div>
+        <div class="wb-day">${days[i]}</div>
       </div>`;
   }
   container.innerHTML = html;
@@ -3031,30 +3344,36 @@ function renderWeeklyGraph(weeklyData) {
 
 function renderSubjectsList(subjects) {
   const container = document.getElementById('analytics-subjects-list');
+  if (!container) return;
 
-  if (subjects.length === 0) {
+  if (!subjects || subjects.length === 0) {
     container.innerHTML = '<div class="empty-state"><p>No subject data yet. Take some tests to see your performance!</p></div>';
     return;
   }
 
   let html = '';
   subjects.forEach(subj => {
-    let statusClass = 'average';
-    if (subj.status === 'strong') statusClass = 'strong';
-    if (subj.status === 'weak') statusClass = 'weak';
+    let color = 'var(--gold)';
+    if (subj.accuracy >= 75) color = 'var(--green-l)';
+    else if (subj.accuracy < 50) color = 'var(--red)';
+
+    const icon = getSubjectIcon(subj.name);
 
     html += `
-      <div class="analytics-subject-card" onclick="analyticsShowTopics('${subj.name}')">
-        <div class="analytics-subject-header">
-          <span class="analytics-subject-name">${subj.name}</span>
-          <span class="analytics-subject-accuracy ${statusClass}">${subj.accuracy}%</span>
+      <div class="an-subj-item" onclick="toggleTopicDrill(this, '${subj.name.replace(/'/g, "\\'")}')">
+        <div class="asi-top">
+          <span class="asi-icon">${icon}</span>
+          <span class="asi-name">${subj.name}</span>
+          <span class="asi-cnt">${subj.total || 0} MCQs</span>
+          <div class="asi-right">
+            <span class="asi-acc" style="color: ${color}">${subj.accuracy}%</span>
+          </div>
         </div>
-        <div class="analytics-subject-bar">
-          <div class="analytics-subject-bar-fill ${statusClass}" style="width: ${subj.accuracy}%"></div>
+        <div class="asi-bar">
+          <div class="asi-fill" style="width: ${subj.accuracy}%; background: ${color}"></div>
         </div>
-        <div class="analytics-subject-meta">
-          <span>${subj.total} questions</span>
-          <span class="analytics-subject-status ${statusClass}">${subj.status === 'strong' ? '💪 Strong' : subj.status === 'weak' ? '⚠️ Weak' : ' average'}</span>
+        <div class="topic-drill" onclick="event.stopPropagation()">
+          <!-- Topics will load here when toggled -->
         </div>
       </div>`;
   });
@@ -3062,27 +3381,51 @@ function renderSubjectsList(subjects) {
   container.innerHTML = html;
 }
 
-async function analyticsShowTopics(subjectName) {
-  currentAnalyticsSubject = subjectName;
+function toggleTopicDrill(cardElement, subjectName) {
+  const drillContainer = cardElement.querySelector('.topic-drill');
+  if (!drillContainer) return;
+
+  const isOpen = drillContainer.classList.contains('open');
+
+  // Close all other drills first for accordion behavior
+  document.querySelectorAll('.topic-drill').forEach(el => {
+    if (el !== drillContainer) {
+      el.classList.remove('open');
+    }
+  });
+
+  if (isOpen) {
+    drillContainer.classList.remove('open');
+    if (_analyticsTopicsUnsubscribe) {
+      _analyticsTopicsUnsubscribe();
+      _analyticsTopicsUnsubscribe = null;
+    }
+    return;
+  }
+
+  drillContainer.classList.add('open');
+  drillContainer.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></div>';
+
+  loadDrillDownTopics(drillContainer, subjectName);
+}
+
+async function loadDrillDownTopics(drillContainer, subjectName) {
   const user = firebase.auth().currentUser;
   const firestoreDb = getFirestoreClient();
 
-  document.getElementById('analytics-subjects-list').classList.add('hidden');
-  document.getElementById('analytics-topics-view').classList.remove('hidden');
-  document.getElementById('analytics-topics-title').textContent = subjectName;
-
-  const container = document.getElementById('analytics-topics-list');
-  container.innerHTML = '<div class="skeleton skeleton-card"></div>';
-
-  if (_analyticsTopicsUnsubscribe) _analyticsTopicsUnsubscribe();
-
   if (user && firestoreDb) {
+    if (_analyticsTopicsUnsubscribe) _analyticsTopicsUnsubscribe();
+
     _analyticsTopicsUnsubscribe = firestoreDb.collection('analytics')
       .doc(user.uid)
       .collection('subjects')
       .doc(subjectName)
       .collection('topics')
       .onSnapshot((snapshot) => {
+        if (snapshot.empty) {
+          renderFallbackLocalTopics(drillContainer, subjectName);
+          return;
+        }
         const data = snapshot.docs.map(d => {
           const t = d.data();
           const total = t.total || 0;
@@ -3097,113 +3440,199 @@ async function analyticsShowTopics(subjectName) {
             ...t
           };
         });
-
-        renderAnalyticsTopics(data);
+        renderDrillTopics(drillContainer, data, subjectName);
       }, (err) => {
-        console.warn('[Firestore] Analytics topics listener failed:', err);
-        container.innerHTML = '<div class="empty-state"><p>Error loading topics.</p></div>';
+        console.warn('[Firestore] Analytics topics listener failed, falling back:', err);
+        renderFallbackLocalTopics(drillContainer, subjectName);
       });
     return;
   }
 
-  try {
-    const headers = await getAuthHeaders();
-    const res = await fetch(`/api/analytics/topics?subject=${encodeURIComponent(subjectName)}`, {
-      headers
-    });
-
-    const data = await res.json();
-
-    if (data && data.length > 0) {
-      let html = '';
-      data.forEach(topic => {
-        let statusClass = topic.status === 'strong' ? 'strong' : topic.status === 'weak' ? 'weak' : 'average';
-        let badgeText = topic.status === 'strong' ? '💪 Strong' : topic.status === 'weak' ? '⚠️ Weak' : ' average';
-
-        html += `
-          <div class="analytics-topic-card">
-            <div class="analytics-topic-info">
-              <div class="analytics-topic-name">${topic.name}</div>
-              <div class="analytics-topic-stats">${topic.total} questions • ${topic.correct} correct</div>
-            </div>
-            <div class="analytics-topic-right">
-              <div class="analytics-topic-accuracy" style="color: var(--${statusClass === 'strong' ? 'success' : statusClass === 'weak' ? 'warning' : 'text-secondary'})">${topic.accuracy}%</div>
-              <span class="analytics-topic-badge" style="background: var(--${statusClass === 'strong' ? 'success-bg' : statusClass === 'weak' ? 'warning-bg' : 'bg-elevated'}); color: var(--${statusClass === 'strong' ? 'success' : statusClass === 'weak' ? 'warning' : 'text-muted'})">${badgeText}</span>
-            </div>
-          </div>`;
-      });
-      container.innerHTML = html;
-    } else {
-      container.innerHTML = '<div class="empty-state"><p>No topic data for this subject yet.</p></div>';
-    }
-  } catch (err) {
-    container.innerHTML = '<div class="empty-state"><p>Error loading topics.</p></div>';
-  }
+  // Fallback to local
+  renderFallbackLocalTopics(drillContainer, subjectName);
 }
 
-function renderAnalyticsTopics(data) {
-  const container = document.getElementById('analytics-topics-list');
+function renderDrillTopics(drillContainer, data, subjectName) {
+  let html = '';
+  data.forEach(topic => {
+    let color = 'var(--gold)';
+    if (topic.accuracy >= 75) color = 'var(--green-l)';
+    else if (topic.accuracy < 50) color = 'var(--red)';
+
+    html += `
+      <div class="td-row">
+        <span class="td-name">${topic.name}</span>
+        <div class="td-bar-t">
+          <div class="td-bar-f" style="width: ${topic.accuracy}%; background: ${color}"></div>
+        </div>
+        <span class="td-pct" style="color: ${color}">${topic.accuracy}%</span>
+      </div>`;
+  });
+
+  // Practice button at the bottom
+  html += `
+    <button class="td-practice-btn" onclick="startSubjectPractice('${subjectName.replace(/'/g, "\\'")}')">
+      🎯 Practice ${subjectName}
+    </button>`;
+
+  drillContainer.innerHTML = html;
+}
+
+function renderFallbackLocalTopics(drillContainer, subjectName) {
+  const subjectData = getSubjectDataByName(subjectName);
+  if (!subjectData || !subjectData.topics || subjectData.topics.length === 0) {
+    drillContainer.innerHTML = '<div class="empty-state"><p>No topic details found.</p></div>';
+    return;
+  }
+
+  const progress = getProgress();
+  const data = subjectData.topics.map(topic => {
+    const isCompleted = !!progress[topic.id];
+    return {
+      name: topic.name,
+      accuracy: isCompleted ? 100 : 0
+    };
+  });
+
+  renderDrillTopics(drillContainer, data, subjectName);
+}
+
+function getSubjectIcon(name) {
+  const n = name.toLowerCase();
+  if (n.includes('general studies') || n.includes('gs') || n.includes('paper 1')) return '📝';
+  if (n.includes('csat') || n.includes('aptitude') || n.includes('reasoning') || n.includes('math') || n.includes('numeracy')) return '📐';
+  if (n.includes('language') || n.includes('hindi') || n.includes('english') || n.includes('sanskrit')) return '🗣️';
+  if (n.includes('history')) return '📜';
+  if (n.includes('geography')) return '🌍';
+  if (n.includes('polity') || n.includes('constitution')) return '⚖️';
+  if (n.includes('economy')) return '💰';
+  if (n.includes('science') || n.includes('technology') || n.includes('tech')) return '🔬';
+  if (n.includes('current')) return '📰';
+  if (n.includes('chhattisgarhi') || n.includes('cg')) return '🌾';
+  return '📚';
+}
+
+function getSubjectDataByName(subjectName) {
+  const exam = getExamData(currentExam);
+  if (!exam || !exam.subjects) return null;
+  return exam.subjects.find(sub => sub.name === subjectName) || null;
+}
+
+async function startSubjectPractice(subjectName) {
+  // Navigate to tests screen first
+  navigateTo('tests');
+
+  // Wait a small frame for DOM update
+  setTimeout(async () => {
+    const select = document.getElementById('test-subject-select');
+    if (select) {
+      select.value = subjectName;
+      select.dispatchEvent(new Event('change'));
+    }
+
+    // Set testState mode to quiz (Quick Quiz)
+    if (typeof testState !== 'undefined') {
+      testState.mode = 'quiz';
+      
+      // Update UI selection classes for mode cards
+      document.querySelectorAll('.test-mode-card').forEach(card => {
+        if (card.dataset.mode === 'quiz') {
+          card.classList.add('selected');
+        } else {
+          card.classList.remove('selected');
+        }
+      });
+    }
+
+    // Automatically call startTest
+    await startTest();
+  }, 100);
+}
+
+function startPracticeMode(mode) {
+  if (typeof testState !== 'undefined') {
+    testState.mode = mode;
+    document.querySelectorAll('.test-mode-card').forEach(card => {
+      if (card.dataset.mode === mode) {
+        card.classList.add('selected');
+      } else {
+        card.classList.remove('selected');
+      }
+    });
+  }
+  navigateTo('tests');
+}
+
+async function loadAnalyticsAIPlan() {
+  const container = document.getElementById('analytics-ai-plan');
   if (!container) return;
 
-  if (data && data.length > 0) {
-    let html = '';
-    data.forEach(topic => {
-      let statusClass = topic.status === 'strong' ? 'strong' : topic.status === 'weak' ? 'weak' : 'average';
-      let badgeText = topic.status === 'strong' ? 'ðŸ’ª Strong' : topic.status === 'weak' ? 'âš ï¸ Weak' : ' average';
-
-      html += `
-        <div class="analytics-topic-card">
-          <div class="analytics-topic-info">
-            <div class="analytics-topic-name">${topic.name}</div>
-            <div class="analytics-topic-stats">${topic.total} questions â€¢ ${topic.correct} correct</div>
-          </div>
-          <div class="analytics-topic-right">
-            <div class="analytics-topic-accuracy" style="color: var(--${statusClass === 'strong' ? 'success' : statusClass === 'weak' ? 'warning' : 'text-secondary'})">${topic.accuracy}%</div>
-            <span class="analytics-topic-badge" style="background: var(--${statusClass === 'strong' ? 'success-bg' : statusClass === 'weak' ? 'warning-bg' : 'bg-elevated'}); color: var(--${statusClass === 'strong' ? 'success' : statusClass === 'weak' ? 'warning' : 'text-muted'})">${badgeText}</span>
-          </div>
-        </div>`;
-    });
-    container.innerHTML = html;
-  } else {
-    container.innerHTML = '<div class="empty-state"><p>No topic data for this subject yet.</p></div>';
-  }
-}
-
-function analyticsShowSubjects() {
-  currentAnalyticsSubject = null;
-  if (_analyticsTopicsUnsubscribe) {
-    _analyticsTopicsUnsubscribe();
-    _analyticsTopicsUnsubscribe = null;
-  }
-  document.getElementById('analytics-subjects-list').classList.remove('hidden');
-  document.getElementById('analytics-topics-view').classList.add('hidden');
-}
-
-async function loadImprovementPlan() {
-  const container = document.getElementById('analytics-improvement');
   const headers = await getAuthHeaders();
 
   if (!headers.Authorization) {
-    container.innerHTML = '<div class="empty-state">Login to get AI-powered study plan</div>';
+    container.innerHTML = `
+      <div class="an-ai-title">🤖 CG Guru AI Suggestion</div>
+      <div class="an-ai-text">Login to get personalized AI study plan and suggestions!</div>`;
     return;
   }
 
-  container.innerHTML = '<div class="analytics-improvement-loading">🤖 Generating your personalized study plan...</div>';
+  container.innerHTML = '<div class="an-ai-loading">🤖 Generating your personalized plan...</div>';
 
   try {
     const res = await fetch('/api/analytics/improvement-plan', { headers });
-
     const data = await res.json();
 
-    if (data.recommendation) {
-      container.innerHTML = data.recommendation;
+    if (data && data.recommendation) {
+      container.innerHTML = `
+        <div class="an-ai-title">🤖 CG Guru AI Suggestion</div>
+        <div class="an-ai-text">${data.recommendation}</div>`;
     } else {
-      container.innerHTML = '<div class="empty-state">Take more tests to get personalized recommendations!</div>';
+      container.innerHTML = `
+        <div class="an-ai-title">🤖 CG Guru AI Suggestion</div>
+        <div class="an-ai-text">Take more tests to get personalized recommendations!</div>`;
     }
   } catch (err) {
-    container.innerHTML = '<div class="empty-state">Unable to generate plan. Please try again later.</div>';
+    container.innerHTML = `
+      <div class="an-ai-title">🤖 CG Guru AI Suggestion</div>
+      <div class="an-ai-text">Unable to generate plan right now. Try again later.</div>`;
   }
 }
+
+function showXPPopup(xp) {
+  const popup = document.createElement('div');
+  popup.className = 'xp-popup';
+  popup.textContent = `+${xp} XP`;
+  document.body.appendChild(popup);
+  setTimeout(() => {
+    popup.remove();
+  }, 1500);
+}
+
+function updateDashboardLevel() {
+  const pointsEl = document.getElementById('dash-points');
+  const levelEl = document.getElementById('dash-level');
+  const avatarEl = document.getElementById('dash-avatar');
+
+  const points = parseInt(localStorage.getItem(KEYS.points) || '0');
+  const mcqs = parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0');
+  const results = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
+
+  if (pointsEl) pointsEl.textContent = `${points} XP`;
+  
+  const level = calculateLevel(points, mcqs, results);
+  if (levelEl) levelEl.textContent = level;
+
+  if (avatarEl) {
+    const userName = localStorage.getItem('userName') || 'Guest User';
+    if (userName === 'Guest User') {
+      avatarEl.textContent = '👤';
+    } else {
+      avatarEl.textContent = userName.charAt(0).toUpperCase();
+    }
+  }
+}
+
+
 
 async function recordQuizAttempt(examId, subject, topic, questionId, isCorrect, timeTaken) {
   const headers = await getAuthHeaders();

@@ -66,7 +66,7 @@ async function summarizeTopicExtracted(topicName, extractedText, language) {
   const instruction = language === 'hindi' ? 'Respond in Hindi.' : 'Respond in English.';
   const message = `You are a study assistant. I will provide you with extracted textbook PDF content about the topic "${topicName}". 
 Please create a highly informative and structured study note on this topic based on the text. 
-Use clear headings, bullet points, and mnemonics if helpful. ${instruction}
+Use clear headings and bullet points. ${instruction}
   
 Extracted Text:
 ${extractedText.substring(0, 15000)}`;
@@ -85,6 +85,29 @@ ${transcription.substring(0, 10000)}
   return service.chat(message, 'Syllabus Study', language, []);
 }
 
+async function summarizeNews(title, category, source, language) {
+  const service = await getService();
+  const langInstruction = language === 'hindi' ? 
+    'Respond entirely in Hindi (Devanagari script). Use clean Hindi characters. Avoid spelling mistakes.' : 
+    'Respond entirely in English.';
+  
+  const prompt = `You are CG Guru AI, a professional educational mentor and tutor for competitive exams in Chhattisgarh. 
+Analyze the following notification:
+Title: "${title}"
+Category: ${category}
+Source: ${source}
+
+Provide a detailed summary (60-120 words) explaining this notification.
+- Explain the key details clearly (like eligibility, qualifications, critical dates, or the core current affair fact).
+- State the significance of this notification or fact for students preparing for CGPSC, CG Vyapam, or other government exams in Chhattisgarh.
+- Use well-structured bullet points or 2-3 short, clear sentences.
+- Avoid generic text or placeholders.
+- ${langInstruction}
+- CRITICAL: Do NOT write any Cyrillic characters. For example, write "दन्तेवाड़ा", not "дан्तेवाड़ा". Ensure proper spelling.`;
+
+  return service.chat(prompt, 'News Analyzer', language, []);
+}
+
 module.exports = {
   chat,
   chatStream,
@@ -93,5 +116,6 @@ module.exports = {
   getActiveAI,
   setActiveAI,
   summarizeTopicExtracted,
-  summarizeVideoTranscript
+  summarizeVideoTranscript,
+  summarizeNews
 };

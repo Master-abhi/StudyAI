@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getCachedNews, scrapeAll } = require('../services/scraper');
+const ai = require('../services/aiManager');
 
 function verifyRefreshSecret(req, res, next) {
   const configuredSecret = process.env.NEWS_REFRESH_SECRET;
@@ -41,6 +42,21 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('[News Error]:', err.message);
     res.status(500).json({ error: 'Failed to fetch news.' });
+  }
+});
+
+// POST /api/news/summarize — generates on-the-fly summary of an article
+router.post('/summarize', async (req, res) => {
+  try {
+    const { title, category, source, language } = req.body;
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+    const summary = await ai.summarizeNews(title, category, source, language);
+    res.json({ summary });
+  } catch (err) {
+    console.error('[News Summarize Error]:', err.message);
+    res.status(500).json({ error: 'Failed to generate news summary.' });
   }
 });
 

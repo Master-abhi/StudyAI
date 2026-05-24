@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   Study World — CGPSC & Other CG Exams Syllabus Data
+   CG Guru — CGPSC & Other CG Exams Syllabus Data
    Chhattisgarh Professional Examination Board exams
    ═══════════════════════════════════════════════════════════════ */
 
