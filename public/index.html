@@ -40,12 +40,21 @@
 
     <!-- ──── Screen: Profile ──── -->
     <section class="screen" id="screen-profile">
+      <!-- Premium Glass Header -->
       <div class="profile-header">
         <div class="profile-avatar" id="profile-avatar">👤</div>
         <div class="profile-name" id="profile-name">Guest User</div>
-        <div class="profile-plan" id="profile-plan">Free Plan</div>
+        <div class="profile-header-badges">
+          <span class="profile-plan" id="profile-plan">Free Plan</span>
+          <span class="profile-level-badge">⭐ <span id="profile-level">Beginner</span></span>
+        </div>
+        <div class="profile-exam-badge">
+          <span class="eb-icon">🏛️</span>
+          <span id="profile-exam">Not Selected</span>
+        </div>
       </div>
 
+      <!-- Core Statistics Grid -->
       <div class="profile-stats-grid">
         <div class="profile-stat-card">
           <div class="profile-stat-icon">🔥</div>
@@ -69,85 +78,76 @@
         </div>
       </div>
 
+      <!-- Syllabus Progress Tracker -->
       <div class="profile-section">
-        <div class="profile-section-title">📋 Exam Info</div>
-        <div class="profile-info-row">
-          <span class="profile-info-label">Selected Exam</span>
-          <span class="profile-info-value" id="profile-exam">Not Selected</span>
-        </div>
-        <div class="profile-info-row">
-          <span class="profile-info-label">Your Level</span>
-          <span class="profile-info-value" id="profile-level">Beginner</span>
+        <div class="profile-section-title">📚 Syllabus Completion Tracker</div>
+        <div class="profile-subject-list" id="profile-subject-list">
+          <!-- Subject syllabus completion inserted by JS -->
         </div>
       </div>
 
-      <!-- Performance Analytics (MongoDB) -->
+      <!-- Practice & Accuracy Analytics -->
       <div class="profile-section" id="profile-analytics-section">
-        <div class="profile-section-title">📊 Performance Analytics</div>
+        <div class="profile-section-title">📊 Practice & Performance Metrics</div>
         
-        <div class="profile-analytics-grid">
+        <div class="profile-analytics-grid-two">
           <div class="profile-analytics-card">
             <div class="profile-analytics-icon">🎯</div>
             <div class="profile-analytics-value" id="profile-analytics-accuracy">--</div>
-            <div class="profile-analytics-label">Accuracy</div>
+            <div class="profile-analytics-label">Overall Accuracy</div>
           </div>
           <div class="profile-analytics-card">
             <div class="profile-analytics-icon">⏱️</div>
             <div class="profile-analytics-value" id="profile-analytics-time">--</div>
-            <div class="profile-analytics-label">Study Time</div>
-          </div>
-          <div class="profile-analytics-card">
-            <div class="profile-analytics-icon">🔥</div>
-            <div class="profile-analytics-value" id="profile-analytics-streak">--</div>
-            <div class="profile-analytics-label">Streak</div>
+            <div class="profile-analytics-label">Total Study Time</div>
           </div>
         </div>
 
         <div class="profile-analytics-weekly">
-          <div class="profile-section-subtitle">📅 Weekly Activity</div>
+          <div class="profile-section-subtitle">📅 Weekly Practice Activity</div>
           <div class="profile-weekly-bars" id="profile-weekly-bars"></div>
         </div>
 
         <div class="profile-subject-performance">
-          <div class="profile-section-subtitle">📚 Subject Performance</div>
+          <div class="profile-section-subtitle">📉 Test Performance by Subject</div>
           <div class="profile-subject-table" id="profile-subject-table"></div>
         </div>
 
-        <div class="profile-ai-plan">
-          <div class="profile-section-subtitle">🤖 AI Study Plan</div>
-          <div class="profile-ai-plan-content" id="profile-ai-plan-content">
-            <div class="profile-loading">Loading your personalized plan...</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="profile-section">
-        <div class="profile-section-title">📊 Subject Performance</div>
-        <div class="profile-subject-list" id="profile-subject-list">
-          <!-- Subject performance inserted by JS -->
-        </div>
+        <!-- Strong & Weak Subjects Analysis -->
         <div class="profile-analysis">
           <div class="profile-analysis-column">
-            <div class="profile-analysis-heading strong-heading">✅ Strong Subjects</div>
+            <div class="profile-analysis-heading strong-heading">✅ Strong Areas</div>
             <div class="profile-strong-subjects" id="profile-strong-subjects">
               <div class="analysis-empty">Take more tests to see analysis</div>
             </div>
           </div>
           <div class="profile-analysis-column">
-            <div class="profile-analysis-heading weak-heading">⚠️ Weak Subjects</div>
+            <div class="profile-analysis-heading weak-heading">⚠️ Focus Areas</div>
             <div class="profile-weak-subjects" id="profile-weak-subjects">
               <div class="analysis-empty">Take more tests to see analysis</div>
             </div>
           </div>
         </div>
+
+        <!-- Expandable Details -->
         <div class="profile-detailed-performance" id="profile-detailed-performance">
-          <div class="profile-section-subtitle">📋 Detailed Performance</div>
+          <div class="profile-section-subtitle">📋 Detailed Performance History</div>
           <div class="subject-performance-list" id="subject-performance-list">
-            <div class="analysis-empty">Take tests to see detailed performance</div>
+            <div class="analysis-empty">Take tests to see detailed history</div>
           </div>
         </div>
-        <div class="profile-recommendations" id="profile-recommendations">
-          <div class="profile-section-subtitle">💡 Recommendations</div>
+      </div>
+
+      <!-- AI personalized recommendations -->
+      <div class="profile-section">
+        <div class="profile-section-title">🤖 AI Personalized Study Plan</div>
+        <div class="profile-ai-plan">
+          <div class="profile-ai-plan-content" id="profile-ai-plan-content">
+            <div class="profile-loading">Loading personalized study plan...</div>
+          </div>
+        </div>
+        <div class="profile-recommendations" id="profile-recommendations" style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
+          <div class="profile-section-subtitle">💡 General Preparation Insights</div>
           <div class="recommendations-box" id="recommendations-box">
             <div class="analysis-empty">Take more tests to get recommendations</div>
           </div>
@@ -537,12 +537,44 @@
 
   <!-- Reminder Modal -->
   <div class="modal-overlay" id="modal-reminder">
-    <div class="modal-content">
-      <div class="reminder-content">
-        <div class="reminder-emoji">📖</div>
-        <h3>Time to Study! 💪</h3>
-        <p>Consistency is the key to cracking any exam. Even 30 minutes of focused study daily can make a huge difference. Keep your streak alive!</p>
-        <button class="reminder-btn" onclick="closeModal('modal-reminder')">Let's Go! 🚀</button>
+    <div class="modal-content reminder-modal-content">
+      <div class="reminder-header-banner">
+        <div class="reminder-banner-sparkle">✨</div>
+        <div class="reminder-emoji-header">🏆</div>
+      </div>
+      <div class="reminder-body">
+        <h3 class="reminder-title">Aapka Study Time Ho Gaya! ⚡</h3>
+        <p class="reminder-subtitle" id="reminder-quote">Consistency is the key to cracking any exam. Let's make today count!</p>
+        
+        <!-- Status Grid -->
+        <div class="reminder-status-grid">
+          <!-- Streak Card -->
+          <div class="reminder-status-card streak-card-highlight">
+            <span class="status-card-icon">🔥</span>
+            <div class="status-card-info">
+              <span class="status-card-value" id="reminder-streak-value">0 Days</span>
+              <span class="status-card-label" id="reminder-streak-text">Streak Active</span>
+            </div>
+          </div>
+          
+          <!-- Exam Card -->
+          <div class="reminder-status-card exam-card-highlight">
+            <span class="status-card-icon">🏛️</span>
+            <div class="status-card-info">
+              <span class="status-card-value" id="reminder-exam-name">Exam Name</span>
+              <span class="status-card-label">Target Exam</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="reminder-action-container">
+          <button class="reminder-primary-btn" onclick="closeModal('modal-reminder'); startPracticeMode('quiz');">
+            ⚡ Daily Practice
+          </button>
+          <button class="reminder-secondary-btn" onclick="closeModal('modal-reminder')">
+            Go to Dashboard
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -26,7 +26,7 @@ router.get('/config/ai', verifyAdmin, async (req, res) => {
 
 router.post('/config/ai', verifyAdmin, async (req, res) => {
   const { model } = req.body;
-  if (model === 'claude' || model === 'groq') {
+  if (model === 'claude' || model === 'groq' || model === 'gemini') {
     const success = await setActiveAI(model);
     if (success) return res.json({ success: true, activeAI: model });
     return res.status(500).json({ error: 'Failed to update configuration' });

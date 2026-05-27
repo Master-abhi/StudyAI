@@ -43,8 +43,14 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    apiKeyConfigured: !!process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'your-api-key-here'
+    apiKeyConfigured: (!!process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'your-api-key-here') ||
+                      (!!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-api-key-here') ||
+                      (!!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'your-api-key-here')
   });
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
 });
 
 app.get('*', (req, res) => {

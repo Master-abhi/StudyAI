@@ -30,22 +30,22 @@ async function getAuthHeader() {
 // ── Auth State Listener ──
 adminAuthPersistenceReady.then(() => {
   firebase.auth().onAuthStateChanged(async (user) => {
-  if (user) {
-    // Check admin custom claim
-    const tokenResult = await user.getIdTokenResult();
-    if (tokenResult.claims.admin === true) {
-      document.getElementById('login-container').classList.add('hidden');
-      document.getElementById('dashboard-container').classList.remove('hidden');
-      loadDashboard();
+    if (user) {
+      // Check admin custom claim
+      const tokenResult = await user.getIdTokenResult();
+      if (tokenResult.claims.admin === true) {
+        document.getElementById('login-container').classList.add('hidden');
+        document.getElementById('dashboard-container').classList.remove('hidden');
+        loadDashboard();
+      } else {
+        // Signed in but not admin — sign out
+        await firebase.auth().signOut();
+        showToast('Access denied. Not an admin account.', 'error');
+      }
     } else {
-      // Signed in but not admin — sign out
-      await firebase.auth().signOut();
-      showToast('Access denied. Not an admin account.', 'error');
+      document.getElementById('login-container').classList.remove('hidden');
+      document.getElementById('dashboard-container').classList.add('hidden');
     }
-  } else {
-    document.getElementById('login-container').classList.remove('hidden');
-    document.getElementById('dashboard-container').classList.add('hidden');
-  }
   });
 });
 
@@ -84,13 +84,10 @@ async function loadDashboard() {
     const headers = await getAuthHeader();
     const res = await fetch('/api/admin/config/ai', { headers });
     const data = await res.json();
-    if (data.activeAI === 'groq') {
-      document.getElementById('btn-groq').classList.add('active');
-      document.getElementById('btn-claude').classList.remove('active');
-    } else {
-      document.getElementById('btn-claude').classList.add('active');
-      document.getElementById('btn-groq').classList.remove('active');
-    }
+    const active = data.activeAI || 'groq';
+    document.getElementById('btn-groq').classList.toggle('active', active === 'groq');
+    document.getElementById('btn-gemini').classList.toggle('active', active === 'gemini');
+    document.getElementById('btn-claude').classList.toggle('active', active === 'claude');
   } catch (e) {
     showToast('Failed to load AI config', 'error');
   }

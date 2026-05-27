@@ -2,6 +2,7 @@ const { db } = require('../firebase-admin');
 
 const claudeService = require('./claude');
 const groqService = require('./groq');
+const geminiService = require('./gemini');
 
 const CONFIG_DOC = db.collection('config').doc('app');
 
@@ -37,6 +38,7 @@ async function setActiveAI(modelName) {
 
 async function getService() {
   const active = await getActiveAI();
+  if (active === 'gemini') return geminiService;
   if (active === 'groq') return groqService;
   return claudeService;
 }
@@ -108,6 +110,37 @@ Provide a detailed summary (60-120 words) explaining this notification.
   return service.chat(prompt, 'News Analyzer', language, []);
 }
 
+async function generateImprovementPlan(subjectScores, studyTime, accuracy, streak, language) {
+  const service = await getService();
+  const langInstruction = language === 'hindi' ? 
+    'Respond entirely in Hindi (Devanagari script). Use clean Hindi characters.' : 
+    'Respond entirely in English.';
+
+  const subjectSummary = Object.entries(subjectScores).map(([subj, data]) => {
+    return `- ${subj}: Average Accuracy ${data.accuracy || 0}%, Tests given: ${data.total || 0}`;
+  }).join('\n');
+
+  const prompt = `You are CG Guru AI, an elite professional CGVYAPAM and CGPSC expert educator. 
+Analyze the student's current prep progress:
+- Total Study Time: ${studyTime} minutes
+- Overall Test Accuracy: ${accuracy}%
+- Current Daily Streak: ${streak} days
+- Subject-wise Test Results:
+${subjectSummary || 'No test results available yet.'}
+
+Provide a structured, professional, and actionable personalized Study & Improvement Plan (120-180 words).
+The response should contain:
+1. **Overall Progress Assessment**: A quick evaluation of their current level.
+2. **Key Strengths**: Highlight their best subject(s).
+3. **Key Improvement Areas**: Highlight which subjects/areas need immediate attention and why.
+4. **Daily Action Plan**: Concrete next steps for daily studies to improve accuracy and maintain streak.
+
+Format your output beautifully using standard Markdown with bold headers and bullet points. No generic placeholders.
+${langInstruction}`;
+
+  return service.chat(prompt, 'Study Planner', language, []);
+}
+
 module.exports = {
   chat,
   chatStream,
@@ -117,5 +150,7 @@ module.exports = {
   setActiveAI,
   summarizeTopicExtracted,
   summarizeVideoTranscript,
-  summarizeNews
+  summarizeNews,
+  generateImprovementPlan
 };
+

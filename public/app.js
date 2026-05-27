@@ -621,6 +621,7 @@ function selectExam(examId) {
   localStorage.setItem(KEYS.selectedExam, examId);
   userState.refreshFromLocal('selectedExam');
   updateStreak();
+  cachedAIPlan = null; // Invalidate cached study plan
   navigateTo('dashboard');
   showToast(`Selected: ${getExamData(examId).name} ✅`);
 }
@@ -720,6 +721,11 @@ async function updateProfile() {
   const userName = localStorage.getItem('userName') || 'Guest User';
   document.getElementById('profile-name').textContent = userName;
   document.getElementById('profile-avatar').textContent = userName !== 'Guest User' ? '👨‍🎓' : '👤';
+
+  const planEl = document.getElementById('profile-plan');
+  if (planEl) {
+    planEl.textContent = userName !== 'Guest User' ? 'Pro Prep Plan' : 'Free Plan';
+  }
 
   const exam = currentExam ? getExamData(currentExam) : null;
   document.getElementById('profile-exam').textContent = exam ? exam.name : 'Not Selected';
@@ -856,14 +862,12 @@ function renderProfileAnalyticsFromState() {
 
   let accuracy = local.accuracy;
   let studyTime = local.studyTime;
-  let streakVal = local.streak;
   let weeklyData = null;
   let subjectsData = null;
 
   if (state.analyticsOverview) {
     if (state.analyticsOverview.overallAccuracy) accuracy = state.analyticsOverview.overallAccuracy;
     if (state.analyticsOverview.totalStudyTime) studyTime = state.analyticsOverview.totalStudyTime;
-    if (state.analyticsOverview.currentStreak) streakVal = state.analyticsOverview.currentStreak;
     if (state.analyticsOverview.weeklyActivity) weeklyData = state.analyticsOverview.weeklyActivity;
   }
 
@@ -883,12 +887,12 @@ function renderProfileAnalyticsFromState() {
     subjectsData = state.analyticsSubjects;
   }
 
-  document.getElementById('profile-analytics-accuracy').textContent = accuracy + '%';
-  document.getElementById('profile-analytics-time').textContent = studyTime + 'm';
-  document.getElementById('profile-analytics-streak').textContent = streakVal;
+  const accuracyEl = document.getElementById('profile-analytics-accuracy');
+  const timeEl = document.getElementById('profile-analytics-time');
+  if (accuracyEl) accuracyEl.textContent = accuracy + '%';
+  if (timeEl) timeEl.textContent = studyTime + 'm';
 
-  if (weeklyData) renderProfileWeeklyActivity(weeklyData);
-  else renderLocalWeeklyGraph();
+  renderWeeklyActivity();
 
   if (subjectsData?.length) renderProfileSubjectTable(subjectsData);
   else renderLocalSubjectTable(local.subjectScores);
@@ -981,19 +985,26 @@ async function loadMongoAnalytics() {
   section.style.display = 'block';
 
   if (!headers.Authorization) {
-    document.getElementById('profile-analytics-accuracy').textContent = local.accuracy + '%';
-    document.getElementById('profile-analytics-time').textContent = local.studyTime + 'm';
-    document.getElementById('profile-analytics-streak').textContent = local.streak;
+    const accuracyEl = document.getElementById('profile-analytics-accuracy');
+    const timeEl = document.getElementById('profile-analytics-time');
+    if (accuracyEl) accuracyEl.textContent = local.accuracy + '%';
+    if (timeEl) timeEl.textContent = local.studyTime + 'm';
     renderLocalSubjectTable(local.subjectScores);
-    renderLocalWeeklyGraph();
-    document.getElementById('profile-ai-plan-content').innerHTML = local.hasData
-      ? '?? Login to get AI study plan based on your progress!'
-      : '?? Browsing as Guest ? take tests to see your stats!';
+    renderWeeklyActivity();
+    const aiPlanContainer = document.getElementById('profile-ai-plan-content');
+    if (aiPlanContainer) {
+      aiPlanContainer.innerHTML = `
+        <div class="analysis-empty guest-disclaimer">
+          🔑 <strong>Guest Mode:</strong> Please <a href="#" onclick="openModal('modal-auth')" style="color: var(--saffron); font-weight: bold; text-decoration: underline;">Login / Sign Up</a> to get a personalized AI study plan.
+        </div>
+      `;
+    }
     return;
   }
 
   renderProfileAnalyticsFromState();
 }
+
 function renderLocalSubjectTable(subjectScores) {
   const container = document.getElementById('profile-subject-table');
   const entries = Object.entries(subjectScores);
@@ -1016,41 +1027,56 @@ function renderLocalSubjectTable(subjectScores) {
   container.innerHTML = html;
 }
 
-function renderLocalWeeklyGraph() {
+function renderWeeklyActivity() {
   const container = document.getElementById('profile-weekly-bars');
+  if (!container) return;
+
   const testResults = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const dayCounts = [0, 0, 0, 0, 0, 0, 0];
-  testResults.forEach(t => {
+  
+  // Calculate the start of the current week (Monday 00:00:00)
+  const now = new Date();
+  const currentDay = now.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - distanceToMonday);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  // Filter test results to only include current week
+  const currentWeekResults = testResults.filter(t => {
+    try {
+      return new Date(t.date) >= startOfWeek;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayXPs = [0, 0, 0, 0, 0, 0, 0]; // Mon=0, Tue=1, ..., Sun=6
+
+  currentWeekResults.forEach(t => {
     try {
       const d = new Date(t.date);
-      dayCounts[d.getDay()]++;
+      // d.getDay(): 0 = Sun, 1 = Mon, ..., 6 = Sat
+      // Map to Mon=0, Tue=1, ..., Sun=6
+      const dayIndex = d.getDay() === 0 ? 6 : d.getDay() - 1;
+      const xp = (t.score * 10) + (t.mode === 'mock' ? 20 : 0);
+      dayXPs[dayIndex] += xp;
     } catch (e) { /* skip invalid dates */ }
   });
-  const maxCount = Math.max(...dayCounts, 1);
+
+  const maxXPs = Math.max(...dayXPs, 100); // Scale relative to at least 100 XP to prevent tiny bars if XP is low
   let html = '';
-  for (let i = 1; i <= 7; i++) {
-    const count = dayCounts[i % 7];
-    const height = Math.max((count / maxCount) * 50, 4);
-    html += `<div class="profile-weekly-bar"><div class="profile-weekly-bar-fill" style="height: ${height}px"></div><div class="profile-weekly-bar-label">${days[i % 7]}</div></div>`;
-  }
-  container.innerHTML = html;
-}
-
-function renderProfileWeeklyActivity(weeklyData) {
-  const container = document.getElementById('profile-weekly-bars');
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-  const counts = weeklyData.map(d => typeof d === 'number' ? d : (d?.count || 0));
-  const maxCount = Math.max(...counts, 1);
-
-  let html = '';
+  
   for (let i = 0; i < 7; i++) {
-    const count = counts[i] || 0;
-    const height = Math.max((count / maxCount) * 50, 4);
+    const xp = dayXPs[i];
+    const heightPercent = Math.min((xp / maxXPs) * 100, 100);
+    // Height in pixels (max 50px)
+    const heightPx = Math.max((heightPercent / 100) * 50, 4);
+
     html += `
-      <div class="profile-weekly-bar">
-        <div class="profile-weekly-bar-fill" style="height: ${height}px"></div>
+      <div class="profile-weekly-bar" title="${xp} XP earned">
+        <div class="profile-weekly-bar-tooltip">${xp} XP</div>
+        <div class="profile-weekly-bar-fill" style="height: ${heightPx}px; background: ${xp > 0 ? 'linear-gradient(180deg, var(--saffron) 0%, var(--gold) 100%)' : 'var(--bg-s3)'}"></div>
         <div class="profile-weekly-bar-label">${days[i]}</div>
       </div>`;
   }
@@ -1092,21 +1118,63 @@ function renderProfileSubjectTable(subjects) {
   container.innerHTML = html;
 }
 
+let isAIPlanLoading = false;
+
 async function loadProfileAIPlan() {
   const container = document.getElementById('profile-ai-plan-content');
+  if (!container) return;
+
   const headers = await getAuthHeaders();
 
   if (!headers.Authorization) {
-    container.innerHTML = 'Login to get AI study plan';
+    container.innerHTML = `
+      <div class="analysis-empty guest-disclaimer">
+        🔑 <strong>Guest Mode:</strong> Please <a href="#" onclick="openModal('modal-auth')" style="color: var(--saffron); font-weight: bold; text-decoration: underline;">Login / Sign Up</a> to get a personalized AI study plan.
+      </div>
+    `;
+    container.removeAttribute('data-plan-id');
     return;
   }
 
+  // Check if the plan is already rendered to avoid reflow flickering
+  if (cachedAIPlan) {
+    const planId = cachedAIPlan.substring(0, 32);
+    if (container.dataset.planId === planId) {
+      return;
+    }
+    container.innerHTML = `<div class="ai-plan-formatted">${formatMarkdown(cachedAIPlan)}</div>`;
+    container.dataset.planId = planId;
+    return;
+  }
+
+  if (isAIPlanLoading) return;
+  isAIPlanLoading = true;
+
+  container.innerHTML = `
+    <div class="profile-loading" style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 0;">
+      <span>🤖 AI is analyzing your progress and generating study plan...</span>
+      <div class="spinner"></div>
+    </div>
+  `;
+  container.removeAttribute('data-plan-id');
+
   try {
-    const res = await fetch('/api/analytics/improvement-plan', { headers });
+    const res = await fetch(`/api/analytics/improvement-plan?lang=${chatLanguage}`, { headers });
     const data = await res.json();
-    container.innerHTML = data.recommendation || 'Take more tests to get personalized recommendations!';
+    if (data && data.recommendation) {
+      cachedAIPlan = data.recommendation;
+      container.innerHTML = `<div class="ai-plan-formatted">${formatMarkdown(cachedAIPlan)}</div>`;
+      container.dataset.planId = cachedAIPlan.substring(0, 32);
+    } else {
+      container.innerHTML = '<div class="analysis-empty">Take more tests to generate an AI study plan!</div>';
+      container.removeAttribute('data-plan-id');
+    }
   } catch (err) {
-    container.innerHTML = 'Unable to load plan';
+    console.error('[loadProfileAIPlan] error:', err);
+    container.innerHTML = '<div class="analysis-empty">⚠️ Unable to load AI improvement plan. Please try again later.</div>';
+    container.removeAttribute('data-plan-id');
+  } finally {
+    isAIPlanLoading = false;
   }
 }
 
@@ -1476,6 +1544,7 @@ function setGlobalLanguage(lang, rerender = true) {
   newsLanguage = lang;              // 'hi' | 'en'
   chatLanguage = lang === 'hi' ? 'hindi' : 'english';
   localStorage.setItem(KEYS.language, lang);
+  cachedAIPlan = null; // Clear cached plan so it regenerates in correct language
 
   // Sync search placeholder
   const searchInput = document.getElementById('syllabus-search-input');
@@ -1963,10 +2032,91 @@ function scrollChatToBottom() {
   container.scrollTop = container.scrollHeight;
 }
 
+function parseMarkdownTables(text) {
+  const lines = text.split('\n');
+  let inTable = false;
+  let tableHtml = '';
+  let resultLines = [];
+  let tableHeaders = [];
+  let tableRows = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const isRow = line.startsWith('|') && line.endsWith('|');
+    
+    if (isRow) {
+      // Check if it's a separator row (e.g. |---| or |:---| etc.)
+      const isSeparator = line.replace(/[\s|:\-]/g, '') === '';
+      
+      if (!inTable) {
+        inTable = true;
+        tableHeaders = line.split('|').map(s => s.trim()).filter((s, idx, arr) => idx > 0 && idx < arr.length - 1);
+        tableRows = [];
+      } else if (isSeparator) {
+        continue;
+      } else {
+        const cells = line.split('|').map(s => s.trim()).filter((s, idx, arr) => idx > 0 && idx < arr.length - 1);
+        tableRows.push(cells);
+      }
+    } else {
+      if (inTable) {
+        tableHtml = '<div class="table-container"><table class="markdown-table">';
+        tableHtml += '<thead><tr>' + tableHeaders.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
+        tableHtml += '<tbody>';
+        tableRows.forEach(row => {
+          tableHtml += '<tr>';
+          for (let j = 0; j < tableHeaders.length; j++) {
+            tableHtml += `<td>${row[j] || ''}</td>`;
+          }
+          tableHtml += '</tr>';
+        });
+        tableHtml += '</tbody></table></div>';
+        
+        resultLines.push(tableHtml);
+        inTable = false;
+        tableHeaders = [];
+        tableRows = [];
+      }
+      resultLines.push(lines[i]);
+    }
+  }
+
+  if (inTable) {
+    tableHtml = '<div class="table-container"><table class="markdown-table">';
+    tableHtml += '<thead><tr>' + tableHeaders.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
+    tableHtml += '<tbody>';
+    tableRows.forEach(row => {
+      tableHtml += '<tr>';
+      for (let j = 0; j < tableHeaders.length; j++) {
+        tableHtml += `<td>${row[j] || ''}</td>`;
+      }
+      tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table></div>';
+    resultLines.push(tableHtml);
+  }
+
+  return resultLines.join('\n');
+}
+
 function formatMarkdown(text) {
   if (!text) return '';
+  
+  // 1. Escape HTML to prevent injection
   let html = escapeHtml(text);
 
+  // 2. Parse multiline code blocks FIRST so they aren't mangled by HTML spacing
+  const codeBlocks = [];
+  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
+    const placeholder = `__CODE_BLOCK_PLACEHOLDER_${codeBlocks.length}__`;
+    codeBlocks.push({ lang: lang.trim(), code: code.trim() });
+    return placeholder;
+  });
+
+  // 3. Parse Markdown Tables
+  html = parseMarkdownTables(html);
+
+  // 4. Standard Markdown Inline Rules
   html = html.replace(/### (.+)/g, '<h3>$1</h3>');
   html = html.replace(/## (.+)/g, '<h2>$1</h2>');
   html = html.replace(/# (.+)/g, '<h1>$1</h1>');
@@ -1978,15 +2128,25 @@ function formatMarkdown(text) {
 
   html = html.replace(/^- (.+)/gm, '<li>$1</li>');
   html = html.replace(/^(\d+)\. (.+)/gm, '<li>$2</li>');
-
   html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
 
+  // 5. Line break logic (br injection)
   html = html.replace(/\n/g, '<br>');
   html = html.replace(/<br><br>/g, '<br>');
   html = html.replace(/<br>(<h[1-3]>)/g, '$1');
   html = html.replace(/(<\/h[1-3]>)<br>/g, '$1');
   html = html.replace(/<br>(<ul>)/g, '$1');
   html = html.replace(/(<\/ul>)<br>/g, '$1');
+  html = html.replace(/<br>(<div class="table-container">)/g, '$1');
+  html = html.replace(/(<\/div>)<br>/g, '$1');
+
+  // 6. Restore Multiline Code Blocks wrapped in styled structure
+  html = html.replace(/__CODE_BLOCK_PLACEHOLDER_(\d+)__/g, (match, index) => {
+    const idx = parseInt(index, 10);
+    const block = codeBlocks[idx];
+    const classAttr = block.lang ? ` class="language-${block.lang}"` : '';
+    return `<pre><code${classAttr}>${block.code}</code></pre>`;
+  });
 
   return html;
 }
@@ -2267,6 +2427,7 @@ function finishTest() {
   });
   if (results.length > 50) results.shift();
   localStorage.setItem(KEYS.testResults, JSON.stringify(results));
+  cachedAIPlan = null; // Clear cached plan to force update on next profile view
 
   const mcqsSolved = parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0') + total;
   localStorage.setItem(KEYS.mcqsSolved, mcqsSolved.toString());
@@ -2884,12 +3045,51 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
+function setupReminderModal() {
+  const exam = currentExam ? getExamData(currentExam) : null;
+  const examName = exam ? exam.name : 'Not Selected';
+  const streak = getStreak();
+  const streakCount = streak ? (streak.count || 0) : 0;
+
+  const streakValEl = document.getElementById('reminder-streak-value');
+  if (streakValEl) {
+    streakValEl.textContent = streakCount + ' Day' + (streakCount !== 1 ? 's' : '');
+  }
+  
+  const streakTextEl = document.getElementById('reminder-streak-text');
+  if (streakTextEl) {
+    streakTextEl.textContent = streakCount > 0 ? 'Streak Active! 🔥' : 'Start Streak Today';
+  }
+
+  const examNameEl = document.getElementById('reminder-exam-name');
+  if (examNameEl) {
+    examNameEl.textContent = examName;
+  }
+
+  const MOTIVATIONAL_QUOTES = [
+    "सफलता का मुख्य आधार हर दिन की निरंतर मेहनत है। 🎯",
+    "Consistency is the key to cracking any exam. Let's make today count! 📖",
+    "एक-एक MCQ आपको आपकी सरकारी नौकरी के करीब लाता है। 📝",
+    "Every small topic completed today gets you closer to your dream post. 🏛️",
+    "सपनों को सच करने के लिए आज पढ़ना शुरू करें। 🚀",
+    "Consistency is the playground of winners. Keep your streak alive! 💪",
+    "छत्तीसगढ़ व्यावसायिक परीक्षा मंडल (CG Vyapam) की तैयारी आज से ही करें! 🏛️"
+  ];
+  
+  const quoteEl = document.getElementById('reminder-quote');
+  if (quoteEl) {
+    const randomIdx = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+    quoteEl.textContent = MOTIVATIONAL_QUOTES[randomIdx];
+  }
+}
+
 function checkDailyReminder() {
   const today = new Date().toISOString().split('T')[0];
   const lastShown = localStorage.getItem(KEYS.reminderShown);
 
   if (lastShown !== today && currentExam) {
     setTimeout(() => {
+      setupReminderModal();
       openModal('modal-reminder');
       localStorage.setItem(KEYS.reminderShown, today);
     }, 2000);
@@ -2966,6 +3166,8 @@ function clearProgress() {
     }
   });
 
+  cachedAIPlan = null; // Reset cached plan
+
   currentExam = null;
   changeExam();
   showToast('All progress cleared 🗑️');
@@ -3015,6 +3217,7 @@ async function checkUserAuth() {
       markFirebaseAuthResolved();
 
       if (user) {
+        cachedAIPlan = null; // Clear cached plan
         const authModal = document.getElementById('modal-auth');
         const wasAuthModalVisible = authModal?.classList.contains('visible');
         const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
@@ -3033,6 +3236,7 @@ async function checkUserAuth() {
 
         startAnalyticsListeners(user);
         await startUserDataListener(user);
+        await loadUserDataFromServer();
 
         if (!currentExam) {
           const savedExam = localStorage.getItem(KEYS.selectedExam);
@@ -3082,6 +3286,7 @@ async function checkUserAuth() {
 function userLogout() {
   if (!confirm('Are you sure you want to log out?')) return;
   firebase.auth().signOut().then(() => {
+    cachedAIPlan = null; // Clear cached plan
     stopRealtimeListeners();
     const progressKeys = [
       KEYS.streak, KEYS.testsGiven, KEYS.testResults,

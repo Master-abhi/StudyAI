@@ -183,16 +183,106 @@ router.post('/record', async (req, res) => {
   }
 });
 
+router.get('/improvement-plan', async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const lang = req.query.lang || 'hindi';
+
+    let totalStudyTime = 0;
+    let overallAccuracy = 0;
+    let currentStreak = 0;
+
+    try {
+      const doc = await db.collection('analytics').doc(userId).get();
+      if (doc.exists) {
+        const o = doc.data();
+        totalStudyTime = o.totalStudyTime || 0;
+        overallAccuracy = o.overallAccuracy || 0;
+        currentStreak = o.currentStreak || 0;
+      }
+    } catch (e) {
+      console.error('[Analytics] Firestore overview read error:', e.message);
+    }
+
+    const subjectScores = {};
+    try {
+      const snapshot = await db.collection('analytics')
+        .doc(userId)
+        .collection('subjects')
+        .get();
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const total = data.total || 0;
+        const correct = data.correct || 0;
+        subjectScores[doc.id] = {
+          accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+          total: total
+        };
+      });
+    } catch (e) {
+      console.error('[Analytics] Firestore subjects read error:', e.message);
+    }
+
+    const ai = require('../services/aiManager');
+    const plan = await ai.generateImprovementPlan(subjectScores, totalStudyTime, overallAccuracy, currentStreak, lang);
+
+    res.json({ recommendation: plan });
+  } catch (err) {
+    console.error('[Analytics Improvement Plan Error]:', err.message);
+    res.status(500).json({ error: 'Failed to generate improvement plan' });
+  }
+});
+
 router.post('/improvement-plan', async (req, res) => {
   try {
     const userId = req.user.uid;
-    const plan = {
-      focusAreas: ['General Awareness', 'Quantitative Aptitude'],
-      dailyGoal: 'Study 2 hours daily',
-      recommendation: 'Focus on weak subjects identified in your analytics',
-    };
+    const lang = req.body.lang || 'hindi';
 
-    res.json(plan);
+    let totalStudyTime = 0;
+    let overallAccuracy = 0;
+    let currentStreak = 0;
+
+    try {
+      const doc = await db.collection('analytics').doc(userId).get();
+      if (doc.exists) {
+        const o = doc.data();
+        totalStudyTime = o.totalStudyTime || 0;
+        overallAccuracy = o.overallAccuracy || 0;
+        currentStreak = o.currentStreak || 0;
+      }
+    } catch (e) {
+      console.error('[Analytics] Firestore overview read error:', e.message);
+    }
+
+    const subjectScores = {};
+    try {
+      const snapshot = await db.collection('analytics')
+        .doc(userId)
+        .collection('subjects')
+        .get();
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const total = data.total || 0;
+        const correct = data.correct || 0;
+        subjectScores[doc.id] = {
+          accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+          total: total
+        };
+      });
+    } catch (e) {
+      console.error('[Analytics] Firestore subjects read error:', e.message);
+    }
+
+    const ai = require('../services/aiManager');
+    const plan = await ai.generateImprovementPlan(subjectScores, totalStudyTime, overallAccuracy, currentStreak, lang);
+
+    res.json({
+      recommendation: plan,
+      focusAreas: Object.keys(subjectScores).slice(0, 2),
+      dailyGoal: 'Study 2 hours daily'
+    });
   } catch (err) {
     console.error('[Analytics Improvement Plan Error]:', err.message);
     res.status(500).json({ error: 'Failed to generate improvement plan' });
