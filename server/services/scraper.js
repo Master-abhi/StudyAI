@@ -46,11 +46,11 @@ async function scrapeSarkariResult() {
 async function scrapeExamNewsRSS() {
   const articles = [];
   const queries = [
-    'UPSC+exam+2025',
-    'SSC+CGL+recruitment',
-    'railway+recruitment+2025',
-    'sarkari+naukri+government+job',
-    'CGPSC+exam+Chhattisgarh'
+    'UPSC+exam+2026+when:7d',
+    'SSC+CGL+recruitment+when:7d',
+    'railway+recruitment+2026+when:7d',
+    'sarkari+naukri+government+job+when:7d',
+    'CGPSC+exam+Chhattisgarh+when:7d'
   ];
 
   for (const query of queries) {
@@ -96,12 +96,12 @@ async function scrapeExamNewsRSS() {
 async function scrapeGeneralNewsRSS() {
   const articles = [];
   const queries = [
-    { q: 'India+news+today', icon: '🇮🇳', tag: 'National' },
-    { q: 'international+world+news', icon: '🌍', tag: 'International' },
-    { q: 'India+sports+cricket+news', icon: '🏏', tag: 'Sports' },
-    { q: 'science+technology+India+news', icon: '🔬', tag: 'Science & Tech' },
-    { q: 'India+economy+business+news', icon: '📈', tag: 'Economy' },
-    { q: 'India+government+policy+scheme', icon: '🏛️', tag: 'Government' }
+    { q: 'India+news+today+when:24h', icon: '🇮🇳', tag: 'National' },
+    { q: 'international+world+news+when:24h', icon: '🌍', tag: 'International' },
+    { q: 'India+sports+cricket+news+when:24h', icon: '🏏', tag: 'Sports' },
+    { q: 'science+technology+India+news+when:7d', icon: '🔬', tag: 'Science & Tech' },
+    { q: 'India+economy+business+news+when:24h', icon: '📈', tag: 'Economy' },
+    { q: 'India+government+policy+scheme+when:7d', icon: '🏛️', tag: 'Government' }
   ];
 
   for (const { q, icon, tag } of queries) {
@@ -148,13 +148,13 @@ async function scrapeGeneralNewsRSS() {
 async function scrapeHindiNewsRSS() {
   const articles = [];
   const queries = [
-    { q: 'भारत+ताजा+समाचार', icon: '🇮🇳', tag: 'राष्ट्रीय', category: 'affairs' },
-    { q: 'अंतरराष्ट्रीय+समाचार+विश्व', icon: '🌍', tag: 'अंतरराष्ट्रीय', category: 'affairs' },
-    { q: 'खेल+क्रिकेट+भारत', icon: '🏏', tag: 'खेल', category: 'affairs' },
-    { q: 'विज्ञान+तकनीक+भारत', icon: '🔬', tag: 'विज्ञान', category: 'affairs' },
-    { q: 'सरकारी+नौकरी+भर्ती', icon: '💼', tag: 'नौकरी', category: 'jobs' },
-    { q: 'UPSC+SSC+परीक्षा+नोटिफिकेशन', icon: '📝', tag: 'परीक्षा', category: 'exams' },
-    { q: 'अर्थव्यवस्था+बजट+भारत', icon: '📈', tag: 'अर्थव्यवस्था', category: 'affairs' }
+    { q: 'भारत+ताजा+समाचार+when:24h', icon: '🇮🇳', tag: 'राष्ट्रीय', category: 'affairs' },
+    { q: 'अंतरराष्ट्रीय+समाचार+विश्व+when:24h', icon: '🌍', tag: 'अंतरराष्ट्रीय', category: 'affairs' },
+    { q: 'खेल+क्रिकेट+भारत+when:24h', icon: '🏏', tag: 'खेल', category: 'affairs' },
+    { q: 'विज्ञान+तकनीक+भारत+when:7d', icon: '🔬', tag: 'विज्ञान', category: 'affairs' },
+    { q: 'सरकारी+नौकरी+भर्ती+when:7d', icon: '💼', tag: 'नौकरी', category: 'jobs' },
+    { q: 'UPSC+SSC+परीक्षा+नोटिफिकेशन+when:7d', icon: '📝', tag: 'परीक्षा', category: 'exams' },
+    { q: 'अर्थव्यवस्था+बजट+भारत+when:7d', icon: '📈', tag: 'अर्थव्यवस्था', category: 'affairs' }
   ];
 
   for (const { q, icon, tag, category } of queries) {

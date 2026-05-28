@@ -2,6 +2,47 @@
    CG Guru — CG Vyapam Exam Prep
    ═══════════════════════════════════════════ */
 
+// ── API Base URL Auto-configuration & Fetch Interceptor ──
+let API_BASE = 'https://study-ai-olive.vercel.app';
+
+async function configureApiBase() {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600);
+      const res = await fetch('http://localhost:3000/api/health', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        API_BASE = 'http://localhost:3000';
+        console.log('[API] Local backend detected. Using http://localhost:3000');
+        return;
+      }
+    } catch (e) {}
+    
+    if (window.location.port && window.location.port !== '5500' && window.location.port !== '8080') {
+      API_BASE = '';
+      console.log('[API] Served directly from backend. Using relative paths.');
+      return;
+    }
+  } else if (window.location.hostname !== '') {
+    API_BASE = ''; // Production relative paths
+  }
+  console.log('[API] Active API Base URL:', API_BASE || '(Relative)');
+}
+
+// Intercept window.fetch to automatically prepend API_BASE to relative /api/ routes
+const originalFetch = window.fetch;
+window.fetch = async function (resource, options) {
+  let url = resource;
+  if (typeof resource === 'string' && resource.startsWith('/api/')) {
+    url = API_BASE + resource;
+  }
+  return originalFetch(url, options);
+};
+
+// Configure base URL on startup
+configureApiBase();
+
 // ── Storage Keys ──
 const KEYS = {
   selectedExam: 'examprep_selectedExam',
@@ -2539,7 +2580,7 @@ function initNewsScreen() {
     });
   }
 
-  // Auto-refresh news/jobs every 30 minutes (30 * 60 * 1000 = 1,800,000 ms)
+  // Auto-refresh news/jobs every 1 hour (60 * 60 * 1000 = 3,600,000 ms)
   setInterval(() => {
     if (currentScreen === 'news') {
       const btn = document.getElementById('news-refresh-btn');
@@ -2551,7 +2592,427 @@ function initNewsScreen() {
       // Quiet background fetch
       refreshNews(true).catch(() => {});
     }
-  }, 1800000);
+  }, 3600000);
+}
+
+// Client-side Scraping Logic & Helpers
+async function fetchWithProxy(url) {
+  // Add a cache buster query parameter to force proxies to fetch fresh data
+  const separator = url.includes('?') ? '&' : '?';
+  const urlWithCacheBuster = `${url}${separator}_cb=${Date.now()}`;
+
+  const proxies = [
+    (target) => `https://corsproxy.io/?url=${encodeURIComponent(target)}`,
+    (target) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`
+  ];
+
+  for (let i = 0; i < proxies.length; i++) {
+    try {
+      const proxyUrl = proxies[i](urlWithCacheBuster);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      const res = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (res.ok) {
+        let text = await res.text();
+        if (proxies[i] === proxies[1]) {
+          if (text.startsWith('{') && text.includes('"contents":')) {
+            try {
+              const parsed = JSON.parse(text);
+              text = parsed.contents;
+            } catch (e) {}
+          }
+        }
+        if (text && text.trim().length > 100) {
+          return text;
+        }
+      }
+    } catch (e) {
+      console.warn(`[News Scraper Proxy] Failed to fetch ${url} via proxy index ${i}:`, e);
+    }
+  }
+  throw new Error(`Failed to fetch ${url} via all available proxies.`);
+}
+
+async function clientScrapeSarkariResult() {
+  const articles = [];
+  try {
+    const html = await fetchWithProxy('https://www.sarkariresult.com/');
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const links = doc.querySelectorAll('#post .post-box a, .job_listing a');
+    let count = 0;
+    links.forEach((el) => {
+      if (count >= 15) return;
+      const title = el.textContent.trim();
+      let url = el.getAttribute('href') || '';
+      if (title && title.length > 10) {
+        if (url && !url.startsWith('http')) {
+          url = `https://www.sarkariresult.com${url}`;
+        }
+        articles.push({
+          title,
+          description: `Latest update from Sarkari Result: ${title}`,
+          category: title.toLowerCase().includes('admit') ? 'exams' :
+            title.toLowerCase().includes('result') ? 'exams' : 'jobs',
+          date: new Date().toISOString().split('T')[0],
+          source: 'Sarkari Result',
+          url: url,
+          icon: '📋',
+          lang: 'en'
+        });
+        count++;
+      }
+    });
+  } catch (err) {
+    console.error('[Client Scraper] Sarkari Result scraping failed:', err.message);
+  }
+  return articles;
+}
+
+async function clientScrapeExamNewsRSS() {
+  const articles = [];
+  const queries = [
+    'UPSC+exam+2026',
+    'SSC+CGL+recruitment',
+    'railway+recruitment+2026',
+    'sarkari+naukri+government+job',
+    'CGPSC+exam+Chhattisgarh'
+  ];
+
+  for (const query of queries) {
+    try {
+      const xmlText = await fetchWithProxy(`https://news.google.com/rss/search?q=${query}&hl=en-IN&gl=IN&ceid=IN:en`);
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      const items = xmlDoc.querySelectorAll('item');
+      let count = 0;
+      items.forEach((item) => {
+        if (count >= 5) return;
+        const title = item.querySelector('title')?.textContent.trim();
+        const link = item.querySelector('link')?.textContent.trim();
+        const pubDate = item.querySelector('pubDate')?.textContent.trim();
+        const source = item.querySelector('source')?.textContent.trim();
+
+        if (title) {
+          let category = 'exams';
+          const titleLower = title.toLowerCase();
+          if (titleLower.includes('recruitment') || titleLower.includes('vacancy') || titleLower.includes('naukri') || titleLower.includes('bharti') || titleLower.includes('apply')) {
+            category = 'jobs';
+          }
+          let dateStr = new Date().toISOString().split('T')[0];
+          if (pubDate) {
+            try {
+              const d = new Date(pubDate);
+              if (!isNaN(d.getTime())) {
+                dateStr = d.toISOString().split('T')[0];
+              }
+            } catch (e) {}
+          }
+          articles.push({
+            title,
+            description: `Source: ${source || 'Google News'}`,
+            category,
+            date: dateStr,
+            source: source || 'Google News',
+            url: link || '#',
+            icon: category === 'jobs' ? '💼' : '📝',
+            lang: 'en'
+          });
+          count++;
+        }
+      });
+    } catch (err) {
+      console.error(`[Client Scraper] Exam News RSS scraping failed for "${query}":`, err.message);
+    }
+  }
+  return articles;
+}
+
+async function clientScrapeGeneralNewsRSS() {
+  const articles = [];
+  const queries = [
+    { q: 'India+news+today+when:24h', icon: '🇮🇳', tag: 'National' },
+    { q: 'international+world+news+when:24h', icon: '🌍', tag: 'International' },
+    { q: 'India+sports+cricket+news+when:24h', icon: '🏏', tag: 'Sports' },
+    { q: 'science+technology+India+news+when:7d', icon: '🔬', tag: 'Science & Tech' },
+    { q: 'India+economy+business+news+when:24h', icon: '📈', tag: 'Economy' },
+    { q: 'India+government+policy+scheme+when:7d', icon: '🏛️', tag: 'Government' }
+  ];
+
+  for (const { q, icon, tag } of queries) {
+    try {
+      const xmlText = await fetchWithProxy(`https://news.google.com/rss/search?q=${q}&hl=en-IN&gl=IN&ceid=IN:en`);
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      const items = xmlDoc.querySelectorAll('item');
+      let count = 0;
+      items.forEach((item) => {
+        if (count >= 4) return;
+        const title = item.querySelector('title')?.textContent.trim();
+        const link = item.querySelector('link')?.textContent.trim();
+        const pubDate = item.querySelector('pubDate')?.textContent.trim();
+        const source = item.querySelector('source')?.textContent.trim();
+
+        if (title) {
+          const titleLower = title.toLowerCase();
+          if (titleLower.includes('recruitment') || titleLower.includes('vacancy') ||
+            titleLower.includes('sarkari naukri') || titleLower.includes('admit card') ||
+            titleLower.includes('answer key') || titleLower.includes('cut off')) {
+            return;
+          }
+          let dateStr = new Date().toISOString().split('T')[0];
+          if (pubDate) {
+            try {
+              const d = new Date(pubDate);
+              if (!isNaN(d.getTime())) {
+                dateStr = d.toISOString().split('T')[0];
+              }
+            } catch (e) {}
+          }
+          articles.push({
+            title,
+            description: `${tag} • Source: ${source || 'Google News'}`,
+            category: 'affairs',
+            date: dateStr,
+            source: source || 'Google News',
+            url: link || '#',
+            icon,
+            lang: 'en'
+          });
+          count++;
+        }
+      });
+    } catch (err) {
+      console.error(`[Client Scraper] General News RSS scraping failed for "${q}":`, err.message);
+    }
+  }
+  return articles;
+}
+
+async function clientScrapeHindiNewsRSS() {
+  const articles = [];
+  const queries = [
+    { q: 'भारत+ताजा+समाचार+when:24h', icon: '🇮🇳', tag: 'राष्ट्रीय', category: 'affairs' },
+    { q: 'अंतरराष्ट्रीय+समाचार+विश्व+when:24h', icon: '🌍', tag: 'अंतरराष्ट्रीय', category: 'affairs' },
+    { q: 'खेल+क्रिकेट+भारत+when:24h', icon: '🏏', tag: 'खेल', category: 'affairs' },
+    { q: 'विज्ञान+तकनीक+भारत+when:7d', icon: '🔬', tag: 'विज्ञान', category: 'affairs' },
+    { q: 'सरकारी+नौकरी+भर्ती+when:7d', icon: '💼', tag: 'नौकरी', category: 'jobs' },
+    { q: 'UPSC+SSC+परीक्षा+नोटिफिकेशन+when:7d', icon: '📝', tag: 'परीक्षा', category: 'exams' },
+    { q: 'अर्थव्यवस्था+बजट+भारत+when:7d', icon: '📈', tag: 'अर्थव्यवस्था', category: 'affairs' }
+  ];
+
+  for (const { q, icon, tag, category } of queries) {
+    try {
+      const xmlText = await fetchWithProxy(`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=hi-IN&gl=IN&ceid=IN:hi`);
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      const items = xmlDoc.querySelectorAll('item');
+      let count = 0;
+      items.forEach((item) => {
+        if (count >= 3) return;
+        const title = item.querySelector('title')?.textContent.trim();
+        const link = item.querySelector('link')?.textContent.trim();
+        const pubDate = item.querySelector('pubDate')?.textContent.trim();
+        const source = item.querySelector('source')?.textContent.trim();
+
+        if (title) {
+          let dateStr = new Date().toISOString().split('T')[0];
+          if (pubDate) {
+            try {
+              const d = new Date(pubDate);
+              if (!isNaN(d.getTime())) {
+                dateStr = d.toISOString().split('T')[0];
+              }
+            } catch (e) {}
+          }
+          articles.push({
+            title,
+            description: `${tag} • स्रोत: ${source || 'Google समाचार'}`,
+            category,
+            date: dateStr,
+            source: source || 'Google समाचार',
+            url: link || '#',
+            icon,
+            lang: 'hi'
+          });
+          count++;
+        }
+      });
+    } catch (err) {
+      console.error(`[Client Scraper] Hindi News RSS scraping failed for "${q}":`, err.message);
+    }
+  }
+  return articles;
+}
+
+async function clientScrapeEmploymentNews() {
+  const articles = [];
+  try {
+    const html = await fetchWithProxy('https://www.ncs.gov.in/');
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const links = doc.querySelectorAll('a[href*="job"], .job-item, .vacancy-item');
+    const genericPhrases = [
+      'find domestic', 'find international', 'find skill', 'find job',
+      'participate in', 'links to govt', 'jobs for differently',
+      'login', 'register', 'sign up', 'contact', 'about us',
+      'skill provider', 'job fairs', 'health sector',
+      'career centre', 'help', 'faq', 'update your', 'update/',
+      'create video', 'emigrate portal', 'video profile',
+      'know your', 'grievance', 'apprenticeship', 'download app',
+      'click here'
+    ];
+
+    let count = 0;
+    links.forEach((el) => {
+      if (count >= 20) return;
+      const title = el.textContent.trim();
+      let url = el.getAttribute('href') || '';
+      if (title && title.length > 10 && title.length < 200) {
+        const titleLower = title.toLowerCase();
+        const isGeneric = genericPhrases.some(phrase => titleLower.includes(phrase));
+        if (isGeneric) return;
+
+        if (url && !url.startsWith('http')) {
+          url = `https://www.ncs.gov.in${url}`;
+        }
+        articles.push({
+          title,
+          description: 'Government vacancy notification from NCS Portal',
+          category: 'jobs',
+          date: new Date().toISOString().split('T')[0],
+          source: 'NCS Portal',
+          url: url,
+          icon: '🏢',
+          lang: 'en'
+        });
+        count++;
+      }
+    });
+  } catch (err) {
+    console.error('[Client Scraper] NCS Portal scraping failed:', err.message);
+  }
+  return articles;
+}
+
+function clientDeduplicateArticles(articles) {
+  const seen = new Set();
+  return articles.filter(article => {
+    const key = (article.title || '').toLowerCase().substring(0, 50);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function runClientSideScraper() {
+  console.log('[Client Scraper] Starting news scraping entirely in the browser...');
+
+  const [sarkari, examNews, generalNews, hindiNews, employment] = await Promise.allSettled([
+    clientScrapeSarkariResult(),
+    clientScrapeExamNewsRSS(),
+    clientScrapeGeneralNewsRSS(),
+    clientScrapeHindiNewsRSS(),
+    clientScrapeEmploymentNews()
+  ]);
+
+  let allArticles = [];
+  if (sarkari.status === 'fulfilled') allArticles.push(...sarkari.value);
+  if (examNews.status === 'fulfilled') allArticles.push(...examNews.value);
+  if (generalNews.status === 'fulfilled') allArticles.push(...generalNews.value);
+  if (hindiNews.status === 'fulfilled') allArticles.push(...hindiNews.value);
+  if (employment.status === 'fulfilled') allArticles.push(...employment.value);
+
+  if (allArticles.length < 5) {
+    console.log('[Client Scraper] Too few articles scraped, using fallback data');
+    allArticles.push(
+      {
+        title: 'Supreme Court Landmark Ruling on Right to Privacy',
+        description: 'National • The Supreme Court expanded the scope of fundamental right to privacy in a landmark judgment.',
+        category: 'affairs',
+        date: new Date().toISOString().split('T')[0],
+        source: 'National News',
+        url: '#',
+        icon: '⚖️',
+        lang: 'en'
+      },
+      {
+        title: 'निजता के अधिकार पर सुप्रीम कोर्ट का ऐतिहासिक फैसला',
+        description: 'राष्ट्रीय • सुप्रीम कोर्ट ने एक ऐतिहासिक फैसले में मौलिक निजता के अधिकार के दायरे का विस्तार किया।',
+        category: 'affairs',
+        date: new Date().toISOString().split('T')[0],
+        source: 'राष्ट्रीय समाचार',
+        url: '#',
+        icon: '⚖️',
+        lang: 'hi'
+      }
+    );
+  }
+
+  allArticles = clientDeduplicateArticles(allArticles);
+
+  const byCategory = { exams: [], jobs: [], affairs: [] };
+  allArticles.forEach(a => {
+    const cat = a.category || 'affairs';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(a);
+  });
+
+  Object.values(byCategory).forEach(arr => arr.sort((a, b) => new Date(b.date) - new Date(a.date)));
+
+  const interleaved = [];
+  const categories = Object.keys(byCategory).filter(k => byCategory[k].length > 0);
+  const indices = {};
+  categories.forEach(c => { indices[c] = 0; });
+
+  let hasMore = true;
+  while (hasMore) {
+    hasMore = false;
+    for (const cat of categories) {
+      if (indices[cat] < byCategory[cat].length) {
+        interleaved.push(byCategory[cat][indices[cat]]);
+        indices[cat]++;
+        hasMore = true;
+      }
+    }
+  }
+
+  const cacheData = {
+    lastUpdated: new Date().toISOString(),
+    articles: interleaved.slice(0, 50)
+  };
+
+  localStorage.setItem('news_cache', JSON.stringify(cacheData));
+  newsData = cacheData.articles;
+  newsLastUpdated = cacheData.lastUpdated;
+
+  const db = getFirestoreClient();
+  if (db) {
+    try {
+      await db.collection('news').doc('cache').set(cacheData);
+      console.log('[Client Scraper] Firestore cache updated successfully ✅');
+    } catch (fsErr) {
+      console.warn('[Client Scraper] Firestore cache update blocked (expected if offline or unauthorized):', fsErr.message);
+    }
+  }
+
+  const timeEl = document.getElementById('news-update-time');
+  if (timeEl && newsLastUpdated) {
+    const d = new Date(newsLastUpdated);
+    const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+    timeEl.textContent = mins < 1 ? 'Just now' : `${mins}m ago`;
+  } else if (timeEl) {
+    timeEl.textContent = 'Just now';
+  }
+
+  updateNewsStats();
+  setupNewsTicker();
+  renderNewsCards();
+
+  showToast('News refreshed successfully (client-side) 📡', 'success');
 }
 
 async function refreshNews(silent = false) {
@@ -2561,12 +3022,17 @@ async function refreshNews(silent = false) {
       if (res.ok) {
         const data = await res.json();
         newsLastUpdated = data.lastUpdated;
+        await loadNews();
+        return;
       }
     } catch (apiErr) {
-      console.warn('[News] API refresh POST failed, will load latest cache:', apiErr);
+      console.warn('[News] API refresh POST failed, will attempt client-side scraping:', apiErr);
     }
-    await loadNews();
+    
+    // Server is offline, use browser-based scraper fallback
+    await runClientSideScraper();
   } catch (err) {
+    console.error('[News Refresh Error]:', err);
     if (!silent) {
       showToast('Could not refresh news 📡', 'error');
     }
@@ -2580,56 +3046,94 @@ async function loadNews() {
     <div class="skeleton skeleton-card"></div>
     <div class="skeleton skeleton-card" style="height:80px;"></div>`;
 
-  // Update time display to "loading"
   const timeEl = document.getElementById('news-update-time');
   if (timeEl) timeEl.textContent = 'Loading...';
 
   try {
     let data;
+    let localData = null;
+    const localCache = localStorage.getItem('news_cache');
+    if (localCache) {
+      try {
+        localData = JSON.parse(localCache);
+      } catch (e) {
+        console.warn('[News] Error parsing local cache:', e);
+      }
+    }
+
     try {
       const response = await fetch(`/api/news`);
       if (!response.ok) throw new Error('Failed to fetch news');
       data = await response.json();
     } catch (err) {
-      console.warn('[News] Server API offline or failed, falling back to direct Firestore fetch:', err);
+      console.warn('[News] Server API offline or failed, falling back to Firestore/localStorage:', err);
+      
+      let remoteData = null;
       const db = getFirestoreClient();
-      if (!db) {
-        throw new Error('Local server is offline and Firestore client is unavailable.');
+      if (db) {
+        try {
+          const doc = await db.collection('news').doc('cache').get();
+          if (doc.exists) {
+            remoteData = doc.data();
+          }
+        } catch (dbErr) {
+          console.warn('[News] Direct Firestore fetch failed:', dbErr);
+        }
       }
-      const doc = await db.collection('news').doc('cache').get();
-      if (!doc.exists) {
-        throw new Error('Local server is offline and no news cache found in Firestore.');
+
+      if (localData && remoteData) {
+        const localTime = new Date(localData.lastUpdated || 0).getTime();
+        const remoteTime = new Date(remoteData.lastUpdated || 0).getTime();
+        data = localTime >= remoteTime ? localData : remoteData;
+      } else {
+        data = localData || remoteData;
       }
-      data = doc.data();
+    }
+
+    if (!data) {
+      console.log('[News] No cache found, running client-side scraper automatically...');
+      await runClientSideScraper();
+      return;
     }
 
     newsData = data.articles || [];
     newsLastUpdated = data.lastUpdated;
 
-    // Update the last updated time
+    // Cache the loaded data locally
+    localStorage.setItem('news_cache', JSON.stringify(data));
+
     if (timeEl && newsLastUpdated) {
       const d = new Date(newsLastUpdated);
       const mins = Math.floor((Date.now() - d.getTime()) / 60000);
       timeEl.textContent = mins < 1 ? 'Just now' : `${mins}m ago`;
+      
+      // Auto-refresh in the background if the cache is older than 1 hour (60 mins)
+      if (mins >= 60) {
+        console.log('[News] Cache is older than 1 hour, triggering background refresh...');
+        refreshNews(true).catch(() => {});
+      }
     } else if (timeEl) {
       timeEl.textContent = 'Live';
     }
 
-    // Update stats bar
     updateNewsStats();
-
-    // Setup breaking ticker
     setupNewsTicker();
-
     renderNewsCards();
   } catch (err) {
-    if (timeEl) timeEl.textContent = 'Offline';
-    container.innerHTML = `
-      <div class="news-empty-state">
-        <div class="news-empty-icon">📡</div>
-        <div class="news-empty-title">Connection Error</div>
-        <div class="news-empty-sub">Could not load news. Check your connection and try refreshing.</div>
-      </div>`;
+    console.error('[News Load Error]:', err);
+    console.log('[News] Attempting client-side scraper fallback due to load error...');
+    try {
+      await runClientSideScraper();
+    } catch (scrapErr) {
+      console.error('[News] Client-side scraper failed after load error:', scrapErr);
+      if (timeEl) timeEl.textContent = 'Offline';
+      container.innerHTML = `
+        <div class="news-empty-state">
+          <div class="news-empty-icon">📡</div>
+          <div class="news-empty-title">Connection Error</div>
+          <div class="news-empty-sub">Could not load news. Check your connection and try refreshing.</div>
+        </div>`;
+    }
   }
 }
 
@@ -2868,7 +3372,13 @@ function openNewsArticle(index, isHero = false) {
       })
       .catch(err => {
         console.error('Error fetching summary:', err);
-        summaryContent.innerHTML = `<p class="nd-error-text">Unable to load AI summary. Please check your internet connection.</p>`;
+        // Fallback client-side basic summary
+        const lang = chatLanguage || 'hindi';
+        const isHindi = lang === 'hindi';
+        const fallbackSummary = isHindi
+          ? `**विषय:** ${article.title}\n\n**विवरण:** ${article.description || 'कोई अतिरिक्त विवरण उपलब्ध नहीं है।'}\n\n**श्रेणी:** ${article.category === 'exams' ? 'परीक्षा अधिसूचना' : article.category === 'jobs' ? 'नौकरी अधिसूचना' : 'करंट अफेयर्स'}\n\n**स्रोत:** ${article.source || 'सैमसंग समाचार/गूगल समाचार'}\n\n*(नोट: विस्तृत एआई सारांश के लिए कृपया लोकल सर्वर प्रारंभ करें)*`
+          : `**Topic:** ${article.title}\n\n**Description:** ${article.description || 'No additional description available.'}\n\n**Category:** ${article.category === 'exams' ? 'Exam Notification' : article.category === 'jobs' ? 'Job Notification' : 'Current Affairs'}\n\n**Source:** ${article.source || 'Google News'}\n\n*(Note: Start local server for a detailed AI-generated summary)*`;
+        summaryContent.innerHTML = formatNewsMarkdown(fallbackSummary);
       });
     }
   }

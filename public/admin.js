@@ -2,6 +2,47 @@
 //   Admin Panel — Firebase Auth Version
 // ═══════════════════════════════════════════
 
+// ── API Base URL Auto-configuration & Fetch Interceptor ──
+let API_BASE = 'https://study-ai-olive.vercel.app';
+
+async function configureApiBase() {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600);
+      const res = await fetch('http://localhost:3000/api/health', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        API_BASE = 'http://localhost:3000';
+        console.log('[API] Local backend detected. Using http://localhost:3000');
+        return;
+      }
+    } catch (e) {}
+    
+    if (window.location.port && window.location.port !== '5500' && window.location.port !== '8080') {
+      API_BASE = '';
+      console.log('[API] Served directly from backend. Using relative paths.');
+      return;
+    }
+  } else if (window.location.hostname !== '') {
+    API_BASE = ''; // Production relative paths
+  }
+  console.log('[API] Active API Base URL:', API_BASE || '(Relative)');
+}
+
+// Intercept window.fetch to automatically prepend API_BASE to relative /api/ routes
+const originalFetch = window.fetch;
+window.fetch = async function (resource, options) {
+  let url = resource;
+  if (typeof resource === 'string' && resource.startsWith('/api/')) {
+    url = API_BASE + resource;
+  }
+  return originalFetch(url, options);
+};
+
+// Configure base URL on startup
+configureApiBase();
+
 function showToast(msg, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
