@@ -29,19 +29,42 @@ ${getLanguageInstruction(language)}
 9. **Do NOT Echo Prompt or Guidelines**: Do NOT repeat, reprint, or echo the user's input prompt, instructions, checklists, or guidelines in your response. Begin your response directly with the greeting and actual educational content.`;
 }
 
-async function chat(message, examName, language, history = [], modelName = MODEL) {
-  const formattedHistory = [];
-  
-  if (history && history.length > 0) {
-    const recentHistory = history.slice(-6);
-    for (const h of recentHistory) {
-      const geminiRole = h.role === 'assistant' ? 'model' : 'user';
-      formattedHistory.push({
-        role: geminiRole,
-        parts: [{ text: h.content }]
-      });
+function buildFormattedHistory(history) {
+  const formatted = [];
+  if (!history || history.length === 0) return formatted;
+
+  let cleanHistory = history;
+  if (cleanHistory[cleanHistory.length - 1].role === 'user') {
+    cleanHistory = cleanHistory.slice(0, -1);
+  }
+
+  const recentHistory = cleanHistory.slice(-6);
+  const rawHistory = recentHistory.map(h => ({
+    role: h.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: h.content }]
+  }));
+
+  const alternating = [];
+  for (const msg of rawHistory) {
+    if (alternating.length === 0) {
+      if (msg.role === 'user') {
+        alternating.push(msg);
+      }
+    } else {
+      const lastMsg = alternating[alternating.length - 1];
+      if (lastMsg.role !== msg.role) {
+        alternating.push(msg);
+      } else {
+        lastMsg.parts.push(...msg.parts);
+      }
     }
   }
+
+  return alternating;
+}
+
+async function chat(message, examName, language, history = [], modelName = MODEL) {
+  const formattedHistory = buildFormattedHistory(history);
 
   const model = genAI.getGenerativeModel({ 
     model: modelName,
@@ -55,25 +78,15 @@ async function chat(message, examName, language, history = [], modelName = MODEL
     history: formattedHistory
   });
 
-  const promptMessage = `[SYSTEM NOTE: DO NOT echo, repeat, or print the prompt/instructions below. Answer directly.]\n\n${message}`;
+  const promptMessage = message;
 
   const result = await chatSession.sendMessage(promptMessage);
-  return result.response.text();
+  const text = result.response.text();
+  return stripGemmaThinking(text);
 }
 
 async function* chatStream(message, examName, language, history = [], modelName = MODEL) {
-  const formattedHistory = [];
-  
-  if (history && history.length > 0) {
-    const recentHistory = history.slice(-6);
-    for (const h of recentHistory) {
-      const geminiRole = h.role === 'assistant' ? 'model' : 'user';
-      formattedHistory.push({
-        role: geminiRole,
-        parts: [{ text: h.content }]
-      });
-    }
-  }
+  const formattedHistory = buildFormattedHistory(history);
 
   const model = genAI.getGenerativeModel({ 
     model: modelName,
@@ -87,17 +100,29 @@ async function* chatStream(message, examName, language, history = [], modelName 
     history: formattedHistory
   });
 
-  const promptMessage = `[SYSTEM NOTE: DO NOT echo, repeat, or print the prompt/instructions below. Answer directly.]\n\n${message}`;
-
+  const promptMessage = message;
   const result = await chatSession.sendMessageStream(promptMessage);
 
+  // Buffer the ENTIRE response first, then clean it.
+  // Gemma embeds template greetings inside planning text (e.g. 'Intro:* नमस्ते..."'),
+  // so mid-stream detection is unreliable. Buffering gives us the full context
+  // needed to distinguish real greetings from planning templates.
+  let fullText = '';
   for await (const chunk of result.stream) {
-    const content = chunk.text();
+    fullText += chunk.text();
+  }
+
+  const cleaned = stripGemmaThinking(fullText);
+  if (!cleaned) return;
+
+  // Yield in ~150-char chunks to simulate streaming effect
+  const CHUNK_SIZE = 150;
+  for (let i = 0; i < cleaned.length; i += CHUNK_SIZE) {
     yield {
       choices: [
         {
           delta: {
-            content: content
+            content: cleaned.substring(i, i + CHUNK_SIZE)
           }
         }
       ]
@@ -246,5 +271,71 @@ ${text}`;
   
   return JSON.parse(responseText);
 }
+
+function stripGemmaThinking(text) {
+  if (!text) return text;
+
+  // Patterns that mark a greeting as a TEMPLATE inside planning text
+  // (e.g. "Intro:* \u0928\u092e\u0938\u094d\u0924\u0947 \u0905\u092d\u094d\u092f\u0930\u094d\u0925\u0940!...\"" or "* Greeting: \u0928\u092e\u0938\u094d\u0915\u093e\u0930...")
+  const templateMarkers = [
+    /\.{2,}["'\u201c\u201d]\s*$|\.\.\.["'\u201c\u201d]/,  // followed by ..."
+    /^[*\-\s]*(intro|greeting|context|section|note)\s*[:\*]/im, // preceded by Intro: / Greeting: etc within same line
+  ];
+
+  const greetingRegex = /(\u0928\u092e\u0938\u094d\u0915\u093e\u0930|\u0928\u092e\u0938\u094d\u0924\u0947|\u092a\u094d\u0930\u0923\u093e\u092e|\u092a\u094d\u0930\u093f\u092f\s+\u0935\u093f\u0926\u094d\u092f\u093e\u0930\u094d\u0925\u0940|\u0939\u0947\u0932\u094b|dear\s+student|hello)/gi;
+
+  // Collect ALL greeting positions
+  const allMatches = [...text.matchAll(greetingRegex)];
+  if (allMatches.length === 0) return text; // No greeting at all — return as-is
+
+  // Find the FIRST greeting that is NOT a planning template.
+  // We decide it's a template if the LINE containing it also contains planning
+  // keywords (Intro:, Context:, Greeting:, *) or ends with quotation marks.
+  let realMatch = null;
+  for (const m of allMatches) {
+    // Extract the line that contains this greeting
+    const lineStart = text.lastIndexOf('\n', m.index) + 1;
+    const lineEnd = text.indexOf('\n', m.index);
+    const line = text.substring(lineStart, lineEnd === -1 ? undefined : lineEnd);
+
+    const isTemplate =
+      /^\s*[*\-]/.test(line) ||
+      /(intro|greeting|context|section|plan)\s*[:\*]/i.test(line) ||
+      /\.{2,}["'\u201c\u201d]/.test(line) ||
+      /["'\u201c\u201d]\s*$/.test(line.trimEnd());
+
+    if (!isTemplate) {
+      realMatch = m;
+      break;
+    }
+  }
+
+  // Fallback: if every greeting looked like a template, use the LAST one
+  if (!realMatch) {
+    realMatch = allMatches[allMatches.length - 1];
+  }
+
+  if (realMatch && realMatch.index > 0) {
+    const precedingText = text.substring(0, realMatch.index).trim();
+    if (precedingText.length > 0) {
+      const planPatterns = [
+        /^\s*[*\-]/m,
+        /user\s+(query|wants|asks|question)/i,
+        /\bplan\b/i,
+        /\bcheck:/i,
+        /\bgreeting:/i,
+        /\bcontext:/i,
+        /\bintro:/i
+      ];
+      const looksLikePlan = planPatterns.some(p => p.test(precedingText));
+      if (looksLikePlan) {
+        return text.substring(realMatch.index).trim();
+      }
+    }
+  }
+
+  return text;
+}
+
 
 module.exports = { chat, chatStream, generateTest, parseSyllabus };

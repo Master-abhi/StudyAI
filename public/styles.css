@@ -1494,6 +1494,13 @@ body {
 .chat-send-btn:active {
   transform: translateY(0) scale(0.96);
 }
+.chat-send-btn.generating {
+  background: var(--error, #e53e3e);
+}
+.chat-send-btn.generating:hover {
+  background: #c53030;
+  box-shadow: 0 4px 12px rgba(229, 62, 98, 0.25);
+}
 
 /* Chat Welcome */
 .chat-welcome {
@@ -3047,6 +3054,88 @@ code {
   border-radius: 4px;
   color: var(--gold);
   font-size: 0.9em;
+}
+
+/* ═══════════════════════════════════════════
+   LOADING SPLASH SCREEN STYLES
+   ═══════════════════════════════════════════ */
+
+.app-splash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #0B0E14; /* Match body background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.app-splash.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-logo {
+  font-size: 4.5rem;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 0 20px rgba(255, 153, 51, 0.2));
+  animation: splashPulse 2s infinite ease-in-out;
+}
+
+.splash-title {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, #FF9933, #FFFFFF, #128807);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.splash-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3.5px solid rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  border-top: 3.5px solid #FF9933; /* Saffron top */
+  border-bottom: 3.5px solid #128807; /* Green bottom */
+  margin: 0 auto 1.5rem auto;
+  animation: splashSpin 1s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+}
+
+.splash-status {
+  font-family: 'Noto Sans Devanagari', sans-serif;
+  font-size: 0.95rem;
+  color: #8F9CAE;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+@keyframes splashSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes splashPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(255, 153, 51, 0.15)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 25px rgba(255, 153, 51, 0.35)); }
 }
 
 

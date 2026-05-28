@@ -65,6 +65,8 @@ let currentScreen = 'exams';
 let appLanguage = 'hi';          // Global: 'hi' (default) | 'en'
 let chatLanguage = 'hindi';      // Derived from appLanguage
 let chatHistory = [];
+let isGeneratingChat = false;
+let chatAbortController = null;
 let testState = {
   mode: 'quiz',
   questions: [],
@@ -90,7 +92,22 @@ document.addEventListener('DOMContentLoaded', () => {
   initLanguageSetting();
   checkDailyReminder();
   checkApiStatus();
+
+  // Safety fallback for splash screen:
+  setTimeout(() => {
+    hideSplash();
+  }, 5000);
 });
+
+function hideSplash() {
+  const splash = document.getElementById('app-splash');
+  if (splash) {
+    splash.classList.add('hidden');
+    setTimeout(() => {
+      splash.style.display = 'none';
+    }, 500);
+  }
+}
 
 function loadState() {
   const savedLang = localStorage.getItem(KEYS.language) || 'hi';
@@ -109,8 +126,18 @@ function loadState() {
     try { chatHistory = JSON.parse(savedChat); } catch (e) { chatHistory = []; }
   }
 
+  // Navigate immediately from localStorage — do NOT wait for Firebase.
+  // Firebase auth callback will still run afterwards and update data,
+  // but this eliminates the exam-selection flash on every page refresh.
+  if (currentExam) {
+    navigateTo('dashboard');
+    hideSplash();
+  }
+  // If no exam selected yet: all screens stay hidden until checkUserAuth() resolves.
+
   if (typeof userState !== 'undefined') userState.refreshFromLocal('initialLocal');
 }
+
 
 function getExamData(examId) {
   if (typeof SYLLABUS_DATA !== 'undefined' && SYLLABUS_DATA[examId]) return SYLLABUS_DATA[examId];
@@ -245,6 +272,67 @@ function mergeGuestData(remote, local) {
   return merged;
 }
 
+// ── Global User Data Helper Getters ──
+function getPoints() {
+  if (typeof userState !== 'undefined' && userState.getSnapshot().uid) {
+    return userState.getUserData().points || 0;
+  }
+  return parseInt(localStorage.getItem(KEYS.points) || '0');
+}
+
+function getMcqsSolved() {
+  if (typeof userState !== 'undefined' && userState.getSnapshot().uid) {
+    return userState.getUserData().mcqsSolved || 0;
+  }
+  return parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0');
+}
+
+function getTestResults() {
+  if (typeof userState !== 'undefined' && userState.getSnapshot().uid) {
+    return userState.getUserData().testResults || [];
+  }
+  try {
+    return JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
+  } catch (e) { return []; }
+}
+
+function getStreak() {
+  if (typeof userState !== 'undefined' && userState.getSnapshot().uid) {
+    return userState.getUserData().streak || { lastDate: '', count: 0 };
+  }
+  try {
+    return JSON.parse(localStorage.getItem(KEYS.streak) || '{"lastDate":"","count":0}');
+  } catch (e) { return { lastDate: '', count: 0 }; }
+}
+
+function getProgress() {
+  if (typeof userState !== 'undefined' && userState.getSnapshot().uid) {
+    const userData = userState.getUserData();
+    return userData.progress?.[currentExam] || {};
+  }
+  try {
+    return JSON.parse(localStorage.getItem(KEYS.progress + currentExam) || '{}');
+  } catch (e) { return {}; }
+}
+
+function getSubjectScores(examId = currentExam) {
+  if (!examId) return {};
+  if (typeof userState !== 'undefined' && userState.getSnapshot().uid) {
+    return userState.getUserData().subjects?.[examId] || {};
+  }
+  const key = KEYS.subjectScores + examId;
+  try {
+    return JSON.parse(localStorage.getItem(key) || '{}');
+  } catch (e) { return {}; }
+}
+
+function getTestsGiven() {
+  if (typeof userState !== 'undefined' && userState.getSnapshot().uid) {
+    return userState.getUserData().testResults?.length || 0;
+  }
+  return parseInt(localStorage.getItem(KEYS.testsGiven) || '0');
+}
+
 const userState = (() => {
   const subscribers = new Set();
   const state = {
@@ -312,8 +400,39 @@ const userState = (() => {
     };
   }
 
+  function clearLocalUserData() {
+    console.log('[Auth] Clearing user progress data from localStorage...');
+    localStorage.removeItem(KEYS.testResults);
+    localStorage.removeItem(KEYS.points);
+    localStorage.removeItem(KEYS.mcqsSolved);
+    localStorage.removeItem(KEYS.streak);
+    localStorage.removeItem(KEYS.selectedExam);
+    localStorage.removeItem(KEYS.testsGiven);
+    const prefixes = [KEYS.progress, KEYS.subjectScores];
+    const toRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && prefixes.some(p => key.startsWith(p))) {
+        toRemove.push(key);
+      }
+    }
+    toRemove.forEach(k => localStorage.removeItem(k));
+  }
+
   function persistUserData(data) {
     if (!data || Object.keys(data).length === 0) return false;
+
+    if (data.selectedExam) {
+      if (!currentExam) {
+        const examData = getExamData(data.selectedExam);
+        if (examData) currentExam = data.selectedExam;
+      }
+    }
+
+    if (state.uid) {
+      // Authenticated user: store in-memory only, DO NOT write to localStorage!
+      return true;
+    }
 
     if (data.testResults && data.testResults.length) localStorage.setItem(KEYS.testResults, JSON.stringify(data.testResults));
     if (data.points !== undefined && data.points !== null) localStorage.setItem(KEYS.points, String(data.points));
@@ -331,10 +450,6 @@ const userState = (() => {
     }
     if (data.selectedExam) {
       localStorage.setItem(KEYS.selectedExam, data.selectedExam);
-      if (!currentExam) {
-        const examData = getExamData(data.selectedExam);
-        if (examData) currentExam = data.selectedExam;
-      }
     }
 
     return true;
@@ -350,6 +465,7 @@ const userState = (() => {
       state.displayName = displayName;
       state.isGuest = false;
       state.isAdmin = isAdmin;
+      state.userData = null; // Clear so it re-initializes on next getUserData call
       notify('auth');
     },
     setGuest() {
@@ -382,6 +498,35 @@ const userState = (() => {
         finalData = mergeGuestData(finalData, localGuestData);
       }
 
+      if (state.uid) {
+        state.userData = {
+          testResults: finalData.testResults || [],
+          points: finalData.points || 0,
+          mcqsSolved: finalData.mcqsSolved || 0,
+          streak: finalData.streak || { lastDate: '', count: 0 },
+          selectedExam: finalData.selectedExam || '',
+          subjects: finalData.subjects || {},
+          progress: finalData.progress || {}
+        };
+        if (state.userData.selectedExam && !currentExam) {
+          const examData = getExamData(state.userData.selectedExam);
+          if (examData) currentExam = state.userData.selectedExam;
+        }
+        state.remoteLoaded = true;
+
+        if (isGuest) {
+          localStorage.removeItem('guestMode');
+          clearLocalUserData();
+          syncUserData().then(() => {
+            console.log('[Auth Merge] Merged data synced to server successfully.');
+          }).catch(err => {
+            console.error('[Auth Merge] Syncing merged data failed:', err);
+          });
+        }
+        notify('userData');
+        return true;
+      }
+
       const applied = persistUserData(finalData);
       if (!applied) {
         state.remoteLoaded = false;
@@ -389,9 +534,7 @@ const userState = (() => {
       }
 
       if (isGuest) {
-        // Remove guestMode now that data has been merged and persisted locally
         localStorage.removeItem('guestMode');
-        // Immediately sync the merged progress back to the server
         syncUserData().then(() => {
           console.log('[Auth Merge] Merged data synced to server successfully.');
         }).catch(err => {
@@ -405,7 +548,9 @@ const userState = (() => {
       return true;
     },
     refreshFromLocal(reason = 'local') {
-      state.userData = snapshotFromLocal();
+      if (!state.uid) {
+        state.userData = snapshotFromLocal();
+      }
       notify(reason);
     },
     setAnalyticsOverview(data) {
@@ -420,7 +565,21 @@ const userState = (() => {
       return { ...state };
     },
     getUserData() {
-      if (!state.userData) state.userData = snapshotFromLocal();
+      if (!state.userData) {
+        if (state.uid) {
+          state.userData = {
+            testResults: [],
+            points: 0,
+            mcqsSolved: 0,
+            streak: { lastDate: '', count: 0 },
+            selectedExam: '',
+            subjects: {},
+            progress: {}
+          };
+        } else {
+          state.userData = snapshotFromLocal();
+        }
+      }
       return state.userData;
     },
     getLocalAnalytics(examId = currentExam) {
@@ -659,8 +818,15 @@ function renderExamGrid() {
 
 function selectExam(examId) {
   currentExam = examId;
-  localStorage.setItem(KEYS.selectedExam, examId);
-  userState.refreshFromLocal('selectedExam');
+  if (userState.getSnapshot().uid) {
+    const userData = userState.getUserData();
+    userData.selectedExam = examId;
+    userState.refreshFromLocal('selectedExam');
+    syncUserData().catch(err => console.error('[Sync] selectExam failed:', err));
+  } else {
+    localStorage.setItem(KEYS.selectedExam, examId);
+    userState.refreshFromLocal('selectedExam');
+  }
   updateStreak();
   cachedAIPlan = null; // Invalidate cached study plan
   navigateTo('dashboard');
@@ -669,8 +835,15 @@ function selectExam(examId) {
 
 function changeExam() {
   currentExam = null;
-  localStorage.removeItem(KEYS.selectedExam);
-  userState.refreshFromLocal('selectedExam');
+  if (userState.getSnapshot().uid) {
+    const userData = userState.getUserData();
+    userData.selectedExam = '';
+    userState.refreshFromLocal('selectedExam');
+    syncUserData().catch(err => console.error('[Sync] changeExam failed:', err));
+  } else {
+    localStorage.removeItem(KEYS.selectedExam);
+    userState.refreshFromLocal('selectedExam');
+  }
   renderExamGrid();
   navigateTo('exams');
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -695,7 +868,7 @@ function updateDashboard() {
 
   const titleEl = document.getElementById('greeting-title');
   if (titleEl) {
-    titleEl.textContent = localStorage.getItem('userName') || 'Student';
+    titleEl.textContent = userState.getSnapshot().displayName || localStorage.getItem('userName') || 'Student';
   }
 
   const progress = getProgress();
@@ -722,7 +895,7 @@ function updateDashboard() {
   const streakEl = document.getElementById('stat-streak');
   if (streakEl) streakEl.textContent = streak.count;
 
-  const testsGiven = parseInt(localStorage.getItem(KEYS.testsGiven) || '0');
+  const testsGiven = getTestsGiven();
   const testsEl = document.getElementById('stat-tests');
   if (testsEl) testsEl.textContent = testsGiven;
 
@@ -759,7 +932,7 @@ async function updateProfile() {
   // Load server data into localStorage before rendering
   await loadUserDataFromServer();
 
-  const userName = localStorage.getItem('userName') || 'Guest User';
+  const userName = userState.getSnapshot().displayName || localStorage.getItem('userName') || 'Guest User';
   document.getElementById('profile-name').textContent = userName;
   document.getElementById('profile-avatar').textContent = userName !== 'Guest User' ? '👨‍🎓' : '👤';
 
@@ -774,14 +947,14 @@ async function updateProfile() {
   const streak = getStreak();
   document.getElementById('profile-streak').textContent = streak.count;
 
-  const testResults = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
+  const testResults = getTestResults();
   const mockTests = testResults.filter(r => r.mode === 'mock').length;
   document.getElementById('profile-mock-tests').textContent = mockTests;
 
-  const mcqsSolved = parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0');
+  const mcqsSolved = getMcqsSolved();
   document.getElementById('profile-mcqs').textContent = mcqsSolved;
 
-  const points = parseInt(localStorage.getItem(KEYS.points) || '0');
+  const points = getPoints();
   document.getElementById('profile-points').textContent = points;
 
   const level = calculateLevel(points, mcqsSolved, testResults);
@@ -1072,7 +1245,7 @@ function renderWeeklyActivity() {
   const container = document.getElementById('profile-weekly-bars');
   if (!container) return;
 
-  const testResults = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
+  const testResults = getTestResults();
   
   // Calculate the start of the current week (Monday 00:00:00)
   const now = new Date();
@@ -1253,8 +1426,7 @@ function renderProfileSubjects(exam) {
 }
 
 function analyzeSubjectPerformance(exam) {
-  const key = KEYS.subjectScores + currentExam;
-  const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
+  const subjectScores = getSubjectScores();
   const progress = getProgress();
 
   const subjectData = Object.entries(subjectScores).map(([name, data]) => {
@@ -1348,8 +1520,7 @@ function getWeakTopicSuggestion(exam, subjectName, progress) {
 function renderDetailedPerformance(exam) {
   const container = document.getElementById('subject-performance-list');
   if (!container) return;
-  const key = KEYS.subjectScores + currentExam;
-  const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
+  const subjectScores = getSubjectScores();
   const progress = getProgress();
 
   if (Object.keys(subjectScores).length === 0) {
@@ -1404,8 +1575,7 @@ function renderDetailedPerformance(exam) {
 function generateRecommendations(exam) {
   const container = document.getElementById('recommendations-box');
   if (!container) return;
-  const key = KEYS.subjectScores + currentExam;
-  const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
+  const subjectScores = getSubjectScores();
   const progress = getProgress();
 
   const recommendations = [];
@@ -1452,7 +1622,7 @@ function generateRecommendations(exam) {
     });
   }
 
-  const testResults = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
+  const testResults = getTestResults();
   const recentTests = testResults.filter(r => r.exam === currentExam).slice(-5);
   if (recentTests.length >= 3) {
     const avgScore = recentTests.reduce((sum, t) => sum + t.percent, 0) / recentTests.length;
@@ -1487,10 +1657,8 @@ function generateRecommendations(exam) {
 function trackTestPerformance(subjectName, score, total) {
   if (!currentExam) return;
 
-  const key = KEYS.subjectScores + currentExam;
-  const subjectScores = JSON.parse(localStorage.getItem(key) || '{}');
-
   const percent = Math.round((score / total) * 100);
+  const subjectScores = getSubjectScores();
 
   if (!subjectScores[subjectName]) {
     subjectScores[subjectName] = {
@@ -1515,8 +1683,16 @@ function trackTestPerformance(subjectName, score, total) {
     subjectScores[subjectName].recentScores.shift();
   }
 
-  localStorage.setItem(key, JSON.stringify(subjectScores));
-  userState.refreshFromLocal('subjectScores');
+  if (userState.getSnapshot().uid) {
+    const userData = userState.getUserData();
+    if (!userData.subjects) userData.subjects = {};
+    userData.subjects[currentExam] = subjectScores;
+    userState.refreshFromLocal('subjectScores');
+  } else {
+    const key = KEYS.subjectScores + currentExam;
+    localStorage.setItem(key, JSON.stringify(subjectScores));
+    userState.refreshFromLocal('subjectScores');
+  }
   console.log('[Profile] Tracked:', subjectName, '- Score:', percent + '%', '- Total tests:', subjectScores[subjectName].count);
 }
 
@@ -1527,26 +1703,21 @@ function getAllTopics() {
   return exam.subjects.flatMap(s => s.topics);
 }
 
-function getProgress() {
-  try {
-    return JSON.parse(localStorage.getItem(KEYS.progress + currentExam) || '{}');
-  } catch (e) { return {}; }
-}
-
 function saveProgress(progress) {
-  localStorage.setItem(KEYS.progress + currentExam, JSON.stringify(progress));
-  userState.refreshFromLocal('progress');
+  if (userState.getSnapshot().uid) {
+    const userData = userState.getUserData();
+    if (!userData.progress) userData.progress = {};
+    userData.progress[currentExam] = progress;
+    userState.refreshFromLocal('progress');
+  } else {
+    localStorage.setItem(KEYS.progress + currentExam, JSON.stringify(progress));
+    userState.refreshFromLocal('progress');
+  }
 }
 
 // ═══════════════════════════════════════════
 //              STREAK TRACKING
 // ═══════════════════════════════════════════
-
-function getStreak() {
-  try {
-    return JSON.parse(localStorage.getItem(KEYS.streak) || '{"lastDate":"","count":0}');
-  } catch (e) { return { lastDate: '', count: 0 }; }
-}
 
 function updateStreak() {
   const today = new Date().toISOString().split('T')[0];
@@ -1565,8 +1736,16 @@ function updateStreak() {
   }
 
   streak.lastDate = today;
-  localStorage.setItem(KEYS.streak, JSON.stringify(streak));
-  userState.refreshFromLocal('streak');
+
+  if (userState.getSnapshot().uid) {
+    const userData = userState.getUserData();
+    userData.streak = streak;
+    userState.refreshFromLocal('streak');
+    syncUserData().catch(err => console.error('[Sync] updateStreak failed:', err));
+  } else {
+    localStorage.setItem(KEYS.streak, JSON.stringify(streak));
+    userState.refreshFromLocal('streak');
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -1844,16 +2023,28 @@ function renderExamPattern(exam) {
 //              AI CHAT
 // ═══════════════════════════════════════════
 
+function handleChatSendClick() {
+  if (isGeneratingChat) {
+    if (chatAbortController) {
+      chatAbortController.abort();
+    }
+  } else {
+    sendMessage();
+  }
+}
+
 function initChat() {
   const input = document.getElementById('chat-input');
   const sendBtn = document.getElementById('btn-chat-send');
 
-  sendBtn.addEventListener('click', sendMessage);
+  sendBtn.addEventListener('click', handleChatSendClick);
 
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      if (!isGeneratingChat) {
+        sendMessage();
+      }
     }
   });
 
@@ -1864,12 +2055,19 @@ function initChat() {
 
   document.querySelectorAll('.quick-prompt-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      document.getElementById('chat-input').value = chip.dataset.prompt;
-      sendMessage();
+      if (!isGeneratingChat) {
+        document.getElementById('chat-input').value = chip.dataset.prompt;
+        sendMessage();
+      }
     });
   });
 
   document.getElementById('btn-new-chat').addEventListener('click', () => {
+    if (isGeneratingChat) {
+      if (chatAbortController) {
+        chatAbortController.abort();
+      }
+    }
     chatHistory = [];
     localStorage.removeItem(KEYS.chatHistory);
     document.getElementById('chat-messages').innerHTML = document.getElementById('chat-welcome') ?
@@ -1897,8 +2095,10 @@ function renderChatWelcome() {
 
   container.querySelectorAll('.quick-prompt-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      document.getElementById('chat-input').value = chip.dataset.prompt;
-      sendMessage();
+      if (!isGeneratingChat) {
+        document.getElementById('chat-input').value = chip.dataset.prompt;
+        sendMessage();
+      }
     });
   });
 }
@@ -1920,6 +2120,8 @@ function restoreChatHistory() {
 }
 
 async function sendMessage() {
+  if (isGeneratingChat) return;
+
   const input = document.getElementById('chat-input');
   const message = input.value.trim();
   if (!message) return;
@@ -1936,9 +2138,20 @@ async function sendMessage() {
   input.style.height = 'auto';
 
   const sendBtn = document.getElementById('btn-chat-send');
-  sendBtn.disabled = true;
+  
+  isGeneratingChat = true;
+  chatAbortController = new AbortController();
+  sendBtn.innerHTML = '⏹';
+  sendBtn.title = 'Stop';
+  sendBtn.classList.add('generating');
+  sendBtn.disabled = false;
 
   showTypingIndicator();
+
+  let aiTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  let fullText = '';
+  let bubbleEl = null;
+  let contentEl = null;
 
   try {
     const examData = getExamData(currentExam);
@@ -1953,7 +2166,8 @@ async function sendMessage() {
         language: chatLanguage,
         history: chatHistory.slice(-6),
         stream: true
-      })
+      }),
+      signal: chatAbortController.signal
     });
 
     hideTypingIndicator();
@@ -1972,10 +2186,8 @@ async function sendMessage() {
     const contentType = response.headers.get('Content-Type');
 
     if (contentType && contentType.includes('text/event-stream')) {
-      const aiTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const bubbleEl = appendChatBubble('ai', '', aiTimestamp, false);
-      const contentEl = bubbleEl.querySelector('.bubble-content');
-      let fullText = '';
+      bubbleEl = appendChatBubble('ai', '', aiTimestamp, false);
+      contentEl = bubbleEl.querySelector('.bubble-content');
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -2006,7 +2218,6 @@ async function sendMessage() {
       chatHistory.push({ role: 'assistant', content: fullText, timestamp: aiTimestamp });
     } else {
       const data = await response.json();
-      const aiTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       appendChatBubble('ai', data.reply, aiTimestamp);
       chatHistory.push({ role: 'assistant', content: data.reply, timestamp: aiTimestamp });
     }
@@ -2019,11 +2230,31 @@ async function sendMessage() {
 
   } catch (err) {
     hideTypingIndicator();
-    appendChatBubble('ai', `⚠️ Error: ${err.message}. Please check if the server is running and the API key is configured.`, '');
+    if (err.name === 'AbortError') {
+      console.log('Chat generation aborted by user.');
+      if (fullText) {
+        fullText += '\n\n*(Generation stopped)*';
+        if (contentEl) {
+          contentEl.innerHTML = formatMarkdown(fullText);
+        }
+        chatHistory.push({ role: 'assistant', content: fullText, timestamp: aiTimestamp });
+      } else {
+        appendChatBubble('ai', '*(Generation stopped)*', aiTimestamp);
+        chatHistory.push({ role: 'assistant', content: '*(Generation stopped)*', timestamp: aiTimestamp });
+      }
+      localStorage.setItem(KEYS.chatHistory, JSON.stringify(chatHistory));
+    } else {
+      appendChatBubble('ai', `⚠️ Error: ${err.message}. Please check if the server is running and the API key is configured.`, '');
+    }
+  } finally {
+    isGeneratingChat = false;
+    chatAbortController = null;
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = '➤';
+    sendBtn.title = 'Send';
+    sendBtn.classList.remove('generating');
+    scrollChatToBottom();
   }
-
-  sendBtn.disabled = false;
-  scrollChatToBottom();
 }
 
 function appendChatBubble(type, content, timestamp, doScroll = true) {
@@ -2454,10 +2685,8 @@ function finishTest() {
   document.getElementById('test-active').classList.remove('visible');
   document.getElementById('score-card').classList.remove('hidden');
 
-  const testsGiven = parseInt(localStorage.getItem(KEYS.testsGiven) || '0') + 1;
-  localStorage.setItem(KEYS.testsGiven, testsGiven.toString());
-
-  const results = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
+  const testsGivenVal = getTestsGiven() + 1;
+  const results = getTestResults();
   results.push({
     date: new Date().toISOString(),
     exam: currentExam,
@@ -2467,16 +2696,26 @@ function finishTest() {
     percent: percent
   });
   if (results.length > 50) results.shift();
-  localStorage.setItem(KEYS.testResults, JSON.stringify(results));
-  cachedAIPlan = null; // Clear cached plan to force update on next profile view
 
-  const mcqsSolved = parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0') + total;
-  localStorage.setItem(KEYS.mcqsSolved, mcqsSolved.toString());
-
+  const mcqsSolved = getMcqsSolved() + total;
   const earnedPoints = (correct * 10) + (testState.mode === 'mock' ? 20 : 0);
-  const currentPoints = parseInt(localStorage.getItem(KEYS.points) || '0');
-  localStorage.setItem(KEYS.points, (currentPoints + earnedPoints).toString());
-  userState.refreshFromLocal('testResult');
+  const currentPoints = getPoints();
+  const newPoints = currentPoints + earnedPoints;
+
+  if (userState.getSnapshot().uid) {
+    const userData = userState.getUserData();
+    userData.testResults = results;
+    userData.mcqsSolved = mcqsSolved;
+    userData.points = newPoints;
+    userState.refreshFromLocal('testResult');
+  } else {
+    localStorage.setItem(KEYS.testsGiven, testsGivenVal.toString());
+    localStorage.setItem(KEYS.testResults, JSON.stringify(results));
+    localStorage.setItem(KEYS.mcqsSolved, mcqsSolved.toString());
+    localStorage.setItem(KEYS.points, newPoints.toString());
+    userState.refreshFromLocal('testResult');
+  }
+  cachedAIPlan = null; // Clear cached plan to force update on next profile view
   showXPPopup(earnedPoints);
 
   const subjectName = testState.selectedSubject;
@@ -2926,30 +3165,8 @@ async function runClientSideScraper() {
   if (hindiNews.status === 'fulfilled') allArticles.push(...hindiNews.value);
   if (employment.status === 'fulfilled') allArticles.push(...employment.value);
 
-  if (allArticles.length < 5) {
-    console.log('[Client Scraper] Too few articles scraped, using fallback data');
-    allArticles.push(
-      {
-        title: 'Supreme Court Landmark Ruling on Right to Privacy',
-        description: 'National • The Supreme Court expanded the scope of fundamental right to privacy in a landmark judgment.',
-        category: 'affairs',
-        date: new Date().toISOString().split('T')[0],
-        source: 'National News',
-        url: '#',
-        icon: '⚖️',
-        lang: 'en'
-      },
-      {
-        title: 'निजता के अधिकार पर सुप्रीम कोर्ट का ऐतिहासिक फैसला',
-        description: 'राष्ट्रीय • सुप्रीम कोर्ट ने एक ऐतिहासिक फैसले में मौलिक निजता के अधिकार के दायरे का विस्तार किया।',
-        category: 'affairs',
-        date: new Date().toISOString().split('T')[0],
-        source: 'राष्ट्रीय समाचार',
-        url: '#',
-        icon: '⚖️',
-        lang: 'hi'
-      }
-    );
+  if (allArticles.length === 0) {
+    throw new Error('All browser scraping sources returned empty. Proxies may be rate-limited or blocked.');
   }
 
   allArticles = clientDeduplicateArticles(allArticles);
@@ -3082,18 +3299,55 @@ async function loadNews() {
       }
 
       if (localData && remoteData) {
-        const localTime = new Date(localData.lastUpdated || 0).getTime();
-        const remoteTime = new Date(remoteData.lastUpdated || 0).getTime();
-        data = localTime >= remoteTime ? localData : remoteData;
+        const localCount = (localData.articles || []).length;
+        const remoteCount = (remoteData.articles || []).length;
+        if (remoteCount > 5 && localCount <= 2) {
+          console.log('[News] Local cache has fallback/empty data, preferring remote Firestore cache');
+          data = remoteData;
+        } else {
+          const localTime = new Date(localData.lastUpdated || 0).getTime();
+          const remoteTime = new Date(remoteData.lastUpdated || 0).getTime();
+          data = localTime >= remoteTime ? localData : remoteData;
+        }
       } else {
         data = localData || remoteData;
       }
     }
 
     if (!data) {
-      console.log('[News] No cache found, running client-side scraper automatically...');
-      await runClientSideScraper();
-      return;
+      console.log('[News] No cache found, attempting client-side scraper...');
+      try {
+        await runClientSideScraper();
+        return;
+      } catch (scrapErr) {
+        console.warn('[News] Client scraper failed on initial load:', scrapErr);
+        // Fallback mock news if absolutely nothing else is available
+        data = {
+          lastUpdated: new Date().toISOString(),
+          articles: [
+            {
+              title: 'Supreme Court Landmark Ruling on Right to Privacy',
+              description: 'National • The Supreme Court expanded the scope of fundamental right to privacy in a landmark judgment.',
+              category: 'affairs',
+              date: new Date().toISOString().split('T')[0],
+              source: 'National News',
+              url: '#',
+              icon: '⚖️',
+              lang: 'en'
+            },
+            {
+              title: 'निजता के अधिकार पर सुप्रीम कोर्ट का ऐतिहासिक फैसला',
+              description: 'राष्ट्रीय • सुप्रीम कोर्ट ने एक ऐतिहासिक फैसले में मौलिक निजता के अधिकार के दायरे का विस्तार किया।',
+              category: 'affairs',
+              date: new Date().toISOString().split('T')[0],
+              source: 'राष्ट्रीय समाचार',
+              url: '#',
+              icon: '⚖️',
+              lang: 'hi'
+            }
+          ]
+        };
+      }
     }
 
     newsData = data.articles || [];
@@ -3768,9 +4022,14 @@ async function checkUserAuth() {
         await loadUserDataFromServer();
 
         if (!currentExam) {
-          const savedExam = localStorage.getItem(KEYS.selectedExam);
-          if (savedExam && getExamData(savedExam)) {
-            currentExam = savedExam;
+          const remoteExam = userState.getUserData().selectedExam;
+          if (remoteExam && getExamData(remoteExam)) {
+            currentExam = remoteExam;
+          } else {
+            const savedExam = localStorage.getItem(KEYS.selectedExam);
+            if (savedExam && getExamData(savedExam)) {
+              currentExam = savedExam;
+            }
           }
         }
 
@@ -3780,6 +4039,8 @@ async function checkUserAuth() {
           else navigateTo('exams');
           if (typeof renderExamGrid === 'function') renderExamGrid();
         }
+
+        hideSplash();
 
         if (!window._isSignupFlow) {
           showToast(`Welcome back, ${displayName}! 👋`);
@@ -3796,6 +4057,7 @@ async function checkUserAuth() {
           else navigateTo('exams');
           document.getElementById('modal-auth')?.classList.remove('visible');
         }
+        hideSplash();
       } else {
         _isAdmin = false;
         stopRealtimeListeners();
@@ -3805,9 +4067,11 @@ async function checkUserAuth() {
           navigateTo('exams');
         }
         document.getElementById('modal-auth')?.classList.add('visible');
+        hideSplash();
       }
     } catch (err) {
       console.error('[Auth] Handler error:', err);
+      hideSplash();
     }
   });
 }
@@ -4347,9 +4611,9 @@ function updateDashboardLevel() {
   const levelEl = document.getElementById('dash-level');
   const avatarEl = document.getElementById('dash-avatar');
 
-  const points = parseInt(localStorage.getItem(KEYS.points) || '0');
-  const mcqs = parseInt(localStorage.getItem(KEYS.mcqsSolved) || '0');
-  const results = JSON.parse(localStorage.getItem(KEYS.testResults) || '[]');
+  const points = getPoints();
+  const mcqs = getMcqsSolved();
+  const results = getTestResults();
 
   if (pointsEl) pointsEl.textContent = `${points} XP`;
   
@@ -4357,7 +4621,7 @@ function updateDashboardLevel() {
   if (levelEl) levelEl.textContent = level;
 
   if (avatarEl) {
-    const userName = localStorage.getItem('userName') || 'Guest User';
+    const userName = userState.getSnapshot().displayName || localStorage.getItem('userName') || 'Guest User';
     if (userName === 'Guest User') {
       avatarEl.textContent = '👤';
     } else {

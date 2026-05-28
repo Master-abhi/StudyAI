@@ -74,6 +74,28 @@ app.use((err, req, res, next) => {
 // Schedule scraper runs via GitHub Action: .github/workflows/refresh-news.yml
 // On Vercel (serverless), node-cron does NOT work — the Action calls POST /api/news/refresh
 
+// For local server, we run an hourly background job to keep the cache updated:
+const { scrapeAll } = require('./services/scraper');
+setInterval(async () => {
+  try {
+    console.log('[Server Scheduler] Starting hourly news scrape...');
+    await scrapeAll();
+    console.log('[Server Scheduler] Hourly news scrape completed successfully ✅');
+  } catch (err) {
+    console.error('[Server Scheduler Error]:', err.message);
+  }
+}, 3600000); // 1 hour
+
+// Trigger an initial scrape on startup to ensure fresh data right away
+setTimeout(async () => {
+  try {
+    console.log('[Server Startup] Running initial news scrape...');
+    await scrapeAll();
+  } catch (err) {
+    console.error('[Server Startup Scrape Error]:', err.message);
+  }
+}, 5000); // 5 seconds after startup
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

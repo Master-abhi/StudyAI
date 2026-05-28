@@ -38,13 +38,17 @@ async function chat(message, examName, language, history = []) {
   ];
 
   if (history && history.length > 0) {
-    const recentHistory = history.slice(-6);
+    let cleanHistory = history;
+    if (cleanHistory[cleanHistory.length - 1].role === 'user') {
+      cleanHistory = cleanHistory.slice(0, -1);
+    }
+    const recentHistory = cleanHistory.slice(-6);
     for (const h of recentHistory) {
       messages.push({ role: h.role, content: h.content });
     }
   }
 
-  const promptMessage = `[SYSTEM NOTE: DO NOT echo, repeat, or print the prompt/instructions below. Answer directly.]\n\n${message}`;
+  const promptMessage = message;
   messages.push({ role: 'user', content: promptMessage });
 
   const response = await client.chat.completions.create({
@@ -62,13 +66,17 @@ async function chatStream(message, examName, language, history = []) {
   ];
 
   if (history && history.length > 0) {
-    const recentHistory = history.slice(-6);
+    let cleanHistory = history;
+    if (cleanHistory[cleanHistory.length - 1].role === 'user') {
+      cleanHistory = cleanHistory.slice(0, -1);
+    }
+    const recentHistory = cleanHistory.slice(-6);
     for (const h of recentHistory) {
       messages.push({ role: h.role, content: h.content });
     }
   }
 
-  const promptMessage = `[SYSTEM NOTE: DO NOT echo, repeat, or print the prompt/instructions below. Answer directly.]\n\n${message}`;
+  const promptMessage = message;
   messages.push({ role: 'user', content: promptMessage });
 
   const stream = await client.chat.completions.create({

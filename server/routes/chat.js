@@ -13,6 +13,14 @@ router.post('/', async (req, res) => {
     const exam = examName || 'Government Competitive Exam';
     const lang = language || 'english';
 
+    let cleanHistory = history || [];
+    if (cleanHistory.length > 0) {
+      const lastMsg = cleanHistory[cleanHistory.length - 1];
+      if (lastMsg.role === 'user' && lastMsg.content === message) {
+        cleanHistory = cleanHistory.slice(0, -1);
+      }
+    }
+
     if (stream) {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
@@ -33,7 +41,7 @@ router.post('/', async (req, res) => {
       };
 
       try {
-        const streamObj = await ai.chatStream(message, exam, lang, history || []);
+        const streamObj = await ai.chatStream(message, exam, lang, cleanHistory);
 
         req.on('close', () => {
           ended = true;
@@ -62,7 +70,7 @@ router.post('/', async (req, res) => {
         safeEnd();
       }
     } else {
-      const reply = await ai.chat(message, exam, lang, history || []);
+      const reply = await ai.chat(message, exam, lang, cleanHistory);
       res.json({ reply });
     }
   } catch (err) {
