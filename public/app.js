@@ -2556,10 +2556,15 @@ function initNewsScreen() {
 
 async function refreshNews(silent = false) {
   try {
-    const res = await fetch('/api/news/refresh', { method: 'POST' });
-    if (!res.ok) throw new Error('Refresh failed');
-    const data = await res.json();
-    newsLastUpdated = data.lastUpdated;
+    try {
+      const res = await fetch('/api/news/refresh', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        newsLastUpdated = data.lastUpdated;
+      }
+    } catch (apiErr) {
+      console.warn('[News] API refresh POST failed, will load latest cache:', apiErr);
+    }
     await loadNews();
   } catch (err) {
     if (!silent) {
@@ -2580,10 +2585,24 @@ async function loadNews() {
   if (timeEl) timeEl.textContent = 'Loading...';
 
   try {
-    const response = await fetch(`/api/news`);
-    if (!response.ok) throw new Error('Failed to fetch news');
+    let data;
+    try {
+      const response = await fetch(`/api/news`);
+      if (!response.ok) throw new Error('Failed to fetch news');
+      data = await response.json();
+    } catch (err) {
+      console.warn('[News] Server API offline or failed, falling back to direct Firestore fetch:', err);
+      const db = getFirestoreClient();
+      if (!db) {
+        throw new Error('Local server is offline and Firestore client is unavailable.');
+      }
+      const doc = await db.collection('news').doc('cache').get();
+      if (!doc.exists) {
+        throw new Error('Local server is offline and no news cache found in Firestore.');
+      }
+      data = doc.data();
+    }
 
-    const data = await response.json();
     newsData = data.articles || [];
     newsLastUpdated = data.lastUpdated;
 
