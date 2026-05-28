@@ -88,6 +88,16 @@ async function loadDashboard() {
     document.getElementById('btn-groq').classList.toggle('active', active === 'groq');
     document.getElementById('btn-gemini').classList.toggle('active', active === 'gemini');
     document.getElementById('btn-claude').classList.toggle('active', active === 'claude');
+
+    if (data.geminiModelTest) {
+      document.getElementById('gemini-model-test').value = data.geminiModelTest;
+    }
+    if (data.geminiModelAnalytics) {
+      document.getElementById('gemini-model-analytics').value = data.geminiModelAnalytics;
+    }
+    if (data.geminiModelChat) {
+      document.getElementById('gemini-model-chat').value = data.geminiModelChat;
+    }
   } catch (e) {
     showToast('Failed to load AI config', 'error');
   }
@@ -118,6 +128,35 @@ async function setAI(model) {
     }
   } catch (e) {
     showToast('Failed to switch AI', 'error');
+  }
+}
+
+async function saveGeminiModel(type) {
+  try {
+    const headers = await getAuthHeader();
+    const payload = {};
+    if (type === 'test') {
+      payload.geminiModelTest = document.getElementById('gemini-model-test').value;
+    } else if (type === 'analytics') {
+      payload.geminiModelAnalytics = document.getElementById('gemini-model-analytics').value;
+    } else if (type === 'chat') {
+      payload.geminiModelChat = document.getElementById('gemini-model-chat').value;
+    }
+
+    const res = await fetch('/api/admin/config/ai', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      showToast(`Gemini ${type} model updated successfully`);
+      loadDashboard();
+    } else {
+      const errData = await res.json();
+      showToast(errData.error || 'Failed to update Gemini model', 'error');
+    }
+  } catch (e) {
+    showToast('Failed to save Gemini model configuration', 'error');
   }
 }
 

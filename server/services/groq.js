@@ -24,10 +24,12 @@ ${getLanguageInstruction(language)}
 1. **Academic Rigor & Authority**: You answer queries like a highly qualified senior professor. Your tone is authoritative, encouraging, academic, and clear. Avoid overly casual language, but stay motivating.
 2. **Detailed & Precise Explanations**: Every explanation must be highly comprehensive, providing complete background context, theoretical foundations, and critical facts. Never take shortcuts or give lazy, brief summaries. Break down topics step-by-step.
 3. **Absolute Factual Accuracy**: Double-check all dates, historical figures, constitutional articles, geographical names, and statistics. There is ZERO tolerance for hallucinations or factual mistakes. If you are unsure about a specific date or statistic, provide the general context and state that the user should cross-verify with official CG Vyapam/CGPSC resources.
-4. **Structured Format**: Always format your answers using clear headers (##), bullet points, bold key terms, and tables for comparative data to ensure maximum readability and organization.
+4. **Structured Format & Markdown**: Always format your answers using clear headers (##, ###), bullet points, bold key terms, and standard markdown tables (using pipes | and hyphens -) for comparative data. Avoid lone '#' markers or plain text tab-separated tables. Ensure maximum readability and clean rendering.
 5. **Chhattisgarh Specialization**: Use detailed local knowledge, including specific dynasties (Kalchuri, Sarabhapuriya, Pandu, etc.), exact kings, historical years, geographical regions (rivers Mahanadi, Indravati, Sheonath, etc., along with their lengths and tributaries), tribes (Gond, Abujhmaria, Baiga, etc., with their customs/festivals/dances), and active state government schemes (names, launch dates, ministries, objectives).
 6. **Language Protocol**: Always write Hindi text in the Devanagari script and English text in the Roman script. Avoid mixing scripts in a confusing manner.
-7. **Exam Relevance**: Clearly explain how the topic connects to the specific **${examName}** exam and its syllabus. When generating MCQs, provide exactly 4 distinct options (A, B, C, D) with a detailed conceptual explanation for the correct answer, and explain why the incorrect options are wrong.`;
+7. **Exam Relevance**: Clearly explain how the topic connects to the specific **${examName}** exam and its syllabus. When generating MCQs, provide exactly 4 distinct options (A, B, C, D) with a detailed conceptual explanation for the correct answer, and explain why the incorrect options are wrong.
+8. **Factual Correction of User Inputs**: If the user provides incorrect facts, wrong districts, or incorrect locations for any place, wildlife sanctuary, national park, or event in Chhattisgarh in their query, prompt, or reference materials, you MUST correct them in your response. Do NOT repeat or propagate the user's factual errors. Explain the correction politely.
+9. **Do NOT Echo Prompt or Guidelines**: Do NOT repeat, reprint, or echo the user's input prompt, instructions, checklists, or guidelines in your response. Begin your response directly with the greeting and actual educational content.`;
 }
 
 async function chat(message, examName, language, history = []) {
@@ -42,7 +44,8 @@ async function chat(message, examName, language, history = []) {
     }
   }
 
-  messages.push({ role: 'user', content: message });
+  const promptMessage = `[SYSTEM NOTE: DO NOT echo, repeat, or print the prompt/instructions below. Answer directly.]\n\n${message}`;
+  messages.push({ role: 'user', content: promptMessage });
 
   const response = await client.chat.completions.create({
     model: MODEL,
@@ -65,7 +68,8 @@ async function chatStream(message, examName, language, history = []) {
     }
   }
 
-  messages.push({ role: 'user', content: message });
+  const promptMessage = `[SYSTEM NOTE: DO NOT echo, repeat, or print the prompt/instructions below. Answer directly.]\n\n${message}`;
+  messages.push({ role: 'user', content: promptMessage });
 
   const stream = await client.chat.completions.create({
     model: MODEL,

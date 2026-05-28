@@ -4,7 +4,7 @@ const multer = require('multer');
 const { db, bucket } = require('../firebase-admin');
 const { verifyAdmin } = require('../middleware/verifyFirebaseToken');
 const { extractTextFromPDF } = require('../services/syllabusParser');
-const { getActiveAI, setActiveAI } = require('../services/aiManager');
+const { getActiveAI, setActiveAI, getGeminiConfig, updateAIConfig } = require('../services/aiManager');
 
 // Use memory storage — PDFs go to Firebase Storage, not local disk
 const upload = multer({
@@ -21,17 +21,75 @@ const MATERIALS_COL = db.collection('materials');
 // ── AI Config Routes ──
 
 router.get('/config/ai', verifyAdmin, async (req, res) => {
-  res.json({ activeAI: await getActiveAI() });
+  try {
+    const activeAI = await getActiveAI();
+    const geminiConfig = await getGeminiConfig();
+    res.json({
+      activeAI,
+      geminiModelTest: geminiConfig.test,
+      geminiModelAnalytics: geminiConfig.analytics,
+      geminiModelChat: geminiConfig.chat
+    });
+  } catch (err) {
+    console.error('[Admin Config GET Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve AI configuration' });
+  }
 });
 
 router.post('/config/ai', verifyAdmin, async (req, res) => {
-  const { model } = req.body;
-  if (model === 'claude' || model === 'groq' || model === 'gemini') {
-    const success = await setActiveAI(model);
-    if (success) return res.json({ success: true, activeAI: model });
+  try {
+    const { model, geminiModelTest, geminiModelAnalytics, geminiModelChat } = req.body;
+    
+    const updates = {};
+    if (model) {
+      if (model === 'claude' || model === 'groq' || model === 'gemini') {
+        updates.activeAI = model;
+      } else {
+        return res.status(400).json({ error: 'Invalid active AI model provider' });
+      }
+    }
+
+    const validModels = [
+      'gemini-3.5-flash',
+      'gemini-3.5-pro',
+      'gemini-3.1-flash-lite',
+      'gemini-2.5-flash',
+      'gemini-2.5-pro',
+      'gemma-4-31b-it'
+    ];
+
+    if (geminiModelTest) {
+      if (!validModels.includes(geminiModelTest)) {
+        return res.status(400).json({ error: `Invalid Gemini Test Model: ${geminiModelTest}` });
+      }
+      updates.geminiModelTest = geminiModelTest;
+    }
+    if (geminiModelAnalytics) {
+      if (!validModels.includes(geminiModelAnalytics)) {
+        return res.status(400).json({ error: `Invalid Gemini Analytics Model: ${geminiModelAnalytics}` });
+      }
+      updates.geminiModelAnalytics = geminiModelAnalytics;
+    }
+    if (geminiModelChat) {
+      if (!validModels.includes(geminiModelChat)) {
+        return res.status(400).json({ error: `Invalid Gemini Chat Model: ${geminiModelChat}` });
+      }
+      updates.geminiModelChat = geminiModelChat;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'Nothing to update' });
+    }
+
+    const success = await updateAIConfig(updates);
+    if (success) {
+      return res.json({ success: true, ...updates });
+    }
     return res.status(500).json({ error: 'Failed to update configuration' });
+  } catch (err) {
+    console.error('[Admin Config POST Error]:', err.message);
+    res.status(500).json({ error: 'Internal server error while updating configuration' });
   }
-  res.status(400).json({ error: 'Invalid model' });
 });
 
 // ── Upload Material Route ──

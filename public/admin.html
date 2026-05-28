@@ -64,6 +64,59 @@
         <button id="btn-gemini" onclick="setAI('gemini')">Gemini (Recommended)</button>
         <button id="btn-claude" onclick="setAI('claude')">Claude (Accurate)</button>
       </div>
+
+      <div id="gemini-models-section" style="margin-top: 25px; border-top: 1px solid #2A303C; padding-top: 20px;">
+        <h3 style="color: white; margin-top: 0; display: flex; align-items: center; gap: 8px;">
+          ✨ Gemini Model Configuration
+        </h3>
+        <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 20px;">
+          Configure separate Gemini models for different sections of the app:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+          <div>
+            <label style="display: block; font-size: 0.85em; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">
+              📝 Mock Tests Model
+            </label>
+            <select id="gemini-model-test" onchange="saveGeminiModel('test')" style="margin-bottom: 0;">
+              <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+              <option value="gemini-3.5-pro">Gemini 3.5 Pro</option>
+              <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              <option value="gemma-4-31b-it">Gemma 4 31B</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.85em; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">
+              📊 Analytics & Planner Model
+            </label>
+            <select id="gemini-model-analytics" onchange="saveGeminiModel('analytics')" style="margin-bottom: 0;">
+              <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+              <option value="gemini-3.5-pro">Gemini 3.5 Pro</option>
+              <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              <option value="gemma-4-31b-it">Gemma 4 31B</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.85em; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">
+              💬 AI Chat Model
+            </label>
+            <select id="gemini-model-chat" onchange="saveGeminiModel('chat')" style="margin-bottom: 0;">
+              <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+              <option value="gemini-3.5-pro">Gemini 3.5 Pro</option>
+              <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              <option value="gemma-4-31b-it">Gemma 4 31B</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="card">

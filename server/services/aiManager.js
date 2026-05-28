@@ -36,6 +36,43 @@ async function setActiveAI(modelName) {
   }
 }
 
+/**
+ * Reads Gemini models configuration from Firestore.
+ */
+async function getGeminiConfig() {
+  try {
+    const doc = await CONFIG_DOC.get();
+    if (doc.exists) {
+      const data = doc.data();
+      return {
+        test: data.geminiModelTest || 'gemini-3.5-flash',
+        analytics: data.geminiModelAnalytics || 'gemini-3.5-flash',
+        chat: data.geminiModelChat || 'gemini-3.5-flash'
+      };
+    }
+  } catch (err) {
+    console.error('[aiManager] Failed to read Gemini configuration from Firestore:', err.message);
+  }
+  return {
+    test: 'gemini-3.5-flash',
+    analytics: 'gemini-3.5-flash',
+    chat: 'gemini-3.5-flash'
+  };
+}
+
+/**
+ * Updates AI and Gemini models configuration in Firestore.
+ */
+async function updateAIConfig(config) {
+  try {
+    await CONFIG_DOC.set(config, { merge: true });
+    return true;
+  } catch (err) {
+    console.error('[aiManager] Failed to update AI config in Firestore:', err.message);
+    return false;
+  }
+}
+
 async function getService() {
   const active = await getActiveAI();
   if (active === 'gemini') return geminiService;
@@ -45,21 +82,37 @@ async function getService() {
 
 async function chat(message, examName, language, history = []) {
   const service = await getService();
+  if (service === geminiService) {
+    const config = await getGeminiConfig();
+    return service.chat(message, examName, language, history, config.chat);
+  }
   return service.chat(message, examName, language, history);
 }
 
 async function chatStream(message, examName, language, history = []) {
   const service = await getService();
+  if (service === geminiService) {
+    const config = await getGeminiConfig();
+    return service.chatStream(message, examName, language, history, config.chat);
+  }
   return service.chatStream(message, examName, language, history);
 }
 
 async function generateTest(examId, examName, subject, mode, questionCount, language, examSubjects = []) {
   const service = await getService();
+  if (service === geminiService) {
+    const config = await getGeminiConfig();
+    return service.generateTest(examId, examName, subject, mode, questionCount, language, examSubjects, config.test);
+  }
   return service.generateTest(examId, examName, subject, mode, questionCount, language, examSubjects);
 }
 
 async function parseSyllabus(text) {
   const service = await getService();
+  if (service === geminiService) {
+    const config = await getGeminiConfig();
+    return service.parseSyllabus(text, config.chat);
+  }
   return service.parseSyllabus(text);
 }
 
@@ -72,6 +125,11 @@ Use clear headings and bullet points. ${instruction}
   
 Extracted Text:
 ${extractedText.substring(0, 15000)}`;
+
+  if (service === geminiService) {
+    const config = await getGeminiConfig();
+    return service.chat(message, 'Syllabus Study', language, [], config.chat);
+  }
   return service.chat(message, 'Syllabus Study', language, []);
 }
 
@@ -84,6 +142,10 @@ Please extract the most important information, core concepts, and key highlights
 Video Data:
 ${transcription.substring(0, 10000)}
 `;
+  if (service === geminiService) {
+    const config = await getGeminiConfig();
+    return service.chat(message, 'Syllabus Study', language, [], config.chat);
+  }
   return service.chat(message, 'Syllabus Study', language, []);
 }
 
@@ -107,6 +169,10 @@ Provide a detailed summary (60-120 words) explaining this notification.
 - ${langInstruction}
 - CRITICAL: Do NOT write any Cyrillic characters. For example, write "दन्तेवाड़ा", not "дан्तेवाड़ा". Ensure proper spelling.`;
 
+  if (service === geminiService) {
+    const config = await getGeminiConfig();
+    return service.chat(prompt, 'News Analyzer', language, [], config.chat);
+  }
   return service.chat(prompt, 'News Analyzer', language, []);
 }
 
@@ -138,6 +204,10 @@ The response should contain:
 Format your output beautifully using standard Markdown with bold headers and bullet points. No generic placeholders.
 ${langInstruction}`;
 
+  if (service === geminiService) {
+    const config = await getGeminiConfig();
+    return service.chat(prompt, 'Study Planner', language, [], config.analytics);
+  }
   return service.chat(prompt, 'Study Planner', language, []);
 }
 
@@ -148,6 +218,8 @@ module.exports = {
   parseSyllabus,
   getActiveAI,
   setActiveAI,
+  getGeminiConfig,
+  updateAIConfig,
   summarizeTopicExtracted,
   summarizeVideoTranscript,
   summarizeNews,
