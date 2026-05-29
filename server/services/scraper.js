@@ -239,6 +239,82 @@ async function scrapeEmploymentNews() {
   return articles;
 }
 
+async function scrapeNewsAPI() {
+  const apiKey = process.env.NEWS_API_KEY;
+  if (!apiKey || apiKey === 'your-news-api-key-here') {
+    console.log('[Scraper] NewsAPI.org API Key is not configured. Skipping NewsAPI scrape.');
+    return [];
+  }
+
+  const domains = [
+    'timesofindia.indiatimes.com',
+    'ndtv.com',
+    'thehindu.com',
+    'indianexpress.com',
+    'hindustantimes.com',
+    'news18.com',
+    'livemint.com',
+    'moneycontrol.com',
+    'business-standard.com'
+  ].join(',');
+
+  const articles = [];
+  try {
+    // Query the everything endpoint with Indian domains to get fresh national, exam and job news
+    const url = `https://newsapi.org/v2/everything?domains=${domains}&language=en&sortBy=publishedAt&pageSize=40&apiKey=${apiKey}`;
+    const { data } = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      timeout: 15000
+    });
+
+    if (data && data.status === 'ok' && Array.isArray(data.articles)) {
+      data.articles.forEach(art => {
+        if (!art.title) return;
+        const titleLower = art.title.toLowerCase();
+        const descLower = (art.description || '').toLowerCase();
+        let category = 'affairs';
+        let icon = '📰';
+
+        // Categorize based on keywords in title or description
+        if (titleLower.includes('recruitment') || titleLower.includes('vacancy') || titleLower.includes('naukri') || titleLower.includes('jobs') || titleLower.includes('bharti') || titleLower.includes('apprentice') || descLower.includes('recruitment') || descLower.includes('vacancy') || descLower.includes('naukri')) {
+          category = 'jobs';
+          icon = '💼';
+        } else if (titleLower.includes('exam') || titleLower.includes('upsc') || titleLower.includes('ssc') || titleLower.includes('result') || titleLower.includes('admit card') || titleLower.includes('answer key') || titleLower.includes('neet') || titleLower.includes('jee') || titleLower.includes('cbse') || titleLower.includes('cutoff') || descLower.includes('admit card') || descLower.includes('exam result')) {
+          category = 'exams';
+          icon = '📝';
+        } else if (titleLower.includes('sports') || titleLower.includes('cricket') || titleLower.includes('dhoni') || titleLower.includes('kohli') || titleLower.includes('olympics') || titleLower.includes('football') || titleLower.includes('ipl')) {
+          icon = '🏏';
+        } else if (titleLower.includes('science') || titleLower.includes('space') || titleLower.includes('nasa') || titleLower.includes('isro') || titleLower.includes('technology') || titleLower.includes('ai ') || titleLower.includes('robot') || titleLower.includes('smartphone')) {
+          icon = '🔬';
+        } else if (titleLower.includes('economy') || titleLower.includes('budget') || titleLower.includes('rupee') || titleLower.includes('gdp') || titleLower.includes('business') || titleLower.includes('stock') || titleLower.includes('shares') || titleLower.includes('ipo') || titleLower.includes('epfo') || titleLower.includes('income-tax')) {
+          icon = '📈';
+        } else if (titleLower.includes('minister') || titleLower.includes('modi') || titleLower.includes('policy') || titleLower.includes('government') || titleLower.includes('parliament') || titleLower.includes('court') || titleLower.includes('supreme court')) {
+          icon = '🏛️';
+        }
+
+        articles.push({
+          title: art.title,
+          description: art.description || `Source: ${art.source.name || 'NewsAPI'}`,
+          category,
+          date: art.publishedAt ? art.publishedAt.split('T')[0] : new Date().toISOString().split('T')[0],
+          source: art.source.name || 'NewsAPI.org',
+          url: art.url,
+          icon,
+          lang: 'en'
+        });
+      });
+      console.log(`[Scraper] Successfully scraped ${articles.length} articles from NewsAPI.org`);
+    } else {
+      console.warn('[Scraper] NewsAPI response status not OK or articles missing:', data ? data.status : 'no data');
+    }
+  } catch (err) {
+    console.error('NewsAPI.org scraping failed:', err.response?.data?.message || err.message);
+  }
+  return articles;
+}
+
 function getFallbackNews() {
   return [
     {
@@ -266,12 +342,13 @@ function deduplicateArticles(articles) {
 async function scrapeAll() {
   console.log('[Scraper] Starting news scrape...');
 
-  const [sarkari, examNews, generalNews, hindiNews, employment] = await Promise.allSettled([
+  const [sarkari, examNews, generalNews, hindiNews, employment, newsAPI] = await Promise.allSettled([
     scrapeSarkariResult(),
     scrapeExamNewsRSS(),
     scrapeGeneralNewsRSS(),
     scrapeHindiNewsRSS(),
-    scrapeEmploymentNews()
+    scrapeEmploymentNews(),
+    scrapeNewsAPI()
   ]);
 
   let allArticles = [];
@@ -280,6 +357,7 @@ async function scrapeAll() {
   if (generalNews.status === 'fulfilled') allArticles.push(...generalNews.value);
   if (hindiNews.status === 'fulfilled') allArticles.push(...hindiNews.value);
   if (employment.status === 'fulfilled') allArticles.push(...employment.value);
+  if (newsAPI.status === 'fulfilled') allArticles.push(...newsAPI.value);
 
   if (allArticles.length < 5) {
     console.log('[Scraper] Too few articles scraped, adding fallback data');

@@ -2819,7 +2819,8 @@ function initNewsScreen() {
     });
   }
 
-  // Auto-refresh news/jobs every 1 hour (60 * 60 * 1000 = 3,600,000 ms)
+  // Auto-refresh news every 30 minutes (30 * 60 * 1000 = 1,800,000 ms)
+  // This works whether the server is running or not (falls back to client-side scraping)
   setInterval(() => {
     if (currentScreen === 'news') {
       const btn = document.getElementById('news-refresh-btn');
@@ -2831,7 +2832,7 @@ function initNewsScreen() {
       // Quiet background fetch
       refreshNews(true).catch(() => {});
     }
-  }, 3600000);
+  }, 1800000);
 }
 
 // Client-side Scraping Logic & Helpers
@@ -2841,35 +2842,36 @@ async function fetchWithProxy(url) {
   const urlWithCacheBuster = `${url}${separator}_cb=${Date.now()}`;
 
   const proxies = [
-    (target) => `https://corsproxy.io/?url=${encodeURIComponent(target)}`,
-    (target) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`
+    { fn: (target) => `https://corsproxy.io/?url=${encodeURIComponent(target)}`, type: 'raw' },
+    { fn: (target) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`, type: 'allorigins' },
+    { fn: (target) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`, type: 'raw' },
+    { fn: (target) => `https://thingproxy.freeboard.io/fetch/${target}`, type: 'raw' }
   ];
 
   for (let i = 0; i < proxies.length; i++) {
     try {
-      const proxyUrl = proxies[i](urlWithCacheBuster);
+      const proxyUrl = proxies[i].fn(urlWithCacheBuster);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
       
       const res = await fetch(proxyUrl, { signal: controller.signal });
       clearTimeout(timeoutId);
       
       if (res.ok) {
         let text = await res.text();
-        if (proxies[i] === proxies[1]) {
-          if (text.startsWith('{') && text.includes('"contents":')) {
-            try {
-              const parsed = JSON.parse(text);
-              text = parsed.contents;
-            } catch (e) {}
-          }
+        // allorigins sometimes wraps response in JSON
+        if (proxies[i].type === 'allorigins' && text.startsWith('{') && text.includes('"contents":')) {
+          try {
+            const parsed = JSON.parse(text);
+            text = parsed.contents;
+          } catch (e) {}
         }
         if (text && text.trim().length > 100) {
           return text;
         }
       }
     } catch (e) {
-      console.warn(`[News Scraper Proxy] Failed to fetch ${url} via proxy index ${i}:`, e);
+      console.warn(`[News Scraper Proxy] Failed to fetch ${url} via proxy ${i}:`, e.message || e);
     }
   }
   throw new Error(`Failed to fetch ${url} via all available proxies.`);
@@ -3206,15 +3208,9 @@ async function runClientSideScraper() {
   newsData = cacheData.articles;
   newsLastUpdated = cacheData.lastUpdated;
 
-  const db = getFirestoreClient();
-  if (db) {
-    try {
-      await db.collection('news').doc('cache').set(cacheData);
-      console.log('[Client Scraper] Firestore cache updated successfully ✅');
-    } catch (fsErr) {
-      console.warn('[Client Scraper] Firestore cache update blocked (expected if offline or unauthorized):', fsErr.message);
-    }
-  }
+  // NOTE: Client-side Firestore write to 'news' collection is blocked by security rules.
+  // The news cache in Firestore is updated only by the server (Admin SDK) or GitHub Actions.
+  // We only store in localStorage as the client-side cache.
 
   const timeEl = document.getElementById('news-update-time');
   if (timeEl && newsLastUpdated) {
@@ -3229,24 +3225,38 @@ async function runClientSideScraper() {
   setupNewsTicker();
   renderNewsCards();
 
-  showToast('News refreshed successfully (client-side) 📡', 'success');
+  showToast('News refreshed successfully 📡', 'success');
 }
 
 async function refreshNews(silent = false) {
   try {
+    // Try server-side refresh first (only works if server is running)
+    let serverRefreshed = false;
     try {
-      const res = await fetch('/api/news/refresh', { method: 'POST' });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+      const res = await fetch('/api/news/refresh', {
+        method: 'POST',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
         newsLastUpdated = data.lastUpdated;
-        await loadNews();
-        return;
+        serverRefreshed = true;
+        console.log('[News] Server-side refresh succeeded ✅');
       }
     } catch (apiErr) {
-      console.warn('[News] API refresh POST failed, will attempt client-side scraping:', apiErr);
+      console.warn('[News] Server API unavailable, using client-side scraping:', apiErr.message);
     }
-    
-    // Server is offline, use browser-based scraper fallback
+
+    if (serverRefreshed) {
+      // Server refreshed Firestore, now reload from Firestore
+      await loadNews();
+      return;
+    }
+
+    // Server is offline — use browser-based scraper fallback
     await runClientSideScraper();
   } catch (err) {
     console.error('[News Refresh Error]:', err);
@@ -3267,7 +3277,9 @@ async function loadNews() {
   if (timeEl) timeEl.textContent = 'Loading...';
 
   try {
-    let data;
+    let data = null;
+
+    // ── Step 1: Read localStorage cache (instant, offline-friendly) ──
     let localData = null;
     const localCache = localStorage.getItem('news_cache');
     if (localCache) {
@@ -3278,50 +3290,76 @@ async function loadNews() {
       }
     }
 
-    try {
-      const response = await fetch(`/api/news`);
-      if (!response.ok) throw new Error('Failed to fetch news');
-      data = await response.json();
-    } catch (err) {
-      console.warn('[News] Server API offline or failed, falling back to Firestore/localStorage:', err);
-      
-      let remoteData = null;
-      const db = getFirestoreClient();
-      if (db) {
-        try {
-          const doc = await db.collection('news').doc('cache').get();
-          if (doc.exists) {
-            remoteData = doc.data();
-          }
-        } catch (dbErr) {
-          console.warn('[News] Direct Firestore fetch failed:', dbErr);
+    // ── Step 2: Read from Firestore directly (public read, no server needed) ──
+    let firestoreData = null;
+    const db = getFirestoreClient();
+    if (db) {
+      try {
+        const doc = await db.collection('news').doc('cache').get();
+        if (doc.exists) {
+          firestoreData = doc.data();
+          console.log('[News] Firestore cache loaded ✅', (firestoreData.articles || []).length, 'articles');
         }
-      }
-
-      if (localData && remoteData) {
-        const localCount = (localData.articles || []).length;
-        const remoteCount = (remoteData.articles || []).length;
-        if (remoteCount > 5 && localCount <= 2) {
-          console.log('[News] Local cache has fallback/empty data, preferring remote Firestore cache');
-          data = remoteData;
-        } else {
-          const localTime = new Date(localData.lastUpdated || 0).getTime();
-          const remoteTime = new Date(remoteData.lastUpdated || 0).getTime();
-          data = localTime >= remoteTime ? localData : remoteData;
-        }
-      } else {
-        data = localData || remoteData;
+      } catch (dbErr) {
+        console.warn('[News] Firestore read failed:', dbErr.message);
       }
     }
 
-    if (!data) {
+    // ── Step 2.5: Read from Server API as fallback ──
+    if (!firestoreData) {
+      try {
+        console.log('[News] Direct Firestore read unavailable, checking Server API...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+        const res = await fetch('/api/news', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const serverData = await res.json();
+          if (serverData && (serverData.articles || []).length > 0) {
+            firestoreData = {
+              lastUpdated: serverData.lastUpdated,
+              articles: serverData.articles
+            };
+            console.log('[News] Server API data loaded ✅', firestoreData.articles.length, 'articles');
+          }
+        }
+      } catch (srvErr) {
+        console.warn('[News] Server API read failed:', srvErr.message);
+      }
+    }
+
+    // ── Step 3: Pick the best data source ──
+    // Prefer the source with more articles and more recent timestamp
+    if (localData && firestoreData) {
+      const localCount = (localData.articles || []).length;
+      const remoteCount = (firestoreData.articles || []).length;
+      const localTime = new Date(localData.lastUpdated || 0).getTime();
+      const remoteTime = new Date(firestoreData.lastUpdated || 0).getTime();
+
+      // Prefer Firestore if it has substantially more content or is newer
+      if (remoteCount > 5 && localCount <= 2) {
+        data = firestoreData;
+        console.log('[News] Using Firestore data (local cache was sparse)');
+      } else if (remoteTime > localTime) {
+        data = firestoreData;
+        console.log('[News] Using Firestore data (newer)');
+      } else {
+        data = localData;
+        console.log('[News] Using local cache (newer or equal)');
+      }
+    } else {
+      data = firestoreData || localData;
+    }
+
+    // ── Step 4: If no cached data anywhere, try client-side scraping ──
+    if (!data || (data.articles || []).length === 0) {
       console.log('[News] No cache found, attempting client-side scraper...');
       try {
         await runClientSideScraper();
-        return;
+        return; // runClientSideScraper already calls renderNewsCards
       } catch (scrapErr) {
         console.warn('[News] Client scraper failed on initial load:', scrapErr);
-        // Fallback mock news if absolutely nothing else is available
+        // Use minimal fallback data
         data = {
           lastUpdated: new Date().toISOString(),
           articles: [
@@ -3353,17 +3391,18 @@ async function loadNews() {
     newsData = data.articles || [];
     newsLastUpdated = data.lastUpdated;
 
-    // Cache the loaded data locally
+    // Cache the loaded data locally for next time
     localStorage.setItem('news_cache', JSON.stringify(data));
 
     if (timeEl && newsLastUpdated) {
       const d = new Date(newsLastUpdated);
       const mins = Math.floor((Date.now() - d.getTime()) / 60000);
       timeEl.textContent = mins < 1 ? 'Just now' : `${mins}m ago`;
-      
-      // Auto-refresh in the background if the cache is older than 1 hour (60 mins)
-      if (mins >= 60) {
-        console.log('[News] Cache is older than 1 hour, triggering background refresh...');
+
+      // Auto-refresh in the background if the cache is older than 30 mins
+      // Use client-side scraping since server may not be available
+      if (mins >= 30) {
+        console.log(`[News] Cache is ${mins}m old, triggering background refresh...`);
         refreshNews(true).catch(() => {});
       }
     } else if (timeEl) {
