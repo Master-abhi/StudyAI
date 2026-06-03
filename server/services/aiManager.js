@@ -243,6 +243,37 @@ async function translateAndSummarizeNews(title, category, source) {
   }
 }
 
+async function generateNewsIntelligence(title, description, category, source) {
+  const service = await getService();
+  let responseText;
+  
+  try {
+    if (service === geminiService) {
+      const config = await getGeminiConfig();
+      responseText = await service.generateNewsIntelligence(title, description, category, source, config.news);
+    } else {
+      responseText = await service.generateNewsIntelligence(title, description, category, source);
+    }
+
+    if (!responseText) {
+      throw new Error('Empty response from AI News Intelligence Generator');
+    }
+
+    let jsonText = responseText.trim();
+    const match = jsonText.match(/\{[\s\S]*\}/);
+    if (match) {
+      jsonText = match[0].trim();
+    }
+    return JSON.parse(jsonText);
+  } catch (err) {
+    console.error('[generateNewsIntelligence] Error generating news intelligence:', err.message);
+    if (responseText) {
+      console.error('[generateNewsIntelligence] Raw response text was:', responseText);
+    }
+    throw err;
+  }
+}
+
 module.exports = {
   chat,
   chatStream,
@@ -256,6 +287,7 @@ module.exports = {
   summarizeVideoTranscript,
   summarizeNews,
   translateAndSummarizeNews,
+  generateNewsIntelligence,
   generateImprovementPlan
 };
 

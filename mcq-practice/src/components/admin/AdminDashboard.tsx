@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, Cpu, 
-  ArrowLeft, Sparkles, Server, AlertTriangle 
+  ArrowLeft, Sparkles, Server, AlertTriangle, Users 
 } from 'lucide-react';
 import { AdminTests } from './AdminTests';
 import { AdminNews } from './AdminNews';
 import { AdminSyllabus } from './AdminSyllabus';
 import { AdminAIConfig } from './AdminAIConfig';
+import { AdminUsers } from './AdminUsers';
 
 interface AdminDashboardProps {
   currentUser: any;
@@ -14,13 +15,14 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'tests' | 'news' | 'syllabus' | 'aiconfig'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'tests' | 'news' | 'syllabus' | 'aiconfig'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
     testsCount: 0,
     materialsCount: 0,
     articlesCount: 0,
+    usersCount: 0,
     activeAI: 'gemini',
     loading: true,
     error: ''
@@ -38,22 +40,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
       const headers = { 'Authorization': `Bearer ${token}` };
       
       // Fetch concurrently
-      const [testsRes, materialsRes, newsRes, aiRes] = await Promise.all([
+      const [testsRes, materialsRes, newsRes, aiRes, usersRes] = await Promise.all([
         fetch(getApiUrl('/api/admin/tests'), { headers }),
         fetch(getApiUrl('/api/admin/materials'), { headers }),
         fetch(getApiUrl('/api/news')),
-        fetch(getApiUrl('/api/admin/config/ai'), { headers })
+        fetch(getApiUrl('/api/admin/config/ai'), { headers }),
+        fetch(getApiUrl('/api/admin/users'), { headers })
       ]);
 
       const tests = testsRes.ok ? await testsRes.json() : [];
       const materials = materialsRes.ok ? await materialsRes.json() : [];
       const news = newsRes.ok ? await newsRes.json() : { articles: [] };
       const aiConfig = aiRes.ok ? await aiRes.json() : { activeAI: 'gemini' };
+      const users = usersRes.ok ? await usersRes.json() : [];
 
       setStats({
         testsCount: Array.isArray(tests) ? tests.length : 0,
         materialsCount: Array.isArray(materials) ? materials.length : 0,
         articlesCount: news && Array.isArray(news.articles) ? news.articles.length : 0,
+        usersCount: Array.isArray(users) ? users.length : 0,
         activeAI: aiConfig.activeAI || 'gemini',
         loading: false,
         error: ''
@@ -75,6 +80,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
   // Sidebar items
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'users', label: 'Users', icon: Users },
     { id: 'tests', label: 'AI MCQ Tests', icon: Trophy },
     { id: 'news', label: 'News & Alerts', icon: Newspaper },
     { id: 'syllabus', label: 'Syllabus & PDF', icon: BookOpen },
@@ -86,6 +92,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     switch (activeSubPage) {
       case 'overview':
         return renderOverview();
+      case 'users':
+        return <AdminUsers currentUser={currentUser} />;
       case 'tests':
         return <AdminTests currentUser={currentUser} />;
       case 'news':
@@ -136,7 +144,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex items-center gap-4 relative group hover:border-saffron-border/40 transition-colors cursor-pointer" onClick={() => setActiveSubPage('users')}>
+            <div className="w-12 h-12 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center justify-center text-yellow-500 shrink-0">
+              <Users className="w-6 h-6" />
+            </div>
+            <div className="flex flex-col truncate">
+              <span className="text-[9px] font-black text-text-muted uppercase tracking-wider">Total Users</span>
+              <span className="text-2xl font-black text-text mt-1">{stats.usersCount}</span>
+              <span className="text-[10px] text-text-muted mt-0.5">Registered aspirants</span>
+            </div>
+          </div>
+
           <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex items-center gap-4 relative group hover:border-saffron-border/40 transition-colors">
             <div className="w-12 h-12 bg-saffron/10 border border-saffron-border/30 rounded-lg flex items-center justify-center text-saffron shrink-0">
               <Trophy className="w-6 h-6" />

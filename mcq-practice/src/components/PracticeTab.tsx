@@ -123,7 +123,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   const filteredTests = tests.filter(t => t.mode === activeMode && t.examId === activeExam?.id);
 
   return (
-    <div className="flex flex-col gap-5 w-full max-w-lg mx-auto pb-12 font-sans">
+    <div className="flex flex-col gap-5 w-full max-w-lg md:max-w-5xl mx-auto pb-12 font-sans">
       
       {/* 1. Page Header */}
       <div className="flex items-center justify-between border-b border-border pb-3 shrink-0">
@@ -198,7 +198,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
           </div>
         ) : (
           /* Educator tests list */
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredTests.map(test => (
               <motion.div
                 key={test.id}

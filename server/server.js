@@ -21,6 +21,7 @@ const studyRoutes = require('./routes/study');
 const analyticsRoutes = require('./routes/analytics');
 const userRoutes = require('./routes/user');
 const studyIntelligenceRoutes = require('./routes/studyIntelligence');
+const jobsRoutes = require('./routes/jobs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +41,7 @@ app.use('/api/study', studyRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/study-intelligence', studyIntelligenceRoutes);
+app.use('/api/jobs', jobsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({
@@ -49,10 +51,6 @@ app.get('/api/health', (req, res) => {
                       (!!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-api-key-here') ||
                       (!!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'your-api-key-here')
   });
-});
-
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
 });
 
 app.get('*', (req, res) => {

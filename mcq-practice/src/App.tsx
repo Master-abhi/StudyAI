@@ -13,7 +13,8 @@ import {
   MessageSquare,
   Newspaper,
   User,
-  Settings
+  Settings,
+  ShieldAlert
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -409,7 +410,9 @@ export default function App() {
     const testId = params.get('testId');
     const pageParam = params.get('page');
 
-    if (testId) {
+    if (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) {
+      setActiveTab('admin');
+    } else if (testId) {
       const fetchAndStartTest = async () => {
         try {
           const res = await fetch(getApiUrl(`/api/tests/${testId}`));
@@ -824,6 +827,7 @@ export default function App() {
       case 'news':
         return (
           <NewsTab
+            currentUser={currentUser}
             onAskAi={(promptText) => {
               setActiveTab('chat');
               // Short delay to allow chat client to mount
@@ -858,6 +862,23 @@ export default function App() {
           />
         );
       case 'admin':
+        if (!isAdmin) {
+          return (
+            <div className="flex flex-col items-center justify-center min-h-screen text-text bg-bg-s1 p-6">
+              <ShieldAlert className="w-12 h-12 text-redL mb-4" />
+              <h2 className="text-lg font-black text-text uppercase tracking-wider">Access Denied</h2>
+              <p className="text-xs text-text-muted mt-2 max-w-sm text-center">
+                This console is reserved for system administrators only.
+              </p>
+              <button
+                onClick={() => setActiveTab('home')}
+                className="mt-6 px-4 py-2 bg-saffron text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          );
+        }
         return (
           <AdminDashboard
             currentUser={currentUser}
@@ -891,15 +912,101 @@ export default function App() {
     }
   };
 
-  const isAdminTab = activeTab === 'admin';
-
   return (
-    <div className={`min-h-screen bg-[#0B0E14] text-text flex flex-col items-center select-none font-sans ${isAdminTab ? 'pb-0' : 'pb-16'} overflow-x-hidden relative`}>
-      <div className={`w-full ${isAdminTab ? 'max-w-7xl px-4 md:px-8' : 'max-w-lg'} flex flex-col min-h-screen bg-bg-s1 shadow-2xl border-x border-border/40 relative transition-all duration-300`}>
+    <div className="min-h-screen bg-[#0B0E14] text-text flex flex-col md:flex-row items-stretch select-none font-sans overflow-x-hidden relative">
+      
+      {/* Desktop Left Sidebar Navigation */}
+      {!isTestActive && activeTab !== 'admin' && (
+        <aside className="hidden md:flex flex-col w-64 bg-bg-s2 border-r border-border/60 shrink-0 sticky top-0 h-screen z-30">
+          {/* Logo & Brand */}
+          <div className="p-6 border-b border-border/60 flex items-center gap-3">
+            <span className="text-2xl leading-none select-none">🎓</span>
+            <span className="text-base font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
+              CG Guru
+            </span>
+          </div>
+
+          {/* Navigation Links */}
+          <div className="flex-1 px-4 py-6 flex flex-col gap-2 overflow-y-auto">
+            {[
+              { id: 'home', label: 'Home', icon: Home },
+              { id: 'practice', label: 'Practice', icon: Trophy },
+              { id: 'chat', label: 'AI Guru', icon: MessageSquare },
+              { id: 'news', label: 'News', icon: Newspaper },
+              { id: 'syllabus', label: 'Syllabus', icon: BookOpen },
+              { id: 'profile', label: 'Profile', icon: User }
+            ].map(item => {
+              const Icon = item.icon;
+              const isSelected = activeTab === item.id || (item.id === 'home' && activeTab === 'syllabus');
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id as any)}
+                  className={`flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider cursor-pointer ${
+                    isSelected 
+                      ? 'bg-saffron text-bg-s1 font-black shadow-md' 
+                      : 'text-text-muted hover:text-text hover:bg-bg-s3/55'
+                  }`}
+                >
+                  <Icon className="w-4.5 h-4.5" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+
+            {/* Admin Panel Option */}
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className="flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider cursor-pointer mt-4 border border-redL/30 text-redL hover:bg-redL/5"
+              >
+                <Settings className="w-4.5 h-4.5" />
+                <span>Admin Panel</span>
+              </button>
+            )}
+          </div>
+
+          {/* Sidebar Bottom Profile/Settings */}
+          <div className="p-4 border-t border-border/60 bg-bg-s3/40 flex flex-col gap-3">
+            {currentUser || isGuest ? (
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-saffron hover:bg-orange-500 rounded-full flex items-center justify-center font-black text-bg-s1 select-none shadow">
+                  {((currentUser?.displayName || 'Guest User')[0]).toUpperCase()}
+                </div>
+                <div className="flex-1 flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-text truncate">
+                    {currentUser?.displayName || 'Guest User'}
+                  </span>
+                  <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">
+                    🔥 {streak} Streak • {xp} XP
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSettingsModalOpen(true)}
+                  className="p-1.5 rounded-lg bg-bg-s2 border border-border text-text-muted hover:text-text cursor-pointer hover:border-saffron-border/50 transition-colors"
+                  title="Settings"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="w-full py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-all text-center"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        </aside>
+      )}
+
+      {/* Main Content Area Container */}
+      <div className={`flex-1 flex flex-col min-h-screen bg-bg-s1 relative transition-all duration-300 ${!isTestActive && activeTab !== 'admin' ? 'pb-16 md:pb-0' : 'pb-0'}`}>
         
-        {/* Sticky Global Top Header (Shown if test workspace is NOT active) */}
+        {/* Mobile Sticky Top Header (Shown if test workspace is NOT active, hidden on desktop) */}
         {!isTestActive && activeTab !== 'admin' && (
-          <header className="sticky top-0 left-0 right-0 bg-bg-s1/90 backdrop-blur-md border-b border-border/60 px-5 py-4 flex items-center justify-between z-30 shadow-sm shrink-0">
+          <header className="md:hidden sticky top-0 left-0 right-0 bg-bg-s1/90 backdrop-blur-md border-b border-border/60 px-5 py-4 flex items-center justify-between z-30 shadow-sm shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-xl leading-none select-none">🎓</span>
               <span className="text-sm font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
@@ -919,7 +1026,7 @@ export default function App() {
         )}
 
         {/* Dynamic Body Router */}
-        <main className="flex-1 px-4 py-4 flex flex-col gap-4 overflow-y-auto">
+        <main className={`flex-1 px-4 py-4 flex flex-col gap-4 overflow-y-auto ${!isTestActive && activeTab !== 'admin' ? 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40' : 'w-full'}`}>
           <AnimatePresence mode="wait">
             {!isTestActive ? (
               /* Tab layout panels wrapper */
@@ -1102,9 +1209,9 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        {/* Sticky Global Navigation Bar (Shown if test workspace is NOT active) */}
+        {/* Mobile Fixed Bottom Navigation Bar (Hidden on desktop) */}
         {!isTestActive && activeTab !== 'admin' && (
-          <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-bg-s2/95 backdrop-blur-md border-t border-border px-3 py-2 flex items-center justify-around z-30 shadow-2xl shrink-0">
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-bg-s2/95 backdrop-blur-md border-t border-border px-3 py-2 flex items-center justify-around z-30 shadow-2xl shrink-0">
             {[
               { id: 'home', label: 'Home', icon: Home },
               { id: 'practice', label: 'Practice', icon: Trophy },

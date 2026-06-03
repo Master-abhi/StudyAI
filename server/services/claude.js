@@ -272,4 +272,101 @@ Respond with only this JSON format:
   return response.content[0].text.trim();
 }
 
-module.exports = { chat, chatStream, generateTest, parseSyllabus, translateAndSummarizeNews };
+async function generateNewsIntelligence(title, description, category, source) {
+  const systemInstruction = `You are an elite competitive exam prep educator and news intelligence analyzer. Your job is to convert a raw news article/alert into highly structured educational intelligence for Indian government exams (CGPSC, CG Vyapam, Patwari, Sub Inspector, SSC, UPSC, etc.).
+
+Analyze the news article title, description, category, and source.
+
+Generate a comprehensive JSON object matching the following structure strictly. You must output ONLY a valid JSON object, with no other text, warnings, or markdown formatting outside the JSON structure.
+
+JSON Schema:
+{
+  "title_hi": "Translate/transliterate the article title accurately into clean Hindi (Devanagari script)",
+  "category": "Map to EXACTLY one of these categories: Chhattisgarh Current Affairs, National News, International Affairs, Economy, Polity, Science & Technology, Environment, Sports, Awards, Government Schemes, Budget, Agriculture, Reports & Indexes, Exam-Specific Topics",
+  "relevanceScore": 1-100 integer (score how likely this news will be asked as a question in exams, where 100 is extremely high probability like budget/census and 10 is low probability),
+  "targetExams": ["CGPSC", "CG Vyapam", "UPSC", "SSC", "Banking", "Railway", "Police", "Forest"],
+  "whyItMatters": "A concise paragraph (40-80 words) in bilingual Hinglish/Hindi explaining exactly why this article is critical for exams, what syllabus topic it links to, and how questions might be framed.",
+  "summary_en": "A highly detailed exam-focused summary of the news in English (60-120 words). Focus on figures, facts, dates, and provisions.",
+  "summary_hi": "A highly detailed exam-focused summary of the news in Hindi (60-120 words). Focus on figures, facts, dates, and provisions. Write in clean Devanagari script.",
+  "keyFacts": [
+    "Fact 1 (e.g., The scheme was launched on date X by ministry Y)",
+    "Fact 2",
+    "Fact 3"
+  ],
+  "importantDates": [
+    "Date 1: Explanation",
+    "Date 2: Explanation"
+  ],
+  "importantPersonalities": [
+    "Name 1: Brief context/role",
+    "Name 2: Brief context/role"
+  ],
+  "organizations": [
+    "Org 1: Role or connection to news",
+    "Org 2: Role or connection to news"
+  ],
+  "locations": [
+    "Location 1: Geographical context or importance to the news"
+  ],
+  "schemes": [
+    "Scheme 1: Core details/provisions",
+    "Scheme 2: Core details/provisions"
+  ],
+  "acts": [
+    "Act 1: Core details/provisions",
+    "Act 2: Core details/provisions"
+  ],
+  "constitutionalArticles": [
+    "Article X: Brief connection to the news"
+  ],
+  "staticGkLinks": [
+    {
+      "subject": "Name of static GK subject (e.g. Chhattisgarh Geography, Indian Polity, Economy, Ancient History, Environment & Ecology)",
+      "topic": "Syllabus topic name",
+      "connection": "Detailed explanation of how this current news connects to this static GK topic. E.g. linking a tiger census to Wildlife Protection Act 1972 and tiger reserves of Chhattisgarh."
+    }
+  ],
+  "pyqConnection": "Explain how this article relates to past year questions (PYQs). E.g., 'Similar questions about state boundary disputes were asked in CGPSC SSE 2021.'",
+  "memoryTricks": "A mnemonic, memory trick, or acronym to help students easily remember key facts, dates, or names from this article.",
+  "flashcards": [
+    {
+      "front": "A clear, direct question or prompt on the front of the card in a bilingual format.",
+      "back": "The answer/fact explanation on the back of the card in a bilingual format."
+    }
+  ],
+  "mcqs": [
+    {
+      "question": "High-quality exam-style multiple choice question based on the article (can be Hindi or English or bilingual). Include 5 questions in total.",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctIndex": 0,
+      "explanation": "Detailed explanation of why this option is correct, and why others are incorrect, including relevant background facts.",
+      "difficulty": "easy",
+      "probability": "high"
+    }
+  ]
+}
+
+CRITICAL LANGUAGE & ENCODING RULES:
+1. ALWAYS use pure Devanagari Unicode characters for Hindi text.
+2. NEVER mix similar-looking Cyrillic characters (such as д, а, н, т, е, к, м, р, у, о, etc.) inside Devanagari words. Doing so will break formatting.
+3. The response must be a single JSON object. No extra words, no markdown blocks.`;
+
+  const prompt = `Analyze and generate exam intelligence for:
+Title: "${title}"
+Description: "${description || ''}"
+Category (scraped): "${category || ''}"
+Source: "${source || ''}"
+
+Respond with the exact requested JSON format. Include exactly 5 high-quality MCQs based on the content. Make sure all array fields contain real educational connections and have at least 1-3 entries.`;
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 4096,
+    system: systemInstruction,
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  return response.content[0].text.trim();
+}
+
+module.exports = { chat, chatStream, generateTest, parseSyllabus, translateAndSummarizeNews, generateNewsIntelligence };

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { db, bucket } = require('../firebase-admin');
+const { admin, db, bucket, authAdmin } = require('../firebase-admin');
 const { verifyAdmin } = require('../middleware/verifyFirebaseToken');
 const { extractTextFromPDF } = require('../services/syllabusParser');
 const { getActiveAI, setActiveAI, getGeminiConfig, updateAIConfig, generateTest, summarizeNews, translateAndSummarizeNews } = require('../services/aiManager');
@@ -162,61 +162,13 @@ router.get('/materials', verifyAdmin, async (req, res) => {
 
 router.post('/news/refresh', verifyAdmin, async (req, res) => {
   try {
-    console.log('[Admin News Refresh] Scraping fresh articles...');
-    const { scrapeAll } = require('../services/scraper');
-    const result = await scrapeAll();
-    let articles = result.articles || [];
-
-    // Process all articles (limit to 20 to avoid rate limits and keep it fast)
-    const limit = 20;
-    const processArticles = articles.slice(0, limit);
-
-    console.log(`[Admin News Refresh] Running AI translation & summarization for all ${processArticles.length} articles...`);
-
-    const summarized = await Promise.all(
-      processArticles.map(async (art) => {
-        try {
-          const aiResult = await translateAndSummarizeNews(
-            art.title,
-            art.category,
-            art.source
-          );
-          return {
-            ...art,
-            title_hi: aiResult.title_hi || art.title,
-            description: aiResult.summary_en,
-            description_hi: aiResult.summary_hi,
-            summary: aiResult.summary_en,
-            summary_hi: aiResult.summary_hi
-          };
-        } catch (err) {
-          console.error(`[Admin News AI Error] Failed to translate/summarize "${art.title}":`, err.message);
-          return {
-            ...art,
-            title_hi: art.title, // Fallback
-            description: art.description,
-            description_hi: art.description,
-            summary: art.description,
-            summary_hi: art.description
-          };
-        }
-      })
-    );
-
-    const finalArticles = summarized;
-
-    const cacheData = {
-      lastUpdated: new Date().toISOString(),
-      articles: finalArticles
-    };
-
-    await db.collection('news').doc('cache').set(cacheData);
-    console.log('[Admin News Refresh] Cache updated in Firestore with AI bilingual summaries ✅');
-
+    console.log('[Admin News Refresh] Scraping and translating fresh articles...');
+    const { scrapeAllNews } = require('../services/newsScraper');
+    const result = await scrapeAllNews();
     res.json({
       success: true,
-      lastUpdated: cacheData.lastUpdated,
-      totalArticles: finalArticles.length
+      lastUpdated: result.lastUpdated,
+      totalArticles: result.articles.length
     });
   } catch (err) {
     console.error('[Admin News Refresh Error]:', err.message);
@@ -345,6 +297,131 @@ router.delete('/tests/:id', verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error('[Admin Delete Test Error]:', err.message);
     res.status(500).json({ error: 'Failed to delete test.' });
+  }
+});
+
+// GET /api/admin/users - Retrieves all user profiles
+router.get('/users', verifyAdmin, async (req, res) => {
+  try {
+    // 1. List all users from Firebase Auth
+    const listUsersResult = await authAdmin.listUsers(1000);
+    const authUsers = listUsersResult.users;
+
+    // 2. Fetch all user documents from Firestore
+    const snapshot = await db.collection('users').get();
+    const firestoreUsersMap = {};
+    snapshot.forEach(doc => {
+      firestoreUsersMap[doc.id] = doc.data();
+    });
+
+    // 3. Merge Auth details with Firestore metrics
+    const users = authUsers.map(user => {
+      const fDoc = firestoreUsersMap[user.uid] || {};
+      
+      const email = user.email || '';
+      const displayId = email.endsWith('@studyworld.app') ? email.split('@')[0] : email;
+
+      return {
+        uid: user.uid,
+        email: email,
+        displayId: displayId,
+        displayName: user.displayName || displayId,
+        createdAt: user.metadata.creationTime,
+        lastSignInTime: user.metadata.lastSignInTime,
+        isAdmin: !!(user.customClaims && user.customClaims.admin),
+        disabled: user.disabled || false,
+        mobile: fDoc.mobile || '',
+        points: fDoc.points !== undefined ? fDoc.points : 120, // default match client initial
+        streak: fDoc.streak?.count || 0,
+        mcqsSolved: fDoc.mcqsSolved !== undefined ? fDoc.mcqsSolved : 25, // default match client initial
+        testResultsCount: Array.isArray(fDoc.testResults) ? fDoc.testResults.length : 0,
+        isPaid: fDoc.isPaid === true || fDoc.plan === 'paid',
+        plan: fDoc.plan || (fDoc.isPaid === true ? 'paid' : 'free')
+      };
+    });
+
+    res.json(users);
+  } catch (err) {
+    console.error('[Admin Get Users Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve registered users list.' });
+  }
+});
+
+// POST /api/admin/users/:uid/tier - Toggles or sets user tier (paid/free)
+router.post('/users/:uid/tier', verifyAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { isPaid, plan } = req.body;
+
+    if (isPaid === undefined && plan === undefined) {
+      return res.status(400).json({ error: 'Tier status fields (isPaid or plan) are required' });
+    }
+
+    const updates = {};
+    if (isPaid !== undefined) {
+      updates.isPaid = !!isPaid;
+    }
+    if (plan !== undefined) {
+      updates.plan = plan === 'paid' ? 'paid' : 'free';
+      updates.isPaid = updates.plan === 'paid';
+    } else if (isPaid !== undefined) {
+      updates.plan = isPaid ? 'paid' : 'free';
+    }
+
+    updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+
+    await db.collection('users').doc(uid).set(updates, { merge: true });
+    console.log(`[Admin User Tier Update] Updated user ${uid} tier to ${updates.plan} ✅`);
+    res.json({ success: true, uid, plan: updates.plan, isPaid: updates.isPaid });
+  } catch (err) {
+    console.error('[Admin Update User Tier Error]:', err.message);
+    res.status(500).json({ error: 'Failed to update user tier status.' });
+  }
+});
+
+// POST /api/admin/users/:uid/status - Block or activate a user account
+router.post('/users/:uid/status', verifyAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { disabled } = req.body;
+
+    if (disabled === undefined) {
+      return res.status(400).json({ error: 'disabled status field (boolean) is required' });
+    }
+
+    // 1. Update in Firebase Authentication
+    await authAdmin.updateUser(uid, { disabled: !!disabled });
+
+    // 2. Sync to Firestore user document
+    await db.collection('users').doc(uid).set({ 
+      disabled: !!disabled,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    console.log(`[Admin User Status Update] Set user ${uid} disabled status to ${!!disabled} ✅`);
+    res.json({ success: true, uid, disabled: !!disabled });
+  } catch (err) {
+    console.error('[Admin Update User Status Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to update user status.' });
+  }
+});
+
+// DELETE /api/admin/users/:uid - Permanently deletes a user account
+router.delete('/users/:uid', verifyAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+
+    // 1. Delete from Firebase Authentication
+    await authAdmin.deleteUser(uid);
+
+    // 2. Delete from Firestore users collection
+    await db.collection('users').doc(uid).delete();
+
+    console.log(`[Admin User Delete] Deleted user account ${uid} permanently ✅`);
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('[Admin Delete User Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to delete user account.' });
   }
 });
 

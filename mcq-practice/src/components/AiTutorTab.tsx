@@ -196,7 +196,7 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
   ];
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-lg mx-auto h-[80vh] bg-bg-s1 relative font-sans">
+    <div className="flex flex-col gap-4 w-full max-w-lg md:max-w-4xl mx-auto h-[80vh] md:h-[calc(100vh-6rem)] bg-bg-s1 relative font-sans">
       
       {/* 1. Header controls */}
       <div className="flex items-center justify-between border-b border-border pb-3 bg-bg-s1 z-10 shrink-0">

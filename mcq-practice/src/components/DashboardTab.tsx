@@ -41,167 +41,173 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const level = Math.max(1, Math.floor(xp / 100) + 1);
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-lg mx-auto pb-10">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full max-w-lg md:max-w-5xl mx-auto pb-10">
       
-      {/* 1. Hero Greet Panel */}
-      <div className="p-6 bg-gradient-to-br from-bg-s2 to-[#121620] border border-border rounded-xl shadow-lg relative overflow-hidden flex flex-col gap-4">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-saffron-dim/10 rounded-full blur-2xl pointer-events-none" />
-        
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase text-text-muted tracking-wider">Namaste 🙏</span>
-            <h2 className="text-xl font-black text-text mt-0.5 truncate max-w-[200px]">
-              {userName || 'Aspirant'}
-            </h2>
+      {/* Left Column: Greet, Target Exam, Quick Actions */}
+      <div className="flex flex-col gap-6 md:col-span-7">
+        {/* 1. Hero Greet Panel */}
+        <div className="p-6 bg-gradient-to-br from-bg-s2 to-[#121620] border border-border rounded-xl shadow-lg relative overflow-hidden flex flex-col gap-4">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-saffron-dim/10 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase text-text-muted tracking-wider">Namaste 🙏</span>
+              <h2 className="text-xl font-black text-text mt-0.5 truncate max-w-[200px]">
+                {userName || 'Aspirant'}
+              </h2>
+            </div>
+            
+            <div className="w-10 h-10 bg-saffron hover:bg-orange-500 rounded-full flex items-center justify-center font-black text-bg-s1 select-none shadow">
+              {(userName ? userName[0] : 'A').toUpperCase()}
+            </div>
+          </div>
+
+          {/* Dynamic Streak Badge Card */}
+          <div className="flex items-center justify-between bg-bg-s3 border border-border/80 p-3.5 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-500/10 rounded border border-orange-500/25 flex items-center justify-center">
+                <Flame className="w-5.5 h-5.5 text-orange-500 fill-orange-500/15" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-lg font-black text-text leading-tight">{streak} Days</span>
+                <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Day Streak</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end">
+              <span className="text-sm font-black text-saffron">{xp} XP</span>
+              <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Level {level}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Selected Target Exam Card */}
+        <button
+          onClick={() => setShowExamSelector(true)}
+          className="w-full p-4 bg-bg-s2 hover:bg-bg-s2/90 border border-border rounded-xl flex items-center justify-between text-left shadow-md transition-all group cursor-pointer relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-16 h-16 bg-saffron-dim/10 rounded-full blur-xl pointer-events-none" />
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 bg-bg-s3 rounded-lg border border-border flex items-center justify-center text-lg select-none">
+              {activeExam?.icon || '🏛️'}
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <h3 className="text-xs font-bold text-text-muted uppercase tracking-wide">Target Exam</h3>
+              <span className="text-sm font-black text-text group-hover:text-saffron transition-colors leading-tight">
+                {activeExam?.name || 'Select Target Exam'}
+              </span>
+              <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">
+                {activeExam ? `${activeExam.daysRemaining} days remaining` : 'Tap to select'}
+              </span>
+            </div>
           </div>
           
-          <div className="w-10 h-10 bg-saffron hover:bg-orange-500 rounded-full flex items-center justify-center font-black text-bg-s1 select-none shadow">
-            {(userName ? userName[0] : 'A').toUpperCase()}
+          <div className="flex items-center gap-1 text-[10px] font-black uppercase text-saffron-border group-hover:translate-x-0.5 transition-transform">
+            <span>Change</span>
+            <ChevronRight className="w-3.5 h-3.5" />
           </div>
-        </div>
+        </button>
 
-        {/* Dynamic Streak Badge Card */}
-        <div className="flex items-center justify-between bg-bg-s3 border border-border/80 p-3.5 rounded-lg">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500/10 rounded border border-orange-500/25 flex items-center justify-center">
-              <Flame className="w-5.5 h-5.5 text-orange-500 fill-orange-500/15" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-black text-text leading-tight">{streak} Days</span>
-              <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Day Streak</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-end">
-            <span className="text-sm font-black text-saffron">{xp} XP</span>
-            <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Level {level}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Selected Target Exam Card */}
-      <button
-        onClick={() => setShowExamSelector(true)}
-        className="w-full p-4 bg-bg-s2 hover:bg-bg-s2/90 border border-border rounded-xl flex items-center justify-between text-left shadow-md transition-all group cursor-pointer relative overflow-hidden"
-      >
-        <div className="absolute top-0 right-0 w-16 h-16 bg-saffron-dim/10 rounded-full blur-xl pointer-events-none" />
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 bg-bg-s3 rounded-lg border border-border flex items-center justify-center text-lg select-none">
-            {activeExam?.icon || '🏛️'}
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wide">Target Exam</h3>
-            <span className="text-sm font-black text-text group-hover:text-saffron transition-colors leading-tight">
-              {activeExam?.name || 'Select Target Exam'}
-            </span>
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">
-              {activeExam ? `${activeExam.daysRemaining} days remaining` : 'Tap to select'}
-            </span>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-1 text-[10px] font-black uppercase text-saffron-border group-hover:translate-x-0.5 transition-transform">
-          <span>Change</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </div>
-      </button>
-
-      {/* 3. Circular Stats Summary Grid */}
-      <div className="grid grid-cols-3 gap-3.5">
-        <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col items-center justify-center text-center shadow-md relative overflow-hidden">
-          <ProgressRing percentage={completionPercent} size={60} strokeWidth={6} />
-          <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider mt-3">Completed</span>
-        </div>
-
-        <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col items-center justify-center text-center shadow-md">
-          <Trophy className="w-6.5 h-6.5 text-saffron fill-saffron/10 mb-1" />
-          <span className="text-base font-black text-text mt-1">{testsGivenCount}</span>
-          <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider mt-0.5">Tests Given</span>
-        </div>
-
-        <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col items-center justify-center text-center shadow-md">
-          <BookOpen className="w-6.5 h-6.5 text-greenL fill-greenL/10 mb-1" />
-          <span className="text-base font-black text-text mt-1">{completedTopicsCount}</span>
-          <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider mt-0.5">Topics Done</span>
-        </div>
-      </div>
-
-      {/* 4. Quick Action Options Grid */}
-      <div className="flex flex-col gap-3">
-        <h4 className="text-[10px] font-black uppercase text-text-muted tracking-wider">Quick Actions</h4>
-        <div className="grid grid-cols-2 gap-3.5">
-          <button
-            onClick={() => onStartPracticeMode('quiz')}
-            className="p-4 bg-[#ff9933]/5 hover:bg-[#ff9933]/10 border border-[#ff9933]/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
-          >
-            <span className="text-lg">⚡</span>
-            <span className="text-sm font-bold text-text mt-1">Daily Quiz</span>
-            <span className="text-[10px] text-text-muted font-bold leading-tight">20 MCQs • CG GK practices</span>
-          </button>
-
-          <button
-            onClick={() => onStartPracticeMode('mock')}
-            className="p-4 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
-          >
-            <span className="text-lg">🏆</span>
-            <span className="text-sm font-bold text-text mt-1">Mock Test</span>
-            <span className="text-[10px] text-text-muted font-bold leading-tight">Full Pattern Mock Exams</span>
-          </button>
-
-          <button
-            onClick={() => onNavigateToTab('chat')}
-            className="p-4 bg-green-500/5 hover:bg-green-500/10 border border-green-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
-          >
-            <span className="text-lg">🤖</span>
-            <span className="text-sm font-bold text-text mt-1">AI Tutor Guru</span>
-            <span className="text-[10px] text-text-muted font-bold leading-tight">Instant doubt solving tutor</span>
-          </button>
-
-          <button
-            onClick={() => onNavigateToTab('syllabus')}
-            className="p-4 bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
-          >
-            <span className="text-lg">📚</span>
-            <span className="text-sm font-bold text-text mt-1">Syllabus</span>
-            <span className="text-[10px] text-text-muted font-bold leading-tight">Interactive syllabus trackers</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 5. Subject Syllabus Completion list cards */}
-      <div className="flex flex-col gap-3">
-        <h4 className="text-[10px] font-black uppercase text-text-muted tracking-wider">Subject Progress</h4>
+        {/* 4. Quick Action Options Grid */}
         <div className="flex flex-col gap-3">
-          {activeExam?.subjects?.map((sub: any) => {
-            // Count total topics vs completed ones for this subject
-            let total = 0;
-            let completed = 0;
-            sub.chapters.forEach((chap: any) => {
-              chap.topics.forEach((topic: any) => {
-                total++;
-                const status = topicProgress[topic.id]?.status;
-                if (status === 'Completed' || status === 'Revised') completed++;
+          <h4 className="text-[10px] font-black uppercase text-text-muted tracking-wider">Quick Actions</h4>
+          <div className="grid grid-cols-2 gap-3.5">
+            <button
+              onClick={() => onStartPracticeMode('quiz')}
+              className="p-4 bg-[#ff9933]/5 hover:bg-[#ff9933]/10 border border-[#ff9933]/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+            >
+              <span className="text-lg">⚡</span>
+              <span className="text-sm font-bold text-text mt-1">Daily Quiz</span>
+              <span className="text-[10px] text-text-muted font-bold leading-tight">20 MCQs • CG GK practices</span>
+            </button>
+
+            <button
+              onClick={() => onStartPracticeMode('mock')}
+              className="p-4 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+            >
+              <span className="text-lg">🏆</span>
+              <span className="text-sm font-bold text-text mt-1">Mock Test</span>
+              <span className="text-[10px] text-text-muted font-bold leading-tight">Full Pattern Mock Exams</span>
+            </button>
+
+            <button
+              onClick={() => onNavigateToTab('chat')}
+              className="p-4 bg-green-500/5 hover:bg-green-500/10 border border-green-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+            >
+              <span className="text-lg">🤖</span>
+              <span className="text-sm font-bold text-text mt-1">AI Tutor Guru</span>
+              <span className="text-[10px] text-text-muted font-bold leading-tight">Instant doubt solving tutor</span>
+            </button>
+
+            <button
+              onClick={() => onNavigateToTab('syllabus')}
+              className="p-4 bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+            >
+              <span className="text-lg">📚</span>
+              <span className="text-sm font-bold text-text mt-1">Syllabus</span>
+              <span className="text-[10px] text-text-muted font-bold leading-tight">Interactive syllabus trackers</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column: Stats summaries & Subject progress lists */}
+      <div className="flex flex-col gap-6 md:col-span-5">
+        {/* 3. Circular Stats Summary Grid */}
+        <div className="grid grid-cols-3 gap-3.5">
+          <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col items-center justify-center text-center shadow-md relative overflow-hidden">
+            <ProgressRing percentage={completionPercent} size={60} strokeWidth={6} />
+            <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider mt-3">Completed</span>
+          </div>
+
+          <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+            <Trophy className="w-6.5 h-6.5 text-saffron fill-saffron/10 mb-1" />
+            <span className="text-base font-black text-text mt-1">{testsGivenCount}</span>
+            <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider mt-0.5">Tests Given</span>
+          </div>
+
+          <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+            <BookOpen className="w-6.5 h-6.5 text-greenL fill-greenL/10 mb-1" />
+            <span className="text-base font-black text-text mt-1">{completedTopicsCount}</span>
+            <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider mt-0.5">Topics Done</span>
+          </div>
+        </div>
+
+        {/* 5. Subject Syllabus Completion list cards */}
+        <div className="flex flex-col gap-3">
+          <h4 className="text-[10px] font-black uppercase text-text-muted tracking-wider">Subject Progress</h4>
+          <div className="flex flex-col gap-3">
+            {activeExam?.subjects?.map((sub: any) => {
+              // Count total topics vs completed ones for this subject
+              let total = 0;
+              let completed = 0;
+              sub.chapters.forEach((chap: any) => {
+                chap.topics.forEach((topic: any) => {
+                  total++;
+                  const status = topicProgress[topic.id]?.status;
+                  if (status === 'Completed' || status === 'Revised') completed++;
+                });
               });
-            });
 
-            const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+              const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-            return (
-              <div key={sub.id} className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col gap-2 shadow-sm">
-                <div className="flex justify-between items-start">
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-text leading-tight">{sub.name}</span>
-                    <span className="text-[9px] text-text-muted mt-0.5 font-bold uppercase">{completed} / {total} Topics</span>
+              return (
+                <div key={sub.id} className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col gap-2 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-text leading-tight">{sub.name}</span>
+                      <span className="text-[9px] text-text-muted mt-0.5 font-bold uppercase">{completed} / {total} Topics</span>
+                    </div>
+                    <span className="text-xs font-black text-saffron">{pct}%</span>
                   </div>
-                  <span className="text-xs font-black text-saffron">{pct}%</span>
+                  
+                  <div className="w-full h-1.5 bg-bg-s3 border border-border/40 rounded-full overflow-hidden">
+                    <div className="h-full bg-saffron rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                  </div>
                 </div>
-                
-                <div className="w-full h-1.5 bg-bg-s3 border border-border/40 rounded-full overflow-hidden">
-                  <div className="h-full bg-saffron rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 
