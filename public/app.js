@@ -18,6 +18,18 @@ async function configureApiBase() {
         return;
       }
     } catch (e) {}
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600);
+      const res = await fetch('http://localhost:3001/api/health', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        API_BASE = 'http://localhost:3001';
+        console.log('[API] Local backend detected. Using http://localhost:3001');
+        return;
+      }
+    } catch (e) {}
     
     if (window.location.port && window.location.port !== '5500' && window.location.port !== '8080') {
       API_BASE = '';
@@ -677,6 +689,10 @@ function initNavigation() {
 }
 
 function navigateTo(screenName) {
+  if (screenName === 'syllabus') {
+    window.location.href = '/mcq-practice/?page=syllabus';
+    return;
+  }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const target = document.getElementById(`screen-${screenName}`);
   if (target) {
@@ -703,7 +719,10 @@ function navigateTo(screenName) {
   if (screenName === 'dashboard') updateDashboard();
   if (screenName === 'syllabus') renderSyllabus();
   if (screenName === 'ai-chat') restoreChatHistory();
-  if (screenName === 'tests') updateTestSubjects();
+  if (screenName === 'tests') {
+    updateTestSubjects();
+    loadAvailableTests();
+  }
   if (screenName === 'news') loadNews();
   if (screenName === 'profile') updateProfile();
 }
@@ -1776,7 +1795,11 @@ function setGlobalLanguage(lang, rerender = true) {
 
   if (!rerender) return;
   if (currentScreen === 'syllabus') renderSyllabus();
-  if (currentScreen === 'news') renderNewsCards();
+  if (currentScreen === 'news') {
+    updateNewsStats();
+    setupNewsTicker();
+    renderNewsCards();
+  }
 }
 
 function initLanguageSetting() {
@@ -2434,12 +2457,17 @@ function escapeHtml(text) {
 //              TEST SYSTEM
 // ═══════════════════════════════════════════
 
+let availableTestsData = [];
+let activeTestType = 'quiz';
+
 function initTestScreen() {
+  // Toggle selection on unified test mode cards
   document.querySelectorAll('.test-mode-card').forEach(card => {
     card.addEventListener('click', () => {
       document.querySelectorAll('.test-mode-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
-      testState.mode = card.dataset.mode;
+      activeTestType = card.dataset.mode;
+      renderAvailableTests();
     });
   });
 
@@ -2456,6 +2484,7 @@ function updateTestSubjects() {
   if (!exam) return;
 
   const select = document.getElementById('test-subject-select');
+  if (!select) return;
   select.innerHTML = '<option value="all">All Subjects (Mixed)</option>';
 
   exam.subjects.forEach(subject => {
@@ -2472,7 +2501,9 @@ async function startTest() {
 
   const subject = document.getElementById('test-subject-select').value;
   const language = document.getElementById('test-lang-select').value;
+  const customMode = document.getElementById('test-custom-mode-select').value; // 'quiz' or 'mock'
   testState.selectedSubject = subject;
+  testState.mode = customMode;
 
   document.getElementById('test-setup').style.display = 'none';
   document.getElementById('test-loading').classList.remove('hidden');
@@ -2482,54 +2513,139 @@ async function startTest() {
   try {
     let questionsResponse = [];
 
-    if (testState.mode === 'pyq') {
-      // Simulate slight delay for authentic feel
-      await new Promise(resolve => setTimeout(resolve, 800));
-      // Shuffle PRELOADED_TESTS and pick 10 questions
-      const shuffled = [...PRELOADED_TESTS].sort(() => 0.5 - Math.random());
-      questionsResponse = shuffled.slice(0, 10);
-    } else {
-      const examSubjects = exam.subjects ? exam.subjects.map(s => s.name) : [];
-      const response = await fetch('/api/generate-test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          examId: currentExam,
-          examName: exam.fullName || exam.name,
-          subject,
-          mode: testState.mode,
-          language,
-          subjects: examSubjects
-        })
-      });
+    const examSubjects = exam.subjects ? exam.subjects.map(s => s.name) : [];
+    const response = await fetch('/api/tests/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        examId: currentExam,
+        examName: exam.fullName || exam.name,
+        subject,
+        mode: customMode,
+        language,
+        subjects: examSubjects
+      })
+    });
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to generate test');
-      }
-
-      const data = await response.json();
-      questionsResponse = data.questions;
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Failed to generate test');
     }
 
-    testState.questions = questionsResponse;
-    testState.currentIndex = 0;
-    testState.answers = new Array(questionsResponse.length).fill(null);
-    testState.isReviewing = false;
-
+    const data = await response.json();
+    window.location.href = `/mcq-practice/?testId=${data.test.id}`;
+  } catch (err) {
     document.getElementById('test-loading').classList.add('hidden');
-    document.getElementById('test-active').classList.add('visible');
+    document.getElementById('test-setup').style.display = 'block';
+    showToast(`❌ ${err.message}`, 'error');
+  }
+}
 
-    if (testState.mode === 'mock') {
-      startTimer(30 * 60);
-      document.getElementById('test-timer').classList.remove('hidden');
-      document.getElementById('timer-bar').classList.remove('hidden');
+async function loadAvailableTests() {
+  const container = document.getElementById('available-tests-list');
+  if (container) {
+    container.innerHTML = `<div class="profile-loading">Loading available tests...</div>`;
+  }
+  
+  try {
+    const response = await fetch(`/api/tests?examId=${currentExam}`);
+    if (response.ok) {
+      availableTestsData = await response.json();
     } else {
-      document.getElementById('test-timer').classList.add('hidden');
-      document.getElementById('timer-bar').classList.add('hidden');
+      availableTestsData = [];
     }
+  } catch (err) {
+    console.error('Failed to load tests:', err);
+    availableTestsData = [];
+  }
+  
+  renderAvailableTests();
+}
 
-    renderQuestion();
+function renderAvailableTests() {
+  const listContainer = document.getElementById('available-tests-list');
+  const pyqConfig = document.getElementById('pyq-test-config');
+
+  if (activeTestType === 'pyq') {
+    if (listContainer) listContainer.classList.add('hidden');
+    if (pyqConfig) pyqConfig.classList.remove('hidden');
+    return;
+  } else {
+    if (listContainer) listContainer.classList.remove('hidden');
+    if (pyqConfig) pyqConfig.classList.add('hidden');
+  }
+
+  const container = document.getElementById('available-tests-list');
+  if (!container) return;
+  
+  let html = '';
+  
+  // 1. Filter tests based on activeTestType (quiz or mock)
+  const filtered = availableTestsData.filter(t => {
+    return t.mode === activeTestType;
+  });
+  
+  // 2. Render admin-generated tests
+  filtered.forEach(test => {
+    const badgeClass = test.mode === 'mock' ? 'mock' : 'quiz';
+    const badgeLabel = test.mode === 'mock' ? '🏆 Mock Test' : '⚡ Quick Quiz';
+    const dateStr = test.createdAt ? new Date(test.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    
+    html += `
+      <div class="test-card">
+        <div class="test-card-header">
+          <span class="test-card-badge ${badgeClass}">${badgeLabel}</span>
+          <span class="test-card-date">${dateStr}</span>
+        </div>
+        <div class="test-card-title">${test.subject === 'all' ? 'All Subjects (Mixed)' : test.subject}</div>
+        <div class="test-card-meta">
+          <span>📝 ${test.totalQuestions} Questions</span>
+          <span>🌐 ${test.language.toUpperCase()}</span>
+        </div>
+        <div class="test-card-action">
+          <button class="test-card-btn" onclick="attendGeneratedTest('${test.id}')">Start Test</button>
+        </div>
+      </div>
+    `;
+  });
+  
+  if (filtered.length === 0) {
+    html = `
+      <div class="news-empty-state" style="padding: 24px 0;">
+        <div class="news-empty-icon">📭</div>
+        <div class="news-empty-title">No tests available</div>
+        <div class="news-empty-sub">No tests generated by admin for this category yet.</div>
+      </div>
+    `;
+  }
+  
+  container.innerHTML = html;
+}
+
+function attendGeneratedTest(testId) {
+  window.location.href = `/mcq-practice/?testId=${testId}`;
+}
+
+async function startPYQTest() {
+  document.getElementById('test-setup').style.display = 'none';
+  document.getElementById('test-loading').classList.remove('hidden');
+  document.getElementById('score-card').classList.add('hidden');
+
+  try {
+    // Simulate slight delay for authentic feel
+    await new Promise(resolve => setTimeout(resolve, 500));
+    // Shuffle PRELOADED_TESTS and pick 10 questions
+    const shuffled = [...PRELOADED_TESTS].sort(() => 0.5 - Math.random());
+    const pyqQuestions = shuffled.slice(0, 10);
+    
+    // Store in localStorage for React app
+    localStorage.setItem('cgpsc_active_test', JSON.stringify({
+      questions: pyqQuestions,
+      mode: 'pyq',
+      subjectName: 'Previous Year Papers (PYQs)'
+    }));
+
+    window.location.href = '/mcq-practice/';
   } catch (err) {
     document.getElementById('test-loading').classList.add('hidden');
     document.getElementById('test-setup').style.display = 'block';
@@ -3351,41 +3467,27 @@ async function loadNews() {
       data = firestoreData || localData;
     }
 
-    // ── Step 4: If no cached data anywhere, try client-side scraping ──
+    // ── Step 4: If no cached data anywhere, use bilingual fallback data ──
     if (!data || (data.articles || []).length === 0) {
-      console.log('[News] No cache found, attempting client-side scraper...');
-      try {
-        await runClientSideScraper();
-        return; // runClientSideScraper already calls renderNewsCards
-      } catch (scrapErr) {
-        console.warn('[News] Client scraper failed on initial load:', scrapErr);
-        // Use minimal fallback data
-        data = {
-          lastUpdated: new Date().toISOString(),
-          articles: [
-            {
-              title: 'Supreme Court Landmark Ruling on Right to Privacy',
-              description: 'National • The Supreme Court expanded the scope of fundamental right to privacy in a landmark judgment.',
-              category: 'affairs',
-              date: new Date().toISOString().split('T')[0],
-              source: 'National News',
-              url: '#',
-              icon: '⚖️',
-              lang: 'en'
-            },
-            {
-              title: 'निजता के अधिकार पर सुप्रीम कोर्ट का ऐतिहासिक फैसला',
-              description: 'राष्ट्रीय • सुप्रीम कोर्ट ने एक ऐतिहासिक फैसले में मौलिक निजता के अधिकार के दायरे का विस्तार किया।',
-              category: 'affairs',
-              date: new Date().toISOString().split('T')[0],
-              source: 'राष्ट्रीय समाचार',
-              url: '#',
-              icon: '⚖️',
-              lang: 'hi'
-            }
-          ]
-        };
-      }
+      console.log('[News] No cache found, using default fallback data.');
+      data = {
+        lastUpdated: new Date().toISOString(),
+        articles: [
+          {
+            title: 'Supreme Court Landmark Ruling on Right to Privacy',
+            title_hi: 'निजता के अधिकार पर सुप्रीम कोर्ट का ऐतिहासिक फैसला',
+            description: 'National • The Supreme Court expanded the scope of fundamental right to privacy in a landmark judgment.',
+            description_hi: 'राष्ट्रीय • सुप्रीम कोर्ट ने एक ऐतिहासिक फैसले में मौलिक निजता के अधिकार के दायरे का विस्तार किया।',
+            summary: 'National • The Supreme Court expanded the scope of fundamental right to privacy in a landmark judgment.',
+            summary_hi: 'राष्ट्रीय • सुप्रीम कोर्ट ने एक ऐतिहासिक फैसले में मौलिक निजता के अधिकार के दायरे का विस्तार किया।',
+            category: 'affairs',
+            date: new Date().toISOString().split('T')[0],
+            source: 'National News',
+            url: '#',
+            icon: '⚖️'
+          }
+        ]
+      };
     }
 
     newsData = data.articles || [];
@@ -3398,13 +3500,6 @@ async function loadNews() {
       const d = new Date(newsLastUpdated);
       const mins = Math.floor((Date.now() - d.getTime()) / 60000);
       timeEl.textContent = mins < 1 ? 'Just now' : `${mins}m ago`;
-
-      // Auto-refresh in the background if the cache is older than 30 mins
-      // Use client-side scraping since server may not be available
-      if (mins >= 30) {
-        console.log(`[News] Cache is ${mins}m old, triggering background refresh...`);
-        refreshNews(true).catch(() => {});
-      }
     } else if (timeEl) {
       timeEl.textContent = 'Live';
     }
@@ -3414,19 +3509,13 @@ async function loadNews() {
     renderNewsCards();
   } catch (err) {
     console.error('[News Load Error]:', err);
-    console.log('[News] Attempting client-side scraper fallback due to load error...');
-    try {
-      await runClientSideScraper();
-    } catch (scrapErr) {
-      console.error('[News] Client-side scraper failed after load error:', scrapErr);
-      if (timeEl) timeEl.textContent = 'Offline';
-      container.innerHTML = `
-        <div class="news-empty-state">
-          <div class="news-empty-icon">📡</div>
-          <div class="news-empty-title">Connection Error</div>
-          <div class="news-empty-sub">Could not load news. Check your connection and try refreshing.</div>
-        </div>`;
-    }
+    if (timeEl) timeEl.textContent = 'Offline';
+    container.innerHTML = `
+      <div class="news-empty-state">
+        <div class="news-empty-icon">📡</div>
+        <div class="news-empty-title">Connection Error</div>
+        <div class="news-empty-sub">Could not load news. Check your connection and try refreshing.</div>
+      </div>`;
   }
 }
 
@@ -3434,10 +3523,9 @@ function updateNewsStats() {
   const statsBar = document.getElementById('news-stats-bar');
   if (!statsBar) return;
 
-  const langFiltered = newsData.filter(a => (a.lang || 'en') === newsLanguage);
-  const total = langFiltered.length;
-  const jobs = langFiltered.filter(a => a.category === 'jobs').length;
-  const exams = langFiltered.filter(a => a.category === 'exams').length;
+  const total = newsData.length;
+  const jobs = newsData.filter(a => a.category === 'jobs').length;
+  const exams = newsData.filter(a => a.category === 'exams').length;
 
   document.getElementById('news-stat-total').textContent = `${total} Articles`;
   document.getElementById('news-stat-jobs').textContent = `${jobs} Jobs`;
@@ -3452,9 +3540,8 @@ function setupNewsTicker() {
   if (!wrap || !inner) return;
 
   const headlines = newsData
-    .filter(a => (a.lang || 'en') === newsLanguage)
     .slice(0, 8)
-    .map(a => a.title);
+    .map(a => (newsLanguage === 'hi' ? a.title_hi : a.title) || a.title);
 
   if (headlines.length === 0) {
     wrap.style.display = 'none';
@@ -3466,18 +3553,20 @@ function setupNewsTicker() {
 }
 
 function getFilteredNews() {
-  let filtered = newsData.filter(a => (a.lang || 'en') === newsLanguage);
+  let filtered = newsData;
 
   if (newsCategory !== 'all') {
     filtered = filtered.filter(a => a.category === newsCategory);
   }
 
   if (newsSearchQuery) {
-    filtered = filtered.filter(a =>
-      (a.title || '').toLowerCase().includes(newsSearchQuery) ||
-      (a.description || '').toLowerCase().includes(newsSearchQuery) ||
-      (a.source || '').toLowerCase().includes(newsSearchQuery)
-    );
+    filtered = filtered.filter(a => {
+      const title = (newsLanguage === 'hi' ? a.title_hi : a.title) || a.title || '';
+      const desc = (newsLanguage === 'hi' ? a.description_hi : a.description) || a.description || '';
+      return title.toLowerCase().includes(newsSearchQuery) ||
+             desc.toLowerCase().includes(newsSearchQuery) ||
+             (a.source || '').toLowerCase().includes(newsSearchQuery);
+    });
   }
 
   return filtered;
@@ -3506,15 +3595,17 @@ function renderNewsCards() {
   const hero = filtered[0];
   const heroTag = categoryMap[hero.category] || 'News';
   const heroIcon = categoryIconMap[hero.category] || '📰';
+  const heroTitle = newsLanguage === 'hi' ? (hero.title_hi || hero.title) : hero.title;
+  const heroDesc = newsLanguage === 'hi' ? (hero.description_hi || hero.description) : hero.description;
 
   html += `
     <div class="news-hero-card" onclick="openNewsArticle(0, true)">
       <div class="news-hero-badge">✨ Top Story</div>
       <div class="news-hero-icon-row">
         <div class="news-hero-emoji">${hero.icon || heroIcon}</div>
-        <div class="news-hero-title">${hero.title}</div>
+        <div class="news-hero-title">${heroTitle}</div>
       </div>
-      <div class="news-hero-desc">${hero.description || ''}</div>
+      <div class="news-hero-desc">${heroDesc || ''}</div>
       <div class="news-hero-footer">
         <span class="news-tag ${hero.category || 'affairs'}">${heroTag}</span>
         <span class="news-hero-read-more">Read More →</span>
@@ -3555,13 +3646,15 @@ function buildNewsCard(article, index) {
   const tagLabel = { jobs: '💼 Jobs', exams: '📝 Alert', affairs: '🗞️ Affairs' }[tagClass] || tagClass;
   const timeAgo = article.date ? `📅 ${article.date}` : '';
   const source = article.source ? `📡 ${article.source}` : '';
+  const title = newsLanguage === 'hi' ? (article.title_hi || article.title) : article.title;
+  const desc = newsLanguage === 'hi' ? (article.description_hi || article.description) : article.description;
 
   return `
     <div class="news-card" onclick="openNewsArticle(${index})">
       <div class="news-card-emoji-box">${article.icon || '📰'}</div>
       <div class="news-card-body-wrap">
-        <div class="news-card-title">${article.title}</div>
-        <div class="news-card-desc">${article.description || ''}</div>
+        <div class="news-card-title">${title}</div>
+        <div class="news-card-desc">${desc || ''}</div>
         <div class="news-card-footer">
           <span class="news-tag ${tagClass}">${tagLabel}</span>
           ${timeAgo ? `<span class="news-date">${timeAgo}</span>` : ''}
@@ -3617,62 +3710,25 @@ function openNewsArticle(index, isHero = false) {
     badge.className = 'nd-category-badge ' + (article.category || '');
   }
 
-  document.getElementById('nd-title').textContent = article.title;
+  const title = newsLanguage === 'hi' ? (article.title_hi || article.title) : article.title;
+  const desc = newsLanguage === 'hi' ? (article.description_hi || article.description) : article.description;
+  const summary = newsLanguage === 'hi' ? (article.summary_hi || article.summary) : article.summary;
+
+  document.getElementById('nd-title').textContent = title;
   document.getElementById('nd-date').textContent = article.date ? `📅 ${article.date}` : '📅 Today';
   document.getElementById('nd-source').textContent = article.source ? `📡 ${article.source}` : '📡 ExamPrep AI';
-  document.getElementById('nd-desc').textContent = article.description || 'No detailed description available.';
+  const descEl = document.getElementById('nd-desc');
+  if (descEl) {
+    descEl.textContent = desc || 'No detailed description available.';
+  }
 
-  // AI Summary Logic
+  // AI Summary Logic - Pre-populated by Admin
   const summaryContent = document.getElementById('nd-summary-content');
   if (summaryContent) {
-    if (article.summary) {
-      summaryContent.innerHTML = formatNewsMarkdown(article.summary);
+    if (summary) {
+      summaryContent.innerHTML = formatNewsMarkdown(summary);
     } else {
-      // Show shimmering skeleton loading
-      summaryContent.innerHTML = `
-        <div class="nd-shimmer">
-          <div class="nd-shimmer-line nd-shimmer-line-1"></div>
-          <div class="nd-shimmer-line nd-shimmer-line-2"></div>
-          <div class="nd-shimmer-line nd-shimmer-line-3"></div>
-          <div class="nd-shimmer-line nd-shimmer-line-4"></div>
-        </div>
-      `;
-
-      // Fetch summary from backend
-      const lang = chatLanguage || 'hindi';
-      fetch('/api/news/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: article.title,
-          category: article.category,
-          source: article.source,
-          language: lang
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.summary) {
-          article.summary = data.summary;
-          // Check if article is still the one open
-          const currentTitle = document.getElementById('nd-title').textContent;
-          if (currentTitle === article.title) {
-            summaryContent.innerHTML = formatNewsMarkdown(article.summary);
-          }
-        } else {
-          summaryContent.innerHTML = `<p class="nd-error-text">Failed to generate detailed summary. Use the "Open Article" button to read details.</p>`;
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching summary:', err);
-        // Fallback client-side basic summary
-        const lang = chatLanguage || 'hindi';
-        const isHindi = lang === 'hindi';
-        const fallbackSummary = isHindi
-          ? `**विषय:** ${article.title}\n\n**विवरण:** ${article.description || 'कोई अतिरिक्त विवरण उपलब्ध नहीं है।'}\n\n**श्रेणी:** ${article.category === 'exams' ? 'परीक्षा अधिसूचना' : article.category === 'jobs' ? 'नौकरी अधिसूचना' : 'करंट अफेयर्स'}\n\n**स्रोत:** ${article.source || 'सैमसंग समाचार/गूगल समाचार'}\n\n*(नोट: विस्तृत एआई सारांश के लिए कृपया लोकल सर्वर प्रारंभ करें)*`
-          : `**Topic:** ${article.title}\n\n**Description:** ${article.description || 'No additional description available.'}\n\n**Category:** ${article.category === 'exams' ? 'Exam Notification' : article.category === 'jobs' ? 'Job Notification' : 'Current Affairs'}\n\n**Source:** ${article.source || 'Google News'}\n\n*(Note: Start local server for a detailed AI-generated summary)*`;
-        summaryContent.innerHTML = formatNewsMarkdown(fallbackSummary);
-      });
+      summaryContent.innerHTML = `<p class="nd-error-text">No summary available. Admin has not refreshed news with AI summaries yet.</p>`;
     }
   }
 
@@ -4556,48 +4612,28 @@ function getSubjectDataByName(subjectName) {
 }
 
 async function startSubjectPractice(subjectName) {
-  // Navigate to tests screen first
   navigateTo('tests');
 
-  // Wait a small frame for DOM update
-  setTimeout(async () => {
+  setTimeout(() => {
     const select = document.getElementById('test-subject-select');
     if (select) {
       select.value = subjectName;
-      select.dispatchEvent(new Event('change'));
     }
-
-    // Set testState mode to quiz (Quick Quiz)
-    if (typeof testState !== 'undefined') {
-      testState.mode = 'quiz';
-      
-      // Update UI selection classes for mode cards
-      document.querySelectorAll('.test-mode-card').forEach(card => {
-        if (card.dataset.mode === 'quiz') {
-          card.classList.add('selected');
-        } else {
-          card.classList.remove('selected');
-        }
-      });
+    const card = document.querySelector(`.test-mode-card[data-mode="custom"]`);
+    if (card) {
+      card.click();
     }
-
-    // Automatically call startTest
-    await startTest();
-  }, 100);
+  }, 150);
 }
 
 function startPracticeMode(mode) {
-  if (typeof testState !== 'undefined') {
-    testState.mode = mode;
-    document.querySelectorAll('.test-mode-card').forEach(card => {
-      if (card.dataset.mode === mode) {
-        card.classList.add('selected');
-      } else {
-        card.classList.remove('selected');
-      }
-    });
-  }
   navigateTo('tests');
+  setTimeout(() => {
+    const card = document.querySelector(`.test-mode-card[data-mode="${mode}"]`);
+    if (card) {
+      card.click();
+    }
+  }, 150);
 }
 
 async function loadAnalyticsAIPlan() {

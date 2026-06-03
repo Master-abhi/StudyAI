@@ -111,7 +111,8 @@ The JSON format must be exactly:
       "question": "The question text here",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correctIndex": 0,
-      "explanation": "Detailed explanation of why this is correct"
+      "explanation": "Detailed explanation of why this is correct",
+      "subject": "The specific subject category of this question (e.g. Chhattisgarh GK, Mathematics, Reasoning, Hindi, English, General Science)"
     }
   ]
 }
@@ -180,7 +181,8 @@ ${mode === 'mock' ? '- Include a mix of easy (30%), medium (50%), and hard (20%)
         question: q.question,
         options: shuffledOptions,
         correctIndex: newCorrectIdx,
-        explanation: q.explanation
+        explanation: q.explanation,
+        subject: q.subject || subject || 'General Knowledge'
       };
     });
     
@@ -237,4 +239,37 @@ ${text}`;
   return JSON.parse(jsonText);
 }
 
-module.exports = { chat, chatStream, generateTest, parseSyllabus };
+async function translateAndSummarizeNews(title, category, source) {
+  const systemInstruction = `You are a professional bilingual translation and summarization assistant. 
+Your task is to translate the title of a news article/notification into Hindi and generate two detailed summaries (60-100 words each): one in English and one in Hindi.
+
+CRITICAL Guidelines:
+1. Translate the title accurately into Hindi (Devanagari script) - save it as "title_hi".
+2. Write a detailed summary (60-100 words) in English explaining the key details, eligibility, dates, and significance of this news for students preparing for competitive exams (CGPSC, CG Vyapam) - save it as "summary_en".
+3. Write the exact same summary translated/written in clear Hindi (Devanagari script) - save it as "summary_hi".
+4. SCRIPT GUIDELINE: Always use pure Devanagari Unicode characters for Hindi text. Do NOT mix similar-looking Cyrillic characters (such as д, а, н, т, е, к, м, р, у, о, etc.) or Roman letters inside Devanagari words. For example, write "दन्तेवाड़ा" using Devanagari "द", "न", "त", never using Cyrillic "д", "а", or "н". Double-check that your output contains absolutely zero Cyrillic characters.
+5. You MUST respond with a valid JSON object matching the requested structure. Respond ONLY with the raw JSON.`;
+
+  const prompt = `Translate and summarize the following article details:
+Title: "${title}"
+Category: ${category}
+Source: ${source}
+
+Respond with only this JSON format:
+{
+  "title_hi": "translated title in Hindi Devanagari",
+  "summary_en": "detailed English summary of 60-100 words",
+  "summary_hi": "detailed Hindi summary of 60-100 words in Devanagari"
+}`;
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    system: systemInstruction,
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  return response.content[0].text.trim();
+}
+
+module.exports = { chat, chatStream, generateTest, parseSyllabus, translateAndSummarizeNews };

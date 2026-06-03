@@ -2038,7 +2038,7 @@ body {
   display: flex; 
   gap: 8px; 
   align-items: flex-end; 
-  height: 64px; 
+  height: 90px; 
   background: var(--bg-s2);
   border-radius: var(--radius-md);
   padding: 10px 14px;
@@ -3139,3 +3139,98 @@ code {
 }
 
 
+
+/* ── AVAILABLE TESTS STYLES ── */
+.available-tests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 15px;
+}
+.test-card {
+  background: var(--bg-s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.test-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--saffron-border);
+}
+.test-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.test-card-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.test-card-badge.quiz {
+  background: var(--saffron-dim);
+  color: var(--saffron);
+  border: 1px solid rgba(255, 153, 51, 0.2);
+}
+.test-card-badge.mock {
+  background: var(--blue-dim);
+  color: var(--blue);
+  border: 1px solid rgba(74, 158, 255, 0.2);
+}
+.test-card-badge.pyq {
+  background: var(--purple-dim);
+  color: var(--purple);
+  border: 1px solid rgba(167, 139, 250, 0.2);
+}
+.test-card-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.test-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 2px 0;
+  line-height: 1.4;
+}
+.test-card-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.test-card-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.test-card-action {
+  margin-top: 5px;
+}
+.test-card-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-s3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.test-card:hover .test-card-btn {
+  background: linear-gradient(135deg, var(--saffron), var(--gold));
+  color: #000;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(255, 153, 51, 0.2);
+}

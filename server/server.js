@@ -20,6 +20,7 @@ const studyRoutes = require('./routes/study');
 // NOTE: auth routes removed — authentication is now handled by Firebase Auth client SDK
 const analyticsRoutes = require('./routes/analytics');
 const userRoutes = require('./routes/user');
+const studyIntelligenceRoutes = require('./routes/studyIntelligence');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,13 +32,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/api/chat', chatRoutes);
-app.use('/api/generate-test', testRoutes);
+app.use('/api/tests', testRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/parse-syllabus', syllabusRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/study', studyRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/study-intelligence', studyIntelligenceRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({
@@ -74,27 +76,9 @@ app.use((err, req, res, next) => {
 // Schedule scraper runs via GitHub Action: .github/workflows/refresh-news.yml
 // On Vercel (serverless), node-cron does NOT work — the Action calls POST /api/news/refresh
 
-// For local server, we run an hourly background job to keep the cache updated:
-const { scrapeAll } = require('./services/scraper');
-setInterval(async () => {
-  try {
-    console.log('[Server Scheduler] Starting hourly news scrape...');
-    await scrapeAll();
-    console.log('[Server Scheduler] Hourly news scrape completed successfully ✅');
-  } catch (err) {
-    console.error('[Server Scheduler Error]:', err.message);
-  }
-}, 3600000); // 1 hour
-
-// Trigger an initial scrape on startup to ensure fresh data right away
-setTimeout(async () => {
-  try {
-    console.log('[Server Startup] Running initial news scrape...');
-    await scrapeAll();
-  } catch (err) {
-    console.error('[Server Startup Scrape Error]:', err.message);
-  }
-}, 5000); // 5 seconds after startup
+// Note: Background hourly scrape and startup scrape are disabled to prevent overwriting
+// the admin's AI-translated and AI-summarized news cache. All updates are triggered manually
+// by the admin via the Admin Panel.
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

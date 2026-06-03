@@ -47,7 +47,8 @@ async function getGeminiConfig() {
       return {
         test: data.geminiModelTest || 'gemini-3.5-flash',
         analytics: data.geminiModelAnalytics || 'gemini-3.5-flash',
-        chat: data.geminiModelChat || 'gemini-3.5-flash'
+        chat: data.geminiModelChat || 'gemini-3.5-flash',
+        news: data.geminiModelNews || 'gemini-3.5-flash'
       };
     }
   } catch (err) {
@@ -56,7 +57,8 @@ async function getGeminiConfig() {
   return {
     test: 'gemini-3.5-flash',
     analytics: 'gemini-3.5-flash',
-    chat: 'gemini-3.5-flash'
+    chat: 'gemini-3.5-flash',
+    news: 'gemini-3.5-flash'
   };
 }
 
@@ -211,6 +213,36 @@ ${langInstruction}`;
   return service.chat(prompt, 'Study Planner', language, []);
 }
 
+async function translateAndSummarizeNews(title, category, source) {
+  const service = await getService();
+  let responseText;
+  
+  try {
+    if (service === geminiService) {
+      const config = await getGeminiConfig();
+      responseText = await service.translateAndSummarizeNews(title, category, source, config.news);
+    } else {
+      responseText = await service.translateAndSummarizeNews(title, category, source);
+    }
+
+    if (!responseText) {
+      throw new Error('Empty response from AI translator');
+    }
+
+    const match = responseText.match(/\{[\s\S]*\}/);
+    if (match) {
+      return JSON.parse(match[0].trim());
+    }
+    return JSON.parse(responseText.trim());
+  } catch (err) {
+    console.error('[translateAndSummarizeNews] Error translating news details:', err.message);
+    if (responseText) {
+      console.error('[translateAndSummarizeNews] Raw response text was:', responseText);
+    }
+    throw err;
+  }
+}
+
 module.exports = {
   chat,
   chatStream,
@@ -223,6 +255,7 @@ module.exports = {
   summarizeTopicExtracted,
   summarizeVideoTranscript,
   summarizeNews,
+  translateAndSummarizeNews,
   generateImprovementPlan
 };
 

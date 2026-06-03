@@ -342,11 +342,10 @@ function deduplicateArticles(articles) {
 async function scrapeAll() {
   console.log('[Scraper] Starting news scrape...');
 
-  const [sarkari, examNews, generalNews, hindiNews, employment, newsAPI] = await Promise.allSettled([
+  const [sarkari, examNews, generalNews, employment, newsAPI] = await Promise.allSettled([
     scrapeSarkariResult(),
     scrapeExamNewsRSS(),
     scrapeGeneralNewsRSS(),
-    scrapeHindiNewsRSS(),
     scrapeEmploymentNews(),
     scrapeNewsAPI()
   ]);
@@ -355,7 +354,6 @@ async function scrapeAll() {
   if (sarkari.status === 'fulfilled') allArticles.push(...sarkari.value);
   if (examNews.status === 'fulfilled') allArticles.push(...examNews.value);
   if (generalNews.status === 'fulfilled') allArticles.push(...generalNews.value);
-  if (hindiNews.status === 'fulfilled') allArticles.push(...hindiNews.value);
   if (employment.status === 'fulfilled') allArticles.push(...employment.value);
   if (newsAPI.status === 'fulfilled') allArticles.push(...newsAPI.value);
 

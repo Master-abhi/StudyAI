@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CG Guru — AI MCQ Practice Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="/cgpsc-data.js"></script>
+    <script src="/syllabus-data.js"></script>
+    <script>
+      window.CGPSC_EXAM_DATA = typeof CGPSC_EXAM_DATA !== 'undefined' ? CGPSC_EXAM_DATA : undefined;
+      window.SYLLABUS_DATA = typeof SYLLABUS_DATA !== 'undefined' ? SYLLABUS_DATA : undefined;
+    </script>
+    <script src="/firebase-config.js"></script>
+  </head>
+  <body class="bg-[#121620]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

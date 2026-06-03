@@ -115,6 +115,19 @@
               <option value="gemma-4-31b-it">Gemma 4 31B</option>
             </select>
           </div>
+          <div>
+            <label style="display: block; font-size: 0.85em; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">
+              📰 News Translator Model
+            </label>
+            <select id="gemini-model-news" onchange="saveGeminiModel('news')" style="margin-bottom: 0;">
+              <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+              <option value="gemini-3.5-pro">Gemini 3.5 Pro</option>
+              <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              <option value="gemma-4-31b-it">Gemma 4 31B</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -136,11 +149,66 @@
       <h2>📚 Uploaded Materials</h2>
       <ul class="materials-list" id="materials-list"></ul>
     </div>
+
+    <div class="card">
+      <h2>📰 News Management</h2>
+      <p>Scrape latest news/alerts and generate premium AI summaries for students.</p>
+      <button onclick="refreshNewsAdmin()" id="btn-refresh-news-admin">Refresh News (AI-Summarized)</button>
+      <p style="font-size: 0.85em; color: var(--text-muted); margin-top: 5px;" id="news-status-admin">Click to start AI refresh</p>
+    </div>
+
+    <div class="card">
+      <h2>🧠 Generate AI Test</h2>
+      <p>Generate a structured quiz or mock test with AI and save it to the server.</p>
+      
+      <label style="display: block; font-size: 0.85em; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">
+        Target Exam
+      </label>
+      <select id="test-exam-select" style="margin-bottom: 15px;">
+        <!-- Populated dynamically -->
+      </select>
+      
+      <label style="display: block; font-size: 0.85em; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">
+        Subject
+      </label>
+      <select id="test-subject-select" style="margin-bottom: 15px;">
+        <option value="all">All Subjects (Mixed)</option>
+      </select>
+      
+      <label style="display: block; font-size: 0.85em; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">
+        Test Mode
+      </label>
+      <select id="test-mode-select" style="margin-bottom: 15px;">
+        <option value="quiz">Quick Quiz (5 Questions)</option>
+        <option value="mock">Mock Test (25 Questions)</option>
+      </select>
+      
+      <label style="display: block; font-size: 0.85em; color: var(--text-muted); margin-bottom: 6px; font-weight: bold;">
+        Language
+      </label>
+      <select id="test-lang-select" style="margin-bottom: 15px;">
+        <option value="hindi">Hindi (हिंदी)</option>
+        <option value="english">English</option>
+        <option value="mixed">Mixed (Hinglish)</option>
+      </select>
+      
+      <button onclick="generateTestAdmin()" id="btn-generate-test-admin">Generate & Save Test</button>
+    </div>
+
+    <div class="card">
+      <h2>📋 Existing Generated Tests</h2>
+      <p>Manage AI-generated tests stored on the server.</p>
+      <ul class="materials-list" id="admin-tests-list">
+        <!-- Populated dynamically -->
+      </ul>
+    </div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
+  <script src="syllabus-data.js"></script>
+  <script src="cgpsc-data.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

@@ -45,14 +45,36 @@ function cleanTestResults(value) {
   if (!Array.isArray(value)) return null;
   return value.slice(-MAX_TEST_RESULTS).map((result) => {
     if (!result || typeof result !== 'object' || Array.isArray(result)) return null;
-    const total = clampInteger(result.total, 0, 500);
-    const score = clampInteger(result.score, 0, total ?? 500);
+    const correct = clampInteger(result.correct, 0, 1000);
+    const wrong = clampInteger(result.wrong, 0, 1000);
+    const skipped = clampInteger(result.skipped, 0, 1000);
     const percent = clampInteger(result.percent, 0, 100);
+    
+    // calculate total and score defaults if missing
+    let total = clampInteger(result.total, 0, 1000);
+    if (total === null && correct !== null && wrong !== null) {
+      total = correct + wrong + (skipped ?? 0);
+    }
+    let score = clampInteger(result.score, 0, total ?? 1000);
+    if (score === null && correct !== null) {
+      score = correct;
+    }
+
+    const dateStr = cleanString(result.date, 50) || cleanString(result.timestamp, 50) || new Date().toISOString();
+    const examId = cleanString(result.exam, 100) || '';
+    const subjectName = cleanString(result.subject, 100) || '';
+    const studyMode = cleanString(result.mode, 30) || 'quiz';
+
     return {
-      date: cleanString(result.date, 40) || new Date().toISOString(),
-      exam: cleanExamId(result.exam) || '',
-      mode: cleanString(result.mode, 20) || 'quiz',
+      date: dateStr,
+      timestamp: dateStr,
+      exam: examId,
+      subject: subjectName,
+      mode: studyMode,
       score: score ?? 0,
+      correct: correct ?? score ?? 0,
+      wrong: wrong ?? 0,
+      skipped: skipped ?? 0,
       total: total ?? 0,
       percent: percent ?? 0
     };
