@@ -7,17 +7,15 @@ const ai = require('../services/aiManager');
 router.get('/', async (req, res) => {
   try {
     const { examId } = req.query;
-    let query = db.collection('tests');
-    if (examId) {
-      query = query.where('examId', '==', examId);
-    }
-    const snapshot = await query.get();
-    const tests = snapshot.docs.map(doc => {
+    const snapshot = await db.collection('tests').get();
+    let tests = snapshot.docs.map(doc => {
       const d = doc.data();
       return {
         id: d.id,
         examId: d.examId,
+        examIds: d.examIds || (d.examId ? [d.examId] : []),
         examName: d.examName,
+        examNames: d.examNames || (d.examName ? [d.examName] : []),
         subject: d.subject,
         mode: d.mode,
         language: d.language,
@@ -25,6 +23,10 @@ router.get('/', async (req, res) => {
         createdAt: d.createdAt
       };
     });
+
+    if (examId) {
+      tests = tests.filter(t => t.examId === examId || (Array.isArray(t.examIds) && t.examIds.includes(examId)));
+    }
 
     // Sort in-memory to avoid requiring a Firestore composite index
     tests.sort((a, b) => {
@@ -87,6 +89,8 @@ router.post('/generate', async (req, res) => {
       id: testId,
       examId,
       examName,
+      examIds: [examId],
+      examNames: [examName],
       subject: subjectName,
       mode: testMode,
       language: lang,
@@ -113,6 +117,8 @@ router.post('/generate', async (req, res) => {
         timestamp: q.timestamp,
         examId,
         examName,
+        examIds: [examId],
+        examNames: [examName],
         testId,
         mode: testMode,
         language: lang

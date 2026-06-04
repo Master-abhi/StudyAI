@@ -6,7 +6,9 @@ import type { Question } from '../types';
 interface ServerTest {
   id: string;
   examId: string;
+  examIds?: string[];
   examName: string;
+  examNames?: string[];
   subject: string;
   mode: 'quiz' | 'mock' | 'pyq';
   language: string;
@@ -38,6 +40,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       const res = await fetch(getApiUrl('/api/tests'));
       if (res.ok) {
         const data = await res.json();
+        console.log('[PracticeTab] Loaded educator tests from server:', data);
         if (Array.isArray(data)) {
           setTests(data);
         }
@@ -120,7 +123,12 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   };
 
   // Filter educator tests matching selected mode and active exam
-  const filteredTests = tests.filter(t => t.mode === activeMode && t.examId === activeExam?.id);
+  console.log('[PracticeTab] activeExamId:', activeExam?.id, 'activeMode:', activeMode);
+  const filteredTests = tests.filter(t => 
+    t.mode === activeMode && 
+    (t.examId === activeExam?.id || (Array.isArray(t.examIds) && t.examIds.includes(activeExam?.id)))
+  );
+  console.log('[PracticeTab] Filtered tests count:', filteredTests.length, 'matches:', filteredTests);
 
   return (
     <div className="flex flex-col gap-5 w-full max-w-lg md:max-w-5xl mx-auto pb-12 font-sans">

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, Cpu, 
-  ArrowLeft, Sparkles, Server, AlertTriangle, Users 
+  ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History 
 } from 'lucide-react';
 import { AdminTests } from './AdminTests';
 import { AdminNews } from './AdminNews';
 import { AdminSyllabus } from './AdminSyllabus';
 import { AdminAIConfig } from './AdminAIConfig';
 import { AdminUsers } from './AdminUsers';
+import { AdminStaffs } from './AdminStaffs';
+import { AdminLogs } from './AdminLogs';
 
 import type { Exam } from '../syllabus/syllabusData';
 
@@ -19,7 +21,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'tests' | 'news' | 'syllabus' | 'aiconfig'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
@@ -85,10 +87,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'staffs', label: 'Staff Accounts', icon: ShieldCheck },
     { id: 'tests', label: 'AI MCQ Tests', icon: Trophy },
     { id: 'news', label: 'News & Alerts', icon: Newspaper },
     { id: 'syllabus', label: 'Syllabus & PDF', icon: BookOpen },
     { id: 'aiconfig', label: 'AI Config', icon: Cpu },
+    { id: 'logs', label: 'Activity Logs', icon: History },
   ] as const;
 
   // Render the current sub-page
@@ -98,6 +102,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return renderOverview();
       case 'users':
         return <AdminUsers currentUser={currentUser} />;
+      case 'staffs':
+        return <AdminStaffs currentUser={currentUser} />;
       case 'tests':
         return <AdminTests currentUser={currentUser} exams={exams} />;
       case 'news':
@@ -106,6 +112,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return <AdminSyllabus currentUser={currentUser} exams={exams} onRefreshExams={onRefreshExams} />;
       case 'aiconfig':
         return <AdminAIConfig currentUser={currentUser} />;
+      case 'logs':
+        return <AdminLogs currentUser={currentUser} />;
     }
   };
 

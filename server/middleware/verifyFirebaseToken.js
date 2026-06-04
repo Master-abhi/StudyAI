@@ -42,4 +42,41 @@ const verifyAdmin = async (req, res, next) => {
   }
 };
 
-module.exports = { verifyFirebaseToken, verifyAdmin };
+/**
+ * Middleware: verify Firebase ID token AND verify admin OR staff roles.
+ */
+const verifyStaffOrAdmin = (requiredRole) => {
+  return async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized: No token provided' });
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+      const decoded = await authAdmin.verifyIdToken(idToken);
+      req.user = decoded;
+      
+      // Admins have full access
+      if (decoded.admin) {
+        return next();
+      }
+      
+      // Staff access check
+      if (decoded.staff) {
+        if (!requiredRole) {
+          return next();
+        }
+        if (Array.isArray(decoded.roles) && decoded.roles.includes(requiredRole)) {
+          return next();
+        }
+      }
+      
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    } catch (err) {
+      console.error('[Auth] Staff/Admin token verification failed:', err.message);
+      return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
+    }
+  };
+};
+
+module.exports = { verifyFirebaseToken, verifyAdmin, verifyStaffOrAdmin };

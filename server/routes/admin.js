@@ -2,9 +2,30 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { admin, db, bucket, authAdmin } = require('../firebase-admin');
-const { verifyAdmin } = require('../middleware/verifyFirebaseToken');
+const { verifyAdmin, verifyStaffOrAdmin } = require('../middleware/verifyFirebaseToken');
 const { extractTextFromPDF } = require('../services/syllabusParser');
 const { getActiveAI, setActiveAI, getGeminiConfig, updateAIConfig, generateTest, summarizeNews, translateAndSummarizeNews } = require('../services/aiManager');
+
+const logStaffActivity = async (req, action, details) => {
+  try {
+    const staffRef = db.collection('staff_logs').doc();
+    const actorType = req.user.admin ? 'admin' : 'staff';
+    const email = req.user.email || '';
+    const staffId = req.user.name || req.user.displayName || email.split('@')[0] || 'Unknown';
+    
+    await staffRef.set({
+      uid: req.user.uid,
+      staffId,
+      email,
+      actorType,
+      action,
+      details,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[Log Staff Activity Error]:', err.message);
+  }
+};
 
 // Use memory storage — PDFs go to Firebase Storage, not local disk
 const upload = multer({
@@ -101,7 +122,7 @@ router.post('/config/ai', verifyAdmin, async (req, res) => {
 
 // ── Upload Material Route ──
 
-router.post('/upload-material', verifyAdmin, upload.single('materialFile'), async (req, res) => {
+router.post('/upload-material', verifyStaffOrAdmin('syllabus'), upload.single('materialFile'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'PDF file is required' });
     const { type, title } = req.body;
@@ -132,6 +153,8 @@ router.post('/upload-material', verifyAdmin, upload.single('materialFile'), asyn
 
     await MATERIALS_COL.doc(matId).set(newMaterial);
 
+    await logStaffActivity(req, 'upload_material', { title: newMaterial.title, type: newMaterial.type, id: matId });
+
     res.json({
       success: true,
       material: { id: matId, title: newMaterial.title, type: newMaterial.type }
@@ -144,7 +167,7 @@ router.post('/upload-material', verifyAdmin, upload.single('materialFile'), asyn
 
 // ── Get Materials List ──
 
-router.get('/materials', verifyAdmin, async (req, res) => {
+router.get('/materials', verifyStaffOrAdmin('syllabus'), async (req, res) => {
   try {
     const snapshot = await MATERIALS_COL.get();
     const materials = snapshot.docs.map(doc => {
@@ -160,11 +183,14 @@ router.get('/materials', verifyAdmin, async (req, res) => {
 
 // ── Admin News Refresh Endpoint ──
 
-router.post('/news/refresh', verifyAdmin, async (req, res) => {
+router.post('/news/refresh', verifyStaffOrAdmin('news'), async (req, res) => {
   try {
     console.log('[Admin News Refresh] Scraping and translating fresh articles...');
     const { scrapeAllNews } = require('../services/newsScraper');
     const result = await scrapeAllNews();
+
+    await logStaffActivity(req, 'refresh_news', { totalArticles: result.articles.length, lastUpdated: result.lastUpdated });
+
     res.json({
       success: true,
       lastUpdated: result.lastUpdated,
@@ -179,9 +205,9 @@ router.post('/news/refresh', verifyAdmin, async (req, res) => {
 // ── Admin Test Management Endpoints ──
 
 // Generate AI test and save to Firestore
-router.post('/tests/generate', verifyAdmin, async (req, res) => {
+router.post('/tests/generate', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
-    const { examId, examName, subject, mode, language, subjects } = req.body;
+    const { examId, examName, examIds, examNames, subject, mode, language, subjects } = req.body;
 
     if (!examId || !examName) {
       return res.status(400).json({ error: 'examId and examName are required' });
@@ -211,6 +237,8 @@ router.post('/tests/generate', verifyAdmin, async (req, res) => {
       id: testId,
       examId,
       examName,
+      examIds: Array.isArray(examIds) ? examIds : [examId],
+      examNames: Array.isArray(examNames) ? examNames : [examName],
       subject: subjectName,
       mode: testMode,
       language: lang,
@@ -236,6 +264,8 @@ router.post('/tests/generate', verifyAdmin, async (req, res) => {
         timestamp: q.timestamp,
         examId,
         examName,
+        examIds: Array.isArray(examIds) ? examIds : [examId],
+        examNames: Array.isArray(examNames) ? examNames : [examName],
         testId,
         mode: testMode,
         language: lang
@@ -244,12 +274,16 @@ router.post('/tests/generate', verifyAdmin, async (req, res) => {
     await batch.commit();
     console.log(`[Admin Test Gen] Saved ${enrichedQuestions.length} individual questions to questions collection ✅`);
 
+    await logStaffActivity(req, 'generate_test', { testId, examName, subject: subjectName, mode: testMode, language: lang });
+
     res.json({
       success: true,
       test: {
         id: testId,
         examId,
         examName,
+        examIds: newTest.examIds,
+        examNames: newTest.examNames,
         subject: subjectName,
         mode: testMode,
         language: lang,
@@ -264,9 +298,9 @@ router.post('/tests/generate', verifyAdmin, async (req, res) => {
 });
 
 // Upload JSON test and save to Firestore
-router.post('/tests/upload', verifyAdmin, async (req, res) => {
+router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
-    const { examId, examName, subject, mode, language, pattern, questions } = req.body;
+    const { examId, examName, examIds, examNames, subject, mode, language, pattern, questions } = req.body;
 
     if (!examId || !examName || !questions || !Array.isArray(questions)) {
       return res.status(400).json({ error: 'examId, examName, and questions array are required' });
@@ -301,6 +335,8 @@ router.post('/tests/upload', verifyAdmin, async (req, res) => {
       id: testId,
       examId,
       examName,
+      examIds: Array.isArray(examIds) ? examIds : [examId],
+      examNames: Array.isArray(examNames) ? examNames : [examName],
       subject: subject || 'General',
       mode: testMode,
       language: language || 'hindi',
@@ -327,6 +363,8 @@ router.post('/tests/upload', verifyAdmin, async (req, res) => {
         timestamp: q.timestamp,
         examId,
         examName,
+        examIds: Array.isArray(examIds) ? examIds : [examId],
+        examNames: Array.isArray(examNames) ? examNames : [examName],
         testId,
         mode: testMode,
         language: language || 'hindi'
@@ -335,12 +373,16 @@ router.post('/tests/upload', verifyAdmin, async (req, res) => {
     await batch.commit();
     console.log(`[Admin Test Upload] Saved ${enrichedQuestions.length} individual questions to questions collection ✅`);
 
+    await logStaffActivity(req, 'upload_test', { testId, examName, subject: newTest.subject, mode: testMode, language: newTest.language });
+
     res.json({
       success: true,
       test: {
         id: testId,
         examId,
         examName,
+        examIds: newTest.examIds,
+        examNames: newTest.examNames,
         subject: newTest.subject,
         mode: testMode,
         language: newTest.language,
@@ -356,7 +398,7 @@ router.post('/tests/upload', verifyAdmin, async (req, res) => {
 });
 
 // List all generated tests
-router.get('/tests', verifyAdmin, async (req, res) => {
+router.get('/tests', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
     const snapshot = await db.collection('tests').orderBy('createdAt', 'desc').get();
     const tests = snapshot.docs.map(doc => {
@@ -365,6 +407,8 @@ router.get('/tests', verifyAdmin, async (req, res) => {
         id: d.id,
         examId: d.examId,
         examName: d.examName,
+        examIds: d.examIds || (d.examId ? [d.examId] : []),
+        examNames: d.examNames || (d.examName ? [d.examName] : []),
         subject: d.subject,
         mode: d.mode,
         language: d.language,
@@ -381,15 +425,111 @@ router.get('/tests', verifyAdmin, async (req, res) => {
 });
 
 // Delete a generated test
-router.delete('/tests/:id', verifyAdmin, async (req, res) => {
+router.delete('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
     const { id } = req.params;
     await db.collection('tests').doc(id).delete();
     console.log(`[Admin Test Delete] Deleted test ${id} ✅`);
+
+    await logStaffActivity(req, 'delete_test', { testId: id });
+
     res.json({ success: true, message: 'Test deleted successfully' });
   } catch (err) {
     console.error('[Admin Delete Test Error]:', err.message);
     res.status(500).json({ error: 'Failed to delete test.' });
+  }
+});
+
+// Edit a generated test (questions, metadata, options, explanation)
+router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { examId, examName, examIds, examNames, subject, mode, language, pattern, questions } = req.body;
+
+    if (!examId || !examName || !questions || !Array.isArray(questions)) {
+      return res.status(400).json({ error: 'examId, examName, and questions array are required' });
+    }
+
+    const testRef = db.collection('tests').doc(id);
+    const doc = await testRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Test not found' });
+    }
+
+    const timestamp = new Date().toISOString();
+    
+    // Enrich questions
+    const enrichedQuestions = questions.map((q, index) => {
+      return {
+        id: q.id || `q_${id}_${index}`,
+        question: q.question,
+        options: q.options,
+        correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : 0,
+        explanation: q.explanation || '',
+        subject: q.subject || subject || 'General Knowledge',
+        difficulty: q.difficulty || 'medium',
+        weightage: q.weightage || 'medium',
+        timestamp: q.timestamp || timestamp
+      };
+    });
+
+    const testMode = mode || doc.data().mode || 'quiz';
+    const testPattern = pattern || doc.data().pattern || {
+      totalQuestions: enrichedQuestions.length,
+      totalMarks: enrichedQuestions.length * (testMode === 'mock' ? 2 : 1),
+      durationMinutes: testMode === 'mock' ? 120 : 10,
+      markingScheme: testMode === 'mock' ? '+2 for correct, -0.66 for incorrect' : '+1 for correct, 0 for incorrect'
+    };
+
+    const updatedTest = {
+      ...doc.data(),
+      examId,
+      examName,
+      examIds: Array.isArray(examIds) ? examIds : [examId],
+      examNames: Array.isArray(examNames) ? examNames : [examName],
+      subject: subject || 'General',
+      mode: testMode,
+      language: language || 'hindi',
+      questions: enrichedQuestions,
+      pattern: testPattern,
+      updatedAt: timestamp
+    };
+
+    // Update in Firestore tests collection
+    await testRef.set(updatedTest);
+    console.log(`[Admin Test Update] Updated test ${id} ✅`);
+
+    // Write updated questions to questions collection
+    const batch = db.batch();
+    enrichedQuestions.forEach((q) => {
+      const qRef = db.collection('questions').doc(q.id);
+      batch.set(qRef, {
+        id: q.id,
+        question: q.question,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        explanation: q.explanation,
+        subject: q.subject,
+        difficulty: q.difficulty || 'medium',
+        timestamp: q.timestamp || timestamp,
+        examId,
+        examName,
+        examIds: updatedTest.examIds,
+        examNames: updatedTest.examNames,
+        testId: id,
+        mode: testMode,
+        language: language || 'hindi'
+      }, { merge: true });
+    });
+    await batch.commit();
+    console.log(`[Admin Test Update] Updated individual questions in questions collection ✅`);
+
+    await logStaffActivity(req, 'edit_test', { testId: id, examName, subject, mode, language });
+
+    res.json({ success: true, message: 'Test updated successfully' });
+  } catch (err) {
+    console.error('[Admin Update Test Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to update test.' });
   }
 });
 
@@ -422,6 +562,8 @@ router.get('/users', verifyAdmin, async (req, res) => {
         createdAt: user.metadata.creationTime,
         lastSignInTime: user.metadata.lastSignInTime,
         isAdmin: !!(user.customClaims && user.customClaims.admin),
+        isStaff: !!(user.customClaims && user.customClaims.staff),
+        roles: (user.customClaims && user.customClaims.roles) || [],
         disabled: user.disabled || false,
         mobile: fDoc.mobile || '',
         points: fDoc.points !== undefined ? fDoc.points : 120, // default match client initial
@@ -519,7 +661,7 @@ router.delete('/users/:uid', verifyAdmin, async (req, res) => {
 });
 
 // POST /api/admin/syllabus/save - Save or update a syllabus configuration in Firestore
-router.post('/syllabus/save', verifyAdmin, async (req, res) => {
+router.post('/syllabus/save', verifyStaffOrAdmin('syllabus'), async (req, res) => {
   try {
     const exam = req.body;
     if (!exam || !exam.id || !exam.name) {
@@ -533,6 +675,9 @@ router.post('/syllabus/save', verifyAdmin, async (req, res) => {
     });
 
     console.log(`[Admin Syllabus Save] Saved/updated syllabus config ${exam.id} ✅`);
+
+    await logStaffActivity(req, 'save_syllabus', { id: exam.id, name: exam.name });
+
     res.json({ success: true, exam });
   } catch (err) {
     console.error('[Admin Syllabus Save Error]:', err.message);
@@ -541,15 +686,295 @@ router.post('/syllabus/save', verifyAdmin, async (req, res) => {
 });
 
 // DELETE /api/admin/syllabus/:id - Delete a custom syllabus configuration from Firestore
-router.delete('/syllabus/:id', verifyAdmin, async (req, res) => {
+router.delete('/syllabus/:id', verifyStaffOrAdmin('syllabus'), async (req, res) => {
   try {
     const { id } = req.params;
     await db.collection('syllabi').doc(id).delete();
     console.log(`[Admin Syllabus Delete] Deleted custom syllabus ${id} ✅`);
+
+    await logStaffActivity(req, 'delete_syllabus', { id });
+
     res.json({ success: true, message: 'Custom syllabus deleted successfully.' });
   } catch (err) {
     console.error('[Admin Delete Syllabus Error]:', err.message);
     res.status(500).json({ error: 'Failed to delete custom syllabus.' });
+  }
+});
+
+// ── Staff Management Routes (verifyAdmin-only) ──
+
+// GET /api/admin/staffs - Lists all staff accounts
+router.get('/staffs', verifyAdmin, async (req, res) => {
+  try {
+    const snapshot = await db.collection('staffs').orderBy('createdAt', 'desc').get();
+    const staffs = snapshot.docs.map(doc => doc.data());
+    res.json(staffs);
+  } catch (err) {
+    console.error('[Admin Get Staffs Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve staff accounts.' });
+  }
+});
+
+// POST /api/admin/staff/generate - Generates a new staff account
+router.post('/staff/generate', verifyAdmin, async (req, res) => {
+  try {
+    const { staffId, password, roles } = req.body;
+
+    if (!staffId || !password || !Array.isArray(roles)) {
+      return res.status(400).json({ error: 'staffId, password, and roles (array) are required' });
+    }
+
+    const trimmedId = staffId.trim();
+    if (!trimmedId) {
+      return res.status(400).json({ error: 'staffId cannot be empty' });
+    }
+
+    const email = `${trimmedId.toLowerCase()}@studyworld.app`;
+
+    // 1. Create user in Firebase Auth
+    const userRecord = await authAdmin.createUser({
+      email,
+      password,
+      displayName: trimmedId,
+    });
+
+    // 2. Set Custom Claims: staff: true, roles
+    await authAdmin.setCustomUserClaims(userRecord.uid, {
+      staff: true,
+      roles
+    });
+
+    // 3. Save to Firestore 'staffs' collection
+    const staffDoc = {
+      uid: userRecord.uid,
+      staffId: trimmedId,
+      email,
+      roles,
+      createdAt: new Date().toISOString()
+    };
+
+    await db.collection('staffs').doc(userRecord.uid).set(staffDoc);
+
+    console.log(`[Admin Staff Generate] Generated staff ${trimmedId} (${userRecord.uid}) ✅`);
+    res.json({ success: true, staff: staffDoc });
+  } catch (err) {
+    console.error('[Admin Staff Generate Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to generate staff account.' });
+  }
+});
+
+// PUT /api/admin/staffs/:uid/roles - Updates roles for a staff member
+router.put('/staffs/:uid/roles', verifyAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { roles } = req.body;
+
+    if (!Array.isArray(roles)) {
+      return res.status(400).json({ error: 'roles (array) is required' });
+    }
+
+    // 1. Check if staff exists in Firestore
+    const staffRef = db.collection('staffs').doc(uid);
+    const staffDoc = await staffRef.get();
+    if (!staffDoc.exists) {
+      return res.status(404).json({ error: 'Staff account not found' });
+    }
+
+    // 2. Update claims in Firebase Auth
+    await authAdmin.setCustomUserClaims(uid, {
+      staff: true,
+      roles
+    });
+
+    // 3. Update document in Firestore
+    await staffRef.update({
+      roles,
+      updatedAt: new Date().toISOString()
+    });
+
+    console.log(`[Admin Staff Roles Update] Updated roles for staff UID ${uid} to: ${roles.join(', ')} ✅`);
+    res.json({ success: true, uid, roles });
+  } catch (err) {
+    console.error('[Admin Staff Roles Update Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to update staff roles.' });
+  }
+});
+
+// DELETE /api/admin/staffs/:uid - Revokes staff status (demotes staff)
+router.delete('/staffs/:uid', verifyAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+
+    // 1. Reset Custom Claims in Firebase Auth (remove staff: true)
+    await authAdmin.setCustomUserClaims(uid, {});
+
+    // 2. Delete from Firestore staffs collection
+    await db.collection('staffs').doc(uid).delete();
+
+    // 3. Log staff revocation activity
+    await logStaffActivity(req, 'revoke_staff_status', { uid });
+
+    console.log(`[Admin Staff Revoke] Revoked staff status for UID ${uid} ✅`);
+    res.json({ success: true, message: 'Staff status revoked successfully.' });
+  } catch (err) {
+    console.error('[Admin Staff Revoke Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to revoke staff status.' });
+  }
+});
+
+// POST /api/admin/users/:uid/promote - Converts a student user into a staff member
+router.post('/users/:uid/promote', verifyAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { roles } = req.body;
+
+    if (!Array.isArray(roles)) {
+      return res.status(400).json({ error: 'roles (array) is required' });
+    }
+
+    // 1. Fetch user from Firebase Auth
+    const userRecord = await authAdmin.getUser(uid);
+    const email = userRecord.email || '';
+    const displayId = email.endsWith('@studyworld.app') ? email.split('@')[0] : email;
+
+    // 2. Set Custom Claims: staff: true, roles
+    await authAdmin.setCustomUserClaims(uid, {
+      staff: true,
+      roles
+    });
+
+    // 3. Create staff profile in Firestore 'staffs' collection
+    const staffDoc = {
+      uid,
+      staffId: userRecord.displayName || displayId,
+      email,
+      roles,
+      createdAt: new Date().toISOString()
+    };
+
+    await db.collection('staffs').doc(uid).set(staffDoc);
+
+    // 4. Log staff conversion activity
+    await logStaffActivity(req, 'promote_user_to_staff', { uid, email, roles });
+
+    console.log(`[Admin User Promote] Promoted user ${uid} to staff with roles: ${roles.join(', ')} ✅`);
+    res.json({ success: true, uid, roles });
+  } catch (err) {
+    console.error('[Admin Promote User Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to promote user to staff.' });
+  }
+});
+
+// GET /api/admin/logs/user - Retrieves user activity logs
+router.get('/logs/user', verifyAdmin, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    
+    // 1. Fetch from activity_logs
+    const activitySnapshot = await db.collection('activity_logs').orderBy('timestamp', 'desc').limit(limit).get();
+    
+    // 2. Fetch from mcq_attempts
+    const mcqSnapshot = await db.collection('mcq_attempts').orderBy('timestamp', 'desc').limit(limit).get();
+
+    // 3. Fetch all users from Firebase Auth to map uid to readable userID/email prefix
+    const listUsersResult = await authAdmin.listUsers(1000);
+    const authUsers = listUsersResult.users;
+    
+    // Fetch all user docs to map userId to display name
+    const usersSnapshot = await db.collection('users').get();
+    const firestoreUsersMap = {};
+    usersSnapshot.forEach(doc => {
+      firestoreUsersMap[doc.id] = doc.data();
+    });
+
+    const userMap = {};
+    authUsers.forEach(user => {
+      const fDoc = firestoreUsersMap[user.uid] || {};
+      const email = user.email || '';
+      const displayId = email.endsWith('@studyworld.app') ? email.split('@')[0] : email;
+      userMap[user.uid] = {
+        displayName: user.displayName || fDoc.displayName || displayId,
+        displayId: displayId
+      };
+    });
+
+    const combinedLogs = [];
+
+    // Map activity logs
+    activitySnapshot.forEach(doc => {
+      const d = doc.data();
+      const ts = d.timestamp;
+      const formattedTimestamp = ts?.toDate ? ts.toDate().toISOString() : (ts || new Date().toISOString());
+      const userInfo = userMap[d.userId] || { displayName: d.userId, displayId: d.userId };
+      
+      combinedLogs.push({
+        id: doc.id,
+        userId: d.userId,
+        userName: userInfo.displayName,
+        userDisplayId: userInfo.displayId,
+        examId: d.examId || 'general',
+        activityType: d.activityType,
+        subjectId: d.subjectId || 'general',
+        topicId: d.topicId || 'general',
+        timeSpentSeconds: d.timeSpentSeconds || 0,
+        timestamp: formattedTimestamp
+      });
+    });
+
+    // Map MCQ attempts
+    mcqSnapshot.forEach(doc => {
+      const d = doc.data();
+      const ts = d.timestamp;
+      const formattedTimestamp = ts?.toDate ? ts.toDate().toISOString() : (ts || new Date().toISOString());
+      const userInfo = userMap[d.userId] || { displayName: d.userId, displayId: d.userId };
+      
+      combinedLogs.push({
+        id: doc.id,
+        userId: d.userId,
+        userName: userInfo.displayName,
+        userDisplayId: userInfo.displayId,
+        examId: d.examId || 'general',
+        activityType: d.isCorrect ? 'mcq_correct' : 'mcq_incorrect',
+        subjectId: d.subjectId || 'general',
+        topicId: d.topicId || 'general',
+        timeSpentSeconds: d.responseTimeMs ? Math.round(d.responseTimeMs / 1000) : 0,
+        timestamp: formattedTimestamp
+      });
+    });
+
+    // Sort combined logs by timestamp desc
+    combinedLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // Slice to match limit
+    res.json(combinedLogs.slice(0, limit));
+  } catch (err) {
+    console.error('[Admin Get User Logs Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve user activity logs.' });
+  }
+});
+
+// GET /api/admin/logs/staff - Retrieves staff action logs
+router.get('/logs/staff', verifyAdmin, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const snapshot = await db.collection('staff_logs').orderBy('timestamp', 'desc').limit(limit).get();
+    const logs = snapshot.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        uid: d.uid,
+        staffId: d.staffId,
+        email: d.email,
+        actorType: d.actorType || 'staff',
+        action: d.action,
+        details: d.details || {},
+        timestamp: d.timestamp
+      };
+    });
+    res.json(logs);
+  } catch (err) {
+    console.error('[Admin Get Staff Logs Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve staff activity logs.' });
   }
 });
 

@@ -14,7 +14,8 @@ import {
   Newspaper,
   User,
   Settings,
-  ShieldAlert
+  ShieldAlert,
+  Shield
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -35,6 +36,7 @@ import { NewsTab } from './components/NewsTab';
 import { ProfileTab } from './components/ProfileTab';
 import { SyllabusPage } from './components/syllabus/SyllabusPage';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { StaffDashboard } from './components/staff/StaffDashboard';
 
 // Modals
 import { AuthModal } from './components/AuthModal';
@@ -156,10 +158,12 @@ const MOCK_QUESTIONS: Question[] = [
 
 export default function App() {
   // 1. Navigation Shell State
-  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'chat' | 'news' | 'profile' | 'syllabus' | 'admin'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'chat' | 'news' | 'profile' | 'syllabus' | 'admin' | 'staff'>('home');
   const [isTestActive, setIsTestActive] = useState<boolean>(false);
   const [appLanguage, setAppLanguage] = useState<'hi' | 'en'>('hi');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isStaff, setIsStaff] = useState<boolean>(false);
+  const [staffRoles, setStaffRoles] = useState<string[]>([]);
 
   // 2. Authentication & User Profile State
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -298,17 +302,23 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Listen to currentUser custom claims to check admin state
+  // Listen to currentUser custom claims to check admin/staff state
   useEffect(() => {
     if (currentUser) {
-      currentUser.getIdTokenResult().then((idTokenResult: any) => {
+      currentUser.getIdTokenResult(true).then((idTokenResult: any) => {
         setIsAdmin(!!idTokenResult.claims.admin);
+        setIsStaff(!!idTokenResult.claims.staff);
+        setStaffRoles(idTokenResult.claims.roles || []);
       }).catch((e: any) => {
         console.error('Error verifying token custom claims:', e);
         setIsAdmin(false);
+        setIsStaff(false);
+        setStaffRoles([]);
       });
     } else {
       setIsAdmin(false);
+      setIsStaff(false);
+      setStaffRoles([]);
     }
   }, [currentUser]);
 
@@ -990,6 +1000,33 @@ export default function App() {
             onRefreshExams={fetchCustomSyllabi}
           />
         );
+      case 'staff':
+        if (!isStaff) {
+          return (
+            <div className="flex flex-col items-center justify-center min-h-screen text-text bg-bg-s1 p-6">
+              <ShieldAlert className="w-12 h-12 text-redL mb-4" />
+              <h2 className="text-lg font-black text-text uppercase tracking-wider">Access Denied</h2>
+              <p className="text-xs text-text-muted mt-2 max-w-sm text-center">
+                This console is reserved for staff members only.
+              </p>
+              <button
+                onClick={() => setActiveTab('home')}
+                className="mt-6 px-4 py-2 bg-saffron text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          );
+        }
+        return (
+          <StaffDashboard
+            currentUser={currentUser}
+            roles={staffRoles}
+            onGoBack={() => setActiveTab('profile')}
+            exams={exams}
+            onRefreshExams={fetchCustomSyllabi}
+          />
+        );
       case 'syllabus':
         return (
           <SyllabusPage
@@ -1022,7 +1059,7 @@ export default function App() {
     <div className="min-h-screen bg-[#0B0E14] text-text flex flex-col md:flex-row items-stretch select-none font-sans overflow-x-hidden relative">
       
       {/* Desktop Left Sidebar Navigation */}
-      {!isTestActive && activeTab !== 'admin' && (
+      {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
         <aside className="hidden md:flex flex-col w-64 bg-bg-s2 border-r border-border/60 shrink-0 sticky top-0 h-screen z-30">
           {/* Logo & Brand */}
           <div className="p-6 border-b border-border/60 flex items-center gap-3">
@@ -1070,6 +1107,17 @@ export default function App() {
                 <span>Admin Panel</span>
               </button>
             )}
+
+            {/* Staff Panel Option */}
+            {isStaff && (
+              <button
+                onClick={() => setActiveTab('staff')}
+                className="flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider cursor-pointer mt-4 border border-saffron-border/30 text-saffron hover:bg-saffron/5"
+              >
+                <Shield className="w-4.5 h-4.5" />
+                <span>Staff Panel</span>
+              </button>
+            )}
           </div>
 
           {/* Sidebar Bottom Profile/Settings */}
@@ -1108,10 +1156,10 @@ export default function App() {
       )}
 
       {/* Main Content Area Container */}
-      <div className={`flex-1 flex flex-col min-h-screen bg-bg-s1 relative transition-all duration-300 ${!isTestActive && activeTab !== 'admin' ? 'pb-16 md:pb-0' : 'pb-0'}`}>
+      <div className={`flex-1 flex flex-col min-h-screen bg-bg-s1 relative transition-all duration-300 ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'pb-16 md:pb-0' : 'pb-0'}`}>
         
         {/* Mobile Sticky Top Header (Shown if test workspace is NOT active, hidden on desktop) */}
-        {!isTestActive && activeTab !== 'admin' && (
+        {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
           <header className="md:hidden sticky top-0 left-0 right-0 bg-bg-s1/90 backdrop-blur-md border-b border-border/60 px-5 py-4 flex items-center justify-between z-30 shadow-sm shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-xl leading-none select-none">🎓</span>
@@ -1132,7 +1180,7 @@ export default function App() {
         )}
 
         {/* Dynamic Body Router */}
-        <main className={`flex-1 px-4 py-4 flex flex-col gap-4 overflow-y-auto ${!isTestActive && activeTab !== 'admin' ? 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40' : 'w-full'}`}>
+        <main className={`flex-1 px-4 py-4 flex flex-col gap-4 overflow-y-auto ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40' : 'w-full'}`}>
           <AnimatePresence mode="wait">
             {!isTestActive ? (
               /* Tab layout panels wrapper */
@@ -1316,7 +1364,7 @@ export default function App() {
         </main>
 
         {/* Mobile Fixed Bottom Navigation Bar (Hidden on desktop) */}
-        {!isTestActive && activeTab !== 'admin' && (
+        {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
           <nav className="md:hidden fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-bg-s2/95 backdrop-blur-md border-t border-border px-3 py-2 flex items-center justify-around z-30 shadow-2xl shrink-0">
             {[
               { id: 'home', label: 'Home', icon: Home },

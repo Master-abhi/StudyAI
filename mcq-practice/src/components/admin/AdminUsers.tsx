@@ -21,6 +21,8 @@ interface UserProfile {
   testResultsCount: number;
   isPaid: boolean;
   plan: string;
+  isStaff: boolean;
+  roles: string[];
 }
 
 interface AdminUsersProps {
@@ -44,9 +46,14 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
   // Overlay Dialog States
   const [userToConfirmDelete, setUserToConfirmDelete] = useState<UserProfile | null>(null);
   const [userToConfirmStatus, setUserToConfirmStatus] = useState<UserProfile | null>(null);
+  
+  // Promote User State
+  const [userToPromote, setUserToPromote] = useState<UserProfile | null>(null);
+  const [promoteRoles, setPromoteRoles] = useState<string[]>([]);
+  const [promoting, setPromoting] = useState<boolean>(false);
 
   const getApiUrl = (path: string) => {
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+    const host = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000' : '';
     return `${host}${path}`;
   };
 
@@ -391,6 +398,11 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
                                 Admin
                               </span>
                             )}
+                            {user.isStaff && (
+                              <span className="text-[7px] font-black uppercase bg-saffron/25 border border-saffron-border/30 text-saffron px-1 rounded">
+                                Staff
+                              </span>
+                            )}
                             {user.disabled && (
                               <span className="text-[7px] font-black uppercase bg-red-500/25 border border-red-500/40 text-redL px-1 rounded flex items-center gap-0.5">
                                 <Lock className="w-1.5 h-1.5" /> Blocked
@@ -479,9 +491,23 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
                       </div>
                     </td>
 
-                    {/* Actions: Block/Active & Delete */}
+                    {/* Actions: Block/Active, Promote & Delete */}
                     <td className="py-4 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {/* Promote to Staff */}
+                        {!user.isAdmin && !user.isStaff && (
+                          <button
+                            onClick={() => {
+                              setUserToPromote(user);
+                              setPromoteRoles([]);
+                            }}
+                            className="p-1.5 bg-saffron/10 border border-saffron-border/25 text-saffron hover:bg-saffron hover:text-bg-s1 rounded-lg cursor-pointer transition-colors shadow-sm flex items-center justify-center"
+                            title="Promote Student to Staff"
+                          >
+                            <Shield className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
                         {/* Block/Activate Toggle */}
                         <button
                           disabled={updatingStatusUid !== null}
@@ -594,6 +620,108 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-colors"
               >
                 {deletingUid === userToConfirmDelete.uid ? 'Purging Profile...' : 'Confirm Permanent Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PROMOTE USER TO STAFF MODAL OVERLAY */}
+      {userToPromote && (
+        <div className="fixed inset-0 bg-[#0B0E14]/85 backdrop-blur-sm flex items-center justify-center p-4 z-[99999] animate-fade-in">
+          <div className="w-full max-w-md bg-bg-s2 border border-border rounded-xl shadow-2xl p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-2.5 text-saffron pb-2 border-b border-border">
+              <Shield className="w-5 h-5 shrink-0" />
+              <h3 className="text-sm font-black uppercase tracking-wider text-text">
+                Promote Student to Staff
+              </h3>
+            </div>
+            
+            <p className="text-xs text-text-muted leading-relaxed">
+              Allocate operational boundaries to promote <strong className="text-text">{userToPromote.displayName}</strong> (ID: {userToPromote.displayId}) to a staff account.
+            </p>
+
+            <div className="flex flex-col gap-3 py-2">
+              <span className="text-[10px] font-black text-text-muted uppercase tracking-wider">Access Scope Checkboxes</span>
+              <div className="flex flex-col gap-2.5 bg-bg-s3/60 border border-border/80 p-4 rounded-xl">
+                {[
+                  { key: 'tests', label: 'AI MCQ Tests', desc: 'Allows generating practice quiz papers (5 questions) or full mock mock tests (25 questions)' },
+                  { key: 'news', label: 'News & Alerts', desc: 'Allows refreshing general board news and translation caches.' },
+                  { key: 'syllabus', label: 'Syllabus & PDF', desc: 'Allows uploading text-extracted reference notes and syllabus configs.' }
+                ].map(role => {
+                  const isChecked = promoteRoles.includes(role.key);
+                  return (
+                    <button
+                      key={role.key}
+                      type="button"
+                      onClick={() => {
+                        if (isChecked) {
+                          setPromoteRoles(promoteRoles.filter(r => r !== role.key));
+                        } else {
+                          setPromoteRoles([...promoteRoles, role.key]);
+                        }
+                      }}
+                      className="flex items-center gap-3 text-xs text-text hover:text-saffron transition-colors text-left"
+                    >
+                      <span className="shrink-0 text-saffron text-lg">
+                        {isChecked ? '☑️' : '⬛'}
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="font-bold">{role.label}</span>
+                        <span className="text-[9px] text-text-muted">{role.desc}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-2">
+              <button
+                disabled={promoting}
+                onClick={() => setUserToPromote(null)}
+                className="px-4 py-2 border border-border hover:bg-bg-s3 text-xs font-black uppercase rounded-lg cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={promoting || promoteRoles.length === 0}
+                onClick={async () => {
+                  setPromoting(true);
+                  try {
+                    const token = await currentUser.getIdToken();
+                    const res = await fetch(getApiUrl(`/api/admin/users/${userToPromote.uid}/promote`), {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ roles: promoteRoles })
+                    });
+                    if (!res.ok) {
+                      const errData = await res.json();
+                      throw new Error(errData.error || 'Failed to promote user');
+                    }
+                    const result = await res.json();
+                    if (result.success) {
+                      setUsers(prev => prev.map(u => {
+                        if (u.uid === userToPromote.uid) {
+                          return { ...u, isStaff: true, roles: promoteRoles };
+                        }
+                        return u;
+                      }));
+                      setUserToPromote(null);
+                    }
+                  } catch (e: any) {
+                    console.error('[Promote User Error]:', e);
+                    alert(e.message || 'Failed to promote user to staff.');
+                  } finally {
+                    setPromoting(false);
+                  }
+                }}
+                className="px-4 py-2 bg-saffron hover:bg-saffron-hover text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-colors disabled:opacity-50"
+              >
+                {promoting ? 'Promoting...' : 'Confirm Promotion'}
               </button>
             </div>
           </div>
