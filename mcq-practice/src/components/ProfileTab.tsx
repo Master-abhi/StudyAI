@@ -35,6 +35,8 @@ interface ProfileTabProps {
   onClearProgress: () => void;
   isAdmin?: boolean;
   onOpenAdmin?: () => void;
+  isStaff?: boolean;
+  onOpenStaff?: () => void;
   onNavigateToTab?: (tabId: string) => void;
 }
 
@@ -52,6 +54,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   onClearProgress,
   isAdmin = false,
   onOpenAdmin,
+  isStaff = false,
+  onOpenStaff,
   onNavigateToTab
 }) => {
   const [showHistoryLimit, setShowHistoryLimit] = useState<number>(5);
@@ -258,6 +262,26 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               <div className="flex flex-col gap-0.5 truncate">
                 <h4 className="text-xs font-black uppercase text-text leading-snug tracking-wider">Admin Control Panel</h4>
                 <span className="text-[9px] text-text-muted font-bold truncate">Manage tests, news updates, syllabus parses & AI</span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-saffron group-hover:translate-x-0.5 transition-transform duration-200" />
+          </button>
+        )}
+
+        {/* Staff Panel Entry Link */}
+        {isStaff && onOpenStaff && (
+          <button
+            onClick={onOpenStaff}
+            className="p-4 bg-gradient-to-br from-bg-s2 to-bg-s3 border border-saffron-border/30 hover:border-saffron/50 rounded-xl shadow-lg flex items-center justify-between text-left cursor-pointer transition-all hover:scale-[1.015] duration-200 group relative overflow-hidden shrink-0"
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-saffron-dim/15 rounded-full blur-xl pointer-events-none" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-saffron/10 border border-saffron-border/30 rounded-lg flex items-center justify-center text-xl text-saffron shrink-0 group-hover:bg-saffron group-hover:text-bg-s1 transition-all duration-300">
+                🛡️
+              </div>
+              <div className="flex flex-col gap-0.5 truncate">
+                <h4 className="text-xs font-black uppercase text-text leading-snug tracking-wider">Staff Workspace Panel</h4>
+                <span className="text-[9px] text-text-muted font-bold truncate">Manage assigned exam practice sets, syllabus note PDFs & news boards</span>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-saffron group-hover:translate-x-0.5 transition-transform duration-200" />

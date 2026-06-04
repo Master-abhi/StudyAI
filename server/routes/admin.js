@@ -647,7 +647,15 @@ router.delete('/users/:uid', verifyAdmin, async (req, res) => {
     const { uid } = req.params;
 
     // 1. Delete from Firebase Authentication
-    await authAdmin.deleteUser(uid);
+    try {
+      await authAdmin.deleteUser(uid);
+    } catch (authErr) {
+      if (authErr.code === 'auth/user-not-found') {
+        console.warn(`[Admin User Delete Warning] User ${uid} not found in Firebase Auth during deletion.`);
+      } else {
+        throw authErr;
+      }
+    }
 
     // 2. Delete from Firestore users collection
     await db.collection('users').doc(uid).delete();
@@ -806,7 +814,15 @@ router.delete('/staffs/:uid', verifyAdmin, async (req, res) => {
     const { uid } = req.params;
 
     // 1. Reset Custom Claims in Firebase Auth (remove staff: true)
-    await authAdmin.setCustomUserClaims(uid, {});
+    try {
+      await authAdmin.setCustomUserClaims(uid, {});
+    } catch (authErr) {
+      if (authErr.code === 'auth/user-not-found') {
+        console.warn(`[Admin Staff Revoke Warning] User ${uid} not found in Firebase Auth during claim revocation. Proceeding to delete Firestore record.`);
+      } else {
+        throw authErr;
+      }
+    }
 
     // 2. Delete from Firestore staffs collection
     await db.collection('staffs').doc(uid).delete();

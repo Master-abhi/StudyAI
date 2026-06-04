@@ -185,7 +185,8 @@ export const AdminStaffs: React.FC<AdminStaffsProps> = ({ currentUser }) => {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to delete staff account');
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to delete staff account');
       }
 
       const result = await res.json();

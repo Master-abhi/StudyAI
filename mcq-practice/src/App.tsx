@@ -971,6 +971,8 @@ export default function App() {
             onClearProgress={handleClearProgress}
             isAdmin={isAdmin}
             onOpenAdmin={() => setActiveTab('admin')}
+            isStaff={isStaff}
+            onOpenStaff={() => setActiveTab('staff')}
             onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
           />
         );
