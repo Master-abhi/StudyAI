@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const { extractTextFromPDF } = require('../services/syllabusParser');
 const { parseSyllabus } = require('../services/aiManager');
+const { db } = require('../firebase-admin');
 
 const storage = multer.memoryStorage();
 
@@ -25,7 +26,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-router.post('/', upload.single('syllabusFile'), async (req, res) => {
+router.post('/parse', upload.single('syllabusFile'), async (req, res) => {
   try {
     let text;
 
@@ -54,6 +55,21 @@ router.post('/', upload.single('syllabusFile'), async (req, res) => {
   } catch (err) {
     console.error('[Syllabus Parse Error]:', err.message);
     res.status(500).json({ error: err.message || 'Failed to parse syllabus.' });
+  }
+});
+
+// GET /api/syllabus/custom - Retrieve all custom syllabi stored in Firestore
+router.get('/custom', async (req, res) => {
+  try {
+    const snapshot = await db.collection('syllabi').get();
+    const syllabi = [];
+    snapshot.forEach(doc => {
+      syllabi.push(doc.data());
+    });
+    res.json(syllabi);
+  } catch (err) {
+    console.error('[Get Custom Syllabi Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve custom syllabi.' });
   }
 });
 

@@ -263,6 +263,98 @@ router.post('/tests/generate', verifyAdmin, async (req, res) => {
   }
 });
 
+// Upload JSON test and save to Firestore
+router.post('/tests/upload', verifyAdmin, async (req, res) => {
+  try {
+    const { examId, examName, subject, mode, language, pattern, questions } = req.body;
+
+    if (!examId || !examName || !questions || !Array.isArray(questions)) {
+      return res.status(400).json({ error: 'examId, examName, and questions array are required' });
+    }
+
+    const testId = `test_${Date.now()}`;
+    const timestamp = new Date().toISOString();
+
+    const enrichedQuestions = questions.map((q, index) => {
+      return {
+        id: q.id || `q_${testId}_${index}`,
+        question: q.question,
+        options: q.options,
+        correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : 0,
+        explanation: q.explanation || '',
+        subject: q.subject || subject || 'General Knowledge',
+        difficulty: q.difficulty || 'medium',
+        weightage: q.weightage || 'medium',
+        timestamp
+      };
+    });
+
+    const testMode = mode || 'quiz';
+    const testPattern = pattern || {
+      totalQuestions: enrichedQuestions.length,
+      totalMarks: enrichedQuestions.length * (testMode === 'mock' ? 2 : 1),
+      durationMinutes: testMode === 'mock' ? 120 : 10,
+      markingScheme: testMode === 'mock' ? '+2 for correct, -0.66 for incorrect' : '+1 for correct, 0 for incorrect'
+    };
+
+    const newTest = {
+      id: testId,
+      examId,
+      examName,
+      subject: subject || 'General',
+      mode: testMode,
+      language: language || 'hindi',
+      questions: enrichedQuestions,
+      pattern: testPattern,
+      createdAt: timestamp
+    };
+
+    await db.collection('tests').doc(testId).set(newTest);
+    console.log(`[Admin Test Upload] Saved test ${testId} ✅`);
+
+    // Save individual questions to questions collection
+    const batch = db.batch();
+    enrichedQuestions.forEach((q) => {
+      const qRef = db.collection('questions').doc(q.id);
+      batch.set(qRef, {
+        id: q.id,
+        question: q.question,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        explanation: q.explanation,
+        subject: q.subject,
+        difficulty: q.difficulty || 'medium',
+        timestamp: q.timestamp,
+        examId,
+        examName,
+        testId,
+        mode: testMode,
+        language: language || 'hindi'
+      });
+    });
+    await batch.commit();
+    console.log(`[Admin Test Upload] Saved ${enrichedQuestions.length} individual questions to questions collection ✅`);
+
+    res.json({
+      success: true,
+      test: {
+        id: testId,
+        examId,
+        examName,
+        subject: newTest.subject,
+        mode: testMode,
+        language: newTest.language,
+        totalQuestions: enrichedQuestions.length,
+        pattern: testPattern,
+        createdAt: newTest.createdAt
+      }
+    });
+  } catch (err) {
+    console.error('[Admin Test Upload Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to upload test.' });
+  }
+});
+
 // List all generated tests
 router.get('/tests', verifyAdmin, async (req, res) => {
   try {
@@ -277,6 +369,7 @@ router.get('/tests', verifyAdmin, async (req, res) => {
         mode: d.mode,
         language: d.language,
         totalQuestions: d.questions ? d.questions.length : 0,
+        pattern: d.pattern || null,
         createdAt: d.createdAt
       };
     });
@@ -422,6 +515,41 @@ router.delete('/users/:uid', verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error('[Admin Delete User Error]:', err.message);
     res.status(500).json({ error: err.message || 'Failed to delete user account.' });
+  }
+});
+
+// POST /api/admin/syllabus/save - Save or update a syllabus configuration in Firestore
+router.post('/syllabus/save', verifyAdmin, async (req, res) => {
+  try {
+    const exam = req.body;
+    if (!exam || !exam.id || !exam.name) {
+      return res.status(400).json({ error: 'Invalid syllabus payload. id and name are required.' });
+    }
+
+    // Save to firestore collection 'syllabi'
+    await db.collection('syllabi').doc(exam.id).set({
+      ...exam,
+      updatedAt: new Date().toISOString()
+    });
+
+    console.log(`[Admin Syllabus Save] Saved/updated syllabus config ${exam.id} ✅`);
+    res.json({ success: true, exam });
+  } catch (err) {
+    console.error('[Admin Syllabus Save Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to save syllabus configuration.' });
+  }
+});
+
+// DELETE /api/admin/syllabus/:id - Delete a custom syllabus configuration from Firestore
+router.delete('/syllabus/:id', verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('syllabi').doc(id).delete();
+    console.log(`[Admin Syllabus Delete] Deleted custom syllabus ${id} ✅`);
+    res.json({ success: true, message: 'Custom syllabus deleted successfully.' });
+  } catch (err) {
+    console.error('[Admin Delete Syllabus Error]:', err.message);
+    res.status(500).json({ error: 'Failed to delete custom syllabus.' });
   }
 });
 

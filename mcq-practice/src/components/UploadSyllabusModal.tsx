@@ -19,7 +19,11 @@ export const UploadSyllabusModal: React.FC<UploadSyllabusModalProps> = ({
   const [error, setError] = useState<string>('');
 
   const getApiUrl = (path: string) => {
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+    const isLocal = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1' || 
+                    window.location.hostname === '[::1]' ||
+                    window.location.hostname.startsWith('192.168.');
+    const host = isLocal && window.location.port !== '3000' ? 'http://localhost:3000' : '';
     return `${host}${path}`;
   };
 
@@ -40,12 +44,12 @@ export const UploadSyllabusModal: React.FC<UploadSyllabusModalProps> = ({
     setLoading(true);
 
     try {
-      const res = await fetch(getApiUrl('/api/parse-syllabus'), {
+      const res = await fetch(getApiUrl('/api/syllabus/parse'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          syllabusName: trimmedName,
-          syllabusText: trimmedText
+          name: trimmedName,
+          text: trimmedText
         })
       });
 

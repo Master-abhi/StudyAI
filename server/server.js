@@ -35,7 +35,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/api/chat', chatRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/news', newsRoutes);
-app.use('/api/parse-syllabus', syllabusRoutes);
+app.use('/api/syllabus', syllabusRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/study', studyRoutes);
 app.use('/api/analytics', analyticsRoutes);

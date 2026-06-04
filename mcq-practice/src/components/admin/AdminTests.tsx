@@ -3,10 +3,11 @@ import {
   Trophy, Plus, Trash2, Calendar, Globe, 
   Settings, Loader2, X, Eye, ShieldAlert, CheckCircle 
 } from 'lucide-react';
-import { EXAMS_DATA } from '../syllabus/syllabusData';
+import type { Exam } from '../syllabus/syllabusData';
 
 interface AdminTestsProps {
   currentUser: any;
+  exams: Exam[];
 }
 
 interface TestMeta {
@@ -17,10 +18,16 @@ interface TestMeta {
   mode: 'quiz' | 'mock';
   language: 'english' | 'hindi';
   totalQuestions: number;
+  pattern?: {
+    totalQuestions: number;
+    totalMarks: number;
+    durationMinutes: number;
+    markingScheme: string;
+  };
   createdAt: string;
 }
 
-export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser }) => {
+export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) => {
   const [tests, setTests] = useState<TestMeta[]>([]);
   const [loadingList, setLoadingList] = useState<boolean>(true);
   const [loadingGen, setLoadingGen] = useState<boolean>(false);
@@ -28,21 +35,37 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser }) => {
   const [successMessage, setSuccessMessage] = useState<string>('');
   
   // Form State
-  const [selectedExamId, setSelectedExamId] = useState<string>(EXAMS_DATA[0]?.id || '');
+  const [selectedExamId, setSelectedExamId] = useState<string>(exams[0]?.id || '');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedMode, setSelectedMode] = useState<'quiz' | 'mock'>('quiz');
   const [selectedLanguage, setSelectedLanguage] = useState<'english' | 'hindi'>('hindi');
+
+  // Creator state
+  const [creatorTab, setCreatorTab] = useState<'generate' | 'upload'>('generate');
+  const [uploadJsonText, setUploadJsonText] = useState<string>('');
+  const [uploadLoading, setUploadLoading] = useState<boolean>(false);
 
   // Preview State
   const [previewTest, setPreviewTest] = useState<any | null>(null);
   const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
 
   // Find active exam data
-  const activeExam = EXAMS_DATA.find(e => e.id === selectedExamId) || EXAMS_DATA[0];
+  const activeExam = exams.find(e => e.id === selectedExamId) || exams[0];
 
   const getApiUrl = (path: string) => {
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+    const isLocal = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1' || 
+                    window.location.hostname === '[::1]' ||
+                    window.location.hostname.startsWith('192.168.');
+    const host = isLocal && window.location.port !== '3000' ? 'http://localhost:3000' : '';
     return `${host}${path}`;
+  };
+
+  const sanitizeJsonString = (str: string) => {
+    return str
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
+      .replace(/\u00A0/g, ' ') // Convert non-breaking spaces to standard spaces
+      .trim();
   };
 
   const fetchTestsList = async () => {
@@ -118,6 +141,67 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser }) => {
     }
   };
 
+  // File upload change handler
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        // Basic parse check
+        JSON.parse(sanitizeJsonString(text));
+        setUploadJsonText(text);
+        setErrorMessage('');
+      } catch (err) {
+        setErrorMessage('Selected file contains invalid JSON.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Upload test submission handler
+  const handleUploadTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadJsonText.trim()) {
+      setErrorMessage('JSON content is empty.');
+      return;
+    }
+
+    setUploadLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const payload = JSON.parse(sanitizeJsonString(uploadJsonText));
+      const token = await currentUser.getIdToken();
+
+      const res = await fetch(getApiUrl('/api/admin/tests/upload'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage(`Successfully uploaded and saved exam/paper questions!`);
+        setUploadJsonText('');
+        fetchTestsList();
+      } else {
+        throw new Error(data.error || 'Failed to upload test paper.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Error parsing or uploading test JSON.');
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
   const handleDeleteTest = async (testId: string) => {
     if (!window.confirm('Are you sure you want to delete this test permanently from Firestore?')) return;
     
@@ -179,14 +263,31 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser }) => {
       {/* Grid: Creator Form on Left, List on Right (Desktop Layout) */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         
-        {/* Generate Panel Form */}
+        {/* Generate & Upload Creator Panel */}
         <div className="bg-bg-s2 border border-border p-5 rounded-xl shadow-md flex flex-col gap-4">
-          <div className="flex items-center gap-2 border-b border-border/40 pb-3">
-            <Plus className="w-4.5 h-4.5 text-saffron" />
-            <h3 className="text-xs font-black uppercase text-text tracking-wider">Generate AI Test</h3>
+          <div className="flex bg-bg-s3 border border-border p-1 rounded-lg w-full mb-1 select-none">
+            <button
+              type="button"
+              onClick={() => { setCreatorTab('generate'); setErrorMessage(''); setSuccessMessage(''); }}
+              className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded cursor-pointer transition-colors ${
+                creatorTab === 'generate' ? 'bg-saffron text-bg-s1 font-black shadow-sm' : 'text-text-muted hover:text-text'
+              }`}
+            >
+              AI Generator
+            </button>
+            <button
+              type="button"
+              onClick={() => { setCreatorTab('upload'); setErrorMessage(''); setSuccessMessage(''); }}
+              className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded cursor-pointer transition-colors ${
+                creatorTab === 'upload' ? 'bg-saffron text-bg-s1 font-black shadow-sm' : 'text-text-muted hover:text-text'
+              }`}
+            >
+              JSON Upload
+            </button>
           </div>
 
-          <form onSubmit={handleGenerateTest} className="flex flex-col gap-4">
+          {creatorTab === 'generate' ? (
+            <form onSubmit={handleGenerateTest} className="flex flex-col gap-4 font-sans">
             {/* Exam Select */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-black uppercase text-text-muted">Target Exam</label>
@@ -196,7 +297,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser }) => {
                 className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
                 disabled={loadingGen}
               >
-                {EXAMS_DATA.map(ex => (
+                {exams.map(ex => (
                   <option key={ex.id} value={ex.id}>{ex.name}</option>
                 ))}
               </select>
@@ -246,7 +347,6 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser }) => {
                 </select>
               </div>
             </div>
-
             {/* Submit button */}
             <button
               type="submit"
@@ -266,6 +366,94 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser }) => {
               )}
             </button>
           </form>
+          ) : (
+            <form onSubmit={handleUploadTest} className="flex flex-col gap-4 font-sans">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-text-muted">Upload JSON File</label>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileUpload}
+                  className="w-full bg-bg-s3 text-xs text-text border border-border px-3 py-2.5 rounded-lg outline-none cursor-pointer file:bg-saffron file:text-bg-s1 file:border-none file:px-2.5 file:py-1 file:rounded file:text-[9px] file:font-black file:uppercase file:cursor-pointer"
+                  disabled={uploadLoading}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-center w-full">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Or Paste Raw JSON</label>
+                  <button
+                    type="button"
+                    onClick={() => setUploadJsonText(JSON.stringify({
+                      examId: "cgpsc_sse",
+                      examName: "CGPSC SSE",
+                      subject: "All Subjects",
+                      mode: "mock",
+                      language: "hindi",
+                      pattern: {
+                        totalQuestions: 5,
+                        totalMarks: 10,
+                        durationMinutes: 10,
+                        markingScheme: "+2 for correct, -0.66 for incorrect"
+                      },
+                      questions: [
+                        {
+                          question: "छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष कौन थे?",
+                          options: ["बनवारी लाल अग्रवाल", "राजेन्द्र प्रसाद शुक्ल", "धर्मजीत सिंह", "डॉ. रमन सिंह"],
+                          correctIndex: 1,
+                          explanation: "राजेन्द्र प्रसाद शुक्ल छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष थे।",
+                          subject: "CG GK"
+                        }
+                      ]
+                    }, null, 2))}
+                    className="text-[8px] font-black uppercase text-saffron hover:underline cursor-pointer"
+                  >
+                    Insert Template
+                  </button>
+                </div>
+                <textarea
+                  value={uploadJsonText}
+                  onChange={(e) => setUploadJsonText(e.target.value)}
+                  placeholder='{"examId": "...", "questions": [...]}'
+                  className="w-full h-36 bg-bg-s3 text-[10px] font-mono text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none"
+                  disabled={uploadLoading}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1 select-none">
+                <span className="text-[9px] font-black uppercase text-text-muted">Active Exam IDs Reference (Click ID to copy)</span>
+                <div className="max-h-24 overflow-y-auto bg-bg-s3 border border-border rounded-lg p-2 font-mono text-[9px] text-text-muted leading-relaxed flex flex-col gap-1.5 no-scrollbar">
+                  {exams.map(ex => (
+                    <div key={ex.id} className="flex justify-between items-center gap-2 border-b border-border/20 pb-1">
+                      <span className="font-bold text-text truncate max-w-[150px]" title={ex.fullName || ex.name}>{ex.name}</span>
+                      <span className="text-saffron font-bold cursor-pointer hover:underline" onClick={() => {
+                        navigator.clipboard.writeText(ex.id);
+                        alert(`Copied "${ex.id}" to clipboard!`);
+                      }}>{ex.id}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={uploadLoading || !uploadJsonText.trim()}
+                className="w-full py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md"
+              >
+                {uploadLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Uploading & Syncing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Upload Test Paper</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
         </div>
 
         {/* Existing Tests Table List (2 columns wide) */}
@@ -307,13 +495,20 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser }) => {
                           <span className="font-semibold text-text-muted leading-tight truncate" title={test.subject}>
                             {test.subject === 'all' ? 'All Subjects' : test.subject}
                           </span>
-                          <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded w-max mt-0.5 leading-none ${
-                            test.mode === 'mock' 
-                              ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' 
-                              : 'bg-saffron-dim/20 border border-saffron-border/30 text-saffron'
-                          }`}>
-                            {test.mode} ({test.totalQuestions} Qs)
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none ${
+                              test.mode === 'mock' 
+                                ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' 
+                                : 'bg-saffron-dim/20 border border-saffron-border/30 text-saffron'
+                            }`}>
+                              {test.mode} ({test.totalQuestions} Qs)
+                            </span>
+                            {test.pattern && (
+                              <span className="text-[7.5px] font-bold text-text-muted bg-bg-s3 px-1 py-0.5 rounded border border-border">
+                                {test.pattern.totalMarks}M • {test.pattern.durationMinutes}m
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="py-3 px-3">
@@ -376,6 +571,15 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser }) => {
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {previewTest.pattern && (
+              <div className="p-3 bg-bg-s3/60 border border-saffron-border/20 rounded-lg flex flex-wrap gap-x-5 gap-y-2 text-[9px] font-black uppercase text-text-muted tracking-wider select-none shrink-0 mb-1 font-sans">
+                <span>Total Questions: <strong className="text-text">{previewTest.pattern.totalQuestions || previewTest.questions?.length}</strong></span>
+                <span>Total Marks: <strong className="text-text">{previewTest.pattern.totalMarks}</strong></span>
+                <span>Duration: <strong className="text-text">{previewTest.pattern.durationMinutes} Mins</strong></span>
+                <span className="normal-case">Marking Scheme: <strong className="text-text font-bold uppercase">{previewTest.pattern.markingScheme}</strong></span>
+              </div>
+            )}
 
             <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 my-2">
               {previewTest.questions?.map((q: any, idx: number) => (

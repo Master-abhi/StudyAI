@@ -3,8 +3,13 @@ const cheerio = require('cheerio');
 const Parser = require('rss-parser');
 const crypto = require('crypto');
 const Groq = require('groq-sdk');
+const https = require('https');
 const { db, admin } = require('../firebase-admin');
 const ai = require('./aiManager');
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false
+});
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -27,19 +32,19 @@ const NEWS_FEEDS = [
   { name: 'Amar Ujala', url: 'https://www.amarujala.com/rss/breaking-news.xml', category: 'general', lang: 'hi' },
   { name: 'Patrika', url: 'https://api.patrika.com/rss/india-news', category: 'general', lang: 'hi' },
   { name: 'NDTV Hindi', url: 'https://feeds.feedburner.com/ndtvkhabar-latest', category: 'general', lang: 'hi' },
-  { name: 'Navbharat Times', url: 'https://navbharattimes.indiatimes.com/rssfeedsdefault.cms', category: 'general', lang: 'hi' },
+  { name: 'Navbharat Times (Google News Search)', url: 'https://news.google.com/rss/search?q=site:navbharattimes.indiatimes.com&hl=hi&gl=IN&ceid=IN:hi', category: 'general', lang: 'hi' },
   { name: 'BBC Hindi', url: 'https://feeds.bbci.co.uk/hindi/rss.xml', category: 'general', lang: 'hi' },
 
   // Chhattisgarh Specific
   { name: 'realtimes.in', url: 'https://realtimes.in/?feed=rss2', category: 'chhattisgarh', lang: 'hi' },
-  { name: 'Haribhoomi', url: 'https://www.haribhoomi.com/rss', category: 'chhattisgarh', lang: 'hi' },
-  { name: 'Nava Bharat CG', url: 'https://www.navabharat.net/feed/', category: 'chhattisgarh', lang: 'hi' },
+  { name: 'Haribhoomi (Google News Search)', url: 'https://news.google.com/rss/search?q=site:haribhoomi.com+chhattisgarh&hl=hi&gl=IN&ceid=IN:hi', category: 'chhattisgarh', lang: 'hi' },
+  { name: 'Nava Bharat CG (Google News Search)', url: 'https://news.google.com/rss/search?q=site:navabharat.net+chhattisgarh&hl=hi&gl=IN&ceid=IN:hi', category: 'chhattisgarh', lang: 'hi' },
   { name: 'Google News CG', url: 'https://news.google.com/rss/search?q=chhattisgarh&hl=hi&gl=IN&ceid=IN:hi', category: 'chhattisgarh', lang: 'hi' },
 
   // Polity & Governance
   { name: 'PIB English', url: 'https://pib.gov.in/rss.aspx', category: 'polity', lang: 'en' },
   { name: 'PIB Hindi', url: 'https://pib.gov.in/rss.aspx?reg=3&lang=2', category: 'polity', lang: 'hi' },
-  { name: 'PRS India Bills', url: 'https://prsindia.org/rss/bills', category: 'polity', lang: 'en' },
+  { name: 'PRS India Bills (Google News Search)', url: 'https://news.google.com/rss/search?q=site:prsindia.org&hl=en-IN&gl=IN&ceid=IN:en', category: 'polity', lang: 'en' },
   { name: 'The Hindu', url: 'https://www.thehindu.com/news/national/feeder/default.rss', category: 'polity', lang: 'en' },
 
   // Science & Tech
@@ -160,7 +165,7 @@ async function fetchNewsDataIO() {
   if (!apiKey || apiKey === 'your-api-key-here') return [];
   try {
     const url = `https://newsdata.io/api/1/news?apikey=${apiKey}&country=in&language=hi`;
-    const res = await axios.get(url, { headers: HEADERS, timeout: 10000 });
+    const res = await axios.get(url, { headers: HEADERS, timeout: 10000, httpsAgent });
     if (res.data && Array.isArray(res.data.results)) {
       return res.data.results.map(item => ({
         title: item.title,
@@ -183,7 +188,7 @@ async function fetchGNews() {
   if (!apiKey || apiKey === 'your-api-key-here') return [];
   try {
     const url = `https://gnews.io/api/v4/top-headlines?country=in&lang=hi&token=${apiKey}`;
-    const res = await axios.get(url, { headers: HEADERS, timeout: 10000 });
+    const res = await axios.get(url, { headers: HEADERS, timeout: 10000, httpsAgent });
     if (res.data && Array.isArray(res.data.articles)) {
       return res.data.articles.map(item => ({
         title: item.title,
@@ -206,7 +211,7 @@ async function fetchMediaStack() {
   if (!apiKey || apiKey === 'your-api-key-here') return [];
   try {
     const url = `http://api.mediastack.com/v1/news?countries=in&languages=hi&access_key=${apiKey}`;
-    const res = await axios.get(url, { headers: HEADERS, timeout: 10000 });
+    const res = await axios.get(url, { headers: HEADERS, timeout: 10000, httpsAgent });
     if (res.data && Array.isArray(res.data.data)) {
       return res.data.data.map(item => ({
         title: item.title,
@@ -299,17 +304,20 @@ async function scrapeAllNews() {
   const relevantEnriched = [];
 
   for (const art of articlesToEnrich) {
+    let category = 'general';
+    let summaryEn = art.description || '';
     try {
-      const category = tagCategory(art.title, art.description, art.category);
+      category = tagCategory(art.title, art.description, art.category);
       const aiResult = await ai.translateAndSummarizeNews(art.title, category, art.source);
+      summaryEn = aiResult.summary_en || art.description || '';
       
       relevantEnriched.push({
         ...art,
         category,
         title_hi: aiResult.title_hi || art.title,
-        description: aiResult.summary_en || art.description,
+        description: summaryEn,
         description_hi: aiResult.summary_hi || art.description,
-        summary: aiResult.summary_en || art.description,
+        summary: summaryEn,
         summary_hi: aiResult.summary_hi || art.description,
         examRelevance: true,
         icon: category === 'chhattisgarh' ? '🏔️' : '📰'
@@ -317,7 +325,7 @@ async function scrapeAllNews() {
     } catch (err) {
       console.error(`[NewsScraper] Enrichment failed for "${art.title}":`, err.message);
       // Fallback without translation
-      const category = tagCategory(art.title, art.description, art.category);
+      category = tagCategory(art.title, art.description, art.category);
       relevantEnriched.push({
         ...art,
         category,
@@ -328,6 +336,28 @@ async function scrapeAllNews() {
         examRelevance: true,
         icon: category === 'chhattisgarh' ? '🏔️' : '📰'
       });
+    }
+
+    // Pre-generate AI news intelligence and save to database
+    try {
+      console.log(`[NewsScraper] Pre-generating AI news intelligence for: ${art.title}`);
+      const intel = await ai.generateNewsIntelligence(art.title, summaryEn, category, art.source);
+      
+      const intelDocId = crypto.createHash('md5').update(art.title).digest('hex');
+      const intelDocRef = db.collection('news_intelligence').doc(intelDocId);
+      
+      const fullIntel = {
+        ...intel,
+        title: art.title,
+        description: summaryEn,
+        source: art.source || 'Google News',
+        category: category || 'general',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      await intelDocRef.set(fullIntel);
+      console.log(`[NewsScraper] Successfully pre-generated news intelligence for: ${art.title}`);
+    } catch (intelErr) {
+      console.error(`[NewsScraper] Intelligence pre-generation failed for "${art.title}":`, intelErr.message);
     }
   }
 

@@ -9,12 +9,16 @@ import { AdminSyllabus } from './AdminSyllabus';
 import { AdminAIConfig } from './AdminAIConfig';
 import { AdminUsers } from './AdminUsers';
 
+import type { Exam } from '../syllabus/syllabusData';
+
 interface AdminDashboardProps {
   currentUser: any;
   onGoBack: () => void;
+  exams: Exam[];
+  onRefreshExams: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
   const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'tests' | 'news' | 'syllabus' | 'aiconfig'>('overview');
   
   // Dashboard overall stats state
@@ -95,11 +99,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
       case 'users':
         return <AdminUsers currentUser={currentUser} />;
       case 'tests':
-        return <AdminTests currentUser={currentUser} />;
+        return <AdminTests currentUser={currentUser} exams={exams} />;
       case 'news':
         return <AdminNews currentUser={currentUser} />;
       case 'syllabus':
-        return <AdminSyllabus currentUser={currentUser} />;
+        return <AdminSyllabus currentUser={currentUser} exams={exams} onRefreshExams={onRefreshExams} />;
       case 'aiconfig':
         return <AdminAIConfig currentUser={currentUser} />;
     }

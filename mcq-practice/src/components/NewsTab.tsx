@@ -110,7 +110,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
   const [intel, setIntel] = useState<ArticleIntelligence | null>(null);
   const [loadingIntel, setLoadingIntel] = useState<boolean>(false);
   const [intelError, setIntelError] = useState<string>('');
-  const [modalTab, setModalTab] = useState<'insights' | 'notes' | 'flashcards' | 'quiz'>('insights');
+  const [modalTab, setModalTab] = useState<'insights' | 'notes' | 'flashcards' | 'quiz'>('notes');
   const [summaryLang, setSummaryLang] = useState<'en' | 'hi'>('hi');
 
   // Quiz state inside modal
@@ -290,8 +290,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
     setLoadingIntel(true);
     setIntelError('');
     setIntel(null);
-    // Reset Modal internal states
-    setModalTab('insights');
+    setModalTab('notes');
     setSelectedOptions({});
     setQuizSubmitted(false);
     setQuizScore(null);
@@ -556,9 +555,14 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
                           </span>
                         )}
                       </div>
-                      <h5 className="text-xs font-bold leading-relaxed line-clamp-2 text-text">
-                        {art.title}
-                      </h5>
+                      <div className="flex flex-col gap-1 flex-1">
+                        <h5 className="text-xs font-bold leading-relaxed line-clamp-2 text-text" title={art.description}>
+                          {art.description || art.title}
+                        </h5>
+                        <p className="text-[10px] text-text-muted line-clamp-1 leading-normal">
+                          {art.title}
+                        </p>
+                      </div>
                       <div className="flex justify-between items-center text-[10px] text-text-muted border-t border-border/40 pt-2 w-full font-bold">
                         <span>📡 {art.source}</span>
                         <span className="text-saffron-border uppercase text-[9px] tracking-wider flex items-center gap-0.5 group">
@@ -622,12 +626,12 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
                         </span>
                       </div>
 
-                      <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2">
-                        {art.title}
+                      <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2" title={art.description}>
+                        {art.description || art.title}
                       </h4>
 
                       <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
-                        {art.description}
+                        {art.title}
                       </p>
 
                       <div className="flex justify-between items-center text-[10px] text-text-muted border-t border-border/40 pt-2 mt-1">
@@ -766,9 +770,12 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
                         </span>
                       </div>
 
-                      <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-1">
-                        {art.title}
+                      <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2" title={art.description}>
+                        {art.description || art.title}
                       </h4>
+                      <p className="text-[10px] text-text-muted line-clamp-1 leading-normal">
+                        {art.title}
+                      </p>
 
                       <div className="flex justify-between items-center text-[10px] text-text-muted border-t border-border/40 pt-2 mt-1 w-full font-bold">
                         <span>📡 {art.source}</span>
@@ -914,9 +921,13 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
                       </div>
                     </div>
 
-                    <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2">
-                      {art.title}
+                    <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2" title={art.description}>
+                      {art.description || art.title}
                     </h4>
+
+                    <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
+                      {art.title}
+                    </p>
 
                     <div className="flex gap-2 border-t border-border/40 pt-3 mt-1">
                       <button
@@ -1019,8 +1030,8 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
                   {/* Internal tabs inside Modal */}
                   <div className="flex items-center bg-bg-s3 border border-border p-1 rounded-lg shrink-0 overflow-x-auto no-scrollbar">
                     {[
-                      { id: 'insights', label: 'Exam Insight' },
                       { id: 'notes', label: 'Study Notes' },
+                      { id: 'insights', label: 'Exam Insight' },
                       { id: 'flashcards', label: `Flashcards (${intel.flashcards?.length || 0})` },
                       { id: 'quiz', label: 'Practice Quiz' }
                     ].map(mtab => (

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   Flame, Trophy, Award, Star, Clock, 
-  CheckCircle2, AlertCircle, History, Sparkles, BookOpen, ChevronRight 
+  CheckCircle2, AlertCircle, History, Sparkles, BookOpen, ChevronRight,
+  ArrowRight, Target
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -34,6 +35,7 @@ interface ProfileTabProps {
   onClearProgress: () => void;
   isAdmin?: boolean;
   onOpenAdmin?: () => void;
+  onNavigateToTab?: (tabId: string) => void;
 }
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
@@ -49,7 +51,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   serverAnalytics,
   onClearProgress,
   isAdmin = false,
-  onOpenAdmin
+  onOpenAdmin,
+  onNavigateToTab
 }) => {
   const [showHistoryLimit, setShowHistoryLimit] = useState<number>(5);
 
@@ -490,25 +493,126 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           )}
         </div>
 
-        {/* 8. AI Recommendations Coaching tips (Enhanced with premium glowing card wrapper) */}
-        <div className="p-5 bg-gradient-to-br from-bg-s2 to-[#1b2235] border border-saffron-border/25 rounded-xl shadow-lg flex flex-col gap-3 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-saffron-dim/15 rounded-full blur-2xl pointer-events-none animate-pulse" />
-          <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
-            <Sparkles className="w-4 h-4 text-saffron animate-pulse" />
-            <span>AI Study Recommendations</span>
-          </h4>
+        {/* 8. AI Recommendations Coaching tips (Premium Glowing Overhaul) */}
+        <div className="p-6 bg-gradient-to-br from-bg-s2 via-[#161d2d] to-[#121620] border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-4 relative overflow-hidden">
+          {/* Glowing background circles for modern premium appearance */}
+          <div className="absolute top-0 right-0 w-36 h-36 bg-saffron-dim/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
+          <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
           
-          <div className="p-4 bg-bg-s3 border border-saffron-border/10 rounded-lg text-xs leading-relaxed text-text flex flex-col gap-2 relative">
+          <div className="flex justify-between items-center border-b border-border/60 pb-3 shrink-0">
+            <h4 className="text-xs font-black uppercase text-text tracking-wider flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-saffron animate-pulse" />
+              <span>AI Study Intelligence Coach</span>
+            </h4>
+            <span className="text-[9px] font-black uppercase text-saffron bg-saffron-dim/20 px-2 py-0.5 rounded border border-saffron-border/20">
+              Active Analysis
+            </span>
+          </div>
+          
+          {/* Main Persona Banner */}
+          <div className="p-4 bg-bg-s3/80 border border-saffron-border/10 rounded-xl flex flex-col gap-2 relative">
             <span className="text-[8px] font-black uppercase text-saffron tracking-widest flex items-center gap-1">
               <span>🤖</span>
-              <span>PERSONAL COACH INSIGHT</span>
+              <span>Personal Coach Insight</span>
             </span>
-            <p className="leading-relaxed tracking-wide text-text-muted">
+            <p className="leading-relaxed text-xs text-text-muted">
               {normalizedHistory.length > 0 
-                ? `Your average score is ${overallAccuracy}%. Analyzing your conceptual response metrics indicates high efficiency in general knowledge. However, to maximize qualification probability for ${activeExam?.name || 'CGPSC'}, focus on spaced repetition revision timelines in ${focusSubjects[0] || 'Polity'} to secure key marks.`
-                : `To kickstart your smart preparation for ${activeExam?.name || 'CGPSC'}, take a quick practice quiz in Chhattisgarh General Knowledge (CG GK) to map your current accuracy baseline. Our AI model will immediately classify your learning persona.`
+                ? `Your average score is ${overallAccuracy}%. Based on your recent responses, you show excellent dedication! However, to secure top ranks in ${activeExam?.name || 'CGPSC'}, focus on weak topics. We have created a custom list of study plans for you below.`
+                : `To start your personalized smart preparation path for ${activeExam?.name || 'CGPSC'}, take a quick practice quiz. This helps our AI tutor map your learning persona and design custom revision intervals for you.`
               }
             </p>
+          </div>
+
+          {/* Detailed Action Steps */}
+          <div className="flex flex-col gap-3.5 mt-2">
+            <span className="text-[9px] font-black uppercase text-text-muted tracking-wider">Actionable Next Steps</span>
+            
+            {/* Recommendation 1: Weak Subject Practice */}
+            {focusSubjects.length > 0 && (
+              <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+                <div className="flex gap-3">
+                  <div className="w-10 h-10 bg-redL/15 border border-redL/20 rounded-lg flex items-center justify-center shrink-0 text-redL font-bold">
+                    <Target className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-text uppercase">Strengthen Focus Subject</span>
+                      <span className="text-[8px] font-black text-redL bg-redL/10 px-1.5 py-0.5 rounded uppercase leading-none">High Priority</span>
+                    </div>
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      Your average accuracy in <strong className="text-text">{focusSubjects[0]}</strong> is below 55%. Complete a focused practice test to build confidence.
+                    </p>
+                  </div>
+                </div>
+                {onNavigateToTab && (
+                  <button 
+                    onClick={() => onNavigateToTab('practice')}
+                    className="px-3.5 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow flex items-center gap-1 self-start sm:self-center shrink-0"
+                  >
+                    <span>Practice Now</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Recommendation 2: Spaced Repetition */}
+            <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+              <div className="flex gap-3">
+                <div className="w-10 h-10 bg-blue-500/15 border border-blue-500/20 rounded-lg flex items-center justify-center shrink-0 text-blue-400 font-bold">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-text uppercase">Active Recall Revision</span>
+                    <span className="text-[8px] font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded uppercase leading-none">Recommended</span>
+                  </div>
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    Prevent forgetting! Go to the Syllabus page to view topics currently scheduled for spaced repetition review.
+                  </p>
+                </div>
+              </div>
+              {onNavigateToTab && (
+                <button 
+                  onClick={() => onNavigateToTab('syllabus')}
+                  className="px-3.5 py-2 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1 self-start sm:self-center shrink-0"
+                >
+                  <span>View Syllabus</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-saffron" />
+                </button>
+              )}
+            </div>
+
+            {/* Recommendation 3: Daily Streak consistency */}
+            <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+              <div className="flex gap-3">
+                <div className="w-10 h-10 bg-orange-500/15 border border-orange-500/20 rounded-lg flex items-center justify-center shrink-0 text-orange-400 font-bold">
+                  <Flame className="w-5 h-5 fill-orange-500/10" />
+                </div>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-text uppercase">Daily Consistency Booster</span>
+                    <span className="text-[8px] font-black text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded uppercase leading-none">Daily Goal</span>
+                  </div>
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    {streak > 0 
+                      ? `You are on a beautiful ${streak}-day study streak! Complete any topic activity or practice test today to extend it.` 
+                      : `Start your daily revision habits. Complete any study activity or practice test today to establish a study streak!`
+                    }
+                  </p>
+                </div>
+              </div>
+              {onNavigateToTab && (
+                <button 
+                  onClick={() => onNavigateToTab('chat')}
+                  className="px-3.5 py-2 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1 self-start sm:self-center shrink-0"
+                >
+                  <span>Ask AI Guru</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-saffron" />
+                </button>
+              )}
+            </div>
+
           </div>
         </div>
       </div>

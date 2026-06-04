@@ -41,6 +41,7 @@ import { AuthModal } from './components/AuthModal';
 import { SettingsModal } from './components/SettingsModal';
 import { TopicStudyModal } from './components/TopicStudyModal';
 
+import type { Exam } from './components/syllabus/syllabusData';
 import { 
   EXAMS_DATA, 
   getProgressFromLocalStorage, 
@@ -175,6 +176,9 @@ export default function App() {
     const val = localStorage.getItem('examprep_streak');
     return val ? parseInt(val, 10) : 2;
   });
+  const [streakLastDate, setStreakLastDate] = useState<string>(() => {
+    return localStorage.getItem('examprep_streak_last_date') || '';
+  });
   const [solvedMcqsCount, setSolvedMcqsCount] = useState<number>(() => {
     const val = localStorage.getItem('examprep_mcqsSolved');
     return val ? parseInt(val, 10) : 25;
@@ -214,14 +218,43 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [floatingXp, setFloatingXp] = useState<number | null>(null);
+  const [mcqCorrectStreak, setMcqCorrectStreak] = useState<number>(0);
 
-  const activeExam = EXAMS_DATA.find(e => e.id === activeExamId) || EXAMS_DATA[0];
+  const [exams, setExams] = useState<Exam[]>(EXAMS_DATA);
+  const activeExam = exams.find(e => e.id === activeExamId) || exams[0];
 
-  // Helper URL resolver
   const getApiUrl = (path: string) => {
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+    const isLocal = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1' || 
+                    window.location.hostname === '[::1]' ||
+                    window.location.hostname.startsWith('192.168.');
+    const host = isLocal && window.location.port !== '3000' ? 'http://localhost:3000' : '';
     return `${host}${path}`;
   };
+
+  const fetchCustomSyllabi = async () => {
+    try {
+      const res = await fetch(getApiUrl('/api/syllabus/custom'));
+      if (res.ok) {
+        const customExams = await res.json();
+        if (Array.isArray(customExams)) {
+          const merged = [...customExams];
+          EXAMS_DATA.forEach(builtIn => {
+            if (!merged.some(e => e.id === builtIn.id)) {
+              merged.push(builtIn);
+            }
+          });
+          setExams(merged);
+        }
+      }
+    } catch (e) {
+      console.error('[Fetch Custom Syllabi Error]:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomSyllabi();
+  }, []);
 
   // Auth Listener
   useEffect(() => {
@@ -301,6 +334,7 @@ export default function App() {
           const data = await profileRes.json();
           setXp(data.points || 0);
           setStreak(data.streak?.count || 0);
+          setStreakLastDate(data.streak?.lastDate || '');
           setSolvedMcqsCount(data.mcqsSolved || 0);
           setTestHistory(data.testResults || []);
           if (data.selectedExam) {
@@ -397,6 +431,10 @@ export default function App() {
   }, [streak]);
 
   useEffect(() => {
+    localStorage.setItem('examprep_streak_last_date', streakLastDate);
+  }, [streakLastDate]);
+
+  useEffect(() => {
     localStorage.setItem('examprep_mcqsSolved', String(solvedMcqsCount));
   }, [solvedMcqsCount]);
 
@@ -436,7 +474,67 @@ export default function App() {
     }
   }, []);
 
+  // Helper to record a study activity and update the daily study streak
+  const recordStudyActivity = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    if (streakLastDate === todayStr) {
+      return { streak, streakLastDate };
+    }
+
+    let newStreak = streak;
+    if (!streakLastDate) {
+      newStreak = 1;
+    } else {
+      const [ly, lm, ld] = streakLastDate.split('-').map(Number);
+      const lastDate = new Date(ly, lm - 1, ld);
+      const currentDate = new Date(yyyy, today.getMonth(), today.getDate());
+      
+      const diffTime = currentDate.getTime() - lastDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        newStreak = streak + 1;
+      } else if (diffDays > 1) {
+        newStreak = 1;
+      }
+    }
+
+    setStreak(newStreak);
+    setStreakLastDate(todayStr);
+    return { streak: newStreak, streakLastDate: todayStr };
+  };
+
+  // Check for daily streak decay on load
+  useEffect(() => {
+    if (streakLastDate) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+
+      if (streakLastDate !== todayStr) {
+        const [ly, lm, ld] = streakLastDate.split('-').map(Number);
+        const lastDate = new Date(ly, lm - 1, ld);
+        const currentDate = new Date(yyyy, today.getMonth(), today.getDate());
+        
+        const diffTime = currentDate.getTime() - lastDate.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 1) {
+          setStreak(0);
+        }
+      }
+    }
+  }, [streakLastDate]);
+
   const onToggleActivity = async (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => {
+    const { streak: currentStreakVal } = recordStudyActivity();
     setTopicProgress(prev => {
       const current = prev[topicId] || {
         topicId,
@@ -473,7 +571,7 @@ export default function App() {
       // Save to localStorage
       saveProgressToLocalStorage({
         examId: activeExamId,
-        streak,
+        streak: currentStreakVal,
         lastActive: new Date().toISOString(),
         topicProgress: nextState
       });
@@ -521,6 +619,7 @@ export default function App() {
   };
 
   const onMarkRevised = async (topicId: string) => {
+    const { streak: currentStreakVal } = recordStudyActivity();
     setTopicProgress(prev => {
       const current = prev[topicId] || {
         topicId,
@@ -547,7 +646,7 @@ export default function App() {
       // Save to localStorage
       saveProgressToLocalStorage({
         examId: activeExamId,
-        streak,
+        streak: currentStreakVal,
         lastActive: new Date().toISOString(),
         topicProgress: nextState
       });
@@ -615,13 +714,13 @@ export default function App() {
 
     const isCorrect = optIdx === questions[currentIndex].correctIndex;
     if (isCorrect) {
-      const addedXp = 10 + (streak >= 2 ? 5 : 0);
+      const addedXp = 10 + (mcqCorrectStreak >= 1 ? 5 : 0);
       setXp(prev => prev + addedXp);
-      setStreak(prev => prev + 1);
+      setMcqCorrectStreak(prev => prev + 1);
       setFloatingXp(addedXp);
       setTimeout(() => setFloatingXp(null), 1200);
     } else {
-      setStreak(0);
+      setMcqCorrectStreak(0);
     }
   };
 
@@ -651,11 +750,14 @@ export default function App() {
     setElapsedTime(0);
     setSessionCompleted(false);
     setIsTestActive(true);
+    setMcqCorrectStreak(0);
   };
 
   // Finish practice session and sync detailed analytics
   const handleFinishSession = async () => {
     setSessionCompleted(true);
+
+    const { streak: currentStreakVal, streakLastDate: currentStreakDate } = recordStudyActivity();
 
     const correctCount = answers.filter((ans, idx) => ans !== null && ans === questions[idx].correctIndex).length;
     const wrongCount = answers.filter((ans, idx) => ans !== null && ans !== questions[idx].correctIndex).length;
@@ -700,8 +802,8 @@ export default function App() {
             mcqsSolved: newMcqsSolved,
             testResults: newHistory,
             streak: {
-              count: streak,
-              lastDate: new Date().toISOString().split('T')[0]
+              count: currentStreakVal,
+              lastDate: currentStreakDate
             }
           })
         });
@@ -784,7 +886,7 @@ export default function App() {
   ).length;
 
   const totalTopics = activeExam?.subjects?.reduce(
-    (sum, sub) => sum + sub.chapters.reduce((s, chap) => s + chap.topics.length, 0), 0
+    (sum: number, sub: any) => sum + sub.chapters.reduce((s: number, chap: any) => s + chap.topics.length, 0), 0
   ) || 50;
 
   // Render tab modules
@@ -800,7 +902,7 @@ export default function App() {
             totalTopicsCount={totalTopics}
             testsGivenCount={testHistory.length}
             activeExam={activeExam}
-            exams={EXAMS_DATA}
+            exams={exams}
             onSelectExam={handleSelectExam}
             onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
             onStartPracticeMode={(modeType) => {
@@ -859,6 +961,7 @@ export default function App() {
             onClearProgress={handleClearProgress}
             isAdmin={isAdmin}
             onOpenAdmin={() => setActiveTab('admin')}
+            onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
           />
         );
       case 'admin':
@@ -883,11 +986,14 @@ export default function App() {
           <AdminDashboard
             currentUser={currentUser}
             onGoBack={() => setActiveTab('profile')}
+            exams={exams}
+            onRefreshExams={fetchCustomSyllabi}
           />
         );
       case 'syllabus':
         return (
           <SyllabusPage
+            exams={exams}
             activeExamId={activeExamId}
             onSelectExam={handleSelectExam}
             topicProgress={topicProgress}

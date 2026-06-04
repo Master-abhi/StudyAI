@@ -2,7 +2,12 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const Parser = require('rss-parser');
 const crypto = require('crypto');
+const https = require('https');
 const { db } = require('../firebase-admin');
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false
+});
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -13,6 +18,19 @@ const HEADERS = {
 const parser = new Parser({
   headers: HEADERS
 });
+
+/**
+ * Clean and combine base URL and relative paths safely.
+ */
+function cleanUrl(href, baseUrl) {
+  if (!href) return '';
+  const trimmed = href.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  
+  const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${base}${path}`;
+}
 
 /**
  * Extract last date and vacancies from text using regular expressions.
@@ -90,13 +108,13 @@ function tagJobCategory(title, defaultCategory) {
 async function scrapeCGPSC() {
   const jobs = [];
   try {
-    const { data } = await axios.get('https://psc.cg.gov.in', { headers: HEADERS, timeout: 15000 });
+    const { data } = await axios.get('https://psc.cg.gov.in', { headers: HEADERS, timeout: 15000, httpsAgent });
     const $ = cheerio.load(data);
     $('a').each((i, el) => {
       const href = $(el).attr('href') || '';
       const text = $(el).text().trim();
       if (text.length > 10 && (text.includes('Advertisement') || text.includes('विज्ञापन') || text.includes('Recruitment') || text.includes('भर्ती'))) {
-        const link = href.startsWith('http') ? href : `https://psc.cg.gov.in${href}`;
+        const link = cleanUrl(href, 'https://psc.cg.gov.in');
         jobs.push({
           title: text,
           link,
@@ -115,13 +133,13 @@ async function scrapeCGPSC() {
 async function scrapeCGVyapam() {
   const jobs = [];
   try {
-    const { data } = await axios.get('https://vyapam.cgstate.gov.in', { headers: HEADERS, timeout: 15000 });
+    const { data } = await axios.get('https://vyapam.cgstate.gov.in', { headers: HEADERS, timeout: 15000, httpsAgent });
     const $ = cheerio.load(data);
     $('a').each((i, el) => {
       const href = $(el).attr('href') || '';
       const text = $(el).text().trim();
       if (text.length > 10 && (text.includes('भर्ती') || text.includes('विज्ञापन') || text.includes('Recruitment') || text.includes('परीक्षा'))) {
-        const link = href.startsWith('http') ? href : `https://vyapam.cgstate.gov.in${href}`;
+        const link = cleanUrl(href, 'https://vyapam.cgstate.gov.in');
         jobs.push({
           title: text,
           link,
@@ -140,13 +158,13 @@ async function scrapeCGVyapam() {
 async function scrapeIBPS() {
   const jobs = [];
   try {
-    const { data } = await axios.get('https://ibps.in', { headers: HEADERS, timeout: 15000 });
+    const { data } = await axios.get('https://ibps.in', { headers: HEADERS, timeout: 15000, httpsAgent });
     const $ = cheerio.load(data);
     $('a').each((i, el) => {
       const href = $(el).attr('href') || '';
       const text = $(el).text().trim();
       if (text.length > 10 && (text.toLowerCase().includes('apply') || text.toLowerCase().includes('recruitment') || text.toLowerCase().includes('crp') || text.toLowerCase().includes('cwe'))) {
-        const link = href.startsWith('http') ? href : `https://ibps.in${href}`;
+        const link = cleanUrl(href, 'https://ibps.in');
         jobs.push({
           title: text,
           link,
@@ -165,13 +183,13 @@ async function scrapeIBPS() {
 async function scrapeSBIRBI() {
   const jobs = [];
   try {
-    const { data } = await axios.get('https://opportunities.rbi.org.in/scripts/vacancies.aspx', { headers: HEADERS, timeout: 10000 });
+    const { data } = await axios.get('https://opportunities.rbi.org.in/scripts/vacancies.aspx', { headers: HEADERS, timeout: 10000, httpsAgent });
     const $ = cheerio.load(data);
     $('a').each((i, el) => {
       const text = $(el).text().trim();
       const href = $(el).attr('href') || '';
       if (text.length > 10 && (text.includes('Recruitment') || text.includes('Vacancy'))) {
-        const link = href.startsWith('http') ? href : `https://opportunities.rbi.org.in/scripts/${href}`;
+        const link = cleanUrl(href, 'https://opportunities.rbi.org.in/scripts/');
         jobs.push({
           title: text,
           link,
@@ -190,13 +208,13 @@ async function scrapeSBIRBI() {
 async function scrapeUPSC() {
   const jobs = [];
   try {
-    const { data } = await axios.get('https://upsc.gov.in/examinations/active-examinations', { headers: HEADERS, timeout: 15000 });
+    const { data } = await axios.get('https://upsc.gov.in/examinations/active-examinations', { headers: HEADERS, timeout: 15000, httpsAgent });
     const $ = cheerio.load(data);
     $('a').each((i, el) => {
       const text = $(el).text().trim();
       const href = $(el).attr('href') || '';
       if (text.length > 10 && (text.toLowerCase().includes('examination') || text.toLowerCase().includes('notice') || text.toLowerCase().includes('recruitment'))) {
-        const link = href.startsWith('http') ? href : `https://upsc.gov.in${href}`;
+        const link = cleanUrl(href, 'https://upsc.gov.in');
         jobs.push({
           title: text,
           link,

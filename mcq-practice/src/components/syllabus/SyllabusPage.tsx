@@ -14,11 +14,10 @@ import { RevisionPlanner } from './RevisionPlanner';
 import { ExamStrategyCard } from './ExamStrategyCard';
 import { MilestoneTracker } from './MilestoneTracker';
 
-import { 
-  EXAMS_DATA
-} from './syllabusData';
+import type { Exam } from './syllabusData';
 
 interface SyllabusPageProps {
+  exams: Exam[];
   activeExamId: string;
   onSelectExam: (examId: string) => void;
   topicProgress: Record<string, any>;
@@ -33,6 +32,7 @@ interface SyllabusPageProps {
 type ActiveTab = 'tracker' | 'ai_planner' | 'revision' | 'analytics' | 'strategy';
 
 export const SyllabusPage: React.FC<SyllabusPageProps> = ({
+  exams,
   activeExamId,
   onSelectExam,
   topicProgress,
@@ -48,7 +48,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'Completed' | 'In Progress' | 'Weak Area' | 'Not Started'>('all');
   const [expandedSubjectId, setExpandedSubjectId] = useState<string | null>(null);
 
-  const activeExam = EXAMS_DATA.find(e => e.id === activeExamId) || EXAMS_DATA[0];
+  const activeExam = exams.find(e => e.id === activeExamId) || exams[0];
 
   const handleQuickAction = (actionText: string, subjectId: string, topicId: string) => {
     const subject = activeExam.subjects.find(s => s.id === subjectId);
@@ -120,7 +120,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
       
       {/* 1. Header with Exam Selector */}
       <SyllabusHeader 
-        exams={EXAMS_DATA}
+        exams={exams}
         activeExam={activeExam}
         onSelectExam={onSelectExam}
         onBack={onGoBack}
