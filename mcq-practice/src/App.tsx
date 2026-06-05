@@ -221,8 +221,10 @@ export default function App() {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
-  const [floatingXp, setFloatingXp] = useState<number | null>(null);
-  const [mcqCorrectStreak, setMcqCorrectStreak] = useState<number>(0);
+  const [feedbackEnabled, setFeedbackEnabled] = useState<boolean>(false);
+  const [rulesAccepted, setRulesAccepted] = useState<boolean>(false);
+  const [isReviewMode, setIsReviewMode] = useState<boolean>(false);
+  const [rankingData, setRankingData] = useState<any>(null);
 
   const [exams, setExams] = useState<Exam[]>(EXAMS_DATA);
   const activeExam = exams.find(e => e.id === activeExamId) || exams[0];
@@ -259,6 +261,27 @@ export default function App() {
   useEffect(() => {
     fetchCustomSyllabi();
   }, []);
+
+  // Fetch Global Ranking and Leaderboard when Profile tab is viewed
+  useEffect(() => {
+    if (activeTab === 'profile' && currentUser && !isGuest) {
+      currentUser.getIdToken().then(async (token: string) => {
+        try {
+          const res = await fetch(getApiUrl('/api/user/ranking'), {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setRankingData(data);
+          }
+        } catch (err) {
+          console.warn('Failed to load ranking data:', err);
+        }
+      });
+    }
+  }, [activeTab, currentUser, isGuest]);
 
   // Auth Listener
   useEffect(() => {
@@ -340,16 +363,40 @@ export default function App() {
 
         // 1. Fetch user data (scores, history, streaks)
         const profileRes = await fetch(getApiUrl('/api/user/data'), { headers });
+        let profileData: any = {};
         if (profileRes.ok) {
-          const data = await profileRes.json();
-          setXp(data.points || 0);
-          setStreak(data.streak?.count || 0);
-          setStreakLastDate(data.streak?.lastDate || '');
-          setSolvedMcqsCount(data.mcqsSolved || 0);
-          setTestHistory(data.testResults || []);
-          if (data.selectedExam) {
-            setActiveExamId(data.selectedExam);
+          profileData = await profileRes.json();
+          setXp(profileData.points || 0);
+          setStreak(profileData.streak?.count || 0);
+          setStreakLastDate(profileData.streak?.lastDate || '');
+          setSolvedMcqsCount(profileData.mcqsSolved || 0);
+          setTestHistory(profileData.testResults || []);
+          if (profileData.selectedExam) {
+            setActiveExamId(profileData.selectedExam);
           }
+        }
+
+        // Auto-sync display name and email if missing from the server
+        if (!profileData.displayName || !profileData.email) {
+          const syncBody: any = {
+            displayName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Aspirant',
+            email: currentUser.email || ''
+          };
+          // If this is a new profile (empty database record), sync current local state as fallback
+          if (profileData.points === undefined) {
+            syncBody.points = xp;
+            syncBody.mcqsSolved = solvedMcqsCount;
+            syncBody.streak = { count: streak, lastDate: streakLastDate };
+          }
+          
+          await fetch(getApiUrl('/api/user/sync'), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(syncBody)
+          }).catch(err => console.warn('[Auto Sync] Failed:', err));
         }
 
         // 2. Fetch study intelligence dashboard metrics
@@ -716,22 +763,12 @@ export default function App() {
 
   // Select option handler
   const handleSelectOption = (optIdx: number) => {
-    if (answers[currentIndex] !== null || sessionCompleted) return;
+    if (sessionCompleted) return;
+    if (feedbackEnabled && answers[currentIndex] !== null) return;
 
     const newAnswers = [...answers];
     newAnswers[currentIndex] = optIdx;
     setAnswers(newAnswers);
-
-    const isCorrect = optIdx === questions[currentIndex].correctIndex;
-    if (isCorrect) {
-      const addedXp = 10 + (mcqCorrectStreak >= 1 ? 5 : 0);
-      setXp(prev => prev + addedXp);
-      setMcqCorrectStreak(prev => prev + 1);
-      setFloatingXp(addedXp);
-      setTimeout(() => setFloatingXp(null), 1200);
-    } else {
-      setMcqCorrectStreak(0);
-    }
   };
 
   const handleToggleBookmark = (id: string) => {
@@ -760,12 +797,35 @@ export default function App() {
     setElapsedTime(0);
     setSessionCompleted(false);
     setIsTestActive(true);
-    setMcqCorrectStreak(0);
+    setFeedbackEnabled(false);
+    setRulesAccepted(false);
+    setIsReviewMode(false);
+  };
+
+  // Review completed test helper
+  const startTestReview = (savedQuestions: Question[], savedAnswers: (number | null)[], subject: string, testMode: 'quiz' | 'mock' | 'pyq') => {
+    setQuestions(savedQuestions);
+    setMode(testMode);
+    setSubjectName(subject);
+    setCurrentIndex(0);
+    setAnswers(savedAnswers);
+    setMarkedForReview(Array(savedQuestions.length).fill(false));
+    setVisited(Array(savedQuestions.length).fill(true));
+    setElapsedTime(0);
+    setSessionCompleted(false);
+    setFeedbackEnabled(true);
+    setIsTestActive(true);
+    setRulesAccepted(true);
+    setIsReviewMode(true);
   };
 
   // Finish practice session and sync detailed analytics
   const handleFinishSession = async () => {
     setSessionCompleted(true);
+
+    if (feedbackEnabled || isReviewMode) {
+      return;
+    }
 
     const { streak: currentStreakVal, streakLastDate: currentStreakDate } = recordStudyActivity();
 
@@ -773,7 +833,17 @@ export default function App() {
     const wrongCount = answers.filter((ans, idx) => ans !== null && ans !== questions[idx].correctIndex).length;
     const skippedCount = questions.length - answers.filter(ans => ans !== null).length;
 
-    const gainedXp = correctCount * 10;
+    let gainedXp = 0;
+    questions.forEach((q, idx) => {
+      if (answers[idx] !== null && answers[idx] === q.correctIndex) {
+        if (q.difficulty === 'hard') {
+          gainedXp += 2;
+        } else {
+          gainedXp += 1;
+        }
+      }
+    });
+
     const newXp = xp + gainedXp;
     setXp(newXp);
 
@@ -788,7 +858,9 @@ export default function App() {
       wrong: wrongCount,
       skipped: skippedCount,
       percent: Math.round((correctCount / questions.length) * 100),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      questions: questions,
+      userAnswers: answers
     };
 
     const newHistory = [newRecord, ...testHistory];
@@ -814,7 +886,9 @@ export default function App() {
             streak: {
               count: currentStreakVal,
               lastDate: currentStreakDate
-            }
+            },
+            displayName: currentUser?.displayName || 'Aspirant',
+            email: currentUser?.email || ''
           })
         });
 
@@ -974,6 +1048,8 @@ export default function App() {
             isStaff={isStaff}
             onOpenStaff={() => setActiveTab('staff')}
             onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
+            onReviewTest={startTestReview}
+            rankingData={rankingData}
           />
         );
       case 'admin':
@@ -1198,13 +1274,69 @@ export default function App() {
               </motion.div>
             ) : (
               /* CBT Practice Workspace (Full screen overlay style) */
-              <motion.div
-                key="quiz-workspace"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                className="flex flex-col gap-4 flex-1"
-              >
+              !rulesAccepted ? (
+                /* Rules Acceptance Screen */
+                <motion.div
+                  key="rules-screen"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="max-w-md w-full mx-auto my-8 p-6 bg-gradient-to-br from-bg-s2 to-[#121620] border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-6 text-center relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-saffron-dim/10 rounded-full blur-2xl pointer-events-none" />
+                  <span className="text-3xl">📝</span>
+                  <h2 className="text-base font-black text-text uppercase tracking-wider">Test Instructions / परीक्षा निर्देश</h2>
+                  
+                  <div className="flex flex-col gap-4 text-left bg-bg-s3/55 border border-border p-4 rounded-xl text-xs text-text-muted leading-relaxed">
+                    <div className="flex items-start gap-2">
+                      <span className="text-saffron">•</span>
+                      <p>
+                        <strong className="text-text">XP Reward System:</strong> Easy and Medium questions award <strong className="text-saffron">1 XP</strong>. Hard questions award <strong className="text-saffron">2 XP</strong>.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-saffron">•</span>
+                      <p>
+                        <strong className="text-text">No Immediate Feedback:</strong> Correct or incorrect indicators and detailed explanations will remain hidden during the test.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-saffron">•</span>
+                      <p>
+                        <strong className="text-text">Flexible Answering:</strong> You can select, clear, or change your selected options at any point before submitting.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-saffron">•</span>
+                      <p>
+                        <strong className="text-text">Post-Submit Review:</strong> Complete solutions and explanations will be unlocked once you submit the test and click "Retake Session", or from your profile history.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={() => setRulesAccepted(true)}
+                      className="w-full py-3.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-all active:scale-[0.98] shadow-md"
+                    >
+                      Agree & Start / सहमत हूँ और शुरू करें
+                    </button>
+                    <button
+                      onClick={() => setIsTestActive(false)}
+                      className="w-full py-3.5 bg-bg-s3 hover:bg-bg-s2 border border-border text-xs font-black uppercase text-text rounded-lg cursor-pointer transition-all"
+                    >
+                      Cancel / रद्द करें
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="quiz-workspace"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  className="flex flex-col gap-4 flex-1"
+                >
                 {/* CBT Header */}
                 <PracticeHeader
                   subjectName={subjectName}
@@ -1234,7 +1366,7 @@ export default function App() {
                   answers={answers}
                   xp={xp}
                   streak={streak}
-                  floatingXp={floatingXp}
+                  floatingXp={null}
                 />
 
                 {/* Workspace Cards */}
@@ -1257,11 +1389,12 @@ export default function App() {
                         selectedIndex={answers[currentIndex]}
                         answered={answers[currentIndex] !== null}
                         onSelectOption={handleSelectOption}
+                        showFeedback={feedbackEnabled}
                       />
 
                       {/* AI explanation and tutor prompt cards */}
                       <AnimatePresence>
-                        {answers[currentIndex] !== null && (
+                        {answers[currentIndex] !== null && feedbackEnabled && (
                           <ExplanationCard
                             question={questions[currentIndex]}
                           />
@@ -1298,6 +1431,7 @@ export default function App() {
                             setElapsedTime(0);
                             setCurrentIndex(0);
                             setSessionCompleted(false);
+                            setFeedbackEnabled(true);
                           }}
                           className="flex-1 py-3.5 bg-bg-s3 hover:bg-bg-s2 border border-border text-xs font-black uppercase text-text rounded-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
                         >
@@ -1350,17 +1484,18 @@ export default function App() {
                         </button>
                       ) : (
                         <button
-                          onClick={handleFinishSession}
+                          onClick={isReviewMode ? () => setIsTestActive(false) : handleFinishSession}
                           className="px-4 py-2.5 bg-greenL hover:bg-green-600 text-xs font-black text-bg-s1 uppercase rounded flex items-center gap-1.5 cursor-pointer transition-all animate-pulse"
                         >
                           <CheckCircle className="w-3.5 h-3.5" />
-                          <span>Submit Quiz</span>
+                          <span>{isReviewMode ? 'Exit Review' : 'Submit Quiz'}</span>
                         </button>
                       )}
                     </div>
                   </div>
                 )}
               </motion.div>
+             )
             )}
           </AnimatePresence>
         </main>

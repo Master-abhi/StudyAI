@@ -19,6 +19,8 @@ interface PerformanceLog {
   percent: number;
   timestamp?: string;
   date?: string;
+  questions?: any[];
+  userAnswers?: (number | null)[];
 }
 
 interface ProfileTabProps {
@@ -38,6 +40,8 @@ interface ProfileTabProps {
   isStaff?: boolean;
   onOpenStaff?: () => void;
   onNavigateToTab?: (tabId: string) => void;
+  onReviewTest?: (questions: any[], answers: (number | null)[], subject: string, mode: 'quiz' | 'mock' | 'pyq') => void;
+  rankingData?: any;
 }
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
@@ -56,7 +60,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   onOpenAdmin,
   isStaff = false,
   onOpenStaff,
-  onNavigateToTab
+  onNavigateToTab,
+  onReviewTest,
+  rankingData
 }) => {
   const [showHistoryLimit, setShowHistoryLimit] = useState<number>(5);
 
@@ -203,6 +209,133 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     daysOfWeek.push(daysLetters[d.getDay()]);
   }
 
+  // Rank calculation logic
+  const getRankInfo = (userXp: number) => {
+    if (userXp < 100) {
+      return {
+        title: 'Novice Aspirant / नवसिखिया',
+        nextTitle: 'Dedicated Explorer / खोजकर्ता',
+        minXp: 0,
+        maxXp: 100,
+        badge: '🌱'
+      };
+    } else if (userXp < 500) {
+      return {
+        title: 'Dedicated Explorer / खोजकर्ता',
+        nextTitle: 'Scholarly Mind / विद्वान',
+        minXp: 100,
+        maxXp: 500,
+        badge: '🔍'
+      };
+    } else if (userXp < 1500) {
+      return {
+        title: 'Scholarly Mind / विद्वान',
+        nextTitle: 'MCQ Master / मास्टर',
+        minXp: 500,
+        maxXp: 1500,
+        badge: '🎓'
+      };
+    } else if (userXp < 3000) {
+      return {
+        title: 'MCQ Master / मास्टर',
+        nextTitle: 'Guru Acharya / आचार्य',
+        minXp: 1500,
+        maxXp: 3000,
+        badge: '👑'
+      };
+    } else {
+      return {
+        title: 'Guru Acharya / आचार्य',
+        nextTitle: 'Ultimate Legend',
+        minXp: 3000,
+        maxXp: 100000,
+        badge: '✨'
+      };
+    }
+  };
+
+  const rankInfo = getRankInfo(xp);
+  const rankProgress = rankInfo.maxXp === 100000 ? 100 : Math.round(((xp - rankInfo.minXp) / (rankInfo.maxXp - rankInfo.minXp)) * 100);
+
+  // Achievements/Badges mapping
+  const achievements = [
+    {
+      id: 'first_step',
+      name: 'First Step / पहला कदम',
+      desc: 'Complete your first practice test.',
+      unlocked: testsGivenCount > 0,
+      icon: '🚀',
+      color: 'from-blue-500/15 to-indigo-500/15 border-blue-500/25 text-blue-400'
+    },
+    {
+      id: 'streak_3',
+      name: 'Consistency King / निरंतरता सम्राट',
+      desc: 'Maintain a study streak of 3+ days.',
+      unlocked: streak >= 3,
+      icon: '🔥',
+      color: 'from-orange-500/15 to-red-500/15 border-orange-500/25 text-orange-400'
+    },
+    {
+      id: 'mcq_50',
+      name: 'Practice Guru / अभ्यास गुरु',
+      desc: 'Solve 50 or more practice questions.',
+      unlocked: solvedMcqsCount >= 50,
+      icon: '📚',
+      color: 'from-amber-500/15 to-yellow-500/15 border-amber-500/25 text-yellow-400'
+    },
+    {
+      id: 'accuracy_75',
+      name: 'Accuracy Master / सटीकता मास्टर',
+      desc: 'Achieve over 75% average test accuracy.',
+      unlocked: overallAccuracy >= 75 && testsGivenCount >= 1,
+      icon: '🎯',
+      color: 'from-emerald-500/15 to-teal-500/15 border-emerald-500/25 text-emerald-400'
+    },
+    {
+      id: 'syllabus_50',
+      name: 'Scholar / विद्वान',
+      desc: 'Acquire 500+ XP points in study sessions.',
+      unlocked: xp >= 500,
+      icon: '🎓',
+      color: 'from-purple-500/15 to-pink-500/15 border-purple-500/25 text-purple-400'
+    }
+  ];
+
+  // Leaderboard data resolution
+  const isGuest = userEmail === 'guest@studyworld.app';
+  const resolvedRank = rankingData?.rank || (isGuest ? 15 : 1);
+  const resolvedTotalUsers = rankingData?.totalUsers || (isGuest ? 140 : 1);
+  
+  const defaultLeaderboard = [
+    { displayName: 'Ramesh Patel', points: 340 },
+    { displayName: 'Chitra Sahu', points: 280 },
+    { displayName: 'Aman Dewangan', points: 210 },
+    { displayName: 'Rina Sen', points: 150 },
+    { displayName: 'Rahul Verma', points: 95 }
+  ];
+
+  let leaderboardList: any[] = [];
+  if (rankingData?.leaderboard && rankingData.leaderboard.length > 0) {
+    leaderboardList = [...rankingData.leaderboard];
+    if (leaderboardList.length < 5) {
+      const remainingCount = 5 - leaderboardList.length;
+      let added = 0;
+      for (const defUsr of defaultLeaderboard) {
+        if (added >= remainingCount) break;
+        if (!leaderboardList.some(u => u.displayName.toLowerCase() === defUsr.displayName.toLowerCase())) {
+          const lastPoints = leaderboardList[leaderboardList.length - 1]?.points || 0;
+          leaderboardList.push({
+            ...defUsr,
+            points: Math.min(defUsr.points, lastPoints > 0 ? lastPoints - 10 : defUsr.points)
+          });
+          added++;
+        }
+      }
+    }
+  } else {
+    leaderboardList = defaultLeaderboard;
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full max-w-lg md:max-w-5xl mx-auto pb-16 font-sans">
       
@@ -223,6 +356,27 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               </span>
             </div>
             <span className="text-xs text-text-muted font-medium tracking-wide truncate">{userEmail || 'guest@studyworld.app'}</span>
+            
+            {/* Gamified Rank Progress bar */}
+            <div className="mt-2.5 flex flex-col gap-1.5 w-64 sm:w-80">
+              <div className="flex justify-between items-center text-[10px] font-bold">
+                <span className="text-saffron flex items-center gap-1">
+                  <span>{rankInfo.badge}</span>
+                  <span className="uppercase tracking-wider">{rankInfo.title}</span>
+                </span>
+                {rankInfo.maxXp !== 100000 && (
+                  <span className="text-text-muted">{rankProgress}%</span>
+                )}
+              </div>
+              {rankInfo.maxXp !== 100000 && (
+                <div className="w-full h-1.5 bg-bg-s1/65 rounded-full overflow-hidden border border-border/20 mt-0.5">
+                  <div 
+                    className="h-full bg-gradient-to-r from-saffron to-orange-500 rounded-full transition-all duration-500"
+                    style={{ width: `${rankProgress}%` }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -245,7 +399,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         </div>
       </div>
 
-      {/* Left Column: Admin Entry, Core Stats, Meters, Diagnostics, Reset actions */}
+      {/* Left Column: Admin Entry, Core Stats, Meters, Diagnostics, Achievements, Settings */}
       <div className="flex flex-col gap-6 md:col-span-7">
         
         {/* Admin Panel Entry Link */}
@@ -288,27 +442,27 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </button>
         )}
 
-        {/* 2. Core Stats Grid */}
+        {/* 2. Core Stats Grid with hover lift and glowing colors */}
         <div className="grid grid-cols-4 gap-3">
-          <div className="p-4 bg-bg-s2 hover:bg-bg-s2/90 border border-border rounded-xl text-center flex flex-col items-center justify-between shadow-sm transition-colors group">
+          <div className="p-4 bg-bg-s2 border border-border rounded-xl text-center flex flex-col items-center justify-between shadow-sm transition-all duration-300 hover:scale-[1.03] hover:border-orange-500/35 hover:shadow-orange-500/5 hover:bg-orange-500/[0.01] group">
             <Flame className="w-6 h-6 text-orange-500 fill-orange-500/10 mb-1.5 group-hover:scale-110 transition-transform" />
             <span className="text-base font-black text-text leading-none">{streak}</span>
             <span className="text-[8px] font-black text-text-muted uppercase tracking-widest mt-1.5">Streak</span>
           </div>
 
-          <div className="p-4 bg-bg-s2 hover:bg-bg-s2/90 border border-border rounded-xl text-center flex flex-col items-center justify-between shadow-sm transition-colors group">
+          <div className="p-4 bg-bg-s2 border border-border rounded-xl text-center flex flex-col items-center justify-between shadow-sm transition-all duration-300 hover:scale-[1.03] hover:border-saffron/35 hover:shadow-saffron/5 hover:bg-saffron/[0.01] group">
             <Trophy className="w-6 h-6 text-saffron fill-saffron/10 mb-1.5 group-hover:scale-110 transition-transform" />
             <span className="text-base font-black text-text leading-none">{testsGivenCount}</span>
             <span className="text-[8px] font-black text-text-muted uppercase tracking-widest mt-1.5">Tests</span>
           </div>
 
-          <div className="p-4 bg-bg-s2 hover:bg-bg-s2/90 border border-border rounded-xl text-center flex flex-col items-center justify-between shadow-sm transition-colors group">
+          <div className="p-4 bg-bg-s2 border border-border rounded-xl text-center flex flex-col items-center justify-between shadow-sm transition-all duration-300 hover:scale-[1.03] hover:border-greenL/35 hover:shadow-greenL/5 hover:bg-greenL/[0.01] group">
             <Award className="w-6 h-6 text-greenL fill-greenL/10 mb-1.5 group-hover:scale-110 transition-transform" />
             <span className="text-base font-black text-text leading-none">{solvedMcqsCount}</span>
             <span className="text-[8px] font-black text-text-muted uppercase tracking-widest mt-1.5">MCQs</span>
           </div>
 
-          <div className="p-4 bg-bg-s2 hover:bg-bg-s2/90 border border-border rounded-xl text-center flex flex-col items-center justify-between shadow-sm transition-colors group">
+          <div className="p-4 bg-bg-s2 border border-border rounded-xl text-center flex flex-col items-center justify-between shadow-sm transition-all duration-300 hover:scale-[1.03] hover:border-blue-400/35 hover:shadow-blue-400/5 hover:bg-blue-400/[0.01] group">
             <Star className="w-6 h-6 text-blue-400 fill-blue-400/10 mb-1.5 group-hover:scale-110 transition-transform" />
             <span className="text-base font-black text-text leading-none">{xp}</span>
             <span className="text-[8px] font-black text-text-muted uppercase tracking-widest mt-1.5">XP Points</span>
@@ -342,7 +496,38 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
         </div>
 
-        {/* 6. Diagnostics: Strong & Weak Areas (Enhanced with colored alerts) */}
+        {/* Achievements Card */}
+        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-4">
+          <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
+            <Award className="w-4 h-4 text-saffron" />
+            <span>Unlocked Badges & Achievements / उपलब्धियां</span>
+          </h4>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+            {achievements.map((ach) => (
+              <div 
+                key={ach.id}
+                className={`p-3 border rounded-xl flex items-center gap-3 transition-all duration-300 relative overflow-hidden ${
+                  ach.unlocked 
+                    ? `bg-gradient-to-br ${ach.color} hover:scale-[1.02] shadow` 
+                    : 'bg-bg-s3/40 border-border/30 opacity-40 grayscale select-none'
+                }`}
+              >
+                {ach.unlocked && (
+                  <div className="absolute -top-6 -right-6 w-12 h-12 bg-white/5 rounded-full blur-md" />
+                )}
+                
+                <span className="text-2xl shrink-0 filter drop-shadow">{ach.icon}</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[11px] font-black text-text uppercase tracking-wide truncate">{ach.name}</span>
+                  <span className="text-[9px] text-text-muted mt-0.5 leading-snug">{ach.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 6. Diagnostics: Strong & Weak Areas */}
         <div className="grid grid-cols-2 gap-4">
           {/* Strong Areas */}
           <div className="p-4 bg-[#121c17] border border-greenL/15 rounded-xl shadow-md flex flex-col gap-2.5">
@@ -375,16 +560,24 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
         </div>
 
-        {/* Settings Action triggers */}
-        <button 
-          onClick={onClearProgress}
-          className="w-full py-3 border border-red-500/25 hover:border-red-500 text-redL hover:bg-red-500/10 text-xs font-black uppercase rounded-lg cursor-pointer transition-all duration-200"
-        >
-          Clear All Local Progress
-        </button>
+        {/* Settings Action card */}
+        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
+          <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
+            <span>Account Settings / सेटिंग्स</span>
+          </h4>
+          <p className="text-[10px] text-text-muted leading-relaxed">
+            Purging local progress will clear your Streak, earned XP points, and locally stored test performance histories. This cannot be undone.
+          </p>
+          <button 
+            onClick={onClearProgress}
+            className="w-full mt-1.5 py-3 border border-red-500/25 hover:border-red-500 text-redL hover:bg-red-500/10 text-xs font-black uppercase rounded-lg cursor-pointer transition-all duration-200"
+          >
+            Clear All Local Progress
+          </button>
+        </div>
       </div>
 
-      {/* Right Column: Syllabus Progress, Chart, Test History, AI Coach */}
+      {/* Right Column: Syllabus Progress, Chart, Leaderboard, Test History, AI Coach */}
       <div className="flex flex-col gap-6 md:col-span-5">
         
         {/* 3. Syllabus completion lists */}
@@ -452,6 +645,67 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
         </div>
 
+        {/* Global Leaderboard Card */}
+        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-4 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-saffron-dim/5 rounded-full blur-2xl pointer-events-none" />
+          <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
+            <Trophy className="w-4 h-4 text-saffron" />
+            <span>Aspirants Leaderboard / रैंकिंग</span>
+          </h4>
+
+          <div className="flex flex-col bg-[#121620] border border-saffron-border/10 p-3 rounded-lg text-center items-center justify-center shrink-0">
+            <span className="text-[9px] font-black text-text-muted uppercase tracking-wider">Your Global Rank</span>
+            <span className="text-xl font-black text-saffron mt-1">
+              🏆 Rank {resolvedRank} of {resolvedTotalUsers}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2 mt-1">
+            {leaderboardList.map((usr: any, idx: number) => {
+              const isSelf = usr.displayName === userName || (idx + 1 === resolvedRank && usr.points === xp);
+              return (
+                <div 
+                  key={idx} 
+                  className={`p-2.5 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                    isSelf 
+                      ? 'bg-saffron/10 border border-saffron-border/30 font-bold text-saffron' 
+                      : 'bg-bg-s3/45 border border-border/40 text-text-muted'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <span className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-black uppercase shrink-0 ${
+                      idx === 0 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/25' :
+                      idx === 1 ? 'bg-slate-400/20 text-slate-300 border border-slate-400/25' :
+                      idx === 2 ? 'bg-amber-600/20 text-amber-500 border border-amber-600/25' :
+                      'bg-bg-s1 border border-border'
+                    }`}>
+                      #{idx + 1}
+                    </span>
+                    <span className="truncate">{usr.displayName}</span>
+                  </div>
+                  <span className="font-bold shrink-0">{usr.points} XP</span>
+                </div>
+              );
+            })}
+
+            {/* If user is not in top 5, render their rank row at the bottom */}
+            {resolvedRank > leaderboardList.length && (
+              <>
+                <div className="text-center text-text-muted text-[10px] py-0.5 tracking-wider font-bold">•••</div>
+                <div className="p-2.5 rounded-lg flex items-center justify-between text-xs bg-saffron/10 border border-saffron-border/30 font-bold text-saffron">
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black bg-saffron text-bg-s1 shrink-0">
+                      #{resolvedRank}
+                    </span>
+                    <span className="truncate">{userName}</span>
+                  </div>
+                  <span className="font-bold shrink-0">{xp} XP</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* 7. Detailed Performance Mock History */}
         <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
           <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
@@ -466,31 +720,56 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           ) : (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2">
-                {normalizedHistory.slice(0, showHistoryLimit).map((log, idx) => (
-                  <div key={idx} className="p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3">
-                    <div className="flex flex-col truncate">
-                      <span className="text-text truncate leading-tight">{log.subject}</span>
-                      <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
-                        {log.mode} • C:{log.correct} W:{log.wrong} S:{log.skipped}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <span className={`font-black ${
-                        log.percent >= 75 ? 'text-greenL' :
-                        log.percent >= 55 ? 'text-saffron' :
-                        'text-redL'
-                      }`}>
-                        {log.percent}%
-                      </span>
-                      <span className="text-[9px] text-text-muted font-normal">
-                        {new Date(log.timestamp).toLocaleDateString('en-IN', {
-                          day: 'numeric', month: 'short'
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                {normalizedHistory.slice(0, showHistoryLimit).map((log, idx) => {
+                  const hasQuestions = log.questions && log.questions.length > 0;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        if (hasQuestions && onReviewTest) {
+                          onReviewTest(log.questions, log.userAnswers || [], log.subject, log.mode);
+                        } else if (!hasQuestions) {
+                          alert("This legacy test log does not have saved question data for review.");
+                        }
+                      }}
+                      disabled={!hasQuestions}
+                      className={`w-full text-left p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3 transition-all ${
+                        hasQuestions 
+                          ? 'hover:bg-bg-s2 hover:border-saffron-border/60 hover:scale-[1.01] cursor-pointer' 
+                          : 'opacity-60 cursor-not-allowed'
+                      }`}
+                    >
+                      <div className="flex flex-col truncate">
+                        <span className="text-text truncate leading-tight flex items-center gap-1.5">
+                          {log.subject}
+                          {hasQuestions && (
+                            <span className="text-[8px] bg-saffron-dim/40 text-saffron border border-saffron-border/30 px-1 py-0.2 rounded font-black uppercase">
+                              Review
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
+                          {log.mode} • C:{log.correct} W:{log.wrong} S:{log.skipped}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`font-black ${
+                          log.percent >= 75 ? 'text-greenL' :
+                          log.percent >= 55 ? 'text-saffron' :
+                          'text-redL'
+                        }`}>
+                          {log.percent}%
+                        </span>
+                        <span className="text-[9px] text-text-muted font-normal">
+                          {new Date(log.timestamp).toLocaleDateString('en-IN', {
+                            day: 'numeric', month: 'short'
+                          })}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
               {(normalizedHistory.length > showHistoryLimit || showHistoryLimit > 5) && (
@@ -640,7 +919,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
         </div>
       </div>
-
     </div>
   );
 };

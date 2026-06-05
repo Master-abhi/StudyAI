@@ -139,7 +139,7 @@ router.get('/data', async (req, res) => {
 
 router.post('/sync', async (req, res) => {
   try {
-    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile } = req.body;
+    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email } = req.body;
 
     const update = {};
     const cleanResults = cleanTestResults(testResults);
@@ -150,6 +150,8 @@ router.post('/sync', async (req, res) => {
     const cleanProgress = cleanNestedObject(progress, (value) => value === true ? true : null);
     const cleanSelectedExam = cleanExamId(selectedExam);
     const cleanMobile = cleanString(mobile, 20);
+    const cleanDisplayName = cleanString(displayName, 80);
+    const cleanEmail = cleanString(email, 120);
 
     if (cleanResults) update.testResults = cleanResults;
     if (cleanPoints !== null) update.points = cleanPoints;
@@ -159,6 +161,8 @@ router.post('/sync', async (req, res) => {
     if (cleanProgress) update.progress = cleanProgress;
     if (cleanSelectedExam) update.selectedExam = cleanSelectedExam;
     if (cleanMobile) update.mobile = cleanMobile;
+    if (cleanDisplayName) update.displayName = cleanDisplayName;
+    if (cleanEmail) update.email = cleanEmail;
 
     update.updatedAt = admin.firestore.FieldValue.serverTimestamp();
 
@@ -171,6 +175,57 @@ router.post('/sync', async (req, res) => {
   } catch (err) {
     console.error('[User Sync] Error:', err.message);
     res.status(500).json({ error: 'Sync failed' });
+  }
+});
+
+router.get('/ranking', async (req, res) => {
+  try {
+    const usersSnapshot = await db.collection('users').get();
+    const userScores = [];
+    const currentUid = req.user.uid;
+    let currentUserIncluded = false;
+
+    usersSnapshot.forEach(doc => {
+      const data = doc.data();
+      const points = data.points !== undefined ? data.points : 0;
+      const displayName = data.displayName || data.email?.split('@')[0] || 'Aspirant';
+      
+      if (doc.id === currentUid) {
+        currentUserIncluded = true;
+      }
+
+      userScores.push({
+        uid: doc.id,
+        displayName: displayName,
+        points: points
+      });
+    });
+
+    if (!currentUserIncluded) {
+      const displayName = req.user.name || req.user.email?.split('@')[0] || 'Aspirant';
+      userScores.push({
+        uid: currentUid,
+        displayName: displayName,
+        points: 0
+      });
+    }
+
+    // Sort users by points descending
+    userScores.sort((a, b) => b.points - a.points);
+
+    // Find the rank of the current user
+    const userIndex = userScores.findIndex(u => u.uid === currentUid);
+    const rank = userIndex !== -1 ? userIndex + 1 : userScores.length + 1;
+    const totalUsers = Math.max(userScores.length, 1);
+
+    res.json({
+      rank: rank,
+      totalUsers: totalUsers,
+      leaderboard: userScores.slice(0, 5) // return top 5
+    });
+  } catch (err) {
+    console.error('[User Ranking] Error:', err.message);
+    res.status(500).json({ error: 'Failed to calculate rankings' });
   }
 });
 

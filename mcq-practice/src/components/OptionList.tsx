@@ -8,6 +8,7 @@ interface OptionListProps {
   selectedIndex: number | null;
   answered: boolean;
   onSelectOption: (optIdx: number) => void;
+  showFeedback?: boolean;
 }
 
 export const OptionList: React.FC<OptionListProps> = ({
@@ -16,13 +17,14 @@ export const OptionList: React.FC<OptionListProps> = ({
   selectedIndex,
   answered,
   onSelectOption,
+  showFeedback = true,
 }) => {
   const letters = ['A', 'B', 'C', 'D'];
 
   const getOptionClasses = (optIdx: number) => {
     let classes = 'w-full bg-bg-s2 border rounded-md p-4 flex items-center justify-between gap-3 text-left cursor-pointer transition-all duration-200 select-none ';
 
-    if (answered) {
+    if (answered && showFeedback) {
       if (optIdx === correctIndex) {
         classes += 'border-greenL bg-green-500/5 text-greenL';
       } else if (optIdx === selectedIndex && optIdx !== correctIndex) {
@@ -44,7 +46,7 @@ export const OptionList: React.FC<OptionListProps> = ({
   const getLetterClasses = (optIdx: number) => {
     let classes = 'w-7 h-7 rounded-lg border flex items-center justify-center font-bold text-xs flex-shrink-0 ';
 
-    if (answered) {
+    if (answered && showFeedback) {
       if (optIdx === correctIndex) {
         classes += 'bg-greenL border-greenL text-bg-s1';
       } else if (optIdx === selectedIndex && optIdx !== correctIndex) {
@@ -72,7 +74,7 @@ export const OptionList: React.FC<OptionListProps> = ({
         return (
           <motion.button
             key={optIdx}
-            disabled={answered}
+            disabled={answered && showFeedback}
             onClick={() => onSelectOption(optIdx)}
             className={getOptionClasses(optIdx)}
             whileHover={!answered ? { scale: 1.015, y: -1 } : {}}
@@ -93,7 +95,7 @@ export const OptionList: React.FC<OptionListProps> = ({
             </div>
 
             {/* Answer outcome icons */}
-            {answered && (
+            {answered && showFeedback && (
               <div className="flex-shrink-0">
                 {isCorrect && (
                   <div className="p-1 rounded-full bg-greenL/25 border border-greenL/25 text-greenL">
