@@ -46,6 +46,9 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
   // Overlay Dialog States
   const [userToConfirmDelete, setUserToConfirmDelete] = useState<UserProfile | null>(null);
   const [userToConfirmStatus, setUserToConfirmStatus] = useState<UserProfile | null>(null);
+  const [userToEditEmail, setUserToEditEmail] = useState<UserProfile | null>(null);
+  const [newEmailValue, setNewEmailValue] = useState<string>('');
+  const [updatingEmail, setUpdatingEmail] = useState<boolean>(false);
   
   // Promote User State
   const [userToPromote, setUserToPromote] = useState<UserProfile | null>(null);
@@ -182,6 +185,52 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
       alert(err.message || 'Failed to permanently delete user account');
     } finally {
       setDeletingUid(null);
+    }
+  };
+
+  const handleUpdateEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !userToEditEmail) return;
+    setUpdatingEmail(true);
+    try {
+      const trimmedEmail = newEmailValue.trim();
+      if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        throw new Error('Please enter a valid email address.');
+      }
+
+      const token = await currentUser.getIdToken();
+      const res = await fetch(getApiUrl(`/api/admin/users/${userToEditEmail.uid}/email`), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ email: trimmedEmail })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to update email address');
+      }
+
+      const result = await res.json();
+      if (result.success) {
+        setUsers(prev => prev.map(u => {
+          if (u.uid === userToEditEmail.uid) {
+            const displayId = trimmedEmail.endsWith('@studyworld.app') ? trimmedEmail.split('@')[0] : trimmedEmail;
+            return { ...u, email: trimmedEmail, displayId: displayId };
+          }
+          return u;
+        }));
+        setUserToEditEmail(null);
+        setNewEmailValue('');
+        alert('User email ID changed successfully!');
+      }
+    } catch (err: any) {
+      console.error('[Update Email Error]:', err);
+      alert(err.message || 'Failed to update user email address');
+    } finally {
+      setUpdatingEmail(false);
     }
   };
 
@@ -508,6 +557,18 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
                           </button>
                         )}
 
+                        {/* Edit Email ID */}
+                        <button
+                          onClick={() => {
+                            setUserToEditEmail(user);
+                            setNewEmailValue(user.email);
+                          }}
+                          className="p-1.5 bg-blue-500/10 border border-blue-500/25 text-blue-400 hover:bg-blue-500 hover:text-bg-s1 rounded-lg cursor-pointer transition-colors shadow-sm flex items-center justify-center"
+                          title="Change User Email ID"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                        </button>
+
                         {/* Block/Activate Toggle */}
                         <button
                           disabled={updatingStatusUid !== null}
@@ -725,6 +786,60 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* EDIT USER EMAIL MODAL OVERLAY */}
+      {userToEditEmail && (
+        <div className="fixed inset-0 bg-[#0B0E14]/85 backdrop-blur-sm flex items-center justify-center p-4 z-[99999] animate-fade-in">
+          <form onSubmit={handleUpdateEmail} className="w-full max-w-md bg-bg-s2 border border-border rounded-xl shadow-2xl overflow-hidden p-6 flex flex-col gap-4 font-sans">
+            <div className="flex items-center gap-2.5 text-blue-400 pb-2 border-b border-border">
+              <Mail className="w-5 h-5 shrink-0" />
+              <h3 className="text-sm font-black uppercase tracking-wider text-text">
+                Change User Email ID
+              </h3>
+            </div>
+            
+            <p className="text-xs text-text-muted leading-relaxed">
+              Enter the new email address for <strong className="text-text">{userToEditEmail.displayName}</strong> (Current: {userToEditEmail.email}).
+              <br /><br />
+              This will update Firebase Authentication and database records directly.
+            </p>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-black text-text-muted uppercase tracking-wider">New Email Address</label>
+              <input
+                type="email"
+                placeholder="e.g. user@gmail.com"
+                value={newEmailValue}
+                onChange={(e) => setNewEmailValue(e.target.value)}
+                required
+                disabled={updatingEmail}
+                className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none transition-colors"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-2">
+              <button
+                type="button"
+                disabled={updatingEmail}
+                onClick={() => {
+                  setUserToEditEmail(null);
+                  setNewEmailValue('');
+                }}
+                className="px-4 py-2 border border-border hover:bg-bg-s3 text-xs font-black uppercase rounded-lg cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={updatingEmail}
+                className="px-4 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-colors disabled:opacity-50"
+              >
+                {updatingEmail ? 'Updating...' : 'Change Email'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

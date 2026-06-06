@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Flame, Trophy, Award, Star, Clock, 
   CheckCircle2, AlertCircle, History, Sparkles, BookOpen, ChevronRight,
-  ArrowRight, Target
+  ArrowRight, Target, Mail, ShieldCheck, ShieldAlert
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -43,9 +43,11 @@ interface ProfileTabProps {
   onReviewTest?: (questions: any[], answers: (number | null)[], subject: string, mode: 'quiz' | 'mock' | 'pyq') => void;
   rankingData?: any;
   tabVisibility?: Record<string, boolean>;
+  currentUser?: any;
 }
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
+  currentUser,
   userName,
   userEmail,
   streak,
@@ -67,6 +69,206 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   tabVisibility
 }) => {
   const [showHistoryLimit, setShowHistoryLimit] = useState<number>(5);
+
+  // Email Verification states & handlers
+  const [verifySent, setVerifySent] = useState<boolean>(false);
+  const [verifyLoading, setVerifyLoading] = useState<boolean>(false);
+  const [verifyError, setVerifyError] = useState<string>('');
+
+  const firebase = (window as any).firebase;
+  const firebaseUser = firebase?.auth().currentUser || currentUser;
+  const [emailVerified, setEmailVerified] = useState<boolean>(firebaseUser?.emailVerified || false);
+
+  useEffect(() => {
+    if (firebaseUser) {
+      setEmailVerified(firebaseUser.emailVerified);
+    }
+  }, [firebaseUser]);
+
+  const handleRefreshVerification = async () => {
+    if (!firebaseUser) return;
+    setVerifyLoading(true);
+    setVerifyError('');
+    try {
+      await firebaseUser.reload();
+      const freshUser = firebase?.auth().currentUser;
+      setEmailVerified(freshUser?.emailVerified || false);
+      if (freshUser?.emailVerified) {
+        setVerifySent(false);
+      }
+    } catch (err: any) {
+      setVerifyError(err.message || 'Failed to refresh verification status.');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  const handleSendVerification = async () => {
+    if (!firebaseUser) return;
+    setVerifyLoading(true);
+    setVerifyError('');
+    try {
+      await firebaseUser.sendEmailVerification();
+      setVerifySent(true);
+    } catch (err: any) {
+      setVerifyError(err.message || 'Failed to send verification email.');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Credentials Management states
+  const [activeCredentialTab, setActiveCredentialTab] = useState<'email' | 'password' | null>(null);
+  const [newEmail, setNewEmail] = useState<string>('');
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [currentPassword, setCurrentPassword] = useState<string>('');
+  const [credLoading, setCredLoading] = useState<boolean>(false);
+  const [credError, setCredError] = useState<string>('');
+  const [credSuccess, setCredSuccess] = useState<string>('');
+
+  const reauthenticateUser = async (pass: string) => {
+    if (!firebaseUser || !firebaseUser.email) {
+      throw new Error('User email not found. Please log in again.');
+    }
+    const credential = firebase.auth.EmailAuthProvider.credential(firebaseUser.email, pass);
+    await firebaseUser.reauthenticateWithCredential(credential);
+  };
+
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCredLoading(true);
+    setCredError('');
+    setCredSuccess('');
+    try {
+      const trimmedEmail = newEmail.trim();
+      if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        throw new Error('Please enter a valid new email address.');
+      }
+      if (!currentPassword) {
+        throw new Error('Please enter your current password to confirm your identity.');
+      }
+
+      // 1. Re-authenticate
+      await reauthenticateUser(currentPassword);
+
+      // 2. Update email in Firebase
+      await firebaseUser.updateEmail(trimmedEmail);
+
+      // 3. Sync to firestore backend
+      const token = await firebaseUser.getIdToken(true);
+      const host = window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1' || 
+                   window.location.hostname === '[::1]' ||
+                   window.location.hostname.startsWith('192.168.')
+                   ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
+                   : '';
+
+      await fetch(`${host}/api/user/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ email: trimmedEmail })
+      }).catch(err => console.warn('[Email Sync on Update] Failed:', err));
+
+      setCredSuccess('Email ID updated successfully!');
+      setNewEmail('');
+      setCurrentPassword('');
+      setActiveCredentialTab(null);
+    } catch (err: any) {
+      console.error('[Change Email Error]:', err);
+      setCredError(err.message || 'Failed to update email ID.');
+    } finally {
+      setCredLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCredLoading(true);
+    setCredError('');
+    setCredSuccess('');
+    try {
+      if (newPassword.length < 6) {
+        throw new Error('New password must be at least 6 characters long.');
+      }
+      if (!currentPassword) {
+        throw new Error('Please enter your current password to confirm your identity.');
+      }
+
+      // 1. Re-authenticate
+      await reauthenticateUser(currentPassword);
+
+      // 2. Update password in Firebase
+      await firebaseUser.updatePassword(newPassword);
+
+      setCredSuccess('Password updated successfully!');
+      setNewPassword('');
+      setCurrentPassword('');
+      setActiveCredentialTab(null);
+    } catch (err: any) {
+      console.error('[Change Password Error]:', err);
+      setCredError(err.message || 'Failed to update password.');
+    } finally {
+      setCredLoading(false);
+    }
+  };
+
+  const handleSetEmailAndPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCredLoading(true);
+    setCredError('');
+    setCredSuccess('');
+    try {
+      const trimmedEmail = newEmail.trim();
+      if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        throw new Error('Please enter a valid email address.');
+      }
+      if (newPassword.length < 6) {
+        throw new Error('Password must be at least 6 characters long.');
+      }
+
+      // Link email/password credential to this user
+      const credential = firebase.auth.EmailAuthProvider.credential(trimmedEmail, newPassword);
+      await firebaseUser.linkWithCredential(credential);
+
+      // Sync to firestore backend
+      const token = await firebaseUser.getIdToken(true);
+      const host = window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1' || 
+                   window.location.hostname === '[::1]' ||
+                   window.location.hostname.startsWith('192.168.')
+                   ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
+                   : '';
+
+      await fetch(`${host}/api/user/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ email: trimmedEmail })
+      }).catch(err => console.warn('[Email Sync on Link] Failed:', err));
+
+      setCredSuccess('Email and Password set successfully! You can now log in with these credentials.');
+      setNewEmail('');
+      setNewPassword('');
+      setActiveCredentialTab(null);
+
+      // Reload user status
+      await firebaseUser.reload();
+      setEmailVerified(firebaseUser.emailVerified);
+    } catch (err: any) {
+      console.error('[Set Email/Pass Error]:', err);
+      setCredError(err.message || 'Failed to set email and password.');
+    } finally {
+      setCredLoading(false);
+    }
+  };
+
+  const isPasswordProvider = firebaseUser?.providerData && firebaseUser.providerData.some((p: any) => p.providerId === 'password');
+  const showVerificationSection = firebaseUser && userEmail !== 'guest@studyworld.app';
 
   // Normalize test history records to gracefully support both old and new schema fields from Firestore
   const normalizedHistory = (testHistory || []).map((log: any) => {
@@ -436,6 +638,281 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             </div>
             <ChevronRight className="w-4 h-4 text-saffron group-hover:translate-x-0.5 transition-transform duration-200" />
           </button>
+        )}
+
+        {/* Email Verification Section */}
+        {showVerificationSection && (
+          <div className={`p-5 rounded-xl shadow-md border flex flex-col gap-3.5 relative overflow-hidden transition-all duration-300 ${
+            emailVerified 
+              ? 'bg-[#121c17]/60 border-greenL/25 shadow-greenL/5' 
+              : 'bg-[#201316]/60 border-redL/25 shadow-redL/5'
+          }`}>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-saffron-dim/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
+              <h4 className="text-xs font-black uppercase text-text tracking-wider flex items-center gap-1.5">
+                <Mail className="w-4 h-4 text-saffron" />
+                <span>Email Verification</span>
+              </h4>
+              <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded border ${
+                emailVerified 
+                  ? 'bg-greenL/15 text-greenL border-greenL/25' 
+                  : 'bg-redL/15 text-redL border-redL/25'
+              }`}>
+                {emailVerified ? 'Verified' : 'Unverified'}
+              </span>
+            </div>
+
+            {emailVerified ? (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-greenL/10 border border-greenL/30 flex items-center justify-center text-greenL shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <p className="text-xs text-text font-bold">Your email address is verified!</p>
+                  <p className="text-[10px] text-text-muted mt-0.5">Thank you for securing your account.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-redL/10 border border-redL/30 flex items-center justify-center text-redL shrink-0 mt-0.5 animate-pulse">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <p className="text-xs text-text font-bold">Please verify your email address</p>
+                    <p className="text-[10px] text-text-muted mt-0.5 leading-relaxed">
+                      Verify your email to secure your account, sync stats, and unlock AI coach analytics.
+                    </p>
+                  </div>
+                </div>
+
+                {verifyError && (
+                  <p className="text-[10px] text-redL bg-redL/5 border border-redL/10 px-2.5 py-1.5 rounded font-semibold leading-relaxed">
+                    {verifyError}
+                  </p>
+                )}
+
+                {verifySent && (
+                  <p className="text-[10px] text-greenL bg-greenL/5 border border-greenL/10 px-2.5 py-1.5 rounded font-semibold leading-relaxed">
+                    Verification email link sent! Check your inbox (and Spam/Junk folder).
+                  </p>
+                )}
+
+                <div className="flex gap-2.5 mt-1">
+                  <button
+                    onClick={handleSendVerification}
+                    disabled={verifyLoading}
+                    className="flex-1 py-2.5 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow-md flex items-center justify-center gap-1 shrink-0"
+                  >
+                    {verifyLoading ? 'Sending...' : verifySent ? 'Resend Verification' : 'Send Verification Link'}
+                  </button>
+
+                  <button
+                    onClick={handleRefreshVerification}
+                    disabled={verifyLoading}
+                    className="py-2.5 px-4 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1 shrink-0"
+                  >
+                    {verifyLoading ? 'Checking...' : 'Check Status'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Security & Credentials Card */}
+        {showVerificationSection && (
+          <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-saffron-dim/5 rounded-full blur-2xl pointer-events-none" />
+            <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
+              <span>Security Credentials / पासवर्ड और ईमेल</span>
+            </h4>
+
+            {credError && (
+              <p className="text-[10px] text-redL bg-redL/5 border border-redL/10 px-2.5 py-1.5 rounded font-semibold leading-relaxed">
+                {credError}
+              </p>
+            )}
+
+            {credSuccess && (
+              <p className="text-[10px] text-greenL bg-greenL/5 border border-greenL/10 px-2.5 py-1.5 rounded font-semibold leading-relaxed">
+                {credSuccess}
+              </p>
+            )}
+
+            {/* Toggle forms or Set Email form */}
+            {!isPasswordProvider ? (
+              /* Link Email & Password Form */
+              <form onSubmit={handleSetEmailAndPassword} className="flex flex-col gap-3">
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Your account does not have an email and password set up. Link an email and password to secure your account and enable standard login.
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase text-text-muted">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="Enter email address"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    required
+                    disabled={credLoading}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase text-text-muted">Choose Password (Min 6 characters)</label>
+                  <input
+                    type="password"
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    disabled={credLoading}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={credLoading}
+                  className="w-full py-2.5 mt-1.5 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow-md flex items-center justify-center gap-1 shrink-0"
+                >
+                  {credLoading ? 'Linking...' : 'Link Email & Password'}
+                </button>
+              </form>
+            ) : activeCredentialTab === null ? (
+              <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[9px] font-black uppercase text-text-muted">Registered Email Address</span>
+                  <span className="text-xs text-text font-bold break-all select-all">{userEmail}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-1.5">
+                  <button
+                    onClick={() => {
+                      setActiveCredentialTab('email');
+                      setCredError('');
+                      setCredSuccess('');
+                      setCurrentPassword('');
+                      setNewEmail('');
+                    }}
+                    className="py-2.5 px-3 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                  >
+                    Change Email
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveCredentialTab('password');
+                      setCredError('');
+                      setCredSuccess('');
+                      setCurrentPassword('');
+                      setNewPassword('');
+                    }}
+                    className="py-2.5 px-3 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                  >
+                    Change Password
+                  </button>
+                </div>
+              </div>
+            ) : activeCredentialTab === 'email' ? (
+              /* Change Email Form */
+              <form onSubmit={handleChangeEmail} className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase text-text-muted">New Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="Enter new email address"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    required
+                    disabled={credLoading}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase text-text-muted">Current Password (To Confirm Identity)</label>
+                  <input
+                    type="password"
+                    placeholder="Enter current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                    disabled={credLoading}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
+                  />
+                </div>
+
+                <div className="flex gap-2.5 mt-1.5">
+                  <button
+                    type="submit"
+                    disabled={credLoading}
+                    className="flex-1 py-2.5 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow-md flex items-center justify-center gap-1 shrink-0"
+                  >
+                    {credLoading ? 'Updating...' : 'Update Email'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveCredentialTab(null)}
+                    disabled={credLoading}
+                    className="py-2.5 px-4 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1 shrink-0"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Change Password Form */
+              <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase text-text-muted">New Password</label>
+                  <input
+                    type="password"
+                    placeholder="Min 6 characters"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    disabled={credLoading}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase text-text-muted">Current Password (To Confirm Identity)</label>
+                  <input
+                    type="password"
+                    placeholder="Enter current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                    disabled={credLoading}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
+                  />
+                </div>
+
+                <div className="flex gap-2.5 mt-1.5">
+                  <button
+                    type="submit"
+                    disabled={credLoading}
+                    className="flex-1 py-2.5 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow-md flex items-center justify-center gap-1 shrink-0"
+                  >
+                    {credLoading ? 'Updating...' : 'Update Password'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveCredentialTab(null)}
+                    disabled={credLoading}
+                    className="py-2.5 px-4 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1 shrink-0"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         )}
 
         {/* 2. Core Stats Grid with hover lift and glowing colors */}

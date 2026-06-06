@@ -377,15 +377,6 @@ export default function App() {
 
     const unsubscribe = firebase.auth().onAuthStateChanged((user: any) => {
       if (user) {
-        // If the user signed in with password and is not verified, do not close the modal!
-        const isPasswordProvider = user.providerData && user.providerData.some((p: any) => p.providerId === 'password');
-        if (isPasswordProvider && !user.emailVerified) {
-          setCurrentUser(user);
-          setIsGuest(false);
-          setAuthModalOpen(true);
-          return;
-        }
-
         setCurrentUser(user);
         setIsGuest(false);
         setAuthModalOpen(false);
@@ -457,10 +448,7 @@ export default function App() {
             setShowFirstTimeExamSelector(false);
           } else {
             if (!hasSelectedExamThisSession) {
-              const isPasswordProvider = currentUser.providerData && currentUser.providerData.some((p: any) => p.providerId === 'password');
-              if (!isPasswordProvider || currentUser.emailVerified) {
-                setShowFirstTimeExamSelector(true);
-              }
+              setShowFirstTimeExamSelector(true);
             }
           }
         }
@@ -1128,6 +1116,7 @@ export default function App() {
       case 'profile':
         return (
           <ProfileTab
+            currentUser={currentUser}
             userName={currentUser?.displayName || 'Guest User'}
             userEmail={currentUser?.email || 'guest@studyworld.app'}
             streak={streak}

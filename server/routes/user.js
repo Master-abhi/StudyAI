@@ -207,11 +207,11 @@ router.get('/data', async (req, res) => {
 
 router.post('/sync', async (req, res) => {
   try {
-    // Enforce email verification for email/password authentication
-    const signInProvider = req.user.firebase && req.user.firebase.sign_in_provider;
-    if (signInProvider === 'password' && req.user.email_verified !== true) {
-      return res.status(403).json({ error: 'Please verify your email address before syncing data.' });
-    }
+    // Enforce email verification check disabled to allow sync before verification
+    // const signInProvider = req.user.firebase && req.user.firebase.sign_in_provider;
+    // if (signInProvider === 'password' && req.user.email_verified !== true) {
+    //   return res.status(403).json({ error: 'Please verify your email address before syncing data.' });
+    // }
 
     const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email } = req.body;
 

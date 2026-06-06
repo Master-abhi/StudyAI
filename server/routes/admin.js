@@ -699,6 +699,41 @@ router.post('/users/:uid/status', verifyAdmin, async (req, res) => {
   }
 });
 
+// POST /api/admin/users/:uid/email - Admin updates user email directly
+router.post('/users/:uid/email', verifyAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'New email address is required' });
+    }
+
+    const trimmedEmail = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      return res.status(400).json({ error: 'Invalid email address format' });
+    }
+
+    // 1. Update in Firebase Authentication
+    await authAdmin.updateUser(uid, { email: trimmedEmail });
+
+    // 2. Sync to Firestore user document
+    await db.collection('users').doc(uid).set({ 
+      email: trimmedEmail,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    // 3. Log staff/admin activity
+    await logStaffActivity(req, 'admin_update_user_email', { targetUid: uid, newEmail: trimmedEmail });
+
+    console.log(`[Admin User Email Update] Set user ${uid} email to ${trimmedEmail} ✅`);
+    res.json({ success: true, uid, email: trimmedEmail });
+  } catch (err) {
+    console.error('[Admin Update User Email Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to update user email address.' });
+  }
+});
+
 // DELETE /api/admin/users/:uid - Permanently deletes a user account
 router.delete('/users/:uid', verifyAdmin, async (req, res) => {
   try {

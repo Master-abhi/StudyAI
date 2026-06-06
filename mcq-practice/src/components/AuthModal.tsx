@@ -16,6 +16,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onGuest
 }) => {
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
+  const [isForgotPassword, setIsForgotPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -84,20 +85,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     };
   }, [isEmailPending, isOpen]);
 
-  // Automatically show email verification pending view if a user is logged in but unverified
-  useEffect(() => {
-    if (isOpen) {
-      const firebase = (window as any).firebase;
-      const user = firebase?.auth().currentUser;
-      if (user) {
-        const isPasswordProvider = user.providerData && user.providerData.some((p: any) => p.providerId === 'password');
-        if (isPasswordProvider && !user.emailVerified) {
-          setPendingVerifyEmail(user.email || '');
-          setIsEmailPending(true);
-        }
-      }
-    }
-  }, [isOpen]);
+
 
   if (!isOpen) return null;
 
@@ -121,15 +109,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       const cred = await firebase.auth().signInWithEmailAndPassword(trimmedEmail, loginPass);
       
-      // Force reload user to get the latest emailVerified status from Firebase servers
+      // Reload user to sync status if needed
       await cred.user.reload();
       const freshUser = firebase.auth().currentUser;
 
-      if (!freshUser || !freshUser.emailVerified) {
-        setError('Please verify your email address. We sent a verification link to your inbox.');
-        // Sign out to prevent user accessing authenticated state
-        await firebase.auth().signOut();
-        return;
+      if (!freshUser) {
+        throw new Error('User session not found.');
       }
 
       onSuccess(freshUser);
@@ -140,6 +125,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (err.code === 'auth/user-not-found') msg = 'Account not found. Please sign up.';
       else if (err.code === 'auth/wrong-password') msg = 'Incorrect password.';
       else if (err.code === 'auth/invalid-email') msg = 'Invalid email address format.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const firebase = (window as any).firebase;
+    if (!firebase) {
+      setError('Firebase SDK not found on window object.');
+      return;
+    }
+
+    const trimmedEmail = loginEmail.trim();
+    if (!trimmedEmail) {
+      setError('Please enter your email address.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      await firebase.auth().sendPasswordResetEmail(trimmedEmail);
+      setError('Password reset link sent successfully! Check your inbox (and Spam folder).');
+    } catch (err: any) {
+      console.error('[Password Reset Error]:', err);
+      let msg = err.message || 'Failed to send password reset link.';
+      if (err.code === 'auth/user-not-found') msg = 'No account found with this email address.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -240,12 +255,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       localStorage.setItem('userName', trimmedName);
 
-      // 3. Send Email Verification Link
-      await createdUser.sendEmailVerification();
+      // 3. Send Email Verification Link (best effort)
+      try {
+        await createdUser.sendEmailVerification();
+      } catch (verifErr) {
+        console.warn('Failed to send verification email on signup:', verifErr);
+      }
 
-      // 4. Transition to Email Verification Pending View
+      // 4. Log in immediately
       setPendingVerifyEmail(trimmedEmail);
-      setIsEmailPending(true);
+      onSuccess(createdUser);
+      onClose();
     } catch (err: any) {
       console.error('[Signup/Verification Error]:', err);
       
@@ -320,16 +340,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <h3 className="text-base font-black uppercase text-text">
               {isEmailPending 
                 ? 'Email Verification' 
-                : isSignUp 
-                  ? 'Create Account' 
-                  : 'Security Log In'}
+                : isForgotPassword
+                  ? 'Reset Password'
+                  : isSignUp 
+                    ? 'Create Account' 
+                    : 'Security Log In'}
             </h3>
             <span className="text-[10px] font-black uppercase text-saffron-border bg-saffron-dim/40 px-2 py-0.5 rounded border border-saffron-border/30">
               {isEmailPending 
                 ? 'Verification Link' 
-                : isSignUp 
-                  ? 'Sign Up' 
-                  : 'Secure'}
+                : isForgotPassword
+                  ? 'Reset Link'
+                  : isSignUp 
+                    ? 'Sign Up' 
+                    : 'Secure'}
             </span>
           </div>
 
@@ -405,6 +429,47 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </button>
               </div>
             </div>
+          ) : isForgotPassword ? (
+            /* Forgot Password Form */
+            <form onSubmit={handleResetPassword} className="flex flex-col gap-3.5">
+              <p className="text-xs text-text-muted leading-relaxed">
+                Enter your registered email address below. We will send you a link to reset your password.
+              </p>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-text-muted">Email Address</label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron pl-9 pr-4 py-2.5 rounded-md outline-none transition-colors"
+                  />
+                  <Mail className="w-4 h-4 text-text-muted absolute left-3 top-3" />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-xs font-black uppercase text-bg-s1 rounded-md tracking-wider transition-colors cursor-pointer"
+              >
+                {loading ? 'Sending link...' : 'Send Password Reset Link'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setError('');
+                }}
+                className="w-full py-3 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-xs font-black uppercase text-text rounded-md tracking-wider transition-all cursor-pointer text-center"
+              >
+                Back to Log In
+              </button>
+            </form>
           ) : !isSignUp ? (
             /* Log In Form */
             <form onSubmit={handleLogin} className="flex flex-col gap-3.5">
@@ -425,7 +490,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Secret Password</label>
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Secret Password</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      setError('');
+                    }}
+                    className="text-[10px] font-bold text-saffron hover:underline cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <div className="relative">
                   <input
                     type="password"
@@ -510,21 +587,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
 
           {/* Toggle */}
-          <div className="text-center mt-1 text-xs">
-            <span className="text-text-muted">
-              {isSignUp ? 'Already have an account? ' : 'First time studying here? '}
-            </span>
-            <button
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError('');
-                setIsEmailPending(false);
-              }}
-              className="text-saffron font-bold hover:underline cursor-pointer"
-            >
-              {isSignUp ? 'Log In' : 'Create Account'}
-            </button>
-          </div>
+          {!isForgotPassword && (
+            <div className="text-center mt-1 text-xs">
+              <span className="text-text-muted">
+                {isSignUp ? 'Already have an account? ' : 'First time studying here? '}
+              </span>
+              <button
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError('');
+                  setIsEmailPending(false);
+                }}
+                className="text-saffron font-bold hover:underline cursor-pointer"
+              >
+                {isSignUp ? 'Log In' : 'Create Account'}
+              </button>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 text-text-muted my-1">
             <div className="h-[1px] bg-border/80 flex-1" />
@@ -533,7 +612,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           {/* Google Sign In Button */}
-          {!isEmailPending && (
+          {!isEmailPending && !isForgotPassword && (
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
@@ -550,7 +629,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
 
           {/* Guest Action */}
-          {!isEmailPending && (
+          {!isEmailPending && !isForgotPassword && (
             <button
               onClick={onGuest}
               disabled={loading}
