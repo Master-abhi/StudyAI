@@ -1,8 +1,76 @@
 const express = require('express');
 const router = express.Router();
 const { admin, db } = require('../firebase-admin');
-const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 
+// --- Public OTP routes (for Fallback Sign Up verification) ---
+router.post('/send-otp', async (req, res) => {
+  try {
+    const { mobile } = req.body;
+    if (!mobile || !/^\d{10}$/.test(mobile.trim())) {
+      return res.status(400).json({ error: 'Please enter a valid 10-digit mobile number' });
+    }
+    const cleanMobile = mobile.trim();
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+
+    await db.collection('otps').doc(cleanMobile).set({
+      otp: otpCode,
+      expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+      verified: false,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    console.log(`[OTP SIGNUP] Generated OTP for mobile: ${cleanMobile} -> Code: ${otpCode}`);
+
+    res.json({
+      success: true,
+      demoOtp: otpCode
+    });
+  } catch (err) {
+    console.error('[Send OTP] Error:', err.message);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const { mobile, otp } = req.body;
+    if (!mobile || !otp) {
+      return res.status(400).json({ error: 'Mobile number and OTP are required' });
+    }
+    const cleanMobile = mobile.trim();
+    const cleanOtp = otp.trim();
+
+    const otpDoc = await db.collection('otps').doc(cleanMobile).get();
+    if (!otpDoc.exists) {
+      return res.status(400).json({ error: 'No OTP requested for this mobile number' });
+    }
+
+    const data = otpDoc.data();
+    const now = new Date();
+    const expiresAt = data.expiresAt.toDate();
+
+    if (now > expiresAt) {
+      return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+    }
+
+    if (data.otp !== cleanOtp) {
+      return res.status(400).json({ error: 'Invalid OTP code. Please try again.' });
+    }
+
+    await db.collection('otps').doc(cleanMobile).update({
+      verified: true,
+      verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Verify OTP] Error:', err.message);
+    res.status(500).json({ error: 'Failed to verify OTP' });
+  }
+});
+
+const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 router.use(verifyFirebaseToken);
 
 const MAX_TEST_RESULTS = 50;
@@ -139,6 +207,12 @@ router.get('/data', async (req, res) => {
 
 router.post('/sync', async (req, res) => {
   try {
+    // Enforce email verification for email/password authentication
+    const signInProvider = req.user.firebase && req.user.firebase.sign_in_provider;
+    if (signInProvider === 'password' && req.user.email_verified !== true) {
+      return res.status(403).json({ error: 'Please verify your email address before syncing data.' });
+    }
+
     const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email } = req.body;
 
     const update = {};
@@ -160,7 +234,38 @@ router.post('/sync', async (req, res) => {
     if (cleanSubjects) update.subjects = cleanSubjects;
     if (cleanProgress) update.progress = cleanProgress;
     if (cleanSelectedExam) update.selectedExam = cleanSelectedExam;
-    if (cleanMobile) update.mobile = cleanMobile;
+    if (cleanMobile) {
+      const userDoc = await db.collection('users').doc(req.user.uid).get();
+      const currentMobile = userDoc.exists ? userDoc.data().mobile : null;
+
+      if (cleanMobile !== currentMobile) {
+        let verified = false;
+
+        // Check 1: Check if verified in Firebase Auth token claims
+        const firebasePhone = req.user.phone_number;
+        let normalizedMobile = cleanMobile;
+        if (!normalizedMobile.startsWith('+')) {
+          normalizedMobile = `+91${normalizedMobile}`;
+        }
+        if (firebasePhone === normalizedMobile) {
+          verified = true;
+        }
+
+        // Check 2: Check fallback internal OTP verification in Firestore
+        if (!verified) {
+          const otpDoc = await db.collection('otps').doc(cleanMobile).get();
+          if (otpDoc.exists && otpDoc.data().verified === true) {
+            verified = true;
+          }
+        }
+
+        if (!verified) {
+          return res.status(400).json({ error: 'Mobile number not verified via SMS or Fallback OTP.' });
+        }
+        update.mobileVerified = true;
+      }
+      update.mobile = cleanMobile;
+    }
     if (cleanDisplayName) update.displayName = cleanDisplayName;
     if (cleanEmail) update.email = cleanEmail;
 

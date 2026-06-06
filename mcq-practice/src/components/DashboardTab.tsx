@@ -18,6 +18,7 @@ interface DashboardTabProps {
   onNavigateToTab: (tabId: string) => void;
   onStartPracticeMode: (mode: 'quiz' | 'mock' | 'pyq') => void;
   topicProgress: Record<string, any>;
+  tabVisibility?: Record<string, boolean>;
 }
 
 export const DashboardTab: React.FC<DashboardTabProps> = ({
@@ -32,7 +33,8 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   onSelectExam,
   onNavigateToTab,
   onStartPracticeMode,
-  topicProgress
+  topicProgress,
+  tabVisibility
 }) => {
   const [showExamSelector, setShowExamSelector] = useState<boolean>(false);
 
@@ -112,41 +114,49 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         <div className="flex flex-col gap-3">
           <h4 className="text-[10px] font-black uppercase text-text-muted tracking-wider">Quick Actions</h4>
           <div className="grid grid-cols-2 gap-3.5">
-            <button
-              onClick={() => onStartPracticeMode('quiz')}
-              className="p-4 bg-[#ff9933]/5 hover:bg-[#ff9933]/10 border border-[#ff9933]/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
-            >
-              <span className="text-lg">⚡</span>
-              <span className="text-sm font-bold text-text mt-1">Daily Quiz</span>
-              <span className="text-[10px] text-text-muted font-bold leading-tight">20 MCQs • CG GK practices</span>
-            </button>
+            {tabVisibility?.practice !== false && (
+              <button
+                onClick={() => onStartPracticeMode('quiz')}
+                className="p-4 bg-[#ff9933]/5 hover:bg-[#ff9933]/10 border border-[#ff9933]/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+              >
+                <span className="text-lg">⚡</span>
+                <span className="text-sm font-bold text-text mt-1">Daily Quiz</span>
+                <span className="text-[10px] text-text-muted font-bold leading-tight">20 MCQs • CG GK practices</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => onStartPracticeMode('mock')}
-              className="p-4 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
-            >
-              <span className="text-lg">🏆</span>
-              <span className="text-sm font-bold text-text mt-1">Mock Test</span>
-              <span className="text-[10px] text-text-muted font-bold leading-tight">Full Pattern Mock Exams</span>
-            </button>
+            {tabVisibility?.practice !== false && (
+              <button
+                onClick={() => onStartPracticeMode('mock')}
+                className="p-4 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+              >
+                <span className="text-lg">🏆</span>
+                <span className="text-sm font-bold text-text mt-1">Mock Test</span>
+                <span className="text-[10px] text-text-muted font-bold leading-tight">Full Pattern Mock Exams</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => onNavigateToTab('chat')}
-              className="p-4 bg-green-500/5 hover:bg-green-500/10 border border-green-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
-            >
-              <span className="text-lg">🤖</span>
-              <span className="text-sm font-bold text-text mt-1">AI Tutor Guru</span>
-              <span className="text-[10px] text-text-muted font-bold leading-tight">Instant doubt solving tutor</span>
-            </button>
+            {tabVisibility?.chat !== false && (
+              <button
+                onClick={() => onNavigateToTab('chat')}
+                className="p-4 bg-green-500/5 hover:bg-green-500/10 border border-green-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+              >
+                <span className="text-lg">🤖</span>
+                <span className="text-sm font-bold text-text mt-1">AI Tutor Guru</span>
+                <span className="text-[10px] text-text-muted font-bold leading-tight">Instant doubt solving tutor</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => onNavigateToTab('syllabus')}
-              className="p-4 bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
-            >
-              <span className="text-lg">📚</span>
-              <span className="text-sm font-bold text-text mt-1">Syllabus</span>
-              <span className="text-[10px] text-text-muted font-bold leading-tight">Interactive syllabus trackers</span>
-            </button>
+            {tabVisibility?.syllabus !== false && (
+              <button
+                onClick={() => onNavigateToTab('syllabus')}
+                className="p-4 bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+              >
+                <span className="text-lg">📚</span>
+                <span className="text-sm font-bold text-text mt-1">Syllabus</span>
+                <span className="text-[10px] text-text-muted font-bold leading-tight">Interactive syllabus trackers</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

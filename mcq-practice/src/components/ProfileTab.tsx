@@ -42,6 +42,7 @@ interface ProfileTabProps {
   onNavigateToTab?: (tabId: string) => void;
   onReviewTest?: (questions: any[], answers: (number | null)[], subject: string, mode: 'quiz' | 'mock' | 'pyq') => void;
   rankingData?: any;
+  tabVisibility?: Record<string, boolean>;
 }
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
@@ -62,7 +63,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   onOpenStaff,
   onNavigateToTab,
   onReviewTest,
-  rankingData
+  rankingData,
+  tabVisibility
 }) => {
   const [showHistoryLimit, setShowHistoryLimit] = useState<number>(5);
 
@@ -88,7 +90,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   });
 
   // 1. Calculate accuracy and study time
-  let overallAccuracy = 72; // default
+  let overallAccuracy = 0; // default
   if (normalizedHistory.length > 0) {
     const totalPercent = normalizedHistory.reduce((sum, log) => sum + log.percent, 0);
     overallAccuracy = Math.round(totalPercent / normalizedHistory.length);
@@ -165,13 +167,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     else if (avg < 55) focusSubjects.push(name);
   });
 
-  // Seed default strong/weak subjects if history is thin
-  if (normalizedHistory.length === 0 && activeExam?.subjects) {
-    strongSubjects.push(activeExam.subjects[0]?.name || 'General Studies');
-    if (activeExam.subjects[1]) {
-      focusSubjects.push(activeExam.subjects[1].name);
-    }
-  }
+
 
   // 3. Weekly MCQ practice volume (rolling last 7 calendar days ending today)
   const localWeeklyData = [0, 0, 0, 0, 0, 0, 0];
@@ -489,7 +485,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             <div className="flex flex-col truncate">
               <span className="text-[8px] font-black uppercase text-blue-400 tracking-wider">STUDY MINUTES</span>
               <span className="text-sm font-black text-text mt-1">
-                {Math.max(15, Math.round(solvedMcqsCount * 1.5 + testsGivenCount * 20))} mins
+                {Math.round(solvedMcqsCount * 1.5 + testsGivenCount * 20)} mins
               </span>
               <span className="text-[9px] text-text-muted mt-0.5">Logged practice</span>
             </div>
@@ -536,11 +532,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               <span>Strong subjects</span>
             </h5>
             <div className="flex flex-col gap-1.5 max-h-[140px] overflow-y-auto pr-1">
-              {strongSubjects.map((name, idx) => (
-                <span key={idx} className="text-xs font-bold text-greenL bg-greenL/5 px-2 py-1.5 rounded border border-greenL/10 truncate" title={name}>
-                  ✓ {name}
-                </span>
-              ))}
+              {strongSubjects.length > 0 ? (
+                strongSubjects.map((name, idx) => (
+                  <span key={idx} className="text-xs font-bold text-greenL bg-greenL/5 px-2 py-1.5 rounded border border-greenL/10 truncate" title={name}>
+                    ✓ {name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-text-muted italic py-1">No strong subjects yet</span>
+              )}
             </div>
           </div>
 
@@ -551,11 +551,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               <span>Focus subjects</span>
             </h5>
             <div className="flex flex-col gap-1.5 max-h-[140px] overflow-y-auto pr-1">
-              {focusSubjects.map((name, idx) => (
-                <span key={idx} className="text-xs font-bold text-redL bg-redL/5 px-2 py-1.5 rounded border border-redL/10 truncate" title={name}>
-                  ⚠ {name}
-                </span>
-              ))}
+              {focusSubjects.length > 0 ? (
+                focusSubjects.map((name, idx) => (
+                  <span key={idx} className="text-xs font-bold text-redL bg-redL/5 px-2 py-1.5 rounded border border-redL/10 truncate" title={name}>
+                    ⚠ {name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-text-muted italic py-1">No focus subjects yet</span>
+              )}
             </div>
           </div>
         </div>
@@ -831,7 +835,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             <span className="text-[9px] font-black uppercase text-text-muted tracking-wider">Actionable Next Steps</span>
             
             {/* Recommendation 1: Weak Subject Practice */}
-            {focusSubjects.length > 0 && (
+            {focusSubjects.length > 0 && tabVisibility?.practice !== false && (
               <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 bg-redL/15 border border-redL/20 rounded-lg flex items-center justify-center shrink-0 text-redL font-bold">
@@ -860,61 +864,65 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             )}
 
             {/* Recommendation 2: Spaced Repetition */}
-            <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
-              <div className="flex gap-3">
-                <div className="w-10 h-10 bg-blue-500/15 border border-blue-500/20 rounded-lg flex items-center justify-center shrink-0 text-blue-400 font-bold">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-text uppercase">Active Recall Revision</span>
-                    <span className="text-[8px] font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded uppercase leading-none">Recommended</span>
+            {tabVisibility?.syllabus !== false && (
+              <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+                <div className="flex gap-3">
+                  <div className="w-10 h-10 bg-blue-500/15 border border-blue-500/20 rounded-lg flex items-center justify-center shrink-0 text-blue-400 font-bold">
+                    <Clock className="w-5 h-5" />
                   </div>
-                  <p className="text-[11px] text-text-muted leading-relaxed">
-                    Prevent forgetting! Go to the Syllabus page to view topics currently scheduled for spaced repetition review.
-                  </p>
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-text uppercase">Active Recall Revision</span>
+                      <span className="text-[8px] font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded uppercase leading-none">Recommended</span>
+                    </div>
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      Prevent forgetting! Go to the Syllabus page to view topics currently scheduled for spaced repetition review.
+                    </p>
+                  </div>
                 </div>
+                {onNavigateToTab && (
+                  <button 
+                    onClick={() => onNavigateToTab('syllabus')}
+                    className="px-3.5 py-2 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1 self-start sm:self-center shrink-0"
+                  >
+                    <span>View Syllabus</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-saffron" />
+                  </button>
+                )}
               </div>
-              {onNavigateToTab && (
-                <button 
-                  onClick={() => onNavigateToTab('syllabus')}
-                  className="px-3.5 py-2 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1 self-start sm:self-center shrink-0"
-                >
-                  <span>View Syllabus</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-saffron" />
-                </button>
-              )}
-            </div>
+            )}
 
             {/* Recommendation 3: Daily Streak consistency */}
-            <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
-              <div className="flex gap-3">
-                <div className="w-10 h-10 bg-orange-500/15 border border-orange-500/20 rounded-lg flex items-center justify-center shrink-0 text-orange-400 font-bold">
-                  <Flame className="w-5 h-5 fill-orange-500/10" />
-                </div>
-                <div className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-text uppercase">Daily Consistency Booster</span>
-                    <span className="text-[8px] font-black text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded uppercase leading-none">Daily Goal</span>
+            {tabVisibility?.chat !== false && (
+              <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+                <div className="flex gap-3">
+                  <div className="w-10 h-10 bg-orange-500/15 border border-orange-500/20 rounded-lg flex items-center justify-center shrink-0 text-orange-400 font-bold">
+                    <Flame className="w-5 h-5 fill-orange-500/10" />
                   </div>
-                  <p className="text-[11px] text-text-muted leading-relaxed">
-                    {streak > 0 
-                      ? `You are on a beautiful ${streak}-day study streak! Complete any topic activity or practice test today to extend it.` 
-                      : `Start your daily revision habits. Complete any study activity or practice test today to establish a study streak!`
-                    }
-                  </p>
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-text uppercase">Daily Consistency Booster</span>
+                      <span className="text-[8px] font-black text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded uppercase leading-none">Daily Goal</span>
+                    </div>
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      {streak > 0 
+                        ? `You are on a beautiful ${streak}-day study streak! Complete any topic activity or practice test today to extend it.` 
+                        : `Start your daily revision habits. Complete any study activity or practice test today to establish a study streak!`
+                      }
+                    </p>
+                  </div>
                 </div>
+                {onNavigateToTab && (
+                  <button 
+                    onClick={() => onNavigateToTab('chat')}
+                    className="px-3.5 py-2 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1 self-start sm:self-center shrink-0"
+                  >
+                    <span>Ask AI Guru</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-saffron" />
+                  </button>
+                )}
               </div>
-              {onNavigateToTab && (
-                <button 
-                  onClick={() => onNavigateToTab('chat')}
-                  className="px-3.5 py-2 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1 self-start sm:self-center shrink-0"
-                >
-                  <span>Ask AI Guru</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-saffron" />
-                </button>
-              )}
-            </div>
+            )}
 
           </div>
         </div>

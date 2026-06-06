@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, User, Key, Phone, ShieldAlert, Award } from 'lucide-react';
+import { Lock, User, Key, ShieldAlert, Award, ShieldCheck, Mail } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -20,13 +20,84 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
 
   // Form Fields
-  const [loginId, setLoginId] = useState<string>('');
+  const [loginEmail, setLoginEmail] = useState<string>('');
   const [loginPass, setLoginPass] = useState<string>('');
 
   const [signupName, setSignupName] = useState<string>('');
-  const [signupMobile, setSignupMobile] = useState<string>('');
-  const [signupId, setSignupId] = useState<string>('');
+  const [signupEmail, setSignupEmail] = useState<string>('');
   const [signupPass, setSignupPass] = useState<string>('');
+
+  // Email Verification Pending States
+  const [isEmailPending, setIsEmailPending] = useState<boolean>(false);
+  const [pendingVerifyEmail, setPendingVerifyEmail] = useState<string>('');
+
+  // Poll Firebase to check when user verifies their email
+  useEffect(() => {
+    let intervalId: any;
+
+    if (isEmailPending && isOpen) {
+      const firebase = (window as any).firebase;
+      intervalId = setInterval(async () => {
+        const user = firebase?.auth().currentUser;
+        if (user) {
+          try {
+            await user.reload();
+            const freshUser = firebase.auth().currentUser;
+            if (freshUser && freshUser.emailVerified) {
+              clearInterval(intervalId);
+              
+              // Sync user profile to Firestore
+              const token = await freshUser.getIdToken(true);
+              const host = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' || 
+                           window.location.hostname === '[::1]' ||
+                           window.location.hostname.startsWith('192.168.')
+                           ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
+                           : '';
+
+              await fetch(`${host}/api/user/sync`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  displayName: freshUser.displayName || 'Aspirant',
+                  email: freshUser.email || ''
+                })
+              }).catch(err => console.warn('[Auto Sync on verification] Failed:', err));
+
+              onSuccess(freshUser);
+              onClose();
+            }
+          } catch (e) {
+            console.error('Error polling email verification status:', e);
+          }
+        }
+      }, 2500); // Poll every 2.5 seconds
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isEmailPending, isOpen]);
+
+  // Automatically show email verification pending view if a user is logged in but unverified
+  useEffect(() => {
+    if (isOpen) {
+      const firebase = (window as any).firebase;
+      const user = firebase?.auth().currentUser;
+      if (user) {
+        const isPasswordProvider = user.providerData && user.providerData.some((p: any) => p.providerId === 'password');
+        if (isPasswordProvider && !user.emailVerified) {
+          setPendingVerifyEmail(user.email || '');
+          setIsEmailPending(true);
+        }
+      }
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -38,8 +109,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    const trimmedId = loginId.trim();
-    if (!trimmedId || !loginPass) {
+    const trimmedEmail = loginEmail.trim();
+    if (!trimmedEmail || !loginPass) {
       setError('Please fill in all fields');
       return;
     }
@@ -47,25 +118,84 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
     setError('');
 
-    const email = `${trimmedId.toLowerCase()}@studyworld.app`;
-
     try {
-      const cred = await firebase.auth().signInWithEmailAndPassword(email, loginPass);
-      onSuccess(cred.user);
+      const cred = await firebase.auth().signInWithEmailAndPassword(trimmedEmail, loginPass);
+      
+      // Force reload user to get the latest emailVerified status from Firebase servers
+      await cred.user.reload();
+      const freshUser = firebase.auth().currentUser;
+
+      if (!freshUser || !freshUser.emailVerified) {
+        setError('Please verify your email address. We sent a verification link to your inbox.');
+        // Sign out to prevent user accessing authenticated state
+        await firebase.auth().signOut();
+        return;
+      }
+
+      onSuccess(freshUser);
       onClose();
     } catch (err: any) {
-      let msg = 'Login failed. Check your UserID and password.';
-      if (err.code === 'auth/user-not-found') msg = 'UserID not found. Please sign up.';
+      console.error('[Login Error]:', err);
+      let msg = err.message || 'Login failed. Check your email and password.';
+      if (err.code === 'auth/user-not-found') msg = 'Account not found. Please sign up.';
       else if (err.code === 'auth/wrong-password') msg = 'Incorrect password.';
-      else if (err.code === 'auth/invalid-email') msg = 'Invalid UserID format.';
-      else if (err.code === 'auth/invalid-credential') msg = 'Invalid UserID or password.';
+      else if (err.code === 'auth/invalid-email') msg = 'Invalid email address format.';
       setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleGoogleSignIn = async () => {
+    const firebase = (window as any).firebase;
+    if (!firebase) {
+      setError('Firebase SDK not found on window object.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      const cred = await firebase.auth().signInWithPopup(provider);
+      
+      const token = await cred.user.getIdToken(true);
+      const host = window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1' || 
+                   window.location.hostname === '[::1]' ||
+                   window.location.hostname.startsWith('192.168.')
+                   ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
+                   : '';
+
+      const syncRes = await fetch(`${host}/api/user/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          displayName: cred.user.displayName || 'Aspirant',
+          email: cred.user.email || ''
+        })
+      });
+
+      if (!syncRes.ok) {
+        const syncData = await syncRes.json();
+        throw new Error(syncData.error || 'Failed to sync account info.');
+      }
+
+      onSuccess(cred.user);
+      onClose();
+    } catch (err: any) {
+      console.error('[Google Sign In Error]:', err);
+      setError(err.message || 'Google Sign-In failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInitiateSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     const firebase = (window as any).firebase;
     if (!firebase) {
@@ -74,10 +204,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     const trimmedName = signupName.trim();
-    const trimmedMobile = signupMobile.trim();
-    const trimmedId = signupId.trim();
+    const trimmedEmail = signupEmail.trim();
 
-    if (!trimmedName || !trimmedMobile || !trimmedId || !signupPass) {
+    if (!trimmedName || !trimmedEmail || !signupPass) {
       setError('Please fill in all fields');
       return;
     }
@@ -87,60 +216,92 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(trimmedId)) {
-      setError('UserID can only contain letters, numbers, and underscores');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Please enter a valid email address');
       return;
     }
 
     setLoading(true);
     setError('');
 
-    const email = `${trimmedId.toLowerCase()}@studyworld.app`;
+    let createdUser: any = null;
 
     try {
-      const cred = await firebase.auth().createUserWithEmailAndPassword(email, signupPass);
-      
+      // 1. Create email/password user directly
+      const cred = await firebase.auth().createUserWithEmailAndPassword(trimmedEmail, signupPass);
+      createdUser = cred.user;
+
+      // 2. Update displayName
       try {
-        await cred.user.updateProfile({ displayName: trimmedName });
+        await createdUser.updateProfile({ displayName: trimmedName });
       } catch (profileErr) {
         console.warn('Profile displayName update failed:', profileErr);
       }
 
       localStorage.setItem('userName', trimmedName);
 
-      // Sync mobile number to backend database if present
-      if (trimmedMobile) {
+      // 3. Send Email Verification Link
+      await createdUser.sendEmailVerification();
+
+      // 4. Transition to Email Verification Pending View
+      setPendingVerifyEmail(trimmedEmail);
+      setIsEmailPending(true);
+    } catch (err: any) {
+      console.error('[Signup/Verification Error]:', err);
+      
+      // Clean up newly created user if verification email sending failed
+      if (createdUser) {
         try {
-          const token = await cred.user.getIdToken(true);
-          const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
-          await fetch(`${host}/api/user/sync`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ mobile: trimmedMobile })
-          });
-        } catch (syncErr) {
-          console.warn('Mobile sync failed:', syncErr);
+          await createdUser.delete();
+        } catch (deleteErr) {
+          console.warn('Failed to clean up user after failure:', deleteErr);
         }
       }
 
-      onSuccess(cred.user);
-      onClose();
-    } catch (err: any) {
-      let msg = 'Signup failed. Please try again.';
-      if (err.code === 'auth/email-already-in-use') msg = 'UserID already taken. Try another.';
+      let msg = err.message || 'Registration failed. Please try again.';
+      if (err.code === 'auth/email-already-in-use') msg = 'Email address already taken. Try another.';
       else if (err.code === 'auth/weak-password') msg = 'Password is too weak.';
-      else if (err.code === 'auth/invalid-email') msg = 'Invalid UserID format.';
+      else if (err.code === 'auth/invalid-email') msg = 'Invalid email format.';
       setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
+
+  const handleResendVerification = async () => {
+    const firebase = (window as any).firebase;
+    if (!firebase) return;
+    setLoading(true);
+    setError('');
+
+    const targetEmail = signupEmail.trim() || loginEmail.trim();
+    const targetPass = signupPass || loginPass;
+
+    if (!targetEmail || !targetPass) {
+      setError('To resend, please enter your email and password in the login/register forms.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const cred = await firebase.auth().signInWithEmailAndPassword(targetEmail, targetPass);
+      await cred.user.sendEmailVerification();
+      await firebase.auth().signOut();
+      setError('Verification email link sent successfully! Check your inbox.');
+    } catch (resendErr: any) {
+      setError('Failed to resend verification email: ' + resendErr.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
   return (
     <div className="fixed inset-0 bg-[#0B0E14]/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] overflow-y-auto">
+      {/* Hidden container for Firebase invisible reCAPTCHA */}
+      <div id="recaptcha-container" className="hidden"></div>
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -157,10 +318,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-6 flex flex-col gap-4">
           <div className="flex justify-between items-center border-b border-border pb-1">
             <h3 className="text-base font-black uppercase text-text">
-              {isSignUp ? 'Create Account' : 'Security Log In'}
+              {isEmailPending 
+                ? 'Email Verification' 
+                : isSignUp 
+                  ? 'Create Account' 
+                  : 'Security Log In'}
             </h3>
             <span className="text-[10px] font-black uppercase text-saffron-border bg-saffron-dim/40 px-2 py-0.5 rounded border border-saffron-border/30">
-              {isSignUp ? 'Sign Up' : 'Secure'}
+              {isEmailPending 
+                ? 'Verification Link' 
+                : isSignUp 
+                  ? 'Sign Up' 
+                  : 'Secure'}
             </span>
           </div>
 
@@ -169,30 +338,89 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-3 bg-red-500/10 border border-red-500/25 rounded-md flex items-start gap-2.5 text-xs text-redL"
+              className="p-3 bg-red-500/10 border border-red-500/25 rounded-md flex flex-col gap-2 text-xs text-redL"
             >
-              <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>{error}</span>
+              <div className="flex items-start gap-2.5">
+                <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+              {error.includes('verify your email') && (
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={loading}
+                  className="text-left text-xs font-bold text-saffron hover:underline mt-1 cursor-pointer pl-6"
+                >
+                  {loading ? 'Resending Link...' : 'Resend Verification Link now'}
+                </button>
+              )}
             </motion.div>
           )}
 
           {/* Forms */}
-          {!isSignUp ? (
+          {isEmailPending ? (
+            /* Email Verification Pending View */
+            <div className="flex flex-col gap-4 text-center my-1.5">
+              <div className="p-4 bg-saffron-dim/10 border border-saffron-border/35 rounded-xl flex flex-col gap-2.5 items-center">
+                <div className="w-12 h-12 rounded-full bg-saffron/10 border border-saffron/30 flex items-center justify-center text-saffron">
+                  <ShieldCheck className="w-6 h-6 animate-pulse" />
+                </div>
+                <h4 className="text-sm font-black text-text uppercase tracking-wider">Verification Link Sent</h4>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  We have sent a verification link to your email address:
+                </p>
+                <strong className="text-xs text-saffron font-bold break-all select-all">{pendingVerifyEmail}</strong>
+              </div>
+
+              <p className="text-[10px] text-text-muted leading-relaxed">
+                Please check your Inbox (and Spam/Junk folders) and click the verification link. Once verified, you will be able to log in.
+              </p>
+
+              <div className="flex flex-col gap-3 mt-1.5">
+                <button
+                  onClick={handleResendVerification}
+                  disabled={loading}
+                  className="w-full py-3 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-xs font-black uppercase text-bg-s1 rounded-md tracking-wider transition-colors cursor-pointer"
+                >
+                  {loading ? 'Sending...' : 'Resend Verification Link'}
+                </button>
+
+                <button
+                  onClick={async () => {
+                    const firebase = (window as any).firebase;
+                    if (firebase) {
+                      try {
+                        await firebase.auth().signOut();
+                      } catch (e) {
+                        console.warn('Sign out error on back to login:', e);
+                      }
+                    }
+                    setIsEmailPending(false);
+                    setIsSignUp(false);
+                    setError('');
+                  }}
+                  className="w-full py-3 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-xs font-black uppercase text-text rounded-md tracking-wider transition-all cursor-pointer"
+                >
+                  Back to Log In
+                </button>
+              </div>
+            </div>
+          ) : !isSignUp ? (
             /* Log In Form */
             <form onSubmit={handleLogin} className="flex flex-col gap-3.5">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Study UserID</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">Email Address</label>
                 <div className="relative">
                   <input
-                    type="text"
-                    placeholder="Enter your UserID"
-                    value={loginId}
-                    onChange={(e) => setLoginId(e.target.value)}
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
                     required
                     disabled={loading}
                     className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron pl-9 pr-4 py-2.5 rounded-md outline-none transition-colors"
                   />
-                  <User className="w-4 h-4 text-text-muted absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-text-muted absolute left-3 top-3" />
                 </div>
               </div>
 
@@ -222,7 +450,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </form>
           ) : (
             /* Sign Up Form */
-            <form onSubmit={handleSignUp} className="flex flex-col gap-3.5">
+            <form onSubmit={handleInitiateSignUp} className="flex flex-col gap-3.5">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-black uppercase text-text-muted">Aspirant Name</label>
                 <div className="relative">
@@ -240,34 +468,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Mobile Number</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">Email Address</label>
                 <div className="relative">
                   <input
-                    type="tel"
-                    placeholder="Enter mobile number"
-                    value={signupMobile}
-                    onChange={(e) => setSignupMobile(e.target.value)}
+                    type="email"
+                    placeholder="e.g. student@gmail.com"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
                     required
                     disabled={loading}
                     className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron pl-9 pr-4 py-2.5 rounded-md outline-none transition-colors"
                   />
-                  <Phone className="w-4 h-4 text-text-muted absolute left-3 top-3" />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Create Study UserID</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="e.g. abhi_123 (letters, numbers, _)"
-                    value={signupId}
-                    onChange={(e) => setSignupId(e.target.value)}
-                    required
-                    disabled={loading}
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron pl-9 pr-4 py-2.5 rounded-md outline-none transition-colors"
-                  />
-                  <User className="w-4 h-4 text-text-muted absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-text-muted absolute left-3 top-3" />
                 </div>
               </div>
 
@@ -292,7 +504,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 disabled={loading}
                 className="w-full py-3 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-xs font-black uppercase text-bg-s1 rounded-md tracking-wider transition-colors cursor-pointer"
               >
-                {loading ? 'Creating Account...' : 'Register & Start'}
+                {loading ? 'Registering...' : 'Register & Verify'}
               </button>
             </form>
           )}
@@ -306,6 +518,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError('');
+                setIsEmailPending(false);
               }}
               className="text-saffron font-bold hover:underline cursor-pointer"
             >
@@ -319,15 +532,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="h-[1px] bg-border/80 flex-1" />
           </div>
 
+          {/* Google Sign In Button */}
+          {!isEmailPending && (
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full py-3 bg-[#121620] hover:bg-[#161B28] border border-border text-xs font-black uppercase text-text rounded-md tracking-wider transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-md"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
+              </svg>
+              <span>Sign In with Google</span>
+            </button>
+          )}
+
           {/* Guest Action */}
-          <button
-            onClick={onGuest}
-            disabled={loading}
-            className="w-full py-3 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-xs font-black uppercase text-text rounded-md tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Lock className="w-4 h-4 text-saffron" />
-            <span>Continue as Guest</span>
-          </button>
+          {!isEmailPending && (
+            <button
+              onClick={onGuest}
+              disabled={loading}
+              className="w-full py-3 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-xs font-black uppercase text-text rounded-md tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Lock className="w-4 h-4 text-saffron" />
+              <span>Continue as Guest</span>
+            </button>
+          )}
         </div>
       </motion.div>
     </div>

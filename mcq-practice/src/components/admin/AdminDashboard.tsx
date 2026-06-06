@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, Cpu, 
-  ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History 
+  ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History, Sliders 
 } from 'lucide-react';
 import { AdminTests } from './AdminTests';
 import { AdminNews } from './AdminNews';
@@ -10,6 +10,7 @@ import { AdminAIConfig } from './AdminAIConfig';
 import { AdminUsers } from './AdminUsers';
 import { AdminStaffs } from './AdminStaffs';
 import { AdminLogs } from './AdminLogs';
+import { AdminTabsConfig } from './AdminTabsConfig';
 
 import type { Exam } from '../syllabus/syllabusData';
 
@@ -21,7 +22,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
@@ -92,6 +93,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     { id: 'news', label: 'News & Alerts', icon: Newspaper },
     { id: 'syllabus', label: 'Syllabus & PDF', icon: BookOpen },
     { id: 'aiconfig', label: 'AI Config', icon: Cpu },
+    { id: 'tabsconfig', label: 'Manage Tabs', icon: Sliders },
     { id: 'logs', label: 'Activity Logs', icon: History },
   ] as const;
 
@@ -112,6 +114,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return <AdminSyllabus currentUser={currentUser} exams={exams} onRefreshExams={onRefreshExams} />;
       case 'aiconfig':
         return <AdminAIConfig currentUser={currentUser} />;
+      case 'tabsconfig':
+        return <AdminTabsConfig currentUser={currentUser} />;
       case 'logs':
         return <AdminLogs currentUser={currentUser} />;
     }

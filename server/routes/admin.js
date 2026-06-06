@@ -120,6 +120,64 @@ router.post('/config/ai', verifyAdmin, async (req, res) => {
   }
 });
 
+// ── Tab Config Routes ──
+
+// GET /api/admin/config/tabs - Retrieve tab visibility settings (publicly readable)
+router.get('/config/tabs', async (req, res) => {
+  try {
+    const doc = await db.collection('config').doc('tabs').get();
+    const defaultVisibility = {
+      home: true,
+      practice: true,
+      chat: true,
+      news: true,
+      syllabus: true,
+      profile: true
+    };
+    if (doc.exists) {
+      const data = doc.data();
+      const visibility = { ...defaultVisibility, ...(data.visibility || {}) };
+      return res.json({ success: true, visibility });
+    }
+    return res.json({ success: true, visibility: defaultVisibility });
+  } catch (err) {
+    console.error('[Admin Config Tabs GET Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve tab configuration' });
+  }
+});
+
+// POST /api/admin/config/tabs - Update tab visibility settings (admin only)
+router.post('/config/tabs', verifyAdmin, async (req, res) => {
+  try {
+    const { visibility } = req.body;
+    if (!visibility || typeof visibility !== 'object') {
+      return res.status(400).json({ error: 'Invalid visibility payload' });
+    }
+    
+    const updatedVisibility = {};
+    const validTabs = ['home', 'practice', 'chat', 'news', 'syllabus', 'profile'];
+    for (const key of validTabs) {
+      if (visibility.hasOwnProperty(key)) {
+        updatedVisibility[key] = !!visibility[key];
+      } else {
+        updatedVisibility[key] = true;
+      }
+    }
+
+    await db.collection('config').doc('tabs').set({
+      visibility: updatedVisibility,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    await logStaffActivity(req, 'update_tabs_config', { visibility: updatedVisibility });
+
+    res.json({ success: true, visibility: updatedVisibility });
+  } catch (err) {
+    console.error('[Admin Config Tabs POST Error]:', err.message);
+    res.status(500).json({ error: 'Internal server error while updating tab configuration' });
+  }
+});
+
 // ── Upload Material Route ──
 
 router.post('/upload-material', verifyStaffOrAdmin('syllabus'), upload.single('materialFile'), async (req, res) => {

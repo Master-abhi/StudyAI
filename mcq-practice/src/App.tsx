@@ -159,6 +159,14 @@ const MOCK_QUESTIONS: Question[] = [
 export default function App() {
   // 1. Navigation Shell State
   const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'chat' | 'news' | 'profile' | 'syllabus' | 'admin' | 'staff'>('home');
+  const [tabVisibility, setTabVisibility] = useState<Record<string, boolean>>({
+    home: true,
+    practice: true,
+    chat: true,
+    news: true,
+    syllabus: true,
+    profile: true
+  });
   const [isTestActive, setIsTestActive] = useState<boolean>(false);
   const [appLanguage, setAppLanguage] = useState<'hi' | 'en'>('hi');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
@@ -174,18 +182,18 @@ export default function App() {
   // User Profile Metrics initialized from legacy localStorage keys
   const [xp, setXp] = useState<number>(() => {
     const val = localStorage.getItem('examprep_points');
-    return val ? parseInt(val, 10) : 120;
+    return val ? parseInt(val, 10) : 0;
   });
   const [streak, setStreak] = useState<number>(() => {
     const val = localStorage.getItem('examprep_streak');
-    return val ? parseInt(val, 10) : 2;
+    return val ? parseInt(val, 10) : 0;
   });
   const [streakLastDate, setStreakLastDate] = useState<string>(() => {
     return localStorage.getItem('examprep_streak_last_date') || '';
   });
   const [solvedMcqsCount, setSolvedMcqsCount] = useState<number>(() => {
     const val = localStorage.getItem('examprep_mcqsSolved');
-    return val ? parseInt(val, 10) : 25;
+    return val ? parseInt(val, 10) : 0;
   });
   const [testHistory, setTestHistory] = useState<any[]>(() => {
     const val = localStorage.getItem('examprep_testResults');
@@ -200,6 +208,8 @@ export default function App() {
   const [activeExamId, setActiveExamId] = useState<string>(() => {
     return localStorage.getItem('examprep_selectedExam') || 'cgpsc_sse';
   });
+  const [showFirstTimeExamSelector, setShowFirstTimeExamSelector] = useState<boolean>(false);
+  const [hasSelectedExamThisSession, setHasSelectedExamThisSession] = useState<boolean>(false);
   const [topicProgress, setTopicProgress] = useState<Record<string, any>>({});
   const [serverAnalytics, setServerAnalytics] = useState<any>(null);
 
@@ -258,8 +268,33 @@ export default function App() {
     }
   };
 
+  const fetchTabVisibility = async () => {
+    try {
+      const res = await fetch(getApiUrl('/api/admin/config/tabs'));
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.visibility) {
+          setTabVisibility(data.visibility);
+          
+          // Redirect if current active tab is hidden
+          const currentTab = activeTab;
+          if (data.visibility[currentTab] === false) {
+            const tabsOrder = ['home', 'practice', 'chat', 'news', 'syllabus', 'profile'];
+            const firstVisible = tabsOrder.find(t => data.visibility[t] !== false);
+            if (firstVisible) {
+              setActiveTab(firstVisible as any);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[Fetch Tab Visibility Error]:', e);
+    }
+  };
+
   useEffect(() => {
     fetchCustomSyllabi();
+    fetchTabVisibility();
   }, []);
 
   // Fetch Global Ranking and Leaderboard when Profile tab is viewed
@@ -282,6 +317,41 @@ export default function App() {
       });
     }
   }, [activeTab, currentUser, isGuest]);
+
+  // Helper to clear all session states and localStorage keys
+  const clearSessionStates = () => {
+    setXp(0);
+    setStreak(0);
+    setStreakLastDate('');
+    setSolvedMcqsCount(0);
+    setTestHistory([]);
+    setTopicProgress({});
+    setServerAnalytics(null);
+    setRankingData(null);
+    setShowFirstTimeExamSelector(false);
+    setHasSelectedExamThisSession(false);
+
+    const keysToRemove = [
+      'examprep_points',
+      'examprep_streak',
+      'examprep_streak_last_date',
+      'examprep_mcqsSolved',
+      'examprep_testResults',
+      'userName',
+      'cg_is_guest'
+    ];
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+
+    Object.keys(localStorage).forEach(key => {
+      if (
+        key.startsWith('cg_syllabus_progress_') ||
+        key.startsWith('examprep_progress_') ||
+        key.startsWith('cg_chat_history_')
+      ) {
+        localStorage.removeItem(key);
+      }
+    });
+  };
 
   // Auth Listener
   useEffect(() => {
@@ -307,6 +377,15 @@ export default function App() {
 
     const unsubscribe = firebase.auth().onAuthStateChanged((user: any) => {
       if (user) {
+        // If the user signed in with password and is not verified, do not close the modal!
+        const isPasswordProvider = user.providerData && user.providerData.some((p: any) => p.providerId === 'password');
+        if (isPasswordProvider && !user.emailVerified) {
+          setCurrentUser(user);
+          setIsGuest(false);
+          setAuthModalOpen(true);
+          return;
+        }
+
         setCurrentUser(user);
         setIsGuest(false);
         setAuthModalOpen(false);
@@ -317,6 +396,8 @@ export default function App() {
         if (guestFlag) {
           setIsGuest(true);
         } else {
+          clearSessionStates();
+          setIsGuest(false);
           setAuthModalOpen(true);
         }
       }
@@ -373,6 +454,14 @@ export default function App() {
           setTestHistory(profileData.testResults || []);
           if (profileData.selectedExam) {
             setActiveExamId(profileData.selectedExam);
+            setShowFirstTimeExamSelector(false);
+          } else {
+            if (!hasSelectedExamThisSession) {
+              const isPasswordProvider = currentUser.providerData && currentUser.providerData.some((p: any) => p.providerId === 'password');
+              if (!isPasswordProvider || currentUser.emailVerified) {
+                setShowFirstTimeExamSelector(true);
+              }
+            }
           }
         }
 
@@ -940,12 +1029,18 @@ export default function App() {
     }
   };
 
+  const handleFirstTimeSelectExam = (examId: string) => {
+    setHasSelectedExamThisSession(true);
+    handleSelectExam(examId);
+    setShowFirstTimeExamSelector(false);
+  };
+
   const handleLogout = async () => {
     const firebase = (window as any).firebase;
     if (firebase) {
       try {
         await firebase.auth().signOut();
-        localStorage.removeItem('cg_is_guest');
+        clearSessionStates();
         setIsGuest(false);
         setAuthModalOpen(true);
       } catch (e) {
@@ -999,6 +1094,7 @@ export default function App() {
               }
             }}
             topicProgress={topicProgress}
+            tabVisibility={tabVisibility}
           />
         );
       case 'practice':
@@ -1050,6 +1146,7 @@ export default function App() {
             onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
             onReviewTest={startTestReview}
             rankingData={rankingData}
+            tabVisibility={tabVisibility}
           />
         );
       case 'admin':
@@ -1156,7 +1253,7 @@ export default function App() {
               { id: 'news', label: 'News', icon: Newspaper },
               { id: 'syllabus', label: 'Syllabus', icon: BookOpen },
               { id: 'profile', label: 'Profile', icon: User }
-            ].map(item => {
+            ].filter(item => tabVisibility[item.id] !== false).map(item => {
               const Icon = item.icon;
               const isSelected = activeTab === item.id || (item.id === 'home' && activeTab === 'syllabus');
               return (
@@ -1509,7 +1606,7 @@ export default function App() {
               { id: 'chat', label: 'AI Guru', icon: MessageSquare },
               { id: 'news', label: 'News', icon: Newspaper },
               { id: 'profile', label: 'Profile', icon: User }
-            ].map(tab => {
+            ].filter(tab => tabVisibility[tab.id] !== false).map(tab => {
               const Icon = tab.icon;
               const isSelected = activeTab === tab.id || (tab.id === 'home' && activeTab === 'syllabus');
               return (
@@ -1572,6 +1669,63 @@ export default function App() {
           question={questions[currentIndex]}
           initialPromptType={null}
         />
+
+        {/* First-Time Exam Selector Modal for New Users */}
+        <AnimatePresence>
+          {showFirstTimeExamSelector && (
+            <div className="fixed inset-0 bg-[#0B0E14]/90 backdrop-blur-md flex items-center justify-center p-4 z-[99999] overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="w-full max-w-md bg-bg-s2 border border-border rounded-xl shadow-2xl overflow-hidden"
+              >
+                {/* Header Banner */}
+                <div className="bg-gradient-to-r from-saffron to-orange-600 p-6 text-center text-bg-s1 relative">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                  <span className="text-4xl block mb-2 select-none animate-bounce">🏛️</span>
+                  <h2 className="text-lg font-black uppercase tracking-wider">Choose Target Exam / लक्ष्य परीक्षा</h2>
+                  <p className="text-[10px] font-bold opacity-90 mt-1">Select your goal to build your personalized study plan</p>
+                </div>
+
+                <div className="p-6 flex flex-col gap-4">
+                  <p className="text-xs text-text-muted leading-relaxed text-center">
+                    Welcome to <strong>CG Guru</strong>! Please select your primary target exam. This will configure your syllabus trackers, AI study schedules, and practice test papers.
+                  </p>
+                  
+                  <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+                    {exams.map((ex: any) => (
+                      <button
+                        key={ex.id}
+                        onClick={() => handleFirstTimeSelectExam(ex.id)}
+                        className="w-full p-4 rounded-lg border border-border bg-bg-s3 hover:border-saffron hover:bg-saffron-dim/10 text-left transition-all flex items-center justify-between cursor-pointer group active:scale-[0.98]"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl select-none">{ex.icon}</span>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-black leading-tight text-text group-hover:text-saffron transition-colors">
+                              {ex.name}
+                            </span>
+                            <span className="text-[9px] text-text-muted mt-0.5 uppercase font-bold tracking-wider">
+                              {ex.fullName || ex.name}
+                            </span>
+                            <span className="text-[8px] text-saffron font-bold mt-1 uppercase tracking-wider">
+                              {ex.stage} • {ex.daysRemaining} days remaining
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs text-text-muted group-hover:text-saffron transition-colors font-black">➔</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="text-[9px] text-text-muted leading-relaxed text-center border-t border-border/40 pt-3">
+                    * You can change your target exam at any time from your settings panel.
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
       </div>
     </div>
