@@ -15,7 +15,11 @@ import {
   User,
   Settings,
   ShieldAlert,
-  Shield
+  Shield,
+  GraduationCap,
+  Flame,
+  FileText,
+  Landmark
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -157,8 +161,9 @@ const MOCK_QUESTIONS: Question[] = [
 ];
 
 export default function App() {
-  // 1. Navigation Shell State
-  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'chat' | 'news' | 'profile' | 'syllabus' | 'admin' | 'staff'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'chat' | 'news' | 'profile' | 'syllabus' | 'admin' | 'staff'>(() => {
+    return (localStorage.getItem('cg_active_tab') as any) || 'home';
+  });
   const [tabVisibility, setTabVisibility] = useState<Record<string, boolean>>({
     home: true,
     practice: true,
@@ -167,17 +172,26 @@ export default function App() {
     syllabus: true,
     profile: true
   });
+  const [examVisibility, setExamVisibility] = useState<Record<string, boolean>>({});
   const [isTestActive, setIsTestActive] = useState<boolean>(false);
   const [appLanguage, setAppLanguage] = useState<'hi' | 'en'>('hi');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isStaff, setIsStaff] = useState<boolean>(false);
   const [staffRoles, setStaffRoles] = useState<string[]>([]);
 
+  // Persist activeTab selection
+  useEffect(() => {
+    localStorage.setItem('cg_active_tab', activeTab);
+  }, [activeTab]);
+
   // 2. Authentication & User Profile State
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
+  const [userMobile, setUserMobile] = useState<string>(() => {
+    return localStorage.getItem('examprep_userMobile') || '';
+  });
 
   // User Profile Metrics initialized from legacy localStorage keys
   const [xp, setXp] = useState<number>(() => {
@@ -225,7 +239,14 @@ export default function App() {
   const [answers, setAnswers] = useState<(number | null)[]>(Array(MOCK_QUESTIONS.length).fill(null));
   const [markedForReview, setMarkedForReview] = useState<boolean[]>(Array(MOCK_QUESTIONS.length).fill(false));
   const [visited, setVisited] = useState<boolean[]>(Array(MOCK_QUESTIONS.length).fill(false));
-  const [bookmarks, setBookmarks] = useState<string[]>([]);
+  const [bookmarks, setBookmarks] = useState<Question[]>(() => {
+    try {
+      const val = localStorage.getItem('examprep_bookmarks');
+      return val ? JSON.parse(val) : [];
+    } catch {
+      return [];
+    }
+  });
   const [elapsedTime, setElapsedTime] = useState(0);
   const [sessionCompleted, setSessionCompleted] = useState(false);
 
@@ -237,7 +258,11 @@ export default function App() {
   const [rankingData, setRankingData] = useState<any>(null);
 
   const [exams, setExams] = useState<Exam[]>(EXAMS_DATA);
-  const activeExam = exams.find(e => e.id === activeExamId) || exams[0];
+  const visibleExams = (() => {
+    const filtered = exams.filter(ex => examVisibility[ex.id] !== false);
+    return filtered.length > 0 ? filtered : exams;
+  })();
+  const activeExam = visibleExams.find(e => e.id === activeExamId) || visibleExams[0];
 
   const getApiUrl = (path: string) => {
     const isLocal = window.location.hostname === 'localhost' || 
@@ -292,10 +317,40 @@ export default function App() {
     }
   };
 
+  const fetchExamVisibility = async () => {
+    try {
+      const res = await fetch(getApiUrl('/api/admin/config/exams'));
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.visibility) {
+          setExamVisibility(data.visibility);
+        }
+      }
+    } catch (e) {
+      console.error('[Fetch Exam Visibility Error]:', e);
+    }
+  };
+
   useEffect(() => {
     fetchCustomSyllabi();
     fetchTabVisibility();
+    fetchExamVisibility();
   }, []);
+
+  // Ensure active exam is valid and visible for regular users
+  useEffect(() => {
+    if (exams.length === 0) return;
+    const isUserAdminOrStaff = isAdmin || isStaff;
+    if (!isUserAdminOrStaff && Object.keys(examVisibility).length > 0) {
+      const isCurrentVisible = exams.some(ex => ex.id === activeExamId && examVisibility[ex.id] !== false);
+      if (!isCurrentVisible) {
+        const firstVisible = exams.find(ex => examVisibility[ex.id] !== false);
+        if (firstVisible) {
+          handleSelectExam(firstVisible.id);
+        }
+      }
+    }
+  }, [examVisibility, exams, activeExamId, isAdmin, isStaff]);
 
   // Fetch Global Ranking and Leaderboard when Profile tab is viewed
   useEffect(() => {
@@ -330,6 +385,7 @@ export default function App() {
     setRankingData(null);
     setShowFirstTimeExamSelector(false);
     setHasSelectedExamThisSession(false);
+    setActiveTab('home');
 
     const keysToRemove = [
       'examprep_points',
@@ -338,7 +394,8 @@ export default function App() {
       'examprep_mcqsSolved',
       'examprep_testResults',
       'userName',
-      'cg_is_guest'
+      'cg_is_guest',
+      'cg_active_tab'
     ];
     keysToRemove.forEach(key => localStorage.removeItem(key));
 
@@ -443,6 +500,8 @@ export default function App() {
           setStreakLastDate(profileData.streak?.lastDate || '');
           setSolvedMcqsCount(profileData.mcqsSolved || 0);
           setTestHistory(profileData.testResults || []);
+          setUserMobile(profileData.mobile || '');
+          localStorage.setItem('examprep_userMobile', profileData.mobile || '');
           if (profileData.selectedExam) {
             setActiveExamId(profileData.selectedExam);
             setShowFirstTimeExamSelector(false);
@@ -848,10 +907,15 @@ export default function App() {
     setAnswers(newAnswers);
   };
 
-  const handleToggleBookmark = (id: string) => {
-    setBookmarks(prev => 
-      prev.includes(id) ? prev.filter(bId => bId !== id) : [...prev, id]
-    );
+  const handleToggleBookmark = (question: Question) => {
+    setBookmarks(prev => {
+      const exists = prev.some(q => q.question === question.question || (question.id && q.id === question.id));
+      const updated = exists 
+        ? prev.filter(q => q.question !== question.question && (!question.id || q.id !== question.id))
+        : [...prev, question];
+      localStorage.setItem('examprep_bookmarks', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleToggleReview = () => {
@@ -1069,7 +1133,7 @@ export default function App() {
             totalTopicsCount={totalTopics}
             testsGivenCount={testHistory.length}
             activeExam={activeExam}
-            exams={exams}
+            exams={visibleExams}
             onSelectExam={handleSelectExam}
             onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
             onStartPracticeMode={(modeType) => {
@@ -1090,6 +1154,8 @@ export default function App() {
           <PracticeTab
             activeExam={activeExam}
             onStartPracticeSession={startTestPractice}
+            bookmarkedQuestions={bookmarks}
+            onToggleBookmark={handleToggleBookmark}
           />
         );
       case 'chat':
@@ -1194,7 +1260,7 @@ export default function App() {
       case 'syllabus':
         return (
           <SyllabusPage
-            exams={exams}
+            exams={visibleExams}
             activeExamId={activeExamId}
             onSelectExam={handleSelectExam}
             topicProgress={topicProgress}
@@ -1227,7 +1293,7 @@ export default function App() {
         <aside className="hidden md:flex flex-col w-64 bg-bg-s2 border-r border-border/60 shrink-0 sticky top-0 h-screen z-30">
           {/* Logo & Brand */}
           <div className="p-6 border-b border-border/60 flex items-center gap-3">
-            <span className="text-2xl leading-none select-none">🎓</span>
+            <GraduationCap className="w-7 h-7 text-saffron" />
             <span className="text-base font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
               CG Guru
             </span>
@@ -1295,8 +1361,9 @@ export default function App() {
                   <span className="text-xs font-bold text-text truncate">
                     {currentUser?.displayName || 'Guest User'}
                   </span>
-                  <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">
-                    🔥 {streak} Streak • {xp} XP
+                  <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500/10" />
+                    <span>{streak} Streak • {xp} XP</span>
                   </span>
                 </div>
                 <button
@@ -1326,7 +1393,7 @@ export default function App() {
         {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
           <header className="md:hidden sticky top-0 left-0 right-0 bg-bg-s1/90 backdrop-blur-md border-b border-border/60 px-5 py-4 flex items-center justify-between z-30 shadow-sm shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-xl leading-none select-none">🎓</span>
+              <GraduationCap className="w-6 h-6 text-saffron" />
               <span className="text-sm font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
                 CG Guru
               </span>
@@ -1370,7 +1437,9 @@ export default function App() {
                   className="max-w-md w-full mx-auto my-8 p-6 bg-gradient-to-br from-bg-s2 to-[#121620] border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-6 text-center relative overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-saffron-dim/10 rounded-full blur-2xl pointer-events-none" />
-                  <span className="text-3xl">📝</span>
+                  <div className="w-12 h-12 bg-saffron-dim/20 rounded-full flex items-center justify-center mx-auto text-saffron shrink-0">
+                    <FileText className="w-6 h-6" />
+                  </div>
                   <h2 className="text-base font-black text-text uppercase tracking-wider">Test Instructions / परीक्षा निर्देश</h2>
                   
                   <div className="flex flex-col gap-4 text-left bg-bg-s3/55 border border-border p-4 rounded-xl text-xs text-text-muted leading-relaxed">
@@ -1463,8 +1532,8 @@ export default function App() {
                       <MCQCard
                         question={questions[currentIndex]}
                         index={currentIndex}
-                        isBookmarked={bookmarks.includes(questions[currentIndex].id || '')}
-                        onToggleBookmark={() => handleToggleBookmark(questions[currentIndex].id || '')}
+                        isBookmarked={bookmarks.some(q => q.question === questions[currentIndex].question || (questions[currentIndex].id && q.id === questions[currentIndex].id))}
+                        onToggleBookmark={() => handleToggleBookmark(questions[currentIndex])}
                         onReport={() => alert('Question reported. Our moderators will review.')}
                       />
 
@@ -1639,6 +1708,11 @@ export default function App() {
           onLanguageChange={setAppLanguage}
           onLogout={handleLogout}
           onClearProgress={handleClearProgress}
+          userMobile={userMobile}
+          onMobileChange={(mobile) => {
+            setUserMobile(mobile);
+            localStorage.setItem('examprep_userMobile', mobile);
+          }}
         />
 
         {/* AI Explainer Video summaries and PDF notes study workspaces */}
@@ -1671,7 +1745,9 @@ export default function App() {
                 {/* Header Banner */}
                 <div className="bg-gradient-to-r from-saffron to-orange-600 p-6 text-center text-bg-s1 relative">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                  <span className="text-4xl block mb-2 select-none animate-bounce">🏛️</span>
+                  <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 text-bg-s1 select-none animate-bounce shadow-inner">
+                    <Landmark className="w-7 h-7" />
+                  </div>
                   <h2 className="text-lg font-black uppercase tracking-wider">Choose Target Exam / लक्ष्य परीक्षा</h2>
                   <p className="text-[10px] font-bold opacity-90 mt-1">Select your goal to build your personalized study plan</p>
                 </div>
@@ -1682,7 +1758,7 @@ export default function App() {
                   </p>
                   
                   <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
-                    {exams.map((ex: any) => (
+                    {visibleExams.map((ex: any) => (
                       <button
                         key={ex.id}
                         onClick={() => handleFirstTimeSelectExam(ex.id)}

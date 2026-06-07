@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, Cpu, 
-  ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History, Sliders 
+  ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History, Sliders, Eye 
 } from 'lucide-react';
 import { AdminTests } from './AdminTests';
 import { AdminNews } from './AdminNews';
@@ -11,6 +11,7 @@ import { AdminUsers } from './AdminUsers';
 import { AdminStaffs } from './AdminStaffs';
 import { AdminLogs } from './AdminLogs';
 import { AdminTabsConfig } from './AdminTabsConfig';
+import { AdminExamsConfig } from './AdminExamsConfig';
 
 import type { Exam } from '../syllabus/syllabusData';
 
@@ -22,7 +23,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
@@ -94,6 +95,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     { id: 'syllabus', label: 'Syllabus & PDF', icon: BookOpen },
     { id: 'aiconfig', label: 'AI Config', icon: Cpu },
     { id: 'tabsconfig', label: 'Manage Tabs', icon: Sliders },
+    { id: 'examsconfig', label: 'Manage Exams', icon: Eye },
     { id: 'logs', label: 'Activity Logs', icon: History },
   ] as const;
 
@@ -116,6 +118,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return <AdminAIConfig currentUser={currentUser} />;
       case 'tabsconfig':
         return <AdminTabsConfig currentUser={currentUser} />;
+      case 'examsconfig':
+        return <AdminExamsConfig currentUser={currentUser} exams={exams} />;
       case 'logs':
         return <AdminLogs currentUser={currentUser} />;
     }

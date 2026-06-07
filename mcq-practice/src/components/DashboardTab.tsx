@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Flame, BookOpen, ChevronRight, Trophy 
+  Flame, BookOpen, ChevronRight, Trophy, Zap, Landmark, Home, Shield, Bot, Sparkles 
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -38,6 +38,19 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 }) => {
   const [showExamSelector, setShowExamSelector] = useState<boolean>(false);
 
+  const getExamIcon = (iconStr: string) => {
+    switch (iconStr) {
+      case '🏛️':
+        return <Landmark className="w-5 h-5 text-saffron" />;
+      case '🏘️':
+        return <Home className="w-5 h-5 text-saffron" />;
+      case '👮':
+        return <Shield className="w-5 h-5 text-saffron" />;
+      default:
+        return <Landmark className="w-5 h-5 text-saffron" />;
+    }
+  };
+
   // Compute stats
   const completionPercent = totalTopicsCount > 0 ? Math.round((completedTopicsCount / totalTopicsCount) * 100) : 0;
   const level = Math.max(1, Math.floor(xp / 100) + 1);
@@ -53,7 +66,10 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase text-text-muted tracking-wider">Namaste 🙏</span>
+              <span className="text-[10px] font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5">
+                <span>Namaste</span>
+                <Sparkles className="w-3.5 h-3.5 text-saffron" />
+              </span>
               <h2 className="text-xl font-black text-text mt-0.5 truncate max-w-[200px]">
                 {userName || 'Aspirant'}
               </h2>
@@ -90,8 +106,8 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         >
           <div className="absolute top-0 right-0 w-16 h-16 bg-saffron-dim/10 rounded-full blur-xl pointer-events-none" />
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 bg-bg-s3 rounded-lg border border-border flex items-center justify-center text-lg select-none">
-              {activeExam?.icon || '🏛️'}
+            <div className="w-10 h-10 bg-bg-s3 rounded-lg border border-border flex items-center justify-center select-none text-saffron shrink-0">
+              {getExamIcon(activeExam?.icon || '🏛️')}
             </div>
             <div className="flex flex-col gap-0.5">
               <h3 className="text-xs font-bold text-text-muted uppercase tracking-wide">Target Exam</h3>
@@ -119,7 +135,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 onClick={() => onStartPracticeMode('quiz')}
                 className="p-4 bg-[#ff9933]/5 hover:bg-[#ff9933]/10 border border-[#ff9933]/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
               >
-                <span className="text-lg">⚡</span>
+                <Zap className="w-5.5 h-5.5 text-saffron" />
                 <span className="text-sm font-bold text-text mt-1">Daily Quiz</span>
                 <span className="text-[10px] text-text-muted font-bold leading-tight">20 MCQs • CG GK practices</span>
               </button>
@@ -130,7 +146,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 onClick={() => onStartPracticeMode('mock')}
                 className="p-4 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
               >
-                <span className="text-lg">🏆</span>
+                <Trophy className="w-5.5 h-5.5 text-saffron" />
                 <span className="text-sm font-bold text-text mt-1">Mock Test</span>
                 <span className="text-[10px] text-text-muted font-bold leading-tight">Full Pattern Mock Exams</span>
               </button>
@@ -141,7 +157,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 onClick={() => onNavigateToTab('chat')}
                 className="p-4 bg-green-500/5 hover:bg-green-500/10 border border-green-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
               >
-                <span className="text-lg">🤖</span>
+                <Bot className="w-5.5 h-5.5 text-saffron" />
                 <span className="text-sm font-bold text-text mt-1">AI Tutor Guru</span>
                 <span className="text-[10px] text-text-muted font-bold leading-tight">Instant doubt solving tutor</span>
               </button>
@@ -152,7 +168,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 onClick={() => onNavigateToTab('syllabus')}
                 className="p-4 bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
               >
-                <span className="text-lg">📚</span>
+                <BookOpen className="w-5.5 h-5.5 text-saffron" />
                 <span className="text-sm font-bold text-text mt-1">Syllabus</span>
                 <span className="text-[10px] text-text-muted font-bold leading-tight">Interactive syllabus trackers</span>
               </button>
@@ -232,8 +248,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               className="w-full max-w-sm bg-bg-s2 border border-border rounded-xl shadow-2xl p-5"
             >
               <div className="flex justify-between items-center border-b border-border pb-2.5 mb-3.5">
-                <h3 className="text-sm font-black uppercase text-text flex items-center gap-1.5">
-                  <span>🏛️ Select Target Exam</span>
+                <h3 className="text-sm font-black uppercase text-text flex items-center gap-2">
+                  <Landmark className="w-5 h-5 text-saffron" />
+                  <span>Select Target Exam</span>
                 </h3>
                 <button
                   onClick={() => setShowExamSelector(false)}
@@ -258,7 +275,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-base select-none">{ex.icon}</span>
+                      <span className="select-none flex items-center justify-center shrink-0">
+                        {getExamIcon(ex.icon)}
+                      </span>
                       <div className="flex flex-col">
                         <span className="text-xs font-bold leading-tight group-hover:text-saffron transition-colors">
                           {ex.name}

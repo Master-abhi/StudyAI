@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, User, Key, ShieldAlert, Award, ShieldCheck, Mail } from 'lucide-react';
+import { Lock, User, Key, ShieldAlert, Award, ShieldCheck, Mail, Phone, AtSign } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -25,6 +25,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loginPass, setLoginPass] = useState<string>('');
 
   const [signupName, setSignupName] = useState<string>('');
+  const [signupUsername, setSignupUsername] = useState<string>('');
+  const [signupPhone, setSignupPhone] = useState<string>('');
   const [signupEmail, setSignupEmail] = useState<string>('');
   const [signupPass, setSignupPass] = useState<string>('');
 
@@ -219,9 +221,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     const trimmedName = signupName.trim();
+    const trimmedUsername = signupUsername.trim();
+    const trimmedPhone = signupPhone.trim();
     const trimmedEmail = signupEmail.trim();
 
-    if (!trimmedName || !trimmedEmail || !signupPass) {
+    if (!trimmedName || !trimmedUsername || !trimmedPhone || !trimmedEmail || !signupPass) {
       setError('Please fill in all fields');
       return;
     }
@@ -233,6 +237,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setError('Please enter a valid email address');
+      return;
+    }
+
+    if (!/^\d{10}$/.test(trimmedPhone)) {
+      setError('Please enter a valid 10-digit phone number');
       return;
     }
 
@@ -255,21 +264,54 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       localStorage.setItem('userName', trimmedName);
 
-      // 3. Send Email Verification Link (best effort)
+      // 3. Sync registration details (name, username, phone, email) to backend Firestore immediately
+      try {
+        const token = await createdUser.getIdToken(true);
+        const host = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1' || 
+                     window.location.hostname === '[::1]' ||
+                     window.location.hostname.startsWith('192.168.')
+                     ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
+                     : '';
+
+        const syncRes = await fetch(`${host}/api/user/sync`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            displayName: trimmedName,
+            username: trimmedUsername,
+            mobile: trimmedPhone,
+            email: trimmedEmail
+          })
+        });
+
+        if (!syncRes.ok) {
+          const syncData = await syncRes.json();
+          throw new Error(syncData.error || 'Failed to sync registration details.');
+        }
+      } catch (syncErr: any) {
+        console.warn('Initial user registration sync failed:', syncErr);
+        throw syncErr;
+      }
+
+      // 4. Send Email Verification Link (best effort)
       try {
         await createdUser.sendEmailVerification();
       } catch (verifErr) {
         console.warn('Failed to send verification email on signup:', verifErr);
       }
 
-      // 4. Log in immediately
+      // 5. Log in immediately
       setPendingVerifyEmail(trimmedEmail);
       onSuccess(createdUser);
       onClose();
     } catch (err: any) {
       console.error('[Signup/Verification Error]:', err);
       
-      // Clean up newly created user if verification email sending failed
+      // Clean up newly created user if verification email sending failed or sync failed
       if (createdUser) {
         try {
           await createdUser.delete();
@@ -529,7 +571,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             /* Sign Up Form */
             <form onSubmit={handleInitiateSignUp} className="flex flex-col gap-3.5">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Aspirant Name</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">Name</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -545,7 +587,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Email Address</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">User Name</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Enter unique username"
+                    value={signupUsername}
+                    onChange={(e) => setSignupUsername(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron pl-9 pr-4 py-2.5 rounded-md outline-none transition-colors"
+                  />
+                  <AtSign className="w-4 h-4 text-text-muted absolute left-3 top-3" />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-text-muted">Phone Number</label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    placeholder="Enter 10-digit phone number"
+                    value={signupPhone}
+                    onChange={(e) => setSignupPhone(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron pl-9 pr-4 py-2.5 rounded-md outline-none transition-colors"
+                  />
+                  <Phone className="w-4 h-4 text-text-muted absolute left-3 top-3" />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-text-muted">Email ID</label>
                 <div className="relative">
                   <input
                     type="email"
@@ -561,7 +635,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Secret Password</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">Password</label>
                 <div className="relative">
                   <input
                     type="password"

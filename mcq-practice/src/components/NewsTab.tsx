@@ -11,7 +11,11 @@ import {
 
 interface Article {
   title: string;
+  title_hi?: string;
   description?: string;
+  description_hi?: string;
+  summary?: string;
+  summary_hi?: string;
   category: string;
   source: string;
   url: string;
@@ -347,7 +351,10 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
     return list.filter(art => {
       const matchesCategory = activeCategory === 'all' || art.category.toLowerCase().includes(activeCategory.toLowerCase()) || activeCategory.toLowerCase().includes(art.category.toLowerCase());
       const query = searchQuery.toLowerCase();
-      const titleText = (art.title || '').toLowerCase() + ' ' + (art.description || '').toLowerCase();
+      const titleText = (art.title || '').toLowerCase() + ' ' + 
+                        (art.title_hi || '').toLowerCase() + ' ' + 
+                        (art.description || '').toLowerCase() + ' ' + 
+                        (art.description_hi || '').toLowerCase();
       const matchesSearch = titleText.includes(query);
       return matchesCategory && matchesSearch;
     });
@@ -442,17 +449,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
         )}
       </div>
 
-      {/* 2. Breaking news alert marquee */}
-      <div className="bg-redL/10 border border-redL/20 px-4 py-2.5 rounded-lg flex items-center gap-3 overflow-hidden text-xs text-text shadow-sm shrink-0">
-        <span className="font-black text-redL uppercase bg-redL/15 px-2 py-0.5 rounded leading-none shrink-0 tracking-wider flex items-center gap-1">
-          <Activity className="w-3.5 h-3.5 animate-pulse" /> Live Alert
-        </span>
-        <div className="flex-1 overflow-x-auto no-scrollbar whitespace-nowrap scroll-smooth font-bold">
-          <span className="inline-block animate-marquee pl-full">
-            🚨 CGPSC State Service Notification Update: Exam weights adjusted. Current Affairs section will focus on new State Budget and Tribal Welfare Policies. Tap any news to practice custom MCQs.
-          </span>
-        </div>
-      </div>
+
 
       {/* 3. Section Tabs */}
       <div className="flex items-center gap-2 border-b border-border/80 pb-0.5 shrink-0 overflow-x-auto no-scrollbar">
@@ -556,11 +553,11 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
                         )}
                       </div>
                       <div className="flex flex-col gap-1 flex-1">
-                        <h5 className="text-xs font-bold leading-relaxed line-clamp-2 text-text" title={art.description}>
-                          {art.description || art.title}
+                        <h5 className="text-xs font-bold leading-relaxed line-clamp-2 text-text animate-fade-in" title={art.title_hi || art.title}>
+                          {art.title_hi || art.title}
                         </h5>
-                        <p className="text-[10px] text-text-muted line-clamp-1 leading-normal">
-                          {art.title}
+                        <p className="text-[10px] text-text-muted line-clamp-2 leading-normal">
+                          {art.description_hi || art.summary_hi || art.description || art.title}
                         </p>
                       </div>
                       <div className="flex justify-between items-center text-[10px] text-text-muted border-t border-border/40 pt-2 w-full font-bold">
@@ -626,12 +623,12 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
                         </span>
                       </div>
 
-                      <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2" title={art.description}>
-                        {art.description || art.title}
+                      <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2 animate-fade-in" title={art.title_hi || art.title}>
+                        {art.title_hi || art.title}
                       </h4>
 
                       <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
-                        {art.title}
+                        {art.description_hi || art.summary_hi || art.description || art.title}
                       </p>
 
                       <div className="flex justify-between items-center text-[10px] text-text-muted border-t border-border/40 pt-2 mt-1">
@@ -770,11 +767,11 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
                         </span>
                       </div>
 
-                      <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2" title={art.description}>
-                        {art.description || art.title}
+                      <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2 animate-fade-in" title={art.title_hi || art.title}>
+                        {art.title_hi || art.title}
                       </h4>
-                      <p className="text-[10px] text-text-muted line-clamp-1 leading-normal">
-                        {art.title}
+                      <p className="text-[10px] text-text-muted line-clamp-2 leading-normal">
+                        {art.description_hi || art.summary_hi || art.description || art.title}
                       </p>
 
                       <div className="flex justify-between items-center text-[10px] text-text-muted border-t border-border/40 pt-2 mt-1 w-full font-bold">
@@ -921,12 +918,12 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
                       </div>
                     </div>
 
-                    <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2" title={art.description}>
-                      {art.description || art.title}
+                    <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2 animate-fade-in" title={art.title_hi || art.title}>
+                      {art.title_hi || art.title}
                     </h4>
 
                     <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
-                      {art.title}
+                      {art.description_hi || art.summary_hi || art.description || art.title}
                     </p>
 
                     <div className="flex gap-2 border-t border-border/40 pt-3 mt-1">
@@ -999,7 +996,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
               {/* Title & metadata */}
               <div className="flex flex-col gap-1 shrink-0">
                 <h2 className="text-sm font-black text-text leading-relaxed">
-                  {summaryLang === 'hi' && intel?.title_hi ? intel.title_hi : selectedArticle.title}
+                  {summaryLang === 'hi' ? (selectedArticle.title_hi || intel?.title_hi || selectedArticle.title) : (selectedArticle.title)}
                 </h2>
                 <div className="flex flex-wrap items-center gap-3 text-[9px] text-text-muted font-bold uppercase tracking-wider mt-1">
                   <span>📅 {selectedArticle.date || 'Today'}</span>
@@ -1146,7 +1143,9 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
                             </button>
                           </div>
 
-                          <h5 className="text-[9px] font-black uppercase text-saffron tracking-wider">
+
+
+                          <h5 className="text-[9px] font-black uppercase text-saffron tracking-wider mt-1.5">
                             Exam Summary / परीक्षा सारांश
                           </h5>
                           

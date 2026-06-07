@@ -15,6 +15,7 @@ interface UserProfile {
   isAdmin: boolean;
   disabled: boolean;
   mobile: string;
+  username?: string;
   points: number;
   streak: number;
   mcqsSolved: number;
@@ -241,6 +242,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
       user.displayName.toLowerCase().includes(searchLower) ||
       user.email.toLowerCase().includes(searchLower) ||
       user.mobile.includes(searchLower) ||
+      (user.username && user.username.toLowerCase().includes(searchLower)) ||
       user.displayId.toLowerCase().includes(searchLower);
 
     const matchesTier = 
@@ -459,6 +461,9 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
                             )}
                           </div>
                           <span className="text-[10px] text-text-muted font-mono truncate">ID: {user.displayId}</span>
+                          {user.username && (
+                            <span className="text-[10px] text-saffron font-bold truncate">@{user.username}</span>
+                          )}
                         </div>
                       </div>
                     </td>

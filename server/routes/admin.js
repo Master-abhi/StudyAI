@@ -178,6 +178,45 @@ router.post('/config/tabs', verifyAdmin, async (req, res) => {
   }
 });
 
+// ── Exam Config Routes ──
+
+// GET /api/admin/config/exams - Retrieve exam visibility settings (publicly readable)
+router.get('/config/exams', async (req, res) => {
+  try {
+    const doc = await db.collection('config').doc('exams').get();
+    if (doc.exists) {
+      const data = doc.data();
+      return res.json({ success: true, visibility: data.visibility || {} });
+    }
+    return res.json({ success: true, visibility: {} });
+  } catch (err) {
+    console.error('[Admin Config Exams GET Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve exam visibility configuration' });
+  }
+});
+
+// POST /api/admin/config/exams - Update exam visibility settings (admin only)
+router.post('/config/exams', verifyAdmin, async (req, res) => {
+  try {
+    const { visibility } = req.body;
+    if (!visibility || typeof visibility !== 'object') {
+      return res.status(400).json({ error: 'Invalid visibility payload' });
+    }
+
+    await db.collection('config').doc('exams').set({
+      visibility,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    await logStaffActivity(req, 'update_exams_config', { visibility });
+
+    res.json({ success: true, visibility });
+  } catch (err) {
+    console.error('[Admin Config Exams POST Error]:', err.message);
+    res.status(500).json({ error: 'Internal server error while updating exam visibility configuration' });
+  }
+});
+
 // ── Upload Material Route ──
 
 router.post('/upload-material', verifyStaffOrAdmin('syllabus'), upload.single('materialFile'), async (req, res) => {
@@ -624,6 +663,7 @@ router.get('/users', verifyAdmin, async (req, res) => {
         roles: (user.customClaims && user.customClaims.roles) || [],
         disabled: user.disabled || false,
         mobile: fDoc.mobile || '',
+        username: fDoc.username || '',
         points: fDoc.points !== undefined ? fDoc.points : 120, // default match client initial
         streak: fDoc.streak?.count || 0,
         mcqsSolved: fDoc.mcqsSolved !== undefined ? fDoc.mcqsSolved : 25, // default match client initial
@@ -977,7 +1017,7 @@ router.post('/users/:uid/promote', verifyAdmin, async (req, res) => {
 // GET /api/admin/logs/user - Retrieves user activity logs
 router.get('/logs/user', verifyAdmin, async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 100;
+    const limit = parseInt(req.query.limit) || 1000;
     
     // 1. Fetch from activity_logs
     const activitySnapshot = await db.collection('activity_logs').orderBy('timestamp', 'desc').limit(limit).get();
@@ -1043,7 +1083,7 @@ router.get('/logs/user', verifyAdmin, async (req, res) => {
         userName: userInfo.displayName,
         userDisplayId: userInfo.displayId,
         examId: d.examId || 'general',
-        activityType: d.isCorrect ? 'mcq_correct' : 'mcq_incorrect',
+        activityType: 'mcq_attempt',
         subjectId: d.subjectId || 'general',
         topicId: d.topicId || 'general',
         timeSpentSeconds: d.responseTimeMs ? Math.round(d.responseTimeMs / 1000) : 0,

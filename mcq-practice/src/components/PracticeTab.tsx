@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Trophy, AlertCircle, Play } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, Zap, BookOpen } from 'lucide-react';
 import type { Question } from '../types';
 
 interface ServerTest {
@@ -19,15 +19,20 @@ interface ServerTest {
 interface PracticeTabProps {
   activeExam: any;
   onStartPracticeSession: (questions: Question[], mode: 'quiz' | 'mock' | 'pyq', subject: string) => void;
+  bookmarkedQuestions?: Question[];
+  onToggleBookmark?: (question: Question) => void;
 }
 
 export const PracticeTab: React.FC<PracticeTabProps> = ({
   activeExam,
-  onStartPracticeSession
+  onStartPracticeSession,
+  bookmarkedQuestions = [],
+  onToggleBookmark
 }) => {
-  const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq'>('quiz');
+  const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'saved'>('quiz');
   const [tests, setTests] = useState<ServerTest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [selectedSavedQuestion, setSelectedSavedQuestion] = useState<Question | null>(null);
 
   const getApiUrl = (path: string) => {
     const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
@@ -145,11 +150,12 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       </div>
 
       {/* 2. Unified Mode selectors */}
-      <div className="grid grid-cols-3 gap-2 shrink-0">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
         {[
-          { id: 'quiz', label: 'Quizzes', icon: '⚡', desc: 'Educator tests' },
-          { id: 'mock', label: 'Mock Exams', icon: '🏆', desc: 'Full length tests' },
-          { id: 'pyq', label: 'PYQ Papers', icon: '📚', desc: 'Previous papers' }
+          { id: 'quiz', label: 'Quizzes', icon: <Zap className="w-5 h-5 text-saffron" />, desc: 'Educator tests' },
+          { id: 'mock', label: 'Mock Exams', icon: <Trophy className="w-5 h-5 text-saffron" />, desc: 'Full length tests' },
+          { id: 'pyq', label: 'PYQ Papers', icon: <BookOpen className="w-5 h-5 text-saffron" />, desc: 'Previous papers' },
+          { id: 'saved', label: 'Saved MCQs', icon: <Bookmark className="w-5 h-5 text-saffron" />, desc: `Saved (${bookmarkedQuestions.length})` }
         ].map(m => (
           <button
             key={m.id}
@@ -160,7 +166,9 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                 : 'bg-bg-s2 border-border hover:bg-bg-s2/85 text-text-muted'
             }`}
           >
-            <span className="text-lg mb-1 select-none">{m.icon}</span>
+            <span className="mb-1 select-none flex items-center justify-center h-6 w-6">
+              {m.icon}
+            </span>
             <span className="text-xs font-bold leading-tight">{m.label}</span>
             <span className="text-[8px] opacity-75 mt-0.5">{m.desc}</span>
           </button>
@@ -180,8 +188,8 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
             animate={{ opacity: 1, y: 0 }}
             className="p-6 bg-bg-s2 border border-border rounded-xl text-center flex flex-col gap-4 shadow shadow-saffron-dim/5"
           >
-            <div className="w-14 h-14 bg-saffron-dim/20 rounded-full flex items-center justify-center text-2xl mx-auto shadow-inner">
-              📚
+            <div className="w-14 h-14 bg-saffron-dim/20 rounded-full flex items-center justify-center mx-auto shadow-inner text-saffron shrink-0">
+              <BookOpen className="w-6 h-6" />
             </div>
             <div className="flex flex-col gap-1 max-w-xs mx-auto">
               <h4 className="text-sm font-black text-text">CGPSC / Vyapam PYQ Practice</h4>
@@ -196,6 +204,75 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
               <Play className="w-3.5 h-3.5 fill-bg-s1" />
               <span>Start Practice</span>
             </button>
+          </motion.div>
+        ) : activeMode === 'saved' ? (
+          /* Saved questions view */
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-4"
+          >
+            <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-xs font-black text-text uppercase">Saved Questions / बुकमार्क किए गए प्रश्न</h4>
+                <p className="text-[10px] text-text-muted leading-relaxed">
+                  Practice questions you saved during mock tests and daily quizzes.
+                </p>
+              </div>
+              {bookmarkedQuestions.length > 0 && (
+                <button
+                  onClick={() => onStartPracticeSession(bookmarkedQuestions, 'quiz', 'Saved Questions Practice')}
+                  className="px-4 py-2.5 bg-saffron hover:bg-orange-500 text-xs font-black text-bg-s1 uppercase rounded-lg flex items-center gap-1.5 shrink-0 transition-all duration-200 cursor-pointer shadow active:scale-95"
+                >
+                  <Play className="w-3.5 h-3.5 fill-bg-s1" />
+                  <span>Practice All</span>
+                </button>
+              )}
+            </div>
+
+            {bookmarkedQuestions.length === 0 ? (
+              <div className="p-8 text-center bg-bg-s2 border border-border rounded-xl text-xs text-text-muted flex flex-col items-center gap-2">
+                <AlertCircle className="w-6 h-6 text-saffron-border/60 mb-0.5" />
+                <span>No bookmarked questions yet.</span>
+                <span className="text-[10px]">Bookmark questions during active practice sessions to see them listed here.</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {bookmarkedQuestions.map((q, idx) => (
+                  <div 
+                    key={idx}
+                    className="p-4 bg-bg-s2 border border-border hover:border-saffron-border/30 rounded-xl flex flex-col justify-between gap-3 relative transition-all group"
+                  >
+                    <div className="flex justify-between items-start gap-4">
+                      <span className="text-xs font-bold text-text leading-relaxed line-clamp-2 pr-6">
+                        {q.question}
+                      </span>
+                      <button
+                        onClick={() => onToggleBookmark && onToggleBookmark(q)}
+                        className="absolute top-3 right-3 text-text-muted hover:text-redL p-1 cursor-pointer transition-colors"
+                        title="Remove Bookmark"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-[10px] text-text-muted font-bold uppercase border-t border-border/40 pt-2.5 mt-1">
+                      <span className="truncate pr-3 flex items-center gap-1.5">
+                        <BookOpen className="w-3.5 h-3.5 text-saffron" />
+                        <span>{q.subject || 'General GK'}</span>
+                      </span>
+                      <button
+                        onClick={() => setSelectedSavedQuestion(q)}
+                        className="text-saffron-border hover:text-saffron flex items-center gap-0.5 cursor-pointer font-black text-[10px] shrink-0"
+                      >
+                        <span>View details</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         ) : filteredTests.length === 0 ? (
           /* Empty indicator */
@@ -234,6 +311,101 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
         )}
       </div>
 
+      {/* Saved Question Detail Modal */}
+      <AnimatePresence>
+        {selectedSavedQuestion && (
+          <div className="fixed inset-0 bg-[#0B0E14]/85 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-lg bg-bg-s2 border border-border rounded-xl shadow-2xl p-6 relative overflow-hidden flex flex-col gap-4 text-text"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-saffron-dim/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex justify-between items-center border-b border-border pb-3 shrink-0">
+                <span className="text-[10px] font-black uppercase text-saffron tracking-widest flex items-center gap-1.5">
+                  <Bookmark className="w-3.5 h-3.5 fill-saffron/10 animate-pulse" />
+                  <span>Saved Question Details</span>
+                </span>
+                <button
+                  onClick={() => setSelectedSavedQuestion(null)}
+                  className="text-xs text-text-muted hover:text-text cursor-pointer font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-4 overflow-y-auto max-h-[450px] pr-1">
+                {/* Subject tag */}
+                <div className="text-[9px] font-black uppercase text-text-muted bg-bg-s3 border border-border px-2.5 py-1 rounded-md self-start flex items-center gap-1.5">
+                  <BookOpen className="w-3 h-3 text-saffron" />
+                  <span>{selectedSavedQuestion.subject || 'General Knowledge'}</span>
+                </div>
+
+                {/* Question Text */}
+                <h3 className="text-xs font-black text-text leading-relaxed tracking-wide">
+                  {selectedSavedQuestion.question}
+                </h3>
+
+                {/* Options List */}
+                <div className="flex flex-col gap-2.5 mt-1">
+                  {selectedSavedQuestion.options.map((option: string, oIdx: number) => {
+                    const isCorrect = oIdx === selectedSavedQuestion.correctIndex;
+                    return (
+                      <div
+                        key={oIdx}
+                        className={`p-3 rounded-lg border text-xs font-semibold flex items-center justify-between ${
+                          isCorrect
+                            ? 'bg-green-500/10 border-greenL/40 text-greenL'
+                            : 'bg-bg-s3/40 border-border/80 text-text-muted'
+                        }`}
+                      >
+                        <span>{option}</span>
+                        {isCorrect && (
+                          <span className="text-[9px] font-black bg-greenL/20 px-2 py-0.5 rounded uppercase">Correct</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Explanation */}
+                {selectedSavedQuestion.explanation && (
+                  <div className="p-4 bg-saffron-dim/10 border border-saffron-border/10 rounded-lg flex flex-col gap-1.5 mt-2">
+                    <span className="text-[9px] font-black uppercase text-saffron tracking-wider">Explanation / व्याख्या:</span>
+                    <p className="text-[11px] text-text-muted leading-relaxed whitespace-pre-line">
+                      {selectedSavedQuestion.explanation}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions row */}
+              <div className="flex gap-3 mt-2 shrink-0 border-t border-border pt-4">
+                <button
+                  onClick={() => {
+                    if (onToggleBookmark) {
+                      onToggleBookmark(selectedSavedQuestion);
+                    }
+                    setSelectedSavedQuestion(null);
+                  }}
+                  className="flex-1 py-2.5 border border-redL/20 hover:border-redL/40 bg-redL/5 hover:bg-redL/10 text-redL text-xs font-black uppercase rounded-md flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Remove Bookmark</span>
+                </button>
+                <button
+                  onClick={() => setSelectedSavedQuestion(null)}
+                  className="flex-1 py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-md flex items-center justify-center cursor-pointer transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

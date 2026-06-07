@@ -188,30 +188,64 @@ router.get('/analytics', verifyFirebaseToken, async (req, res) => {
       .where('userId', '==', userId)
       .get();
       
-    let readCount = 0;
-    let bookmarkCount = 0;
-    let mcqAttempts = 0;
-    let flashcardsRevised = 0;
+    const uniqueReads = new Set();
+    const uniqueBookmarks = new Set();
+    const uniqueFlashcards = new Set();
+    const mcqLatestScoreMap = new Map();
     let totalTimeSpent = 0;
-    
-    let mcqCorrectSum = 0;
-    let mcqTotalSum = 0;
     
     snap.docs.forEach(doc => {
       const data = doc.data();
       totalTimeSpent += data.timeSpentSeconds || 0;
       
-      if (data.activityType === 'read') readCount++;
-      else if (data.activityType === 'bookmark') bookmarkCount++;
-      else if (data.activityType === 'mcq_attempt') {
-        mcqAttempts++;
-        if (data.mcqScore) {
-          mcqCorrectSum += data.mcqScore.correct || 0;
-          mcqTotalSum += data.mcqScore.total || 0;
+      const articleKey = data.articleId || data.articleTitle;
+      if (!articleKey) return;
+      
+      if (data.activityType === 'read') {
+        uniqueReads.add(articleKey);
+      } else if (data.activityType === 'bookmark') {
+        uniqueBookmarks.add(articleKey);
+      } else if (data.activityType === 'mcq_attempt') {
+        let timestampMs = 0;
+        if (data.timestamp) {
+          if (typeof data.timestamp.toMillis === 'function') {
+            timestampMs = data.timestamp.toMillis();
+          } else if (data.timestamp.seconds !== undefined) {
+            timestampMs = data.timestamp.seconds * 1000;
+          } else if (data.timestamp instanceof Date) {
+            timestampMs = data.timestamp.getTime();
+          } else if (typeof data.timestamp === 'string') {
+            timestampMs = Date.parse(data.timestamp) || 0;
+          } else if (typeof data.timestamp === 'number') {
+            timestampMs = data.timestamp;
+          }
         }
+        
+        const existing = mcqLatestScoreMap.get(articleKey);
+        if (!existing || timestampMs > existing.timestampMs) {
+          mcqLatestScoreMap.set(articleKey, {
+            correct: data.mcqScore?.correct || 0,
+            total: data.mcqScore?.total || 0,
+            timestampMs
+          });
+        }
+      } else if (data.activityType === 'flashcard_revise') {
+        uniqueFlashcards.add(articleKey);
       }
-      else if (data.activityType === 'flashcard_revise') flashcardsRevised++;
     });
+    
+    const readCount = uniqueReads.size;
+    const bookmarkCount = uniqueBookmarks.size;
+    const mcqAttempts = mcqLatestScoreMap.size;
+    const flashcardsRevised = uniqueFlashcards.size;
+    
+    let mcqCorrectSum = 0;
+    let mcqTotalSum = 0;
+    
+    for (const score of mcqLatestScoreMap.values()) {
+      mcqCorrectSum += score.correct;
+      mcqTotalSum += score.total;
+    }
     
     const masteryScore = mcqTotalSum > 0 ? Math.round((mcqCorrectSum / mcqTotalSum) * 100) : 70;
     const retentionScore = Math.min(100, Math.max(30, Math.round(50 + (readCount * 2) + (flashcardsRevised * 5) - (bookmarkCount * 1.5))));

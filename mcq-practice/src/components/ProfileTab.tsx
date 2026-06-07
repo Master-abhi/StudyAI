@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Flame, Trophy, Award, Star, Clock, 
   CheckCircle2, AlertCircle, History, Sparkles, BookOpen, ChevronRight,
-  ArrowRight, Target, Mail, ShieldCheck, ShieldAlert
+  ArrowRight, Target, Mail, ShieldCheck, ShieldAlert, Rocket, User
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -44,6 +44,9 @@ interface ProfileTabProps {
   rankingData?: any;
   tabVisibility?: Record<string, boolean>;
   currentUser?: any;
+  userPlan?: 'free' | 'paid';
+  onUploadAvatar?: (file: File) => Promise<string>;
+  onVisitProfile?: (uid: string) => void;
 }
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
@@ -66,9 +69,35 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   onNavigateToTab,
   onReviewTest,
   rankingData,
-  tabVisibility
+  tabVisibility,
+  userPlan = 'free',
+  onUploadAvatar,
+  onVisitProfile
 }) => {
   const [showHistoryLimit, setShowHistoryLimit] = useState<number>(5);
+  const [uploadingAvatar, setUploadingAvatar] = useState<boolean>(false);
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image size should be less than 2MB.");
+      return;
+    }
+
+    if (!onUploadAvatar) return;
+
+    setUploadingAvatar(true);
+    try {
+      await onUploadAvatar(file);
+      alert("Profile image updated successfully!");
+    } catch (err: any) {
+      alert(err.message || "An error occurred while uploading your profile image.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   // Email Verification states & handlers
   const [verifySent, setVerifySent] = useState<boolean>(false);
@@ -117,158 +146,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     }
   };
 
-  // Credentials Management states
-  const [activeCredentialTab, setActiveCredentialTab] = useState<'email' | 'password' | null>(null);
-  const [newEmail, setNewEmail] = useState<string>('');
-  const [newPassword, setNewPassword] = useState<string>('');
-  const [currentPassword, setCurrentPassword] = useState<string>('');
-  const [credLoading, setCredLoading] = useState<boolean>(false);
-  const [credError, setCredError] = useState<string>('');
-  const [credSuccess, setCredSuccess] = useState<string>('');
-
-  const reauthenticateUser = async (pass: string) => {
-    if (!firebaseUser || !firebaseUser.email) {
-      throw new Error('User email not found. Please log in again.');
-    }
-    const credential = firebase.auth.EmailAuthProvider.credential(firebaseUser.email, pass);
-    await firebaseUser.reauthenticateWithCredential(credential);
-  };
-
-  const handleChangeEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCredLoading(true);
-    setCredError('');
-    setCredSuccess('');
-    try {
-      const trimmedEmail = newEmail.trim();
-      if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-        throw new Error('Please enter a valid new email address.');
-      }
-      if (!currentPassword) {
-        throw new Error('Please enter your current password to confirm your identity.');
-      }
-
-      // 1. Re-authenticate
-      await reauthenticateUser(currentPassword);
-
-      // 2. Update email in Firebase
-      await firebaseUser.updateEmail(trimmedEmail);
-
-      // 3. Sync to firestore backend
-      const token = await firebaseUser.getIdToken(true);
-      const host = window.location.hostname === 'localhost' || 
-                   window.location.hostname === '127.0.0.1' || 
-                   window.location.hostname === '[::1]' ||
-                   window.location.hostname.startsWith('192.168.')
-                   ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
-                   : '';
-
-      await fetch(`${host}/api/user/sync`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ email: trimmedEmail })
-      }).catch(err => console.warn('[Email Sync on Update] Failed:', err));
-
-      setCredSuccess('Email ID updated successfully!');
-      setNewEmail('');
-      setCurrentPassword('');
-      setActiveCredentialTab(null);
-    } catch (err: any) {
-      console.error('[Change Email Error]:', err);
-      setCredError(err.message || 'Failed to update email ID.');
-    } finally {
-      setCredLoading(false);
-    }
-  };
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCredLoading(true);
-    setCredError('');
-    setCredSuccess('');
-    try {
-      if (newPassword.length < 6) {
-        throw new Error('New password must be at least 6 characters long.');
-      }
-      if (!currentPassword) {
-        throw new Error('Please enter your current password to confirm your identity.');
-      }
-
-      // 1. Re-authenticate
-      await reauthenticateUser(currentPassword);
-
-      // 2. Update password in Firebase
-      await firebaseUser.updatePassword(newPassword);
-
-      setCredSuccess('Password updated successfully!');
-      setNewPassword('');
-      setCurrentPassword('');
-      setActiveCredentialTab(null);
-    } catch (err: any) {
-      console.error('[Change Password Error]:', err);
-      setCredError(err.message || 'Failed to update password.');
-    } finally {
-      setCredLoading(false);
-    }
-  };
-
-  const handleSetEmailAndPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCredLoading(true);
-    setCredError('');
-    setCredSuccess('');
-    try {
-      const trimmedEmail = newEmail.trim();
-      if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-        throw new Error('Please enter a valid email address.');
-      }
-      if (newPassword.length < 6) {
-        throw new Error('Password must be at least 6 characters long.');
-      }
-
-      // Link email/password credential to this user
-      const credential = firebase.auth.EmailAuthProvider.credential(trimmedEmail, newPassword);
-      await firebaseUser.linkWithCredential(credential);
-
-      // Sync to firestore backend
-      const token = await firebaseUser.getIdToken(true);
-      const host = window.location.hostname === 'localhost' || 
-                   window.location.hostname === '127.0.0.1' || 
-                   window.location.hostname === '[::1]' ||
-                   window.location.hostname.startsWith('192.168.')
-                   ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
-                   : '';
-
-      await fetch(`${host}/api/user/sync`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ email: trimmedEmail })
-      }).catch(err => console.warn('[Email Sync on Link] Failed:', err));
-
-      setCredSuccess('Email and Password set successfully! You can now log in with these credentials.');
-      setNewEmail('');
-      setNewPassword('');
-      setActiveCredentialTab(null);
-
-      // Reload user status
-      await firebaseUser.reload();
-      setEmailVerified(firebaseUser.emailVerified);
-    } catch (err: any) {
-      console.error('[Set Email/Pass Error]:', err);
-      setCredError(err.message || 'Failed to set email and password.');
-    } finally {
-      setCredLoading(false);
-    }
-  };
-
-  const isPasswordProvider = firebaseUser?.providerData && firebaseUser.providerData.some((p: any) => p.providerId === 'password');
-  const showVerificationSection = firebaseUser && userEmail !== 'guest@studyworld.app';
+  const showVerificationSection = firebaseUser && userEmail !== 'guest@studyworld.app' && !emailVerified;
 
   // Normalize test history records to gracefully support both old and new schema fields from Firestore
   const normalizedHistory = (testHistory || []).map((log: any) => {
@@ -338,17 +216,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     });
   }
 
-  // Define student classifications matching the intelligence service
-  const classification = serverAnalytics?.profileClassification || 'regular_learner';
-  const classLabels: Record<string, string> = {
-    highly_consistent: '🔥 Highly Consistent Student',
-    fast_learner: '⚡ Fast Learner',
-    slow_learner: '🐢 Steady & Persistent Learner',
-    revision_focused: '🔄 Revision-Focused Learner',
-    practice_focused: '📝 Practice-Focused Learner',
-    at_risk: '⚠️ At-Risk Student',
-    regular_learner: '🎓 Regular Learner'
-  };
+
 
   // 2. Compute Strong vs Weak Subjects from Test History
   const subjectAccuracyMap: Record<string, { sum: number; count: number }> = {};
@@ -409,45 +277,37 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
   // Rank calculation logic
   const getRankInfo = (userXp: number) => {
-    if (userXp < 100) {
+    if (userXp < 200) {
       return {
-        title: 'Novice Aspirant / नवसिखिया',
-        nextTitle: 'Dedicated Explorer / खोजकर्ता',
+        title: 'Beginner',
+        nextTitle: 'Intermediate',
         minXp: 0,
-        maxXp: 100,
-        badge: '🌱'
+        maxXp: 200,
+        icon: BookOpen
       };
-    } else if (userXp < 500) {
+    } else if (userXp < 1000) {
       return {
-        title: 'Dedicated Explorer / खोजकर्ता',
-        nextTitle: 'Scholarly Mind / विद्वान',
-        minXp: 100,
-        maxXp: 500,
-        badge: '🔍'
-      };
-    } else if (userXp < 1500) {
-      return {
-        title: 'Scholarly Mind / विद्वान',
-        nextTitle: 'MCQ Master / मास्टर',
-        minXp: 500,
-        maxXp: 1500,
-        badge: '🎓'
+        title: 'Intermediate',
+        nextTitle: 'Master',
+        minXp: 200,
+        maxXp: 1000,
+        icon: Target
       };
     } else if (userXp < 3000) {
       return {
-        title: 'MCQ Master / मास्टर',
-        nextTitle: 'Guru Acharya / आचार्य',
-        minXp: 1500,
+        title: 'Master',
+        nextTitle: 'Conqueror',
+        minXp: 1000,
         maxXp: 3000,
-        badge: '👑'
+        icon: Award
       };
     } else {
       return {
-        title: 'Guru Acharya / आचार्य',
-        nextTitle: 'Ultimate Legend',
+        title: 'Conqueror',
+        nextTitle: 'Legend',
         minXp: 3000,
         maxXp: 100000,
-        badge: '✨'
+        icon: Trophy
       };
     }
   };
@@ -459,42 +319,42 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const achievements = [
     {
       id: 'first_step',
-      name: 'First Step / पहला कदम',
+      name: 'First Step',
       desc: 'Complete your first practice test.',
       unlocked: testsGivenCount > 0,
-      icon: '🚀',
+      icon: Rocket,
       color: 'from-blue-500/15 to-indigo-500/15 border-blue-500/25 text-blue-400'
     },
     {
       id: 'streak_3',
-      name: 'Consistency King / निरंतरता सम्राट',
+      name: 'Consistency King',
       desc: 'Maintain a study streak of 3+ days.',
       unlocked: streak >= 3,
-      icon: '🔥',
+      icon: Flame,
       color: 'from-orange-500/15 to-red-500/15 border-orange-500/25 text-orange-400'
     },
     {
       id: 'mcq_50',
-      name: 'Practice Guru / अभ्यास गुरु',
+      name: 'Practice Guru',
       desc: 'Solve 50 or more practice questions.',
       unlocked: solvedMcqsCount >= 50,
-      icon: '📚',
+      icon: BookOpen,
       color: 'from-amber-500/15 to-yellow-500/15 border-amber-500/25 text-yellow-400'
     },
     {
       id: 'accuracy_75',
-      name: 'Accuracy Master / सटीकता मास्टर',
+      name: 'Accuracy Master',
       desc: 'Achieve over 75% average test accuracy.',
       unlocked: overallAccuracy >= 75 && testsGivenCount >= 1,
-      icon: '🎯',
+      icon: Target,
       color: 'from-emerald-500/15 to-teal-500/15 border-emerald-500/25 text-emerald-400'
     },
     {
       id: 'syllabus_50',
-      name: 'Scholar / विद्वान',
+      name: 'Scholar',
       desc: 'Acquire 500+ XP points in study sessions.',
       unlocked: xp >= 500,
-      icon: '🎓',
+      icon: Award,
       color: 'from-purple-500/15 to-pink-500/15 border-purple-500/25 text-purple-400'
     }
   ];
@@ -543,24 +403,70 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         <div className="absolute -bottom-10 -left-10 w-36 h-36 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
         
         <div className="flex items-center gap-4.5">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-tr from-saffron to-orange-500 border border-saffron-border/30 rounded-full flex items-center justify-center text-2xl font-black select-none text-bg-s1 shrink-0 shadow-lg">
-            {(userName || 'Guest')[0].toUpperCase()}
+          <div className="relative group shrink-0">
+            {uploadingAvatar ? (
+              <div className="w-16 h-16 md:w-20 md:h-20 border border-saffron-border/30 rounded-full flex items-center justify-center bg-bg-s3/80 shadow-lg">
+                <div className="w-6 h-6 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : currentUser?.photoURL || rankingData?.photoURL ? (
+              <img 
+                src={currentUser?.photoURL || rankingData?.photoURL} 
+                alt="" 
+                className="w-16 h-16 md:w-20 md:h-20 border border-saffron-border/30 rounded-full object-cover shadow-lg"
+              />
+            ) : (
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-tr from-saffron to-orange-500 border border-saffron-border/30 rounded-full flex items-center justify-center text-xl text-bg-s1 shadow-lg">
+                <User className="w-8 h-8 text-bg-s1" />
+              </div>
+            )}
+            
+            {currentUser && !isGuest && !uploadingAvatar && (
+              <label 
+                htmlFor="avatar-upload-input" 
+                className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white text-[9px] font-black uppercase tracking-wider text-center p-1"
+              >
+                Change<br/>Photo
+              </label>
+            )}
+            <input 
+              id="avatar-upload-input" 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              onChange={handleAvatarFileChange}
+              disabled={uploadingAvatar}
+            />
           </div>
           <div className="flex flex-col gap-1.5 min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap">
               <h3 className="text-base md:text-xl font-black text-text leading-tight truncate">{userName || 'Guest User'}</h3>
               <span className="text-[9px] font-black uppercase text-bg-s1 bg-saffron px-2.5 py-0.5 rounded shadow-sm leading-none flex items-center justify-center">
-                {classLabels[classification] || 'Aspirant'}
+                {rankInfo.title}
               </span>
             </div>
-            <span className="text-xs text-text-muted font-medium tracking-wide truncate">{userEmail || 'guest@studyworld.app'}</span>
+            <span className="text-xs text-text-muted font-bold tracking-wide truncate mt-0.5">
+              Plan: {userPlan === 'paid' ? 'Pro Plan' : 'Free Plan'}
+            </span>
+
+            {/* Followers / Following counts */}
+            {!isGuest && (
+              <div className="flex gap-4 text-[10px] font-bold text-text-muted mt-1 flex-wrap">
+                <div>
+                  <span className="text-text font-black">{rankingData?.followersCount || 0}</span> Followers
+                </div>
+                <div className="w-px h-3 bg-border/40 self-center" />
+                <div>
+                  <span className="text-text font-black">{rankingData?.followingCount || 0}</span> Following
+                </div>
+              </div>
+            )}
             
             {/* Gamified Rank Progress bar */}
             <div className="mt-2.5 flex flex-col gap-1.5 w-64 sm:w-80">
               <div className="flex justify-between items-center text-[10px] font-bold">
-                <span className="text-saffron flex items-center gap-1">
-                  <span>{rankInfo.badge}</span>
-                  <span className="uppercase tracking-wider">{rankInfo.title}</span>
+                <span className="text-saffron flex items-center gap-1.5">
+                  <rankInfo.icon className="w-3.5 h-3.5" />
+                  <span className="uppercase tracking-wider">Level: {rankInfo.title}</span>
                 </span>
                 {rankInfo.maxXp !== 100000 && (
                   <span className="text-text-muted">{rankProgress}%</span>
@@ -575,24 +481,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Quick Streak/XP Metrics sidepanel inside hero (Shown only on desktop) */}
-        <div className="hidden md:flex items-center gap-6 border-l border-border/80 pl-6 shrink-0">
-          <div className="flex flex-col items-center">
-            <span className="text-xl font-black text-orange-500 leading-none">🔥 {streak} Days</span>
-            <span className="text-[8px] font-black text-text-muted uppercase tracking-wider mt-2">Active Streak</span>
-          </div>
-          <div className="w-px h-8 bg-border/60" />
-          <div className="flex flex-col items-center">
-            <span className="text-xl font-black text-saffron leading-none">✨ {xp}</span>
-            <span className="text-[8px] font-black text-text-muted uppercase tracking-wider mt-2">Earned XP</span>
-          </div>
-          <div className="w-px h-8 bg-border/60" />
-          <div className="flex flex-col items-center">
-            <span className="text-xl font-black text-greenL leading-none">🎯 {overallAccuracy}%</span>
-            <span className="text-[8px] font-black text-text-muted uppercase tracking-wider mt-2">Accuracy</span>
           </div>
         </div>
       </div>
@@ -720,200 +608,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
         )}
 
-        {/* Security & Credentials Card */}
-        {showVerificationSection && (
-          <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-saffron-dim/5 rounded-full blur-2xl pointer-events-none" />
-            <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
-              <span>Security Credentials / पासवर्ड और ईमेल</span>
-            </h4>
-
-            {credError && (
-              <p className="text-[10px] text-redL bg-redL/5 border border-redL/10 px-2.5 py-1.5 rounded font-semibold leading-relaxed">
-                {credError}
-              </p>
-            )}
-
-            {credSuccess && (
-              <p className="text-[10px] text-greenL bg-greenL/5 border border-greenL/10 px-2.5 py-1.5 rounded font-semibold leading-relaxed">
-                {credSuccess}
-              </p>
-            )}
-
-            {/* Toggle forms or Set Email form */}
-            {!isPasswordProvider ? (
-              /* Link Email & Password Form */
-              <form onSubmit={handleSetEmailAndPassword} className="flex flex-col gap-3">
-                <p className="text-xs text-text-muted leading-relaxed">
-                  Your account does not have an email and password set up. Link an email and password to secure your account and enable standard login.
-                </p>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] font-black uppercase text-text-muted">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="Enter email address"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    required
-                    disabled={credLoading}
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] font-black uppercase text-text-muted">Choose Password (Min 6 characters)</label>
-                  <input
-                    type="password"
-                    placeholder="Enter new password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    disabled={credLoading}
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={credLoading}
-                  className="w-full py-2.5 mt-1.5 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow-md flex items-center justify-center gap-1 shrink-0"
-                >
-                  {credLoading ? 'Linking...' : 'Link Email & Password'}
-                </button>
-              </form>
-            ) : activeCredentialTab === null ? (
-              <div className="flex flex-col gap-2.5">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] font-black uppercase text-text-muted">Registered Email Address</span>
-                  <span className="text-xs text-text font-bold break-all select-all">{userEmail}</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 mt-1.5">
-                  <button
-                    onClick={() => {
-                      setActiveCredentialTab('email');
-                      setCredError('');
-                      setCredSuccess('');
-                      setCurrentPassword('');
-                      setNewEmail('');
-                    }}
-                    className="py-2.5 px-3 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1.5"
-                  >
-                    Change Email
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveCredentialTab('password');
-                      setCredError('');
-                      setCredSuccess('');
-                      setCurrentPassword('');
-                      setNewPassword('');
-                    }}
-                    className="py-2.5 px-3 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1.5"
-                  >
-                    Change Password
-                  </button>
-                </div>
-              </div>
-            ) : activeCredentialTab === 'email' ? (
-              /* Change Email Form */
-              <form onSubmit={handleChangeEmail} className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] font-black uppercase text-text-muted">New Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="Enter new email address"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    required
-                    disabled={credLoading}
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] font-black uppercase text-text-muted">Current Password (To Confirm Identity)</label>
-                  <input
-                    type="password"
-                    placeholder="Enter current password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    required
-                    disabled={credLoading}
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
-                  />
-                </div>
-
-                <div className="flex gap-2.5 mt-1.5">
-                  <button
-                    type="submit"
-                    disabled={credLoading}
-                    className="flex-1 py-2.5 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow-md flex items-center justify-center gap-1 shrink-0"
-                  >
-                    {credLoading ? 'Updating...' : 'Update Email'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveCredentialTab(null)}
-                    disabled={credLoading}
-                    className="py-2.5 px-4 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1 shrink-0"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : (
-              /* Change Password Form */
-              <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] font-black uppercase text-text-muted">New Password</label>
-                  <input
-                    type="password"
-                    placeholder="Min 6 characters"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    disabled={credLoading}
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] font-black uppercase text-text-muted">Current Password (To Confirm Identity)</label>
-                  <input
-                    type="password"
-                    placeholder="Enter current password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    required
-                    disabled={credLoading}
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none transition-colors"
-                  />
-                </div>
-
-                <div className="flex gap-2.5 mt-1.5">
-                  <button
-                    type="submit"
-                    disabled={credLoading}
-                    className="flex-1 py-2.5 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow-md flex items-center justify-center gap-1 shrink-0"
-                  >
-                    {credLoading ? 'Updating...' : 'Update Password'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveCredentialTab(null)}
-                    disabled={credLoading}
-                    className="py-2.5 px-4 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1 shrink-0"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
 
         {/* 2. Core Stats Grid with hover lift and glowing colors */}
         <div className="grid grid-cols-4 gap-3">
@@ -973,7 +667,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-4">
           <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
             <Award className="w-4 h-4 text-saffron" />
-            <span>Unlocked Badges & Achievements / उपलब्धियां</span>
+            <span>Unlocked Badges & Achievements</span>
           </h4>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
@@ -990,7 +684,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                   <div className="absolute -top-6 -right-6 w-12 h-12 bg-white/5 rounded-full blur-md" />
                 )}
                 
-                <span className="text-2xl shrink-0 filter drop-shadow">{ach.icon}</span>
+                <ach.icon className="w-6 h-6 shrink-0" />
                 <div className="flex flex-col min-w-0">
                   <span className="text-[11px] font-black text-text uppercase tracking-wide truncate">{ach.name}</span>
                   <span className="text-[9px] text-text-muted mt-0.5 leading-snug">{ach.desc}</span>
@@ -1044,7 +738,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         {/* Settings Action card */}
         <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
           <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
-            <span>Account Settings / सेटिंग्स</span>
+            <span>Account Settings</span>
           </h4>
           <p className="text-[10px] text-text-muted leading-relaxed">
             Purging local progress will clear your Streak, earned XP points, and locally stored test performance histories. This cannot be undone.
@@ -1131,7 +825,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           <div className="absolute top-0 right-0 w-24 h-24 bg-saffron-dim/5 rounded-full blur-2xl pointer-events-none" />
           <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
             <Trophy className="w-4 h-4 text-saffron" />
-            <span>Aspirants Leaderboard / रैंकिंग</span>
+            <span>Aspirants Leaderboard</span>
           </h4>
 
           <div className="flex flex-col bg-[#121620] border border-saffron-border/10 p-3 rounded-lg text-center items-center justify-center shrink-0">
@@ -1145,15 +839,21 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             {leaderboardList.map((usr: any, idx: number) => {
               const isSelf = usr.displayName === userName || (idx + 1 === resolvedRank && usr.points === xp);
               return (
-                <div 
+                <button 
                   key={idx} 
-                  className={`p-2.5 rounded-lg flex items-center justify-between text-xs transition-colors ${
+                  onClick={() => {
+                    if (usr.uid && usr.uid !== currentUser?.uid && onVisitProfile) {
+                      onVisitProfile(usr.uid);
+                    }
+                  }}
+                  disabled={!usr.uid || usr.uid === currentUser?.uid || !onVisitProfile}
+                  className={`w-full text-left p-2.5 rounded-lg flex items-center justify-between text-xs transition-colors ${
                     isSelf 
                       ? 'bg-saffron/10 border border-saffron-border/30 font-bold text-saffron' 
-                      : 'bg-bg-s3/45 border border-border/40 text-text-muted'
+                      : 'bg-bg-s3/45 border border-border/40 text-text-muted hover:bg-bg-s3/80 hover:text-text cursor-pointer'
                   }`}
                 >
-                  <div className="flex items-center gap-2 truncate">
+                  <div className="flex items-center gap-2.5 truncate">
                     <span className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-black uppercase shrink-0 ${
                       idx === 0 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/25' :
                       idx === 1 ? 'bg-slate-400/20 text-slate-300 border border-slate-400/25' :
@@ -1162,10 +862,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                     }`}>
                       #{idx + 1}
                     </span>
+
+                    {/* User Avatar */}
+                    {usr.photoURL ? (
+                      <img src={usr.photoURL} alt="" className="w-5.5 h-5.5 rounded-full object-cover border border-border/60 shrink-0" />
+                    ) : (
+                      <div className="w-5.5 h-5.5 rounded-full bg-gradient-to-tr from-saffron/30 to-orange-500/30 border border-border/50 flex items-center justify-center text-[8px] font-bold text-text-muted shrink-0">
+                        {usr.displayName.substring(0, 1).toUpperCase()}
+                      </div>
+                    )}
+
                     <span className="truncate">{usr.displayName}</span>
                   </div>
                   <span className="font-bold shrink-0">{usr.points} XP</span>
-                </div>
+                </button>
               );
             })}
 
@@ -1174,10 +884,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               <>
                 <div className="text-center text-text-muted text-[10px] py-0.5 tracking-wider font-bold">•••</div>
                 <div className="p-2.5 rounded-lg flex items-center justify-between text-xs bg-saffron/10 border border-saffron-border/30 font-bold text-saffron">
-                  <div className="flex items-center gap-2 truncate">
+                  <div className="flex items-center gap-2.5 truncate">
                     <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black bg-saffron text-bg-s1 shrink-0">
                       #{resolvedRank}
                     </span>
+
+                    {/* User Avatar */}
+                    {currentUser?.photoURL || rankingData?.photoURL ? (
+                      <img src={currentUser?.photoURL || rankingData?.photoURL} alt="" className="w-5.5 h-5.5 rounded-full object-cover border border-border/60 shrink-0" />
+                    ) : (
+                      <div className="w-5.5 h-5.5 rounded-full bg-gradient-to-tr from-saffron/30 to-orange-500/30 border border-border/50 flex items-center justify-center text-[8px] font-bold text-bg-s1 shrink-0">
+                        {userName.substring(0, 1).toUpperCase()}
+                      </div>
+                    )}
+
                     <span className="truncate">{userName}</span>
                   </div>
                   <span className="font-bold shrink-0">{xp} XP</span>
@@ -1276,6 +996,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             </div>
           )}
         </div>
+
+
 
         {/* 8. AI Recommendations Coaching tips (Premium Glowing Overhaul) */}
         <div className="p-6 bg-gradient-to-br from-bg-s2 via-[#161d2d] to-[#121620] border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-4 relative overflow-hidden">

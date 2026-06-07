@@ -1,6 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { admin, db } = require('../firebase-admin');
+const multer = require('multer');
+const { admin, db, bucket } = require('../firebase-admin');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  },
+  limits: { fileSize: 2 * 1024 * 1024 } // 2MB limit
+});
 
 // --- Public OTP routes (for Fallback Sign Up verification) ---
 router.post('/send-otp', async (req, res) => {
@@ -109,6 +122,25 @@ function cleanStreak(value) {
   };
 }
 
+function cleanQuestions(questions) {
+  if (!Array.isArray(questions)) return [];
+  return questions.map((q) => {
+    if (!q || typeof q !== 'object' || Array.isArray(q)) return null;
+    return {
+      id: cleanString(q.id, 80) || '',
+      question: cleanString(q.question, 1000) || '',
+      options: Array.isArray(q.options) ? q.options.map(o => cleanString(o, 500)).filter(Boolean) : [],
+      correctIndex: clampInteger(q.correctIndex, 0, 10) ?? 0,
+      explanation: cleanString(q.explanation, 2000) || '',
+      subject: cleanString(q.subject, 120) || '',
+      difficulty: cleanString(q.difficulty, 20) || 'medium',
+      weightage: cleanString(q.weightage, 20) || 'medium',
+      isCgSpecific: typeof q.isCgSpecific === 'boolean' ? q.isCgSpecific : false,
+      examRelevance: cleanString(q.examRelevance, 200) || ''
+    };
+  }).filter(Boolean);
+}
+
 function cleanTestResults(value) {
   if (!Array.isArray(value)) return null;
   return value.slice(-MAX_TEST_RESULTS).map((result) => {
@@ -133,6 +165,11 @@ function cleanTestResults(value) {
     const subjectName = cleanString(result.subject, 100) || '';
     const studyMode = cleanString(result.mode, 30) || 'quiz';
 
+    const cleanQuestionsList = cleanQuestions(result.questions);
+    const cleanUserAnswers = Array.isArray(result.userAnswers)
+      ? result.userAnswers.map(ans => clampInteger(ans, 0, 10)).filter((ans) => ans !== null)
+      : [];
+
     return {
       date: dateStr,
       timestamp: dateStr,
@@ -144,7 +181,9 @@ function cleanTestResults(value) {
       wrong: wrong ?? 0,
       skipped: skipped ?? 0,
       total: total ?? 0,
-      percent: percent ?? 0
+      percent: percent ?? 0,
+      questions: cleanQuestionsList,
+      userAnswers: cleanUserAnswers
     };
   }).filter(Boolean);
 }
@@ -213,7 +252,7 @@ router.post('/sync', async (req, res) => {
     //   return res.status(403).json({ error: 'Please verify your email address before syncing data.' });
     // }
 
-    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email } = req.body;
+    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email, username, photoURL } = req.body;
 
     const update = {};
     const cleanResults = cleanTestResults(testResults);
@@ -226,6 +265,8 @@ router.post('/sync', async (req, res) => {
     const cleanMobile = cleanString(mobile, 20);
     const cleanDisplayName = cleanString(displayName, 80);
     const cleanEmail = cleanString(email, 120);
+    const cleanUsername = cleanString(username, 50);
+    const cleanPhotoURL = cleanString(photoURL, 2083);
 
     if (cleanResults) update.testResults = cleanResults;
     if (cleanPoints !== null) update.points = cleanPoints;
@@ -234,6 +275,7 @@ router.post('/sync', async (req, res) => {
     if (cleanSubjects) update.subjects = cleanSubjects;
     if (cleanProgress) update.progress = cleanProgress;
     if (cleanSelectedExam) update.selectedExam = cleanSelectedExam;
+    if (cleanPhotoURL) update.photoURL = cleanPhotoURL;
     if (cleanMobile) {
       const userDoc = await db.collection('users').doc(req.user.uid).get();
       const currentMobile = userDoc.exists ? userDoc.data().mobile : null;
@@ -259,15 +301,13 @@ router.post('/sync', async (req, res) => {
           }
         }
 
-        if (!verified) {
-          return res.status(400).json({ error: 'Mobile number not verified via SMS or Fallback OTP.' });
-        }
-        update.mobileVerified = true;
+        update.mobileVerified = verified;
       }
       update.mobile = cleanMobile;
     }
     if (cleanDisplayName) update.displayName = cleanDisplayName;
     if (cleanEmail) update.email = cleanEmail;
+    if (cleanUsername) update.username = cleanUsername;
 
     update.updatedAt = admin.firestore.FieldValue.serverTimestamp();
 
@@ -302,7 +342,8 @@ router.get('/ranking', async (req, res) => {
       userScores.push({
         uid: doc.id,
         displayName: displayName,
-        points: points
+        points: points,
+        photoURL: data.photoURL || ''
       });
     });
 
@@ -311,7 +352,8 @@ router.get('/ranking', async (req, res) => {
       userScores.push({
         uid: currentUid,
         displayName: displayName,
-        points: 0
+        points: 0,
+        photoURL: ''
       });
     }
 
@@ -323,14 +365,143 @@ router.get('/ranking', async (req, res) => {
     const rank = userIndex !== -1 ? userIndex + 1 : userScores.length + 1;
     const totalUsers = Math.max(userScores.length, 1);
 
+    // Count following for current user
+    const currentUserDoc = await db.collection('users').doc(currentUid).get();
+    const followingCount = currentUserDoc.exists && Array.isArray(currentUserDoc.data().following) 
+      ? currentUserDoc.data().following.length 
+      : 0;
+
+    // Count followers for current user
+    const followersSnapshot = await db.collection('users').where('following', 'array-contains', currentUid).get();
+    const followersCount = followersSnapshot.size;
+
     res.json({
       rank: rank,
       totalUsers: totalUsers,
-      leaderboard: userScores.slice(0, 5) // return top 5
+      leaderboard: userScores.slice(0, 5), // return top 5
+      followersCount,
+      followingCount
     });
   } catch (err) {
     console.error('[User Ranking] Error:', err.message);
     res.status(500).json({ error: 'Failed to calculate rankings' });
+  }
+});
+
+// GET /api/user/profile/:uid - Fetch public profile of a user
+router.get('/profile/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const userDoc = await db.collection('users').doc(uid).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const data = userDoc.data();
+    
+    // Check if the current user is following this user
+    const currentUserDoc = await db.collection('users').doc(req.user.uid).get();
+    const followingList = currentUserDoc.exists ? (currentUserDoc.data().following || []) : [];
+    const isFollowing = followingList.includes(uid);
+
+    // Count followers
+    const followersSnapshot = await db.collection('users').where('following', 'array-contains', uid).get();
+    const followersCount = followersSnapshot.size;
+    const followingCount = Array.isArray(data.following) ? data.following.length : 0;
+
+    res.json({
+      uid,
+      displayName: data.displayName || 'Aspirant',
+      photoURL: data.photoURL || '',
+      points: data.points || 0,
+      streak: data.streak?.count || 0,
+      mcqsSolved: data.mcqsSolved || 0,
+      testsCount: Array.isArray(data.testResults) ? data.testResults.length : 0,
+      isFollowing,
+      followersCount,
+      followingCount,
+      plan: data.plan || 'free'
+    });
+  } catch (err) {
+    console.error('[Public Profile] Error:', err.message);
+    res.status(500).json({ error: 'Failed to load public profile' });
+  }
+});
+
+// POST /api/user/follow - Toggle follow/unfollow a user
+router.post('/follow', async (req, res) => {
+  try {
+    const { targetUid } = req.body;
+    if (!targetUid || targetUid === req.user.uid) {
+      return res.status(400).json({ error: 'Invalid target user' });
+    }
+
+    const currentUserRef = db.collection('users').doc(req.user.uid);
+    const currentUserDoc = await currentUserRef.get();
+    if (!currentUserDoc.exists) {
+      return res.status(404).json({ error: 'Current user not found' });
+    }
+
+    const following = currentUserDoc.data().following || [];
+    let isFollowingNow = false;
+
+    if (following.includes(targetUid)) {
+      // Unfollow
+      await currentUserRef.update({
+        following: admin.firestore.FieldValue.arrayRemove(targetUid)
+      });
+      isFollowingNow = false;
+    } else {
+      // Follow
+      await currentUserRef.update({
+        following: admin.firestore.FieldValue.arrayUnion(targetUid)
+      });
+      isFollowingNow = true;
+    }
+
+    res.json({ success: true, isFollowing: isFollowingNow });
+  } catch (err) {
+    console.error('[Follow Toggle] Error:', err.message);
+    res.status(500).json({ error: 'Failed to update follow status' });
+  }
+});
+
+// POST /api/user/upload-avatar - Upload user avatar to Firebase Storage
+router.post('/upload-avatar', upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Please upload an image file.' });
+    }
+
+    const fileExtension = req.file.originalname.split('.').pop() || 'png';
+    const storageFileName = `avatars/avatar-${req.user.uid}-${Date.now()}.${fileExtension}`;
+    const fileRef = bucket.file(storageFileName);
+
+    await fileRef.save(req.file.buffer, {
+      metadata: {
+        contentType: req.file.mimetype,
+        userId: req.user.uid
+      }
+    });
+
+    const [url] = await fileRef.getSignedUrl({
+      action: 'read',
+      expires: '01-01-2099'
+    });
+
+    // Update the user's document in Firestore with this photoURL
+    await db.collection('users').doc(req.user.uid).set({
+      photoURL: url,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    res.json({
+      success: true,
+      photoURL: url
+    });
+  } catch (err) {
+    console.error('[Upload Avatar Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to upload profile image.' });
   }
 });
 

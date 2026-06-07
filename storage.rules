@@ -9,5 +9,13 @@ service firebase.storage {
       allow read: if request.auth != null;
       allow write: if false; // Server uses Admin SDK (bypasses rules)
     }
+
+    // ── User Profile Avatars ──
+    // Publicly readable so other users can see them
+    // Writes blocked from client — only Admin SDK on server can upload
+    match /avatars/{fileName} {
+      allow read: if true;
+      allow write: if false; // Server uses Admin SDK (bypasses rules)
+    }
   }
 }

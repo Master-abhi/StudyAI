@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, Trash2, StopCircle, 
-  Brain, ChevronRight, Globe 
+  Brain, ChevronRight, Globe,
+  Bot, Trees, FileText, Users, Newspaper
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -189,10 +190,10 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
   };
 
   const quickPrompts = [
-    { label: '🌳 CG National Parks', prompt: 'छत्तीसगढ़ के प्रमुख राष्ट्रीय उद्यान और अभयारण्य बताओ' },
-    { label: '📝 CG History Practice', prompt: 'Generate 5 MCQs on Chhattisgarh history for Patwari exam practice' },
-    { label: '🏘️ CG Tribes Overview', prompt: 'छत्तीसगढ़ की प्रमुख जनजातियाँ और उनकी सामाजिक विशेषताएं बताओ' },
-    { label: '📰 CG Current Affairs', prompt: 'Summarize latest notifications or current affairs in Chhattisgarh for the upcoming exam' }
+    { label: 'CG National Parks', icon: <Trees className="w-4 h-4 text-saffron" />, prompt: 'छत्तीसगढ़ के प्रमुख राष्ट्रीय उद्यान और अभयारण्य बताओ' },
+    { label: 'CG History Practice', icon: <FileText className="w-4 h-4 text-saffron" />, prompt: 'Generate 5 MCQs on Chhattisgarh history for Patwari exam practice' },
+    { label: 'CG Tribes Overview', icon: <Users className="w-4 h-4 text-saffron" />, prompt: 'छत्तीसगढ़ की प्रमुख जनजातियाँ और उनकी सामाजिक विशेषताएं बताओ' },
+    { label: 'CG Current Affairs', icon: <Newspaper className="w-4 h-4 text-saffron" />, prompt: 'Summarize latest notifications or current affairs in Chhattisgarh for the upcoming exam' }
   ];
 
   return (
@@ -236,8 +237,8 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
         {messages.length === 0 ? (
           /* Welcome panel */
           <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-bg-s2 border border-border rounded-xl shadow-md my-auto gap-4">
-            <div className="w-16 h-16 bg-saffron-dim/20 rounded-full border border-saffron-border/30 flex items-center justify-center text-3xl select-none animate-pulse">
-              🤖
+            <div className="w-16 h-16 bg-saffron-dim/20 rounded-full border border-saffron-border/30 flex items-center justify-center text-saffron select-none animate-pulse shrink-0">
+              <Bot className="w-8 h-8" />
             </div>
             <div className="flex flex-col gap-1">
               <h3 className="text-base font-black text-text">CG Guru AI Educator</h3>
@@ -256,7 +257,10 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
                     onClick={() => handleSend(qp.prompt)}
                     className="w-full p-2.5 bg-bg-s3 hover:bg-saffron-dim/25 border border-border rounded text-left text-xs font-bold text-text-muted hover:text-saffron transition-all flex items-center justify-between cursor-pointer group"
                   >
-                    <span>{qp.label}</span>
+                    <div className="flex items-center gap-2.5">
+                      {qp.icon}
+                      <span>{qp.label}</span>
+                    </div>
                     <ChevronRight className="w-3.5 h-3.5 text-text-muted group-hover:text-saffron group-hover:translate-x-0.5 transition-all" />
                   </button>
                 ))}

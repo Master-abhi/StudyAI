@@ -126,9 +126,9 @@ export const AdminLogs: React.FC<AdminLogsProps> = ({ currentUser }) => {
       case 'spaced_repetition':
         return '🔄 Space Repetition Quiz';
       case 'mcq_correct':
-        return '✅ Solved MCQ (Correct)';
       case 'mcq_incorrect':
-        return '❌ Solved MCQ (Incorrect)';
+      case 'mcq_attempt':
+        return '📝 Practiced MCQ';
       default:
         return type;
     }
