@@ -5,10 +5,10 @@ import path from 'path';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/',
+  base: '/mcq-practice/',
   build: {
-    outDir: '../public',
-    emptyOutDir: false,
+    outDir: '../public/mcq-practice',
+    emptyOutDir: true,
   },
   resolve: {
     alias: {

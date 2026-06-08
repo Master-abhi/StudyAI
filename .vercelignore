@@ -1,0 +1,37 @@
+# =============================================
+# .vercelignore - Excludes files from Vercel deployment bundle
+# These files are either served as static assets or not needed at all
+# =============================================
+
+# Exclude local node_modules (Vercel installs its own)
+node_modules/
+server/node_modules/
+
+# Exclude test/debug files in server
+server/response.html
+server/test-*.js
+server/set-admin.js
+
+# Exclude cache directory
+server/cache/
+
+# Exclude Firebase local files
+.firebase/
+.firebaserc
+firebase.json
+firestore.rules
+storage.rules
+
+# Exclude scratch/dev files
+scratch/
+
+# Exclude MCQ practice if it's a separate app
+mcq-practice/
+
+# Exclude README and docs
+README.md
+
+# System files
+.DS_Store
+Thumbs.db
+*.log

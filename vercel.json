@@ -3,7 +3,12 @@
     "builds": [
         {
             "src": "server/server.js",
-            "use": "@vercel/node"
+            "use": "@vercel/node",
+            "config": {
+                "includeFiles": [
+                    "server/**"
+                ]
+            }
         },
         {
             "src": "public/**",
@@ -16,8 +21,15 @@
             "dest": "server/server.js"
         },
         {
+            "handle": "filesystem"
+        },
+        {
+            "src": "/mcq-practice/(.*)",
+            "dest": "/public/mcq-practice/index.html"
+        },
+        {
             "src": "/(.*)",
-            "dest": "public/$1"
+            "dest": "/public/index.html"
         }
     ]
 }
