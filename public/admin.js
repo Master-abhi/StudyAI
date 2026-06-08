@@ -131,6 +131,7 @@ async function logout() {
   window.location.reload();
 }
 
+
 let isSelectorsInitialized = false;
 
 async function loadDashboard() {

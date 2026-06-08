@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -7,6 +7,65 @@ interface MarkdownRendererProps {
   className?: string;
 }
 
+// ─── Mermaid diagram block ─────────────────────────────────────────────────
+let mermaidInitialized = false;
+
+const MermaidDiagram: React.FC<{ code: string }> = ({ code }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const id = useRef(`mermaid-${Math.random().toString(36).slice(2)}`);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const render = async () => {
+      const mermaid = (await import('mermaid')).default;
+
+      if (!mermaidInitialized) {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'dark',
+          themeVariables: {
+            background: '#0B0E14',
+            primaryColor: '#F5A623',
+            primaryTextColor: '#E6EDF3',
+            primaryBorderColor: '#30363D',
+            lineColor: '#8B949E',
+            secondaryColor: '#161B22',
+            tertiaryColor: '#21262D',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            fontSize: '13px',
+          },
+        });
+        mermaidInitialized = true;
+      }
+
+      if (!ref.current || cancelled) return;
+
+      try {
+        const { svg } = await mermaid.render(id.current, code);
+        if (!cancelled && ref.current) {
+          ref.current.innerHTML = svg;
+        }
+      } catch (err) {
+        if (!cancelled && ref.current) {
+          ref.current.innerHTML = `<pre style="color:#f87171;font-size:11px;padding:8px">[Diagram Error] ${String(err)}</pre>`;
+        }
+      }
+    };
+
+    render();
+    return () => { cancelled = true; };
+  }, [code]);
+
+  return (
+    <div
+      ref={ref}
+      className="my-4 flex justify-center overflow-x-auto rounded-lg border border-border bg-[#0B0E14] p-4"
+    />
+  );
+};
+
+// ─── Main MarkdownRenderer ─────────────────────────────────────────────────
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = '' }) => {
   return (
     <div className={`markdown-content select-text font-sans ${className}`}>
@@ -56,6 +115,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
           ),
           code: ({ node, className, children, ...props }) => {
             const match = /language-(\w+)/.exec(className || '');
+            const lang = match?.[1];
+
+            // ── Mermaid block: render as 2D diagram ──
+            if (lang === 'mermaid') {
+              return <MermaidDiagram code={String(children).trim()} />;
+            }
+
             const inline = !match;
             return inline ? (
               <code className="bg-[#0B0E14] text-saffron px-1 py-0.5 rounded font-mono text-[11px]" {...props}>

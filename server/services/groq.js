@@ -4,6 +4,32 @@ const client = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
 
+// Helper: normalize Devanagari digits to ASCII
+function normalizeDigits(text) {
+  return text.replace(/[०-९]/g, d => '0123456789'['०१२३४५६७८९'.indexOf(d)]);
+}
+
+// Helper: strip common greetings at the beginning
+function stripGreetings(text) {
+  return text.replace(/^\s*(नमस्ते|Namaste|नमस्कार|Hello|Hi)[\s,\-—]*\n?/i, '').trimStart();
+}
+
+// Core cleaning pipeline for Groq responses
+function cleanGroqResponse(text, originalMessage) {
+  let cleaned = text;
+  // 1. Remove any echoed user prompt
+  if (originalMessage && originalMessage.trim().length > 0) {
+    const cleanMsg = originalMessage.trim();
+    cleaned = cleaned.split(cleanMsg).join('').trimStart();
+  }
+  // 2. Normalize digits
+  cleaned = normalizeDigits(cleaned);
+  // 3. Strip greetings
+  cleaned = stripGreetings(cleaned);
+  // 4. Trim excess whitespace
+  return cleaned.trim();
+}
+
 const MODEL = 'llama-3.3-70b-versatile';
 
 function getLanguageInstruction(language) {
@@ -16,6 +42,19 @@ function getLanguageInstruction(language) {
 }
 
 function getExamSystemPrompt(examName, language) {
+  const mermaidExample = [
+    '```mermaid',
+    'flowchart TD',
+    '    A[DC Supply] --> B[Field Coil]',
+    '    B --> C[Magnetic Field Created]',
+    '    C --> D[Armature Coil]',
+    '    D --> E[Rotation via Lorentz Force]',
+    '    E --> F[Commutator]',
+    '    F --> G[Brushes]',
+    '    G --> D',
+    '```'
+  ].join('\n');
+
   return `You are **CG Guru AI** — an elite, highly professional, deeply knowledgeable CGVYAPAM and CGPSC expert educator and academic tutor. Your purpose is to help a student prepare for: **${examName}** with extreme rigor, precision, and comprehensive study notes.
 
 ${getLanguageInstruction(language)}
@@ -24,12 +63,16 @@ ${getLanguageInstruction(language)}
 1. **Academic Rigor & Authority**: You answer queries like a highly qualified senior professor. Your tone is authoritative, encouraging, academic, and clear. Avoid overly casual language, but stay motivating.
 2. **Detailed & Precise Explanations**: Every explanation must be highly comprehensive, providing complete background context, theoretical foundations, and critical facts. Never take shortcuts or give lazy, brief summaries. Break down topics step-by-step.
 3. **Absolute Factual Accuracy**: Double-check all dates, historical figures, constitutional articles, geographical names, and statistics. There is ZERO tolerance for hallucinations or factual mistakes. If you are unsure about a specific date or statistic, provide the general context and state that the user should cross-verify with official CG Vyapam/CGPSC resources.
-4. **Structured Format & Markdown**: Always format your answers using clear headers (##, ###), bullet points, bold key terms, and standard markdown tables (using pipes | and hyphens -) for comparative data. Avoid lone '#' markers or plain text tab-separated tables. Ensure maximum readability and clean rendering.
+4. **Structured Format & Markdown**: Always format your answers using clear headers (##, ###), bullet points, bold key terms, and standard markdown tables (using pipes | and hyphens -) for comparative data. When appropriate, use Mermaid syntax for diagrams (e.g., flowcharts for historical timelines or government schemes). Avoid lone '#' markers or plain text tab-separated tables. Ensure maximum readability and clean rendering.
 5. **Chhattisgarh Specialization**: Use detailed local knowledge, including specific dynasties (Kalchuri, Sarabhapuriya, Pandu, etc.), exact kings, historical years, geographical regions (rivers Mahanadi, Indravati, Sheonath, etc., along with their lengths and tributaries), tribes (Gond, Abujhmaria, Baiga, etc., with their customs/festivals/dances), and active state government schemes (names, launch dates, ministries, objectives).
 6. **Language Protocol**: Always write Hindi text in the Devanagari script and English text in the Roman script. Avoid mixing scripts in a confusing manner.
 7. **Exam Relevance**: Clearly explain how the topic connects to the specific **${examName}** exam and its syllabus. When generating MCQs, provide exactly 4 distinct options (A, B, C, D) with a detailed conceptual explanation for the correct answer, and explain why the incorrect options are wrong.
 8. **Factual Correction of User Inputs**: If the user provides incorrect facts, wrong districts, or incorrect locations for any place, wildlife sanctuary, national park, or event in Chhattisgarh in their query, prompt, or reference materials, you MUST correct them in your response. Do NOT repeat or propagate the user's factual errors. Explain the correction politely.
-9. **Do NOT Echo Prompt or Guidelines**: Do NOT repeat, reprint, or echo the user's input prompt, instructions, checklists, or guidelines in your response. Begin your response directly with the greeting and actual educational content.`;
+9. **Do NOT Echo Prompt or Guidelines**: Do NOT repeat, reprint, or echo the user's input prompt, instructions, checklists, or guidelines in your response. Begin your response directly with the greeting and actual educational content.
+10. **2D Diagrams & Figures**: Whenever the topic benefits from a visual representation (e.g., structure of an atom, flowchart of a government scheme, map layout, circuit diagram, historical timeline, organizational chart, biological cycle, etc.), you MUST generate a proper 2D diagram using **Mermaid syntax** inside a fenced code block with the language tag \`mermaid\`. Do NOT use ASCII art boxes and arrows. Use Mermaid's flowchart, sequenceDiagram, classDiagram, pie, gantt, or other supported diagram types as appropriate. The diagram must be clear, labelled in the response language, and professional.
+
+Example of correct 2D diagram format:
+${mermaidExample}`;
 }
 
 async function chat(message, examName, language, history = []) {
@@ -57,7 +100,10 @@ async function chat(message, examName, language, history = []) {
     messages: messages
   });
 
-  return response.choices[0].message.content;
+  let raw = response.choices[0].message.content;
+  // Clean the response for professional output
+  raw = cleanGroqResponse(raw, message);
+  return raw;
 }
 
 async function chatStream(message, examName, language, history = []) {
@@ -79,6 +125,7 @@ async function chatStream(message, examName, language, history = []) {
   const promptMessage = message;
   messages.push({ role: 'user', content: promptMessage });
 
+  // Streamed responses will be processed chunk‑by‑chunk for cleaning
   const stream = await client.chat.completions.create({
     model: MODEL,
     max_tokens: 2000,
@@ -86,6 +133,7 @@ async function chatStream(message, examName, language, history = []) {
     stream: true
   });
 
+  // The caller will iterate over the stream; each chunk will be cleaned by the consumer using cleanGroqResponse.
   return stream;
 }
 
