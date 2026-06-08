@@ -11,8 +11,9 @@ const httpsAgent = new https.Agent({
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.5'
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.5',
+  'Referer': 'https://www.google.com/'
 };
 
 const parser = new Parser({
@@ -261,6 +262,107 @@ async function parseJobRSS(feedUrl, sourceName, state, defaultCategory) {
   return jobs;
 }
 
+async function scrapeSarkariResultJobs() {
+  const jobs = [];
+  try {
+    const { data } = await axios.get('https://www.sarkariresult.com/', { headers: HEADERS, timeout: 15000, httpsAgent });
+    const $ = cheerio.load(data);
+    
+    // Find the container for "Latest Job"
+    let container = null;
+    $('div, td').each((i, el) => {
+      const text = $(el).clone().children('script, style').remove().end().text().trim();
+      if (text.startsWith('Latest Job') && !text.includes('Sarkari Result® 2026')) {
+        container = el;
+        return false; // break loop
+      }
+    });
+
+    if (container) {
+      $(container).find('a').each((i, el) => {
+        const text = $(el).text().trim();
+        const href = $(el).attr('href') || '';
+        
+        if (text.length > 5 && text !== 'Latest Job' && text !== 'View More') {
+          const link = cleanUrl(href, 'https://www.sarkariresult.com');
+          // Classify the job using tagJobCategory
+          const category = tagJobCategory(text);
+          // Check if it is a CG job
+          const textLower = text.toLowerCase();
+          const isCG = textLower.includes('cg') || textLower.includes('chhattisgarh') || textLower.includes('vyapam');
+          
+          jobs.push({
+            title: text,
+            link,
+            source: 'Sarkari Result',
+            category,
+            state: isCG ? 'CG' : 'ALL'
+          });
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Sarkari Result job scraping failed:', err.message);
+  }
+  return jobs;
+}
+
+async function scrapeFreeJobAlertCG() {
+  const jobs = [];
+  try {
+    const url = 'https://www.freejobalert.com/chhattisgarh-government-jobs/';
+    const { data } = await axios.get(url, { headers: HEADERS, timeout: 15000, httpsAgent });
+    const $ = cheerio.load(data);
+    
+    $('table tr').each((i, row) => {
+      const tds = $(row).find('td');
+      if (tds.length >= 6) {
+        const cell0Text = $(tds[0]).text().trim();
+        // Check if row has a post date in the first column
+        const dateRegex = /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}\b/;
+        if (dateRegex.test(cell0Text)) {
+          const org = $(tds[1]).text().trim();
+          const postDetails = $(tds[2]).text().trim();
+          const qualification = $(tds[3]).text().trim();
+          const lastDateStr = $(tds[5]).text().trim();
+          const linkEl = $(tds[6]).find('a');
+          const href = linkEl.attr('href') || '';
+          
+          if (href && postDetails.length > 5) {
+            const title = `[${org}] ${postDetails}`;
+            const link = href.trim();
+            
+            // Clean/parse last date
+            let lastDate = null;
+            const match = lastDateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+            if (match) {
+              lastDate = `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+            }
+            
+            const category = tagJobCategory(title, 'cgvyapam'); // default to cgvyapam since it is CG page
+            
+            const fullTextForDetails = `${title} ${qualification}`;
+            const { vacancies } = extractJobDetails(fullTextForDetails, '');
+            
+            jobs.push({
+              title,
+              link,
+              source: 'Free Job Alert (CG)',
+              category,
+              state: 'CG',
+              lastDate,
+              vacancies
+            });
+          }
+        }
+      }
+    });
+  } catch (err) {
+    console.warn('Free Job Alert CG scraping failed:', err.message);
+  }
+  return jobs;
+}
+
 async function scrapeAllJobs() {
   console.log('[JobScraper] Starting job aggregation scrape...');
 
@@ -270,7 +372,9 @@ async function scrapeAllJobs() {
     scrapeCGVyapam(),
     scrapeIBPS(),
     scrapeSBIRBI(),
-    scrapeUPSC()
+    scrapeUPSC(),
+    scrapeSarkariResultJobs(),
+    scrapeFreeJobAlertCG()
   ]);
 
   const jobsList = [];
@@ -350,5 +454,7 @@ async function scrapeAllJobs() {
 }
 
 module.exports = {
-  scrapeAllJobs
+  scrapeAllJobs,
+  scrapeSarkariResultJobs,
+  scrapeFreeJobAlertCG
 };

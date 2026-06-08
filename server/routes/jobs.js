@@ -28,6 +28,19 @@ async function verifyAdminOrRefreshSecret(req, res, next) {
   return res.status(401).json({ error: 'Unauthorized: Access denied' });
 }
 
+// Helper to assign job priority scores
+function getJobPriority(job) {
+  const cat = job.category;
+  const isCG = (cat === 'cgpsc' || cat === 'cgvyapam' || job.state === 'CG');
+  
+  if (isCG) return 5;
+  if (cat === 'railway') return 4;
+  if (cat === 'banking') return 3;
+  if (cat === 'ssc') return 2;
+  if (cat === 'upsc') return 1;
+  return 0;
+}
+
 // GET /api/jobs - fetch jobs with category and state filters, pagination, and sorting
 router.get('/', async (req, res) => {
   try {
@@ -44,6 +57,22 @@ router.get('/', async (req, res) => {
     if (state && state !== 'all') {
       jobs = jobs.filter(j => j.state === state);
     }
+
+    // Sort jobs based on custom priority:
+    // 1. CG Jobs
+    // 2. Railway
+    // 3. Banking
+    // 4. SSC
+    // 5. UPSC
+    // Within each priority tier, sort by scrapedAt desc.
+    jobs.sort((a, b) => {
+      const prioA = getJobPriority(a);
+      const prioB = getJobPriority(b);
+      if (prioA !== prioB) {
+        return prioB - prioA;
+      }
+      return new Date(b.scrapedAt || 0) - new Date(a.scrapedAt || 0);
+    });
 
     // Pagination in memory
     let startIndex = 0;
@@ -69,7 +98,6 @@ router.get('/', async (req, res) => {
     try {
       const snap = await db.collection('jobs').limit(300).get();
       let jobs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      jobs.sort((a, b) => new Date(b.scrapedAt || 0) - new Date(a.scrapedAt || 0));
 
       if (category && category !== 'all') {
         jobs = jobs.filter(j => j.category === category);
@@ -77,6 +105,16 @@ router.get('/', async (req, res) => {
       if (state && state !== 'all') {
         jobs = jobs.filter(j => j.state === state);
       }
+
+      // Sort jobs based on custom priority
+      jobs.sort((a, b) => {
+        const prioA = getJobPriority(a);
+        const prioB = getJobPriority(b);
+        if (prioA !== prioB) {
+          return prioB - prioA;
+        }
+        return new Date(b.scrapedAt || 0) - new Date(a.scrapedAt || 0);
+      });
 
       let startIndex = 0;
       if (lastDocId) {
