@@ -54,37 +54,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.get('/api/generate-image', async (req, res) => {
-  try {
-    const { prompt, seed } = req.query;
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
-    }
 
-    const cleanPrompt = prompt.replace(/[\/\?#&%\\]/g, ' ').trim();
-    const seedVal = seed || Math.floor(Math.random() * 1000000);
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=800&height=600&nologo=true&seed=${seedVal}`;
-
-    console.log('[Image Proxy] Fetching from Pollinations:', pollinationsUrl);
-
-    // Use arraybuffer instead of stream — Vercel serverless doesn't support piped streams
-    const response = await axios({
-      method: 'get',
-      url: pollinationsUrl,
-      responseType: 'arraybuffer',
-      timeout: 20000 // 20 seconds (within Vercel's limits)
-    });
-
-    const contentType = response.headers['content-type'] || 'image/png';
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    res.setHeader('Content-Length', response.data.byteLength);
-    res.send(Buffer.from(response.data));
-  } catch (err) {
-    console.error('[Image Proxy Error]:', err.message);
-    res.status(500).json({ error: 'Failed to generate image. Please try again later.' });
-  }
-});
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));

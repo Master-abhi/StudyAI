@@ -1,0 +1,1 @@
+import{h as e}from"./src-6vc2S-77.js";var t=class{constructor(e){this.init=e,this.records=this.init()}static{e(this,`ImperativeState`)}reset(){this.records=this.init()}};export{t};

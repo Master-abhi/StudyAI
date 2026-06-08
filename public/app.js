@@ -6,7 +6,10 @@
 let API_BASE = 'https://study-ai-olive.vercel.app';
 
 async function configureApiBase() {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  const hostname = window.location.hostname;
+
+  // ── Local development ──
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 600);
@@ -30,15 +33,27 @@ async function configureApiBase() {
         return;
       }
     } catch (e) {}
-    
+
     if (window.location.port && window.location.port !== '5500' && window.location.port !== '8080') {
       API_BASE = '';
       console.log('[API] Served directly from backend. Using relative paths.');
       return;
     }
-  } else if (window.location.hostname !== '') {
-    API_BASE = ''; // Production relative paths
   }
+
+  // ── Firebase Hosting: no backend here, always point to Vercel ──
+  if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
+    API_BASE = 'https://study-ai-olive.vercel.app';
+    console.log('[API] Firebase Hosting detected. Using Vercel backend:', API_BASE);
+    return;
+  }
+
+  // ── Vercel / other production hosts: relative paths (backend co-hosted) ──
+  if (hostname !== '') {
+    API_BASE = '';
+    console.log('[API] Production host detected. Using relative paths.');
+  }
+
   console.log('[API] Active API Base URL:', API_BASE || '(Relative)');
 }
 
