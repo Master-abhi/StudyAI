@@ -36,6 +36,8 @@ async function configureApiBase() {
       console.log('[API] Served directly from backend. Using relative paths.');
       return;
     }
+  } else if (window.location.hostname.endsWith('.web.app') || window.location.hostname.endsWith('.firebaseapp.com')) {
+    API_BASE = 'https://study-ai-olive.vercel.app';
   } else if (window.location.hostname !== '') {
     API_BASE = ''; // Production relative paths
   }

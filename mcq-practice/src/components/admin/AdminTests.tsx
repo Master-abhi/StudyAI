@@ -66,13 +66,19 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
     return test.examId === filterExamId || (Array.isArray(test.examIds) && test.examIds.includes(filterExamId));
   });
 
-  const getApiUrl = (path: string) => {
-    const isLocal = window.location.hostname === 'localhost' || 
-                    window.location.hostname === '127.0.0.1' || 
-                    window.location.hostname === '[::1]' ||
-                    window.location.hostname.startsWith('192.168.');
-    const host = isLocal && window.location.port !== '3000' ? 'http://localhost:3000' : '';
-    return `${host}${path}`;
+    const getApiUrl = (path: string) => {
+    const hostname = window.location.hostname;
+    const isLocal = hostname === 'localhost' || 
+                    hostname === '127.0.0.1' || 
+                    hostname === '[::1]' ||
+                    hostname.startsWith('192.168.');
+    if (isLocal && window.location.port !== '3000') {
+      return `http://localhost:3000${path}`;
+    }
+    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
+      return `https://study-ai-olive.vercel.app${path}`;
+    }
+    return path;
   };
 
   const sanitizeJsonString = (str: string) => {

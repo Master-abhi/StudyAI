@@ -21,9 +21,19 @@ export const AdminFeedbacks: React.FC<AdminFeedbacksProps> = ({ currentUser }) =
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const getApiUrl = (path: string) => {
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
-    return `${host}${path}`;
+    const getApiUrl = (path: string) => {
+    const hostname = window.location.hostname;
+    const isLocal = hostname === 'localhost' || 
+                    hostname === '127.0.0.1' || 
+                    hostname === '[::1]' ||
+                    hostname.startsWith('192.168.');
+    if (isLocal && window.location.port !== '3000') {
+      return `http://localhost:3000${path}`;
+    }
+    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
+      return `https://study-ai-olive.vercel.app${path}`;
+    }
+    return path;
   };
 
   const fetchFeedbacks = async () => {

@@ -37,13 +37,19 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
   const [pasteJson, setPasteJson] = useState<string>('');
   const [loadingUpload, setLoadingUpload] = useState<boolean>(false);
 
-  const getApiUrl = (path: string) => {
-    const isLocal = window.location.hostname === 'localhost' || 
-                    window.location.hostname === '127.0.0.1' || 
-                    window.location.hostname === '[::1]' ||
-                    window.location.hostname.startsWith('192.168.');
-    const host = isLocal && window.location.port !== '3000' ? 'http://localhost:3000' : '';
-    return `${host}${path}`;
+    const getApiUrl = (path: string) => {
+    const hostname = window.location.hostname;
+    const isLocal = hostname === 'localhost' || 
+                    hostname === '127.0.0.1' || 
+                    hostname === '[::1]' ||
+                    hostname.startsWith('192.168.');
+    if (isLocal && window.location.port !== '3000') {
+      return `http://localhost:3000${path}`;
+    }
+    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
+      return `https://study-ai-olive.vercel.app${path}`;
+    }
+    return path;
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
