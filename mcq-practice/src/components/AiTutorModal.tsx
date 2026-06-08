@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Sparkles, User, Brain, HelpCircle, BookOpen } from 'lucide-react';
 import type { Question } from '../types';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface Message {
   sender: 'user' | 'ai';
@@ -214,13 +215,17 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
 
                   {/* Message Bubble */}
                   <div
-                    className={`p-3 text-xs sm:text-sm rounded-md whitespace-pre-wrap leading-relaxed select-text font-hindi ${
+                    className={`p-3 text-xs sm:text-sm rounded-md leading-relaxed select-text font-hindi ${
                       msg.sender === 'user'
-                        ? 'bg-saffron text-bg-s1 font-semibold rounded-tr-none'
-                        : 'bg-[#121620] border border-border text-text rounded-tl-none'
+                        ? 'bg-saffron text-bg-s1 font-semibold rounded-tr-none whitespace-pre-wrap'
+                        : 'bg-[#121620] border border-border text-text rounded-tl-none w-full'
                     }`}
                   >
-                    {msg.text}
+                    {msg.sender === 'ai' ? (
+                      <MarkdownRenderer content={msg.text} />
+                    ) : (
+                      msg.text
+                    )}
 
                     {/* Interactive Extra MCQ Quiz if generated */}
                     {msg.extraMcq && (
@@ -257,7 +262,7 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
                         </div>
                         {extraAnswered && (
                           <div className="text-[10px] text-text-muted bg-[#0B0E14] p-2 rounded border border-border/50">
-                            💡 **उत्तर व्याख्या**: {msg.extraMcq.explanation}
+                            <MarkdownRenderer content={`💡 **उत्तर व्याख्या**: ${msg.extraMcq.explanation}`} />
                           </div>
                         )}
                       </div>

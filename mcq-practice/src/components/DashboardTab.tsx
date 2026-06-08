@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Flame, BookOpen, ChevronRight, Trophy, Zap, Landmark, Home, Shield, Bot, Sparkles 
@@ -19,6 +19,9 @@ interface DashboardTabProps {
   onStartPracticeMode: (mode: 'quiz' | 'mock' | 'pyq') => void;
   topicProgress: Record<string, any>;
   tabVisibility?: Record<string, boolean>;
+  currentUser?: any;
+  getApiUrl: (path: string) => string;
+  onSelectArticle?: (article: any) => void;
 }
 
 export const DashboardTab: React.FC<DashboardTabProps> = ({
@@ -34,9 +37,42 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   onNavigateToTab,
   onStartPracticeMode,
   topicProgress,
-  tabVisibility
+  tabVisibility,
+  currentUser,
+  getApiUrl,
+  onSelectArticle
 }) => {
   const [showExamSelector, setShowExamSelector] = useState<boolean>(false);
+  const [articles, setArticles] = useState<any[]>([]);
+  const [loadingNews, setLoadingNews] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchHomeNews = async () => {
+      try {
+        let res;
+        if (currentUser) {
+          const token = await currentUser.getIdToken();
+          res = await fetch(getApiUrl('/api/news/recommended'), {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        }
+        if (!res || !res.ok) {
+          res = await fetch(getApiUrl('/api/news'));
+        }
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.articles)) {
+            setArticles(data.articles.slice(0, 3));
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load home news:', err);
+      } finally {
+        setLoadingNews(false);
+      }
+    };
+    fetchHomeNews();
+  }, [currentUser]);
 
   const getExamIcon = (iconStr: string) => {
     switch (iconStr) {
@@ -235,6 +271,59 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             })}
           </div>
         </div>
+
+        {/* Current Affairs / GK Section */}
+        {tabVisibility?.news !== false && (
+          <div className="flex flex-col gap-3 mt-2">
+            <div className="flex justify-between items-center">
+              <h4 className="text-[10px] font-black uppercase text-text-muted tracking-wider">Current Affairs / समसामयिकी</h4>
+              <button 
+                onClick={() => onNavigateToTab('news')}
+                className="text-[9px] font-black uppercase text-saffron hover:text-orange-500 cursor-pointer transition-all border border-border bg-bg-s3/80 hover:bg-bg-s3 px-2.5 py-0.5 rounded shadow-sm"
+              >
+                Show More
+              </button>
+            </div>
+
+            {loadingNews ? (
+              <div className="flex flex-col gap-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-16 bg-bg-s2 border border-border rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : articles.length === 0 ? (
+              <div className="p-4 bg-bg-s2 border border-border rounded-xl text-center text-xs text-text-muted">
+                No current affairs articles found.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {articles.map((art, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => onSelectArticle ? onSelectArticle(art) : onNavigateToTab('news')}
+                    className="p-3 bg-bg-s2 hover:bg-bg-s2/90 border border-border rounded-xl text-left shadow-sm transition-all hover:scale-[1.005] cursor-pointer flex flex-col gap-1.5 relative overflow-hidden group"
+                  >
+                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-saffron" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-black uppercase text-saffron bg-saffron-dim/30 border border-saffron-border/30 px-1.5 py-0.2 rounded leading-none">
+                        {art.category}
+                      </span>
+                      <span className="text-[8px] text-text-muted font-bold">
+                        {art.date || 'Today'}
+                      </span>
+                    </div>
+                    <h5 className="text-[11px] font-bold text-text group-hover:text-saffron transition-colors leading-snug line-clamp-1">
+                      {art.title_hi || art.title}
+                    </h5>
+                    <p className="text-[10px] text-text-muted line-clamp-1 leading-normal">
+                      {art.description_hi || art.summary_hi || art.description || art.title}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Exam Selector Drawer/Overlay Modal */}

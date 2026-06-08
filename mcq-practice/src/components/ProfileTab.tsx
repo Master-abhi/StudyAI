@@ -443,10 +443,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               <span className="text-[9px] font-black uppercase text-bg-s1 bg-saffron px-2.5 py-0.5 rounded shadow-sm leading-none flex items-center justify-center">
                 {rankInfo.title}
               </span>
+              <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded shadow-sm leading-none flex items-center justify-center border ${
+                userPlan === 'paid'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : 'bg-bg-s3/80 text-text-muted border-border/40'
+              }`}>
+                {userPlan === 'paid' ? 'Premium Plan' : 'Free Plan'}
+              </span>
             </div>
-            <span className="text-xs text-text-muted font-bold tracking-wide truncate mt-0.5">
-              Plan: {userPlan === 'paid' ? 'Pro Plan' : 'Free Plan'}
-            </span>
 
             {/* Followers / Following counts */}
             {!isGuest && (

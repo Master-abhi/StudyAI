@@ -4,6 +4,7 @@ import {
   Brain, ChevronRight, Globe,
   Bot, Trees, FileText, Users, Newspaper
 } from 'lucide-react';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface ChatMessage {
   id: string;
@@ -279,13 +280,16 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
                 >
                   <div className={`p-3.5 rounded-lg text-xs leading-relaxed font-medium shadow-sm border ${
                     isAi 
-                      ? 'bg-bg-s2 border-border text-text rounded-tl-none' 
+                      ? 'bg-bg-s2 border-border text-text rounded-tl-none w-full' 
                       : 'bg-saffron border-saffron text-bg-s1 rounded-tr-none font-bold'
                   }`}>
-                    {/* Preserve linebreaks and formatting for AI codes */}
-                    <div className="whitespace-pre-line font-sans leading-relaxed tracking-wide">
-                      {m.content || (generating && messages[messages.length - 1].id === m.id ? 'Writing explanation...' : '')}
-                    </div>
+                    {isAi ? (
+                      <MarkdownRenderer content={m.content || (generating && messages[messages.length - 1].id === m.id ? 'Writing explanation...' : '')} />
+                    ) : (
+                      <div className="whitespace-pre-line font-sans leading-relaxed tracking-wide">
+                        {m.content}
+                      </div>
+                    )}
                   </div>
                   <span className="text-[9px] text-text-muted mt-1 px-1 font-bold uppercase">{m.timestamp}</span>
                 </div>

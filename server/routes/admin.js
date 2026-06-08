@@ -1127,4 +1127,29 @@ router.get('/logs/staff', verifyAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/feedbacks - Retrieve all user feedbacks (admin only)
+router.get('/feedbacks', verifyAdmin, async (req, res) => {
+  try {
+    const snapshot = await db.collection('feedbacks').orderBy('createdAt', 'desc').get();
+    const feedbacks = snapshot.docs.map(doc => doc.data());
+    res.json(feedbacks);
+  } catch (err) {
+    console.error('[Admin Feedbacks GET] Error:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve feedbacks.' });
+  }
+});
+
+// DELETE /api/admin/feedbacks/:id - Delete a user feedback entry (admin only)
+router.delete('/feedbacks/:id', verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('feedbacks').doc(id).delete();
+    console.log(`[Admin Feedback Delete] Deleted feedback ${id} ✅`);
+    res.json({ success: true, message: 'Feedback deleted successfully' });
+  } catch (err) {
+    console.error('[Admin Feedback Delete] Error:', err.message);
+    res.status(500).json({ error: 'Failed to delete feedback.' });
+  }
+});
+
 module.exports = router;

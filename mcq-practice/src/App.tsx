@@ -46,6 +46,7 @@ import { StaffDashboard } from './components/staff/StaffDashboard';
 import { AuthModal } from './components/AuthModal';
 import { SettingsModal } from './components/SettingsModal';
 import { TopicStudyModal } from './components/TopicStudyModal';
+import { PublicProfileModal } from './components/PublicProfileModal';
 
 import type { Exam } from './components/syllabus/syllabusData';
 import { 
@@ -178,6 +179,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isStaff, setIsStaff] = useState<boolean>(false);
   const [staffRoles, setStaffRoles] = useState<string[]>([]);
+  const [initialSelectedArticle, setInitialSelectedArticle] = useState<any>(null);
 
   // Persist activeTab selection
   useEffect(() => {
@@ -189,6 +191,8 @@ export default function App() {
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
+  const [selectedProfileUid, setSelectedProfileUid] = useState<string | null>(null);
+  const [publicProfileOpen, setPublicProfileOpen] = useState<boolean>(false);
   const [userMobile, setUserMobile] = useState<string>(() => {
     return localStorage.getItem('examprep_userMobile') || '';
   });
@@ -1147,6 +1151,12 @@ export default function App() {
             }}
             topicProgress={topicProgress}
             tabVisibility={tabVisibility}
+            currentUser={currentUser}
+            getApiUrl={getApiUrl}
+            onSelectArticle={(art) => {
+              setInitialSelectedArticle(art);
+              setActiveTab('news');
+            }}
           />
         );
       case 'practice':
@@ -1164,6 +1174,8 @@ export default function App() {
         return (
           <NewsTab
             currentUser={currentUser}
+            initialArticle={initialSelectedArticle}
+            onClearInitialArticle={() => setInitialSelectedArticle(null)}
             onAskAi={(promptText) => {
               setActiveTab('chat');
               // Short delay to allow chat client to mount
@@ -1202,6 +1214,10 @@ export default function App() {
             onReviewTest={startTestReview}
             rankingData={rankingData}
             tabVisibility={tabVisibility}
+            onVisitProfile={(uid) => {
+              setSelectedProfileUid(uid);
+              setPublicProfileOpen(true);
+            }}
           />
         );
       case 'admin':
@@ -1713,6 +1729,7 @@ export default function App() {
             setUserMobile(mobile);
             localStorage.setItem('examprep_userMobile', mobile);
           }}
+          getApiUrl={getApiUrl}
         />
 
         {/* AI Explainer Video summaries and PDF notes study workspaces */}
@@ -1732,6 +1749,20 @@ export default function App() {
           question={questions[currentIndex]}
           initialPromptType={null}
         />
+
+        {/* Public Profile Modal for Leaderboard users */}
+        {selectedProfileUid && (
+          <PublicProfileModal
+            isOpen={publicProfileOpen}
+            onClose={() => {
+              setPublicProfileOpen(false);
+              setSelectedProfileUid(null);
+            }}
+            uid={selectedProfileUid}
+            currentUser={currentUser}
+            getApiUrl={getApiUrl}
+          />
+        )}
 
         {/* First-Time Exam Selector Modal for New Users */}
         <AnimatePresence>

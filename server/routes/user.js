@@ -505,4 +505,31 @@ router.post('/upload-avatar', upload.single('avatar'), async (req, res) => {
   }
 });
 
+// POST /api/user/feedback - User submits app feedback
+router.post('/feedback', async (req, res) => {
+  try {
+    const { feedback } = req.body;
+    if (!feedback || typeof feedback !== 'string' || !feedback.trim()) {
+      return res.status(400).json({ error: 'Feedback message is required' });
+    }
+
+    const cleanFeedback = feedback.trim().slice(0, 2000);
+    const feedbackId = `fb_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    await db.collection('feedbacks').doc(feedbackId).set({
+      id: feedbackId,
+      uid: req.user.uid,
+      email: req.user.email || '',
+      displayName: req.user.name || req.user.displayName || 'Aspirant',
+      feedback: cleanFeedback,
+      createdAt: new Date().toISOString()
+    });
+
+    res.json({ success: true, message: 'Feedback submitted successfully' });
+  } catch (err) {
+    console.error('[Feedback Submit] Error:', err.message);
+    res.status(500).json({ error: 'Failed to submit feedback' });
+  }
+});
+
 module.exports = router;

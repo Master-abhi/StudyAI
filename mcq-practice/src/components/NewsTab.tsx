@@ -84,9 +84,11 @@ interface CurrentAffairsAnalytics {
 interface NewsTabProps {
   currentUser: any;
   onAskAi: (promptText: string) => void;
+  initialArticle?: any;
+  onClearInitialArticle?: () => void;
 }
 
-export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
+export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialArticle, onClearInitialArticle }) => {
   const [activeSubTab, setActiveSubTab] = useState<'hub' | 'capsules' | 'analytics' | 'saved'>('hub');
   
   // Hub states
@@ -278,6 +280,15 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi }) => {
       setSavedArticles(JSON.parse(saved));
     }
   }, [currentUser]);
+
+  // Handle auto-opening of an article passed from home screen
+  useEffect(() => {
+    if (initialArticle && onClearInitialArticle) {
+      setSelectedArticle(initialArticle);
+      fetchArticleIntelligence(initialArticle);
+      onClearInitialArticle();
+    }
+  }, [initialArticle, onClearInitialArticle]);
 
   // Load subtab specific data
   useEffect(() => {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, Cpu, 
-  ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History, Sliders, Eye 
+  ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History, Sliders, Eye,
+  MessageSquare
 } from 'lucide-react';
 import { AdminTests } from './AdminTests';
 import { AdminNews } from './AdminNews';
@@ -12,6 +13,7 @@ import { AdminStaffs } from './AdminStaffs';
 import { AdminLogs } from './AdminLogs';
 import { AdminTabsConfig } from './AdminTabsConfig';
 import { AdminExamsConfig } from './AdminExamsConfig';
+import { AdminFeedbacks } from './AdminFeedbacks';
 
 import type { Exam } from '../syllabus/syllabusData';
 
@@ -23,7 +25,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
@@ -89,6 +91,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'feedbacks', label: 'Feedbacks', icon: MessageSquare },
     { id: 'staffs', label: 'Staff Accounts', icon: ShieldCheck },
     { id: 'tests', label: 'AI MCQ Tests', icon: Trophy },
     { id: 'news', label: 'News & Alerts', icon: Newspaper },
@@ -106,6 +109,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return renderOverview();
       case 'users':
         return <AdminUsers currentUser={currentUser} />;
+      case 'feedbacks':
+        return <AdminFeedbacks currentUser={currentUser} />;
       case 'staffs':
         return <AdminStaffs currentUser={currentUser} />;
       case 'tests':

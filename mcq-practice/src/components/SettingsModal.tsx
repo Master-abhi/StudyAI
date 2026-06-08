@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Settings, LogOut, Trash2, Globe, BookOpen, 
-  Lock, Mail, Key, Eye, EyeOff, Pencil, Smartphone 
+  Lock, Mail, Key, Eye, EyeOff, Pencil, Smartphone,
+  MessageSquare
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -17,6 +18,7 @@ interface SettingsModalProps {
   currentUser?: any;
   userMobile: string;
   onMobileChange: (mobile: string) => void;
+  getApiUrl: (path: string) => string;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -30,9 +32,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClearProgress,
   currentUser,
   userMobile,
-  onMobileChange
+  onMobileChange,
+  getApiUrl
 }) => {
   const [clearingChat, setClearingChat] = useState<boolean>(false);
+  
+  // Feedback states
+  const [feedbackText, setFeedbackText] = useState<string>('');
+  const [feedbackLoading, setFeedbackLoading] = useState<boolean>(false);
+  const [feedbackError, setFeedbackError] = useState<string>('');
+  const [feedbackSuccess, setFeedbackSuccess] = useState<string>('');
   
   // Password fields visibility states
   const [showPasswordNew, setShowPasswordNew] = useState<boolean>(false);
@@ -42,6 +51,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const firebase = (window as any).firebase;
   const firebaseUser = firebase?.auth().currentUser || currentUser;
   const userEmail = firebaseUser?.email || '';
+
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackText.trim() || !firebaseUser) return;
+    setFeedbackLoading(true);
+    setFeedbackError('');
+    setFeedbackSuccess('');
+    try {
+      const token = await firebaseUser.getIdToken();
+
+      const res = await fetch(getApiUrl('/api/user/feedback'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ feedback: feedbackText })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to submit feedback.');
+      }
+
+      setFeedbackSuccess('Feedback submitted successfully! Thank you.');
+      setFeedbackText('');
+    } catch (err: any) {
+      console.error('[Submit Feedback Error]:', err);
+      setFeedbackError(err.message || 'Failed to submit feedback.');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
   
   const [activeCredentialTab, setActiveCredentialTab] = useState<'email' | 'password' | 'mobile' | null>(null);
   const [newEmail, setNewEmail] = useState<string>('');
@@ -85,14 +127,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       await firebaseUser.updateEmail(trimmedEmail);
 
       const token = await firebaseUser.getIdToken(true);
-      const host = window.location.hostname === 'localhost' || 
-                   window.location.hostname === '127.0.0.1' || 
-                   window.location.hostname === '[::1]' ||
-                   window.location.hostname.startsWith('192.168.')
-                   ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
-                   : '';
 
-      await fetch(`${host}/api/user/sync`, {
+      await fetch(getApiUrl('/api/user/sync'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,14 +189,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }
 
       const token = await firebaseUser.getIdToken(true);
-      const host = window.location.hostname === 'localhost' || 
-                   window.location.hostname === '127.0.0.1' || 
-                   window.location.hostname === '[::1]' ||
-                   window.location.hostname.startsWith('192.168.')
-                   ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
-                   : '';
 
-      const syncRes = await fetch(`${host}/api/user/sync`, {
+      const syncRes = await fetch(getApiUrl('/api/user/sync'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -204,14 +234,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       await firebaseUser.linkWithCredential(credential);
 
       const token = await firebaseUser.getIdToken(true);
-      const host = window.location.hostname === 'localhost' || 
-                   window.location.hostname === '127.0.0.1' || 
-                   window.location.hostname === '[::1]' ||
-                   window.location.hostname.startsWith('192.168.')
-                   ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
-                   : '';
 
-      await fetch(`${host}/api/user/sync`, {
+      await fetch(getApiUrl('/api/user/sync'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -322,6 +346,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             </div>
           </div>
+        </div>
+        {/* App Feedback Section */}
+        <div className="flex flex-col gap-3.5 border-t border-border/40 pt-4">
+          <span className="text-[9px] font-black uppercase text-text-muted tracking-widest flex items-center gap-1">
+            <MessageSquare className="w-3.5 h-3.5 text-saffron" />
+            <span>App Feedback / फ़ीडबैक</span>
+          </span>
+          
+          {feedbackSuccess && (
+            <p className="text-[10px] text-greenL bg-greenL/5 border border-greenL/10 px-3 py-2 rounded-lg font-semibold leading-relaxed animate-fade-in">
+              {feedbackSuccess}
+            </p>
+          )}
+
+          {feedbackError && (
+            <p className="text-[10px] text-redL bg-redL/5 border border-redL/10 px-3 py-2 rounded-lg font-semibold leading-relaxed animate-fade-in">
+              {feedbackError}
+            </p>
+          )}
+
+          {firebaseUser && userEmail && userEmail !== 'guest@studyworld.app' ? (
+            <form onSubmit={handleSubmitFeedback} className="flex flex-col gap-2.5">
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Share your suggestions, features you want, or report a bug..."
+                required
+                disabled={feedbackLoading}
+                rows={3}
+                className="w-full bg-bg-s3 text-xs text-text border border-border/80 focus:border-saffron focus:ring-1 focus:ring-saffron/20 p-3 rounded-lg outline-none transition-colors resize-none placeholder:text-text-muted/65 leading-relaxed font-medium"
+              />
+              <button
+                type="submit"
+                disabled={feedbackLoading || !feedbackText.trim()}
+                className="w-full py-2.5 bg-saffron hover:bg-orange-500 disabled:opacity-50 disabled:bg-saffron text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-colors shadow flex items-center justify-center gap-1.5"
+              >
+                {feedbackLoading ? 'Submitting...' : 'Submit Feedback'}
+              </button>
+            </form>
+          ) : (
+            <p className="text-[10px] text-text-muted leading-relaxed">
+              Please sign in to share app feedback. Guest users cannot submit feedback.
+            </p>
+          )}
         </div>
 
         {/* 2. Security Section */}
