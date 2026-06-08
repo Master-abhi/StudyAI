@@ -21,15 +21,16 @@
             "dest": "server/server.js"
         },
         {
-            "handle": "filesystem"
+            "src": "/mcq-practice/assets/(.*)",
+            "dest": "public/mcq-practice/assets/$1"
         },
         {
-            "src": "/mcq-practice/(.*)",
-            "dest": "/public/mcq-practice/index.html"
+            "src": "/mcq-practice(.*)",
+            "dest": "public/mcq-practice/index.html"
         },
         {
             "src": "/(.*)",
-            "dest": "/public/index.html"
+            "dest": "public/$1"
         }
     ]
 }
