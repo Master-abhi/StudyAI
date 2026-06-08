@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Flame, Trophy, Award, Star, Clock, 
-  CheckCircle2, AlertCircle, History, Sparkles, BookOpen, ChevronRight,
-  ArrowRight, Target, Mail, ShieldCheck, ShieldAlert, Rocket, User
+  CheckCircle2, AlertCircle, History, BookOpen, ChevronRight,
+  ArrowRight, Target, Mail, ShieldCheck, ShieldAlert, Rocket, User,
+  Brain, Cpu
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -218,23 +219,51 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
 
 
-  // 2. Compute Strong vs Weak Subjects from Test History
-  const subjectAccuracyMap: Record<string, { sum: number; count: number }> = {};
+  // 2. Compute Strong vs Weak Subjects from Test History (on a per-question subject basis)
+  const subjectStatsMap: Record<string, { correct: number; total: number }> = {};
+  
   normalizedHistory.forEach(log => {
-    if (!subjectAccuracyMap[log.subject]) {
-      subjectAccuracyMap[log.subject] = { sum: 0, count: 0 };
+    const hasQuestions = log.questions && log.questions.length > 0;
+    const userAnswers = log.userAnswers || [];
+
+    if (hasQuestions && log.questions) {
+      log.questions.forEach((q: any, i: number) => {
+        // Group by the question's specific subject (fallback to log's subject or general GK)
+        const qSub = q.subject || log.subject || 'General GK';
+        if (!subjectStatsMap[qSub]) {
+          subjectStatsMap[qSub] = { correct: 0, total: 0 };
+        }
+        subjectStatsMap[qSub].total += 1;
+        const isCorrect = userAnswers[i] !== null && userAnswers[i] === q.correctIndex;
+        if (isCorrect) {
+          subjectStatsMap[qSub].correct += 1;
+        }
+      });
+    } else {
+      // Fallback for legacy logs that do not store individual questions
+      const logSub = log.subject || 'General GK';
+      if (!subjectStatsMap[logSub]) {
+        subjectStatsMap[logSub] = { correct: 0, total: 0 };
+      }
+      const correct = log.correct || 0;
+      const wrong = log.wrong || 0;
+      const skipped = log.skipped || 0;
+      const total = correct + wrong + skipped || 1; // avoid division by zero
+      
+      subjectStatsMap[logSub].correct += correct;
+      subjectStatsMap[logSub].total += total;
     }
-    subjectAccuracyMap[log.subject].sum += log.percent;
-    subjectAccuracyMap[log.subject].count += 1;
   });
 
-  const strongSubjects: string[] = [];
-  const focusSubjects: string[] = [];
+  const strongSubjects: { name: string; accuracy: number }[] = [];
+  const focusSubjects: { name: string; accuracy: number }[] = [];
 
-  Object.entries(subjectAccuracyMap).forEach(([name, data]) => {
-    const avg = data.sum / data.count;
-    if (avg >= 75) strongSubjects.push(name);
-    else if (avg < 55) focusSubjects.push(name);
+  Object.entries(subjectStatsMap).forEach(([name, stats]) => {
+    if (stats.total > 0) {
+      const avg = Math.round((stats.correct / stats.total) * 100);
+      if (avg >= 75) strongSubjects.push({ name, accuracy: avg });
+      else if (avg < 55) focusSubjects.push({ name, accuracy: avg });
+    }
   });
 
 
@@ -699,41 +728,51 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         </div>
 
         {/* 6. Diagnostics: Strong & Weak Areas */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Strong Areas */}
-          <div className="p-4 bg-[#121c17] border border-greenL/15 rounded-xl shadow-md flex flex-col gap-2.5">
-            <h5 className="text-[10px] font-black uppercase text-greenL flex items-center gap-1.5 border-b border-greenL/10 pb-1.5 shrink-0">
-              <CheckCircle2 className="w-3.5 h-3.5 text-greenL" />
-              <span>Strong subjects</span>
+          <div className="p-4.5 bg-gradient-to-br from-[#121c17]/60 via-[#16271e]/45 to-[#121620]/30 border border-greenL/15 hover:border-greenL/30 rounded-xl shadow-md hover:shadow-greenL/5 flex flex-col gap-3 transition-all duration-300">
+            <h5 className="text-[10px] font-black uppercase text-greenL flex items-center gap-1.5 border-b border-greenL/10 pb-2 shrink-0 tracking-wider text-left">
+              <CheckCircle2 className="w-4 h-4 text-greenL" />
+              <span>Strong Subjects / मजबूत विषय</span>
             </h5>
-            <div className="flex flex-col gap-1.5 max-h-[140px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto pr-1">
               {strongSubjects.length > 0 ? (
-                strongSubjects.map((name, idx) => (
-                  <span key={idx} className="text-xs font-bold text-greenL bg-greenL/5 px-2 py-1.5 rounded border border-greenL/10 truncate" title={name}>
-                    ✓ {name}
-                  </span>
+                strongSubjects.map((sub, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-greenL/5 border border-greenL/10 hover:border-greenL/25 hover:bg-greenL/10 transition-all duration-200 gap-2.5" title={sub.name}>
+                    <span className="text-xs font-bold text-text truncate max-w-[140px]">
+                      {sub.name}
+                    </span>
+                    <span className="text-[9px] font-black text-greenL bg-greenL/15 border border-greenL/20 px-2 py-0.5 rounded shrink-0 select-none">
+                      {sub.accuracy}% Acc
+                    </span>
+                  </div>
                 ))
               ) : (
-                <span className="text-xs text-text-muted italic py-1">No strong subjects yet</span>
+                <span className="text-xs text-text-muted italic py-1.5 text-center">No strong subjects yet</span>
               )}
             </div>
           </div>
 
           {/* Focus Areas */}
-          <div className="p-4 bg-[#201316] border border-redL/15 rounded-xl shadow-md flex flex-col gap-2.5">
-            <h5 className="text-[10px] font-black uppercase text-redL flex items-center gap-1.5 border-b border-redL/10 pb-1.5 shrink-0">
-              <AlertCircle className="w-3.5 h-3.5 text-redL" />
-              <span>Focus subjects</span>
+          <div className="p-4.5 bg-gradient-to-br from-[#201316]/60 via-[#2a171b]/45 to-[#121620]/30 border border-redL/15 hover:border-redL/30 rounded-xl shadow-md hover:shadow-redL/5 flex flex-col gap-3 transition-all duration-300">
+            <h5 className="text-[10px] font-black uppercase text-redL flex items-center gap-1.5 border-b border-redL/10 pb-2 shrink-0 tracking-wider text-left">
+              <AlertCircle className="w-4 h-4 text-redL" />
+              <span>Focus Subjects / ध्यान देने योग्य</span>
             </h5>
-            <div className="flex flex-col gap-1.5 max-h-[140px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto pr-1">
               {focusSubjects.length > 0 ? (
-                focusSubjects.map((name, idx) => (
-                  <span key={idx} className="text-xs font-bold text-redL bg-redL/5 px-2 py-1.5 rounded border border-redL/10 truncate" title={name}>
-                    ⚠ {name}
-                  </span>
+                focusSubjects.map((sub, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-redL/5 border border-redL/10 hover:border-redL/25 hover:bg-redL/10 transition-all duration-200 gap-2.5" title={sub.name}>
+                    <span className="text-xs font-bold text-text truncate max-w-[140px]">
+                      {sub.name}
+                    </span>
+                    <span className="text-[9px] font-black text-redL bg-redL/15 border border-redL/20 px-2 py-0.5 rounded shrink-0 select-none">
+                      {sub.accuracy}% Acc
+                    </span>
+                  </div>
                 ))
               ) : (
-                <span className="text-xs text-text-muted italic py-1">No focus subjects yet</span>
+                <span className="text-xs text-text-muted italic py-1.5 text-center">No focus subjects yet</span>
               )}
             </div>
           </div>
@@ -1004,63 +1043,70 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
 
         {/* 8. AI Recommendations Coaching tips (Premium Glowing Overhaul) */}
-        <div className="p-6 bg-gradient-to-br from-bg-s2 via-[#161d2d] to-[#121620] border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-4 relative overflow-hidden">
+        <div className="p-6 bg-gradient-to-br from-bg-s2 via-[#161d2d] to-[#121620] border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-5 relative overflow-hidden transition-all duration-300 hover:border-saffron-border/60">
           {/* Glowing background circles for modern premium appearance */}
           <div className="absolute top-0 right-0 w-36 h-36 bg-saffron-dim/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
           <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
           
-          <div className="flex justify-between items-center border-b border-border/60 pb-3 shrink-0">
-            <h4 className="text-xs font-black uppercase text-text tracking-wider flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-saffron animate-pulse" />
+          <div className="flex justify-between items-center border-b border-border/60 pb-3.5 shrink-0">
+            <h4 className="text-xs font-black uppercase text-text tracking-wider flex items-center gap-2.5 text-left">
+              <div className="p-1.5 bg-saffron-dim/20 border border-saffron-border/25 rounded-lg text-saffron">
+                <Brain className="w-4.5 h-4.5 animate-pulse" />
+              </div>
               <span>AI Study Intelligence Coach</span>
             </h4>
-            <span className="text-[9px] font-black uppercase text-saffron bg-saffron-dim/20 px-2 py-0.5 rounded border border-saffron-border/20">
+            <span className="text-[9px] font-black uppercase text-saffron bg-saffron/10 border border-saffron-border/25 px-2.5 py-0.5 rounded select-none">
               Active Analysis
             </span>
           </div>
           
           {/* Main Persona Banner */}
-          <div className="p-4 bg-bg-s3/80 border border-saffron-border/10 rounded-xl flex flex-col gap-2 relative">
-            <span className="text-[8px] font-black uppercase text-saffron tracking-widest flex items-center gap-1">
-              <span>🤖</span>
-              <span>Personal Coach Insight</span>
-            </span>
-            <p className="leading-relaxed text-xs text-text-muted">
-              {normalizedHistory.length > 0 
-                ? `Your average score is ${overallAccuracy}%. Based on your recent responses, you show excellent dedication! However, to secure top ranks in ${activeExam?.name || 'CGPSC'}, focus on weak topics. We have created a custom list of study plans for you below.`
-                : `To start your personalized smart preparation path for ${activeExam?.name || 'CGPSC'}, take a quick practice quiz. This helps our AI tutor map your learning persona and design custom revision intervals for you.`
-              }
-            </p>
+          <div className="p-4 bg-gradient-to-r from-saffron-dim/15 to-[#1c2233] border border-saffron-border/10 rounded-xl flex gap-3.5 relative shadow-inner text-left">
+            <div className="w-9 h-9 rounded-full bg-saffron-dim/20 border border-saffron-border/20 flex items-center justify-center text-saffron shrink-0 shadow-sm mt-0.5">
+              <Cpu className="w-4.5 h-4.5 animate-pulse" />
+            </div>
+            <div className="flex flex-col gap-1 min-w-0">
+              <span className="text-[9px] font-black uppercase text-saffron tracking-widest flex items-center gap-1 select-none">
+                <span>🤖</span>
+                <span>Personal Coach Insight</span>
+              </span>
+              <p className="leading-relaxed text-[11px] text-text-muted">
+                {normalizedHistory.length > 0 
+                  ? `Your average score is ${overallAccuracy}%. Based on your recent responses, you show excellent dedication! However, to secure top ranks in ${activeExam?.name || 'CGPSC'}, focus on weak topics. We have created a custom list of study plans for you below.`
+                  : `To start your personalized smart preparation path for ${activeExam?.name || 'CGPSC'}, take a quick practice quiz. This helps our AI tutor map your learning persona and design custom revision intervals for you.`
+                }
+              </p>
+            </div>
           </div>
 
           {/* Detailed Action Steps */}
-          <div className="flex flex-col gap-3.5 mt-2">
-            <span className="text-[9px] font-black uppercase text-text-muted tracking-wider">Actionable Next Steps</span>
+          <div className="flex flex-col gap-4 mt-1">
+            <span className="text-[9px] font-black uppercase text-text-muted tracking-wider border-b border-border/30 pb-1 text-left">Actionable Next Steps / अगला कदम</span>
             
             {/* Recommendation 1: Weak Subject Practice */}
             {focusSubjects.length > 0 && tabVisibility?.practice !== false && (
-              <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+              <div className="p-4 bg-[#201316]/10 hover:bg-[#201316]/20 border border-border hover:border-redL/30 rounded-xl transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group text-left">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 bg-redL/15 border border-redL/20 rounded-lg flex items-center justify-center shrink-0 text-redL font-bold">
-                    <Target className="w-5 h-5" />
+                    <Target className="w-5 h-5 group-hover:scale-110 transition-transform" />
                   </div>
                   <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-text uppercase">Strengthen Focus Subject</span>
-                      <span className="text-[8px] font-black text-redL bg-redL/10 px-1.5 py-0.5 rounded uppercase leading-none">High Priority</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black text-text uppercase tracking-wide">Strengthen Focus Subject</span>
+                      <span className="text-[8px] font-black text-redL bg-redL/15 border border-redL/25 px-2 py-0.5 rounded uppercase leading-none">High Priority</span>
                     </div>
                     <p className="text-[11px] text-text-muted leading-relaxed">
-                      Your average accuracy in <strong className="text-text">{focusSubjects[0]}</strong> is below 55%. Complete a focused practice test to build confidence.
+                      Your average accuracy in <strong className="text-text">{focusSubjects[0].name}</strong> is below 55%. Complete a focused practice test to build confidence.
                     </p>
                   </div>
                 </div>
                 {onNavigateToTab && (
                   <button 
                     onClick={() => onNavigateToTab('practice')}
-                    className="px-3.5 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow flex items-center gap-1 self-start sm:self-center shrink-0"
+                    className="px-3.5 py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 shadow-md flex items-center justify-center gap-1 self-start sm:self-center shrink-0"
                   >
                     <span>Practice Now</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-3.5 h-3.5 text-bg-s1" />
                   </button>
                 )}
               </div>
@@ -1068,15 +1114,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
             {/* Recommendation 2: Spaced Repetition */}
             {tabVisibility?.syllabus !== false && (
-              <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+              <div className="p-4 bg-[#131d2a]/15 hover:bg-[#131d2a]/25 border border-border hover:border-blue-400/30 rounded-xl transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group text-left">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 bg-blue-500/15 border border-blue-500/20 rounded-lg flex items-center justify-center shrink-0 text-blue-400 font-bold">
-                    <Clock className="w-5 h-5" />
+                    <Clock className="w-5 h-5 group-hover:scale-110 transition-transform" />
                   </div>
                   <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-text uppercase">Active Recall Revision</span>
-                      <span className="text-[8px] font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded uppercase leading-none">Recommended</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black text-text uppercase tracking-wide">Active Recall Revision</span>
+                      <span className="text-[8px] font-black text-blue-400 bg-blue-500/15 border border-blue-500/25 px-2 py-0.5 rounded uppercase leading-none">Recommended</span>
                     </div>
                     <p className="text-[11px] text-text-muted leading-relaxed">
                       Prevent forgetting! Go to the Syllabus page to view topics currently scheduled for spaced repetition review.
@@ -1086,7 +1132,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 {onNavigateToTab && (
                   <button 
                     onClick={() => onNavigateToTab('syllabus')}
-                    className="px-3.5 py-2 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1 self-start sm:self-center shrink-0"
+                    className="px-3.5 py-2.5 bg-bg-s1 hover:bg-bg-s1/90 border border-border hover:border-saffron-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1 self-start sm:self-center shrink-0"
                   >
                     <span>View Syllabus</span>
                     <ArrowRight className="w-3.5 h-3.5 text-saffron" />
@@ -1097,15 +1143,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
             {/* Recommendation 3: Daily Streak consistency */}
             {tabVisibility?.chat !== false && (
-              <div className="p-4 bg-bg-s3/40 hover:bg-bg-s3/65 border border-border hover:border-saffron-border/30 rounded-xl transition-all hover:scale-[1.01] duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+              <div className="p-4 bg-[#201813]/15 hover:bg-[#201813]/25 border border-border hover:border-orange-500/30 rounded-xl transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group text-left">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 bg-orange-500/15 border border-orange-500/20 rounded-lg flex items-center justify-center shrink-0 text-orange-400 font-bold">
-                    <Flame className="w-5 h-5 fill-orange-500/10" />
+                    <Flame className="w-5 h-5 fill-orange-500/10 group-hover:scale-110 transition-transform" />
                   </div>
                   <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-text uppercase">Daily Consistency Booster</span>
-                      <span className="text-[8px] font-black text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded uppercase leading-none">Daily Goal</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black text-text uppercase tracking-wide">Daily Consistency Booster</span>
+                      <span className="text-[8px] font-black text-orange-400 bg-orange-500/15 border border-orange-500/25 px-2 py-0.5 rounded uppercase leading-none">Daily Goal</span>
                     </div>
                     <p className="text-[11px] text-text-muted leading-relaxed">
                       {streak > 0 
@@ -1118,7 +1164,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 {onNavigateToTab && (
                   <button 
                     onClick={() => onNavigateToTab('chat')}
-                    className="px-3.5 py-2 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1 self-start sm:self-center shrink-0"
+                    className="px-3.5 py-2.5 bg-bg-s1 hover:bg-bg-s1/90 border border-border hover:border-saffron-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1 self-start sm:self-center shrink-0"
                   >
                     <span>Ask AI Guru</span>
                     <ArrowRight className="w-3.5 h-3.5 text-saffron" />

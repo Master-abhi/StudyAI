@@ -27,6 +27,14 @@ export const RevisionPlanner: React.FC<RevisionPlannerProps> = ({
   onMarkRevised
 }) => {
   const today = new Date();
+
+  // Helper to calculate difference in calendar days (ignoring time)
+  const getDiffDays = (dueDate: Date) => {
+    const d1 = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+    const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diff = d1.getTime() - d2.getTime();
+    return Math.round(diff / (1000 * 60 * 60 * 24));
+  };
   
   // Find all subjects, chapters, and topics
   const overdueTasks: RevisionTask[] = [];
@@ -212,8 +220,7 @@ export const RevisionPlanner: React.FC<RevisionPlannerProps> = ({
           <div className="flex flex-col gap-3 overflow-y-auto max-h-[280px] pr-1">
             {upcomingTasks.length > 0 ? (
               upcomingTasks.map(task => {
-                const diffTime = task.dueDate.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const diffDays = getDiffDays(task.dueDate);
                 return (
                   <div
                     key={task.topicId}
@@ -234,7 +241,7 @@ export const RevisionPlanner: React.FC<RevisionPlannerProps> = ({
 
                     <div className="flex items-center gap-1 bg-bg-s3 border border-border px-2 py-1 rounded text-[9px] text-text-muted font-bold whitespace-nowrap">
                       <Clock className="w-3 h-3 text-saffron" />
-                      <span>{diffDays === 0 ? 'Today' : `in ${diffDays}d`}</span>
+                      <span>{diffDays === 0 ? 'Today' : diffDays === 1 ? 'Tomorrow' : `in ${diffDays}d`}</span>
                     </div>
                   </div>
                 );

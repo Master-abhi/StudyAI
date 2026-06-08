@@ -299,7 +299,90 @@ router.post('/news/refresh', verifyStaffOrAdmin('news'), async (req, res) => {
   }
 });
 
-// ── Admin Test Management Endpoints ──
+// ── Admin News Upload/Paste Endpoint ──
+
+router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
+  try {
+    const { articles } = req.body;
+    if (!articles || !Array.isArray(articles)) {
+      return res.status(400).json({ error: 'Articles array is required' });
+    }
+
+    const crypto = require('crypto');
+    const timestamp = new Date().toISOString();
+    const batch = db.batch();
+
+    const cleanedArticles = articles.map((art, index) => {
+      const category = art.category || 'general';
+      const cleanTitle = art.title || `News Article ${index + 1}`;
+      const docId = crypto.createHash('md5').update(art.url || cleanTitle).digest('hex');
+
+      const cleanArt = {
+        title: cleanTitle,
+        title_hi: art.title_hi || cleanTitle,
+        description: art.description || '',
+        description_hi: art.description_hi || art.description || '',
+        summary: art.summary || art.description || '',
+        summary_hi: art.summary_hi || art.description_hi || art.description || '',
+        source: art.source || 'Manual Upload',
+        category: category,
+        pubDate: art.pubDate || art.date || timestamp.split('T')[0],
+        date: art.pubDate || art.date || timestamp.split('T')[0],
+        url: art.url || '',
+        examRelevance: true,
+        icon: art.icon || (category === 'chhattisgarh' ? '🏔️' : '📰'),
+        lang: art.lang || 'hi',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      const docRef = db.collection('news_articles').doc(docId);
+      batch.set(docRef, cleanArt, { merge: true });
+
+      return cleanArt;
+    });
+
+    await batch.commit();
+    console.log(`[Admin News Upload] Saved ${cleanedArticles.length} articles to firestore collection 'news_articles'`);
+
+    // Regenerate cache compiled compilation
+    const snap = await db.collection('news_articles').orderBy('createdAt', 'desc').limit(150).get();
+    let allStored = snap.docs.map(doc => doc.data());
+
+    // Sort in memory
+    allStored.sort((a, b) => {
+      const dateA = a.pubDate || a.date || '';
+      const dateB = b.pubDate || b.date || '';
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA);
+      }
+      const createA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime()) : 0;
+      const createB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime()) : 0;
+      return createB - createA;
+    });
+
+    const cacheArticles = allStored.slice(0, 50).map(art => ({
+      ...art,
+      date: art.date || art.pubDate || timestamp.split('T')[0],
+      pubDate: art.pubDate || art.date || timestamp.split('T')[0]
+    }));
+
+    const cacheData = {
+      lastUpdated: timestamp,
+      articles: cacheArticles
+    };
+
+    await db.collection('news').doc('cache').set(cacheData);
+    console.log('[Admin News Upload] Cache successfully updated in news/cache.');
+
+    await logStaffActivity(req, 'upload_news', { totalArticles: cleanedArticles.length });
+
+    res.json({ success: true, totalArticles: cleanedArticles.length });
+  } catch (err) {
+    console.error('[Admin News Upload Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to upload news articles.' });
+  }
+});
+
 
 // Generate AI test and save to Firestore
 router.post('/tests/generate', verifyStaffOrAdmin('tests'), async (req, res) => {

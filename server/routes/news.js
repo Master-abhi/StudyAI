@@ -115,16 +115,20 @@ router.get('/recommended', verifyFirebaseToken, async (req, res) => {
       'agriculture': ['agriculture', 'geography'],
       'environment': ['environment', 'science & technology', 'geography'],
       'science & technology': ['science & technology', 'general science'],
+      'chhattisgarh': ['chhattisgarh gk', 'chhattisgarh history', 'chhattisgarh geography', 'chhattisgarh administration'],
       'chhattisgarh current affairs': ['chhattisgarh gk', 'chhattisgarh history', 'chhattisgarh geography', 'chhattisgarh administration']
     };
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const scoredArticles = articles.map(art => {
-      let score = 50;
+      let relevanceScore = 50;
       const artCat = (art.category || '').toLowerCase();
       
       if (targetExam.includes('cgpsc') || targetExam.includes('vyapam')) {
-        if (artCat === 'chhattisgarh current affairs' || artCat.includes('chhattisgarh') || artCat === 'government schemes') {
-          score += 40;
+        if (artCat === 'chhattisgarh current affairs' || artCat.includes('chhattisgarh') || artCat === 'government schemes' || artCat === 'scheme') {
+          relevanceScore += 40;
         }
       }
 
@@ -132,15 +136,44 @@ router.get('/recommended', verifyFirebaseToken, async (req, res) => {
         if (artCat === cat || artCat.includes(cat)) {
           const matchesWeak = subjs.some(subj => weakSubjects.has(subj));
           if (matchesWeak) {
-            score += 35;
+            relevanceScore += 35;
           }
         }
       }
 
-      return { ...art, recommendationScore: score };
+      // Blended Recency decay / freshness weight
+      let recencyWeight = 0;
+      if (art.date || art.pubDate) {
+        const artDate = new Date(art.date || art.pubDate);
+        artDate.setHours(0, 0, 0, 0);
+        const diffTime = today.getTime() - artDate.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 0) {
+          recencyWeight = 100; // Today
+        } else if (diffDays === 1) {
+          recencyWeight = 85;  // Yesterday
+        } else if (diffDays <= 3) {
+          recencyWeight = 60;  // 2-3 days old
+        } else if (diffDays <= 7) {
+          recencyWeight = 30;  // Within a week
+        } else if (diffDays > 30) {
+          recencyWeight = -100; // Over a month old (heavily deprioritized)
+        } else if (diffDays > 14) {
+          recencyWeight = -40;  // Over 2 weeks old
+        }
+      }
+
+      const totalScore = relevanceScore + recencyWeight;
+
+      return { 
+        ...art, 
+        recommendationScore: relevanceScore, 
+        totalScore 
+      };
     });
 
-    scoredArticles.sort((a, b) => b.recommendationScore - a.recommendationScore);
+    scoredArticles.sort((a, b) => b.totalScore - a.totalScore);
     res.json({ articles: scoredArticles });
   } catch (err) {
     console.error('[News Recommended Error]:', err.message);

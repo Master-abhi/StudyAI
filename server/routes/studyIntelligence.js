@@ -374,8 +374,43 @@ router.get('/dashboard', async (req, res) => {
       }
     });
 
-    // Aggregate values
-    const totalTopicsCount = masteries.length;
+    // Fetch true total topics in the exam's syllabus (from Firestore 'syllabi' or default fallback)
+    let totalTopicsCount = 0;
+    try {
+      const syllabusDoc = await db.collection('syllabi').doc(selectedExamId).get();
+      if (syllabusDoc.exists) {
+        const syllabusData = syllabusDoc.data();
+        if (syllabusData.subjects && Array.isArray(syllabusData.subjects)) {
+          syllabusData.subjects.forEach(sub => {
+            if (sub.chapters && Array.isArray(sub.chapters)) {
+              sub.chapters.forEach(chap => {
+                if (chap.topics && Array.isArray(chap.topics)) {
+                  totalTopicsCount += chap.topics.length;
+                }
+              });
+            } else if (sub.topics && Array.isArray(sub.topics)) {
+              totalTopicsCount += sub.topics.length;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[Dashboard Metrics] Error querying syllabi collection:', e.message);
+    }
+
+    // Fallback default counts if not found in db
+    if (totalTopicsCount === 0) {
+      if (selectedExamId === 'cgpsc_sse') {
+        totalTopicsCount = 29;
+      } else if (selectedExamId === 'cgv_patwari') {
+        totalTopicsCount = 4;
+      } else if (selectedExamId === 'cg_police_si') {
+        totalTopicsCount = 1;
+      } else {
+        totalTopicsCount = Math.max(1, masteries.length); // fallback
+      }
+    }
+
     const completedTopicsCount = masteries.filter(m => m.status === 'Completed' || m.status === 'Revised').length;
     const weakTopicsCount = masteries.filter(m => m.status === 'Weak Area').length;
     

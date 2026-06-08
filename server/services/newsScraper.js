@@ -377,6 +377,7 @@ async function scrapeAllNews() {
       source: art.source,
       category: art.category,
       pubDate: art.date,
+      date: art.date,
       url: art.url,
       examRelevance: true,
       icon: art.icon,
@@ -391,13 +392,13 @@ async function scrapeAllNews() {
   }
 
   // 7. Regenerate final compiled cache
-  const snap = await db.collection('news_articles').limit(150).get();
+  const snap = await db.collection('news_articles').orderBy('createdAt', 'desc').limit(150).get();
   let allStored = snap.docs.map(doc => doc.data());
 
   // Sort in memory by date descending, then by createdAt
   allStored.sort((a, b) => {
-    const dateA = a.pubDate || '';
-    const dateB = b.pubDate || '';
+    const dateA = a.pubDate || a.date || '';
+    const dateB = b.pubDate || b.date || '';
     if (dateA !== dateB) {
       return dateB.localeCompare(dateA);
     }
@@ -406,7 +407,11 @@ async function scrapeAllNews() {
     return createB - createA;
   });
 
-  const cacheArticles = allStored.slice(0, 50);
+  const cacheArticles = allStored.slice(0, 50).map(art => ({
+    ...art,
+    date: art.date || art.pubDate || new Date().toISOString().split('T')[0],
+    pubDate: art.pubDate || art.date || new Date().toISOString().split('T')[0]
+  }));
 
   const cacheData = {
     lastUpdated: new Date().toISOString(),

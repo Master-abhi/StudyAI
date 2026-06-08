@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, Zap, BookOpen } from 'lucide-react';
+import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, Zap, BookOpen, Search, SlidersHorizontal, X } from 'lucide-react';
 import type { Question } from '../types';
 
 interface ServerTest {
@@ -33,6 +33,21 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   const [tests, setTests] = useState<ServerTest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedSavedQuestion, setSelectedSavedQuestion] = useState<Question | null>(null);
+
+  // Filter and search states
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('All');
+  const [selectedLength, setSelectedLength] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<string>('newest');
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+
+  // Reset filters when mode changes
+  useEffect(() => {
+    setSearchQuery('');
+    setSelectedLanguage('All');
+    setSelectedLength('All');
+    setSortBy('newest');
+  }, [activeMode]);
 
   const getApiUrl = (path: string) => {
     const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
@@ -127,13 +142,54 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     onStartPracticeSession(MOCK_PYQS, 'pyq', 'CGPSC Previous Year Questions');
   };
 
-  // Filter educator tests matching selected mode and active exam
+  // 1. Filter by mode and exam first (Base list matching the active mode and exam context)
   console.log('[PracticeTab] activeExamId:', activeExam?.id, 'activeMode:', activeMode);
-  const filteredTests = tests.filter(t => 
+  const baseFilteredTests = tests.filter(t => 
     t.mode === activeMode && 
     (t.examId === activeExam?.id || (Array.isArray(t.examIds) && t.examIds.includes(activeExam?.id)))
   );
-  console.log('[PracticeTab] Filtered tests count:', filteredTests.length, 'matches:', filteredTests);
+
+  // 2. Extract unique languages dynamically from base tests
+  const availableLanguages = Array.from(new Set(baseFilteredTests.map(t => t.language).filter(Boolean)));
+
+  // 3. Apply active filters
+  let filteredTests = baseFilteredTests.filter(t => {
+    const matchesSearch = searchQuery 
+      ? t.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (t.examName && t.examName.toLowerCase().includes(searchQuery.toLowerCase()))
+      : true;
+
+    const matchesLanguage = selectedLanguage && selectedLanguage !== 'All'
+      ? t.language === selectedLanguage
+      : true;
+
+    let matchesLength = true;
+    if (selectedLength === 'short') {
+      matchesLength = t.totalQuestions < 20;
+    } else if (selectedLength === 'medium') {
+      matchesLength = t.totalQuestions >= 20 && t.totalQuestions <= 50;
+    } else if (selectedLength === 'long') {
+      matchesLength = t.totalQuestions > 50;
+    }
+
+    return matchesSearch && matchesLanguage && matchesLength;
+  });
+
+  // 4. Sort filtered results
+  filteredTests = [...filteredTests].sort((a, b) => {
+    if (sortBy === 'newest') {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    } else if (sortBy === 'oldest') {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    } else if (sortBy === 'questions-desc') {
+      return b.totalQuestions - a.totalQuestions;
+    } else if (sortBy === 'questions-asc') {
+      return a.totalQuestions - b.totalQuestions;
+    }
+    return 0;
+  });
+
+  console.log('[PracticeTab] Filtered tests count:', filteredTests.length);
 
   return (
     <div className="flex flex-col gap-5 w-full max-w-lg md:max-w-5xl mx-auto pb-12 font-sans">
@@ -274,39 +330,154 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
               </div>
             )}
           </motion.div>
-        ) : filteredTests.length === 0 ? (
-          /* Empty indicator */
-          <div className="p-8 text-center bg-bg-s2 border border-border rounded-xl text-xs text-text-muted flex flex-col items-center gap-2">
-            <AlertCircle className="w-6 h-6 text-saffron-border/60 mb-0.5" />
-            <span>No educator tests available currently.</span>
-            <span className="text-[10px]">Generate customized mock practice in the Syllabus tab or practice preloaded PYQs.</span>
-          </div>
         ) : (
-          /* Educator tests list */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredTests.map(test => (
-              <motion.div
-                key={test.id}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 bg-bg-s2 border border-border rounded-xl flex items-center justify-between shadow-sm"
-              >
-                <div className="flex flex-col gap-0.5 truncate pr-3">
-                  <h4 className="text-xs font-black text-text truncate leading-tight">{test.subject}</h4>
-                  <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider">
-                    {test.totalQuestions} questions • {test.language} • {activeMode}
-                  </span>
+          /* Educator tests container (Quiz/Mock) */
+          <div className="flex flex-col gap-4">
+            {/* Filter controls panel */}
+            <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col gap-3">
+              {/* Search row */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-text-muted" />
+                  <input
+                    type="text"
+                    placeholder={`Search ${activeMode === 'quiz' ? 'quizzes' : 'mock exams'} by subject...`}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-bg-s3 border border-border focus:border-saffron/50 rounded-lg pl-9 pr-8 py-2 text-xs font-semibold text-text placeholder-text-muted outline-none transition-colors"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-2.5 text-text-muted hover:text-text cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
                 
                 <button
-                  onClick={() => handleStartEducatorTest(test.id, test.mode, test.subject)}
-                  className="px-3.5 py-2 bg-saffron hover:bg-orange-500 text-[10px] font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1 shrink-0 transition-colors cursor-pointer"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`px-3 py-2 border rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+                    showFilters || selectedLanguage !== 'All' || selectedLength !== 'All' || sortBy !== 'newest'
+                      ? 'bg-saffron-dim/20 border-saffron text-saffron'
+                      : 'bg-bg-s3 border-border hover:bg-bg-s3/80 text-text-muted'
+                  }`}
                 >
-                  <Play className="w-3.5 h-3.5 fill-bg-s1" />
-                  <span>Start</span>
+                  <SlidersHorizontal className="w-4 h-4" />
+                  <span className="hidden sm:inline">Filters</span>
                 </button>
-              </motion.div>
-            ))}
+              </div>
+
+              {/* Collapsible filters row */}
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden flex flex-col sm:flex-row gap-3 pt-2 border-t border-border/40"
+                  >
+                    {/* Language Filter */}
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <label className="text-[9px] font-black uppercase text-text-muted">Language / भाषा</label>
+                      <select
+                        value={selectedLanguage}
+                        onChange={(e) => setSelectedLanguage(e.target.value)}
+                        className="w-full bg-bg-s3 border border-border focus:border-saffron/50 rounded-lg px-2.5 py-2 text-xs font-semibold text-text outline-none cursor-pointer"
+                      >
+                        <option value="All">All Languages / सभी भाषाएँ</option>
+                        {availableLanguages.map(lang => (
+                          <option key={lang} value={lang}>{lang}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Test Length Filter */}
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <label className="text-[9px] font-black uppercase text-text-muted">Questions / प्रश्न संख्या</label>
+                      <select
+                        value={selectedLength}
+                        onChange={(e) => setSelectedLength(e.target.value)}
+                        className="w-full bg-bg-s3 border border-border focus:border-saffron/50 rounded-lg px-2.5 py-2 text-xs font-semibold text-text outline-none cursor-pointer"
+                      >
+                        <option value="All">Any Length / सभी</option>
+                        <option value="short">Short (&lt; 20 Qs) / लघु</option>
+                        <option value="medium">Medium (20-50 Qs) / मध्यम</option>
+                        <option value="long">Long (&gt; 50 Qs) / दीर्घ</option>
+                      </select>
+                    </div>
+
+                    {/* Sort By */}
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <label className="text-[9px] font-black uppercase text-text-muted">Sort By / क्रमबद्ध करें</label>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="w-full bg-bg-s3 border border-border focus:border-saffron/50 rounded-lg px-2.5 py-2 text-xs font-semibold text-text outline-none cursor-pointer"
+                      >
+                        <option value="newest">Newest First / नवीन</option>
+                        <option value="oldest">Oldest First / प्राचीन</option>
+                        <option value="questions-desc">Most Questions / अधिक प्रश्न</option>
+                        <option value="questions-asc">Fewest Questions / कम प्रश्न</option>
+                      </select>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* List or Empty Indicator */}
+            {filteredTests.length === 0 ? (
+              <div className="p-8 text-center bg-bg-s2 border border-border rounded-xl text-xs text-text-muted flex flex-col items-center gap-2">
+                <AlertCircle className="w-6 h-6 text-saffron-border/60 mb-0.5" />
+                <span>No educator tests match your filter criteria or none are available.</span>
+                <span className="text-[10px]">
+                  {baseFilteredTests.length === 0 
+                    ? "Generate customized mock practice in the Syllabus tab or practice preloaded PYQs." 
+                    : "Try adjusting your search query or filters."}
+                </span>
+                {(searchQuery || selectedLanguage !== 'All' || selectedLength !== 'All' || sortBy !== 'newest') && (
+                  <button 
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedLanguage('All');
+                      setSelectedLength('All');
+                      setSortBy('newest');
+                    }}
+                    className="mt-2 px-3 py-1.5 bg-saffron-dim border border-saffron-border text-saffron hover:bg-saffron/20 rounded-lg text-[10px] font-black cursor-pointer transition-all active:scale-95"
+                  >
+                    Clear Filters / फ़िल्टर साफ़ करें
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredTests.map(test => (
+                  <motion.div
+                    key={test.id}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-bg-s2 border border-border rounded-xl flex items-center justify-between shadow-sm hover:border-saffron-border/30 transition-all duration-200"
+                  >
+                    <div className="flex flex-col gap-0.5 truncate pr-3">
+                      <h4 className="text-xs font-black text-text truncate leading-tight">{test.subject}</h4>
+                      <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider">
+                        {test.totalQuestions} questions • {test.language} • {activeMode}
+                      </span>
+                    </div>
+                    
+                    <button
+                      onClick={() => handleStartEducatorTest(test.id, test.mode, test.subject)}
+                      className="px-3.5 py-2 bg-saffron hover:bg-orange-500 text-[10px] font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1 shrink-0 transition-all active:scale-95 cursor-pointer shadow hover:shadow-saffron-dim"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-bg-s1" />
+                      <span>Start</span>
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

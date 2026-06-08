@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Sparkles, User, Brain, HelpCircle, BookOpen } from 'lucide-react';
+import { X, Send, Sparkles, User, Brain, HelpCircle, BookOpen, Image } from 'lucide-react';
 import type { Question } from '../types';
 import { MarkdownRenderer } from './MarkdownRenderer';
 
@@ -15,6 +15,26 @@ interface Message {
     explanation: string;
   };
 }
+
+const enrichImagePrompt = (prompt: string): string => {
+  const lowercase = prompt.toLowerCase();
+  
+  // Technical/engineering drawing keywords
+  const techKeywords = [
+    'blueprint', 'technical drawing', 'schematic', 'engineering drawing', 
+    'mechanical drawing', 'drafting', 'cad drawing', 'patent drawing', 
+    'isometric view', 'dimensioned drawing', 'diagram', 'circuit'
+  ];
+  
+  const isTechnical = techKeywords.some(keyword => lowercase.includes(keyword));
+  
+  if (isTechnical) {
+    return `${prompt}, detailed technical engineering blueprint drawing, orthographic 2d views with dimension lines, 3d isometric view, crisp linework, mechanical drafting style, clean light-grey textured background, high precision, architectural schematic`;
+  }
+  
+  // General enhancement
+  return `${prompt}, highly detailed, professional illustration, 4k resolution, clean focus`;
+};
 
 interface AiTutorModalProps {
   isOpen: boolean;
@@ -117,9 +137,53 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
     }, 1500);
   };
 
+  const handleTriggerImageGen = () => {
+    const promptText = window.prompt('Enter image description to generate (e.g. "Bastar tribe folk dance" or "Geographical map of Chhattisgarh"):');
+    if (promptText && promptText.trim()) {
+      handleImageGen(promptText.trim());
+    }
+  };
+
+  const handleImageGen = (imgPrompt: string) => {
+    const userMsg: Message = {
+      sender: 'user',
+      text: `/image ${imgPrompt}`,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    setIsTyping(true);
+
+    const seed = Math.floor(Math.random() * 1000000);
+    const cleanPrompt = imgPrompt.replace(/[\/?#&%\\]/g, ' ').trim();
+    const enriched = enrichImagePrompt(cleanPrompt);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enriched)}?width=800&height=600&nologo=true&seed=${seed}`;
+    const reply = `Generating image for: "${imgPrompt}"...\n\n![${imgPrompt}](${imageUrl})`;
+
+    setTimeout(() => {
+      setIsTyping(false);
+      const aiMsg: Message = {
+        sender: 'ai',
+        text: reply,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, aiMsg]);
+    }, 1200);
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
+
+    const query = inputValue.trim();
+    if (query.startsWith('/image ')) {
+      const imgPrompt = query.substring(7).trim();
+      if (imgPrompt) {
+        setInputValue('');
+        handleImageGen(imgPrompt);
+        return;
+      }
+    }
 
     const userMsg: Message = {
       sender: 'user',
@@ -128,7 +192,6 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
     };
 
     setMessages(prev => [...prev, userMsg]);
-    const query = inputValue;
     setInputValue('');
     setIsTyping(true);
 
@@ -319,6 +382,16 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
               onSubmit={handleSendMessage}
               className="p-3 bg-bg-s3 border-t border-border flex items-center gap-2"
             >
+              <button
+                type="button"
+                onClick={handleTriggerImageGen}
+                disabled={isTyping}
+                className="p-2.5 rounded-md bg-bg-s2 border border-border hover:border-saffron-border text-text-muted hover:text-saffron transition-colors cursor-pointer"
+                title="Generate AI Image"
+              >
+                <Image className="w-4 h-4" />
+              </button>
+
               <input
                 type="text"
                 value={inputValue}

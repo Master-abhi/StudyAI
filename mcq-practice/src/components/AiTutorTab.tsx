@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, Trash2, StopCircle, 
   Brain, ChevronRight, Globe,
-  Bot, Trees, FileText, Users, Newspaper
+  Bot, Trees, FileText, Users, Newspaper,
+  Image
 } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 
@@ -12,6 +13,26 @@ interface ChatMessage {
   content: string;
   timestamp: string;
 }
+
+const enrichImagePrompt = (prompt: string): string => {
+  const lowercase = prompt.toLowerCase();
+  
+  // Technical/engineering drawing keywords
+  const techKeywords = [
+    'blueprint', 'technical drawing', 'schematic', 'engineering drawing', 
+    'mechanical drawing', 'drafting', 'cad drawing', 'patent drawing', 
+    'isometric view', 'dimensioned drawing', 'diagram', 'circuit'
+  ];
+  
+  const isTechnical = techKeywords.some(keyword => lowercase.includes(keyword));
+  
+  if (isTechnical) {
+    return `${prompt}, detailed technical engineering blueprint drawing, orthographic 2d views with dimension lines, 3d isometric view, crisp linework, mechanical drafting style, clean light-grey textured background, high precision, architectural schematic`;
+  }
+  
+  // General enhancement
+  return `${prompt}, highly detailed, professional illustration, 4k resolution, clean focus`;
+};
 
 interface AiTutorTabProps {
   activeExam: any;
@@ -64,9 +85,56 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
     }
   };
 
+  const handleTriggerImageGen = () => {
+    const promptText = window.prompt('Enter image description to generate (e.g. "Bastar tribe folk dance" or "Geographical map of Chhattisgarh"):');
+    if (promptText && promptText.trim()) {
+      handleSend(`/image ${promptText.trim()}`);
+    }
+  };
+
   const handleSend = async (textToSend: string) => {
     const query = textToSend.trim();
     if (!query) return;
+
+    if (query.startsWith('/image ')) {
+      const imgPrompt = query.substring(7).trim();
+      if (!imgPrompt) return;
+
+      setInputVal('');
+      const userTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const userMsg: ChatMessage = {
+        id: `msg-${Date.now()}-user`,
+        role: 'user',
+        content: query,
+        timestamp: userTimestamp
+      };
+
+      const updatedMessages = [...messages, userMsg];
+      setMessages(updatedMessages);
+      saveChatHistory(updatedMessages);
+
+      setGenerating(true);
+      const aiMsgId = `msg-${Date.now() + 1}-ai`;
+      const aiTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      const seed = Math.floor(Math.random() * 1000000);
+      const cleanPrompt = imgPrompt.replace(/[\/?#&%\\]/g, ' ').trim();
+      const enriched = enrichImagePrompt(cleanPrompt);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enriched)}?width=800&height=600&nologo=true&seed=${seed}`;
+      const initialAiMsg: ChatMessage = {
+        id: aiMsgId,
+        role: 'ai',
+        content: `Generating image for: "${imgPrompt}"...\n\n![${imgPrompt}](${imageUrl})`,
+        timestamp: aiTimestamp
+      };
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, initialAiMsg]);
+        setGenerating(false);
+        saveChatHistory([...updatedMessages, initialAiMsg]);
+      }, 800);
+      return;
+    }
 
     setInputVal('');
     const userTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -309,6 +377,16 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
           }}
           className="flex items-center gap-2.5"
         >
+          <button
+            type="button"
+            onClick={handleTriggerImageGen}
+            disabled={generating}
+            className="p-3 bg-bg-s3 hover:bg-bg-s2 border border-border text-text-muted hover:text-saffron rounded-lg flex items-center justify-center cursor-pointer transition-all shadow"
+            title="Generate AI Image"
+          >
+            <Image className="w-4 h-4" />
+          </button>
+
           <input
             type="text"
             placeholder="Ask anything about your exam..."

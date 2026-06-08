@@ -65,8 +65,43 @@ async function runDailySchedulerForUser(userId) {
       srList.push({ ...sr, forgettingProbability, nextRevisionDate: nextDate });
     });
 
-    // 4. Calculate Readiness Stats
-    const totalTopicsCount = masteries.length;
+    // 4. Calculate Readiness Stats (Fetch true total topics in the exam's syllabus from Firestore 'syllabi' or default fallback)
+    let totalTopicsCount = 0;
+    try {
+      const syllabusDoc = await db.collection('syllabi').doc(activeExamId).get();
+      if (syllabusDoc.exists) {
+        const syllabusData = syllabusDoc.data();
+        if (syllabusData.subjects && Array.isArray(syllabusData.subjects)) {
+          syllabusData.subjects.forEach(sub => {
+            if (sub.chapters && Array.isArray(sub.chapters)) {
+              sub.chapters.forEach(chap => {
+                if (chap.topics && Array.isArray(chap.topics)) {
+                  totalTopicsCount += chap.topics.length;
+                }
+              });
+            } else if (sub.topics && Array.isArray(sub.topics)) {
+              totalTopicsCount += sub.topics.length;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[Scheduler] Error querying syllabi collection:', e.message);
+    }
+
+    // Fallback default counts if not found in db
+    if (totalTopicsCount === 0) {
+      if (activeExamId === 'cgpsc_sse') {
+        totalTopicsCount = 29;
+      } else if (activeExamId === 'cgv_patwari') {
+        totalTopicsCount = 4;
+      } else if (activeExamId === 'cg_police_si') {
+        totalTopicsCount = 1;
+      } else {
+        totalTopicsCount = Math.max(1, masteries.length); // fallback
+      }
+    }
+
     const completedTopicsCount = masteries.filter(m => m.status === 'Completed' || m.status === 'Revised').length;
     const weakTopicsCount = masteries.filter(m => m.status === 'Weak Area').length;
     
@@ -188,17 +223,94 @@ async function runDailySchedulerForUser(userId) {
 
     // Fallback: Recommend high-value unstarted topics in the active exam
     if (recommendations.length < 3) {
-      // Pick topics not started (no mastery log)
       const allTopicIdsInMastery = new Set(masteries.map(m => m.topicId));
       
-      // Simulate querying exam syllabus structure to pick an unstarted topic
-      // We will suggest generic placeholder subject/topics if syllabus structure isn't locally parsed in db
-      recommendations.push({
-        topicId: 'adeo-cg-1',
-        subjectId: 'adeo-cg-gk',
-        reason: 'Highly weighted topic with frequent PYQ patterns. Start study.',
-        priority: 5
-      });
+      // Look up topics from the loaded syllabus document if available
+      let foundUnstarted = false;
+      try {
+        const syllabusDoc = await db.collection('syllabi').doc(activeExamId).get();
+        if (syllabusDoc.exists) {
+          const syllabusData = syllabusDoc.data();
+          if (syllabusData.subjects && Array.isArray(syllabusData.subjects)) {
+            for (const sub of syllabusData.subjects) {
+              if (foundUnstarted) break;
+              const chapters = sub.chapters || [{ topics: sub.topics || [] }];
+              for (const chap of chapters) {
+                if (foundUnstarted) break;
+                if (chap.topics && Array.isArray(chap.topics)) {
+                  for (const topic of chap.topics) {
+                    if (topic && topic.id && !allTopicIdsInMastery.has(topic.id)) {
+                      recommendations.push({
+                        topicId: topic.id,
+                        subjectId: sub.id,
+                        reason: 'Highly weighted syllabus topic with frequent patterns. Start learning.',
+                        priority: 5
+                      });
+                      foundUnstarted = true;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Scheduler] Error scanning unstarted syllabus topics:', e.message);
+      }
+
+      // Hardcoded default fallbacks matching default exams if firestore syllabus doc lookup failed
+      if (!foundUnstarted) {
+        if (activeExamId === 'cgpsc_sse') {
+          // Find first unstarted topic from cgpsc_sse preloads
+          const defaultCgpscTopics = [
+            { id: 'cg-hist-1', subId: 'cgpsc_cg_gk' },
+            { id: 'cg-geo-1', subId: 'cgpsc_cg_gk' },
+            { id: 'pol-fund-1', subId: 'cgpsc_polity' },
+            { id: 'hist-anc-1', subId: 'cgpsc_history' }
+          ];
+          for (const item of defaultCgpscTopics) {
+            if (!allTopicIdsInMastery.has(item.id)) {
+              recommendations.push({
+                topicId: item.id,
+                subjectId: item.subId,
+                reason: 'Highly weighted CGPSC syllabus topic with frequent patterns. Start learning.',
+                priority: 5
+              });
+              foundUnstarted = true;
+              break;
+            }
+          }
+        } else if (activeExamId === 'cgv_patwari') {
+          const defaultPatwariTopics = [
+            { id: 'pat-cg-h1', subId: 'pat_cg_gk' },
+            { id: 'pat-quant-1', subId: 'pat_maths' },
+            { id: 'pat-comp-1', subId: 'pat_computer' }
+          ];
+          for (const item of defaultPatwariTopics) {
+            if (!allTopicIdsInMastery.has(item.id)) {
+              recommendations.push({
+                topicId: item.id,
+                subjectId: item.subId,
+                reason: 'Important Patwari exam syllabus topic. Start practicing MCQs.',
+                priority: 5
+              });
+              foundUnstarted = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // Final fallback if still empty
+      if (recommendations.length === 0) {
+        recommendations.push({
+          topicId: 'cg-hist-1',
+          subjectId: 'cgpsc_cg_gk',
+          reason: 'Highly weighted topic with frequent PYQ patterns. Start study.',
+          priority: 5
+        });
+      }
     }
 
     // Write aggregated profile document

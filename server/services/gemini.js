@@ -92,6 +92,43 @@ ${getLanguageInstruction(language)}
       - For classes or entity-relationship models: use a **Class Diagram** (\`classDiagram\`).
     - Do NOT default to a flowchart if a timeline, mindmap, sequence diagram, or pie chart is more suited to the request.
     - Do NOT use ASCII art. The diagram must be clear, labelled in the response language, and professional.
+    - **Follow Strict Diagram Syntax to Prevent Rendering Errors**:
+      - **Flowcharts**: Use \`flowchart TD\` or \`flowchart LR\`. Connect nodes using \`-->\`.
+      - **Mindmaps**: Start with \`mindmap\` on its own line. Do NOT use arrows (\`-->\`) or connectors. Use indentation for hierarchy. Example:
+        \`\`\`mermaid
+        mindmap
+          root((Main Topic))
+            Subtopic 1
+              Detail A
+            Subtopic 2
+        \`\`\`
+      - **Timelines**: Start with \`timeline\` on its own line. Use \`section Year/Era\` and event descriptions separated by a colon \`:\`. Do NOT use arrows (\`-->\`) or connectors. Example:
+        \`\`\`mermaid
+        timeline
+          section 1947
+            Independence : Power transferred
+          section 1950
+            Republic Day : Constitution enacted
+        \`\`\`
+      - **Sequence Diagrams**: Start with \`sequenceDiagram\`. Use \`Actor1->>Actor2: Message\`. Do NOT use flowchart connectors.
+      - **Labels & Special Characters**: If a node label contains special characters like parentheses \`()\`, brackets \`[]\`, quotes, colons, commas, or HTML tags, you MUST enclose the text in double quotes. E.g., \`A["Supply (12V)"]\`. Never use raw HTML tags inside node text.
+11. **Plotly Graph Support**: Whenever data can be visualized as a chart (e.g. comparing populations, timelines, statistics, demographic distributions, state revenue, budget expenditures), or when the user asks for a chart/graph/plot, you MUST generate a Plotly chart inside a fenced code block with the language tag \`plotly\`. The content must be a valid JSON object matching the Plotly specifications (containing "data" and "layout" properties). Do NOT output other text inside the code block.
+    Example:
+    \`\`\`plotly
+    {
+      "data": [
+        { "x": ["Tribes", "Agriculture", "Services"], "y": [40, 35, 25], "type": "bar", "marker": { "color": "#ff9933" } }
+      ],
+      "layout": { "title": "Chhattisgarh Sector Contribution (%)" }
+    }
+    \`\`\`
+12. **KaTeX Math Support**: For all mathematical formulas, equations, or scientific notation, you MUST use LaTeX/KaTeX formatting with appropriate delimiters:
+    - Use single dollar signs \`$...\` for inline math equations, e.g., \`$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$\`.
+    - Use double dollar signs \`$$...$$\` for block math equations.
+13. **Image Generation**: If the user requests to generate an image, visualize a scene, or show a custom picture (other than a chart or flowchart), you MUST generate the image by including a markdown image tag targeting the Pollinations AI generator:
+    \`![Caption Description](https://image.pollinations.ai/prompt/URL_ENCODED_PROMPT?width=800&height=600&nologo=true&seed=RANDOM_NUMBER)\`
+    - Replace \`URL_ENCODED_PROMPT\` with a detailed descriptive English prompt (URL-encoded, e.g. \`traditional%20bastar%20art%20chhattisgarh%20high%20detail\`).
+    - Replace \`RANDOM_NUMBER\` with a random integer (e.g., between 1 and 1000000) to ensure uniqueness and prevent caching.
 
 Example of correct 2D diagram format:
 ${mermaidExample}`;

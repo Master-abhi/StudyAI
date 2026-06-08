@@ -83,15 +83,19 @@ export const ExamStrategyCard: React.FC<ExamStrategyCardProps> = ({ exam }) => {
 
                 return (
                   <tr key={sub.id} className="border-b border-border/40 hover:bg-bg-s3/30 transition-colors">
-                    <td className="py-3 font-semibold text-text flex items-center gap-1.5">
-                      {sub.isCgSpecific && <span className="bg-saffron text-[8px] font-black text-bg-s1 px-1 rounded">CG SPECIFIC</span>}
-                      <span>{sub.name}</span>
+                    <td className="py-3 font-semibold text-text">
+                      <div className="flex items-center gap-1.5">
+                        {sub.isCgSpecific && <span className="bg-saffron text-[8px] font-black text-bg-s1 px-1 rounded">CG SPECIFIC</span>}
+                        <span>{sub.name}</span>
+                      </div>
                     </td>
                     <td className="py-3 text-center text-text-muted font-bold">~{questionCount}</td>
                     <td className="py-3 text-center text-text font-black">{sub.weightage}</td>
-                    <td className="py-3 text-center text-text-muted font-bold flex justify-center items-center gap-1">
-                      <TrendingUp className="w-3.5 h-3.5 text-greenL shrink-0" />
-                      <span>{sub.pyqFrequency.split(' (')[0]}</span>
+                    <td className="py-3 text-center text-text-muted font-bold">
+                      <div className="flex justify-center items-center gap-1">
+                        <TrendingUp className="w-3.5 h-3.5 text-greenL shrink-0" />
+                        <span>{sub.pyqFrequency.split(' (')[0]}</span>
+                      </div>
                     </td>
                     <td className="py-3 text-right">
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-wider ${importanceColors[sub.importance]}`}>

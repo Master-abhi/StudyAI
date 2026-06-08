@@ -230,6 +230,7 @@ export default function App() {
   const [hasSelectedExamThisSession, setHasSelectedExamThisSession] = useState<boolean>(false);
   const [topicProgress, setTopicProgress] = useState<Record<string, any>>({});
   const [serverAnalytics, setServerAnalytics] = useState<any>(null);
+  const [userPlan, setUserPlan] = useState<'free' | 'paid'>('free');
 
   // Topic Study Workspace state
   const [studyModalOpen, setStudyModalOpen] = useState<boolean>(false);
@@ -486,6 +487,7 @@ export default function App() {
       setTopicProgress(localProgress.topicProgress);
       // Reset server analytics
       setServerAnalytics(null);
+      setUserPlan('free');
       return;
     }
 
@@ -505,6 +507,7 @@ export default function App() {
           setSolvedMcqsCount(profileData.mcqsSolved || 0);
           setTestHistory(profileData.testResults || []);
           setUserMobile(profileData.mobile || '');
+          setUserPlan(profileData.plan || 'free');
           localStorage.setItem('examprep_userMobile', profileData.mobile || '');
           if (profileData.selectedExam) {
             setActiveExamId(profileData.selectedExam);
@@ -1197,6 +1200,7 @@ export default function App() {
             currentUser={currentUser}
             userName={currentUser?.displayName || 'Guest User'}
             userEmail={currentUser?.email || 'guest@studyworld.app'}
+            userPlan={userPlan}
             streak={streak}
             xp={xp}
             testsGivenCount={testHistory.length}

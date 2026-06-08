@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Newspaper, RefreshCw, Loader2, Calendar, Globe, 
-  Search, ShieldAlert, CheckCircle, ExternalLink 
+  Search, ShieldAlert, CheckCircle, ExternalLink, UploadCloud 
 } from 'lucide-react';
 
 interface AdminNewsProps {
@@ -17,7 +17,7 @@ interface Article {
   summary_hi?: string;
   category: string;
   source: string;
-  link: string;
+  url: string;
   date?: string;
   examRelevance?: string;
 }
@@ -31,10 +31,160 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  
+  const [showUploadSection, setShowUploadSection] = useState<boolean>(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [pasteJson, setPasteJson] = useState<string>('');
+  const [loadingUpload, setLoadingUpload] = useState<boolean>(false);
 
   const getApiUrl = (path: string) => {
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+    const isLocal = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1' || 
+                    window.location.hostname === '[::1]' ||
+                    window.location.hostname.startsWith('192.168.');
+    const host = isLocal && window.location.port !== '3000' ? 'http://localhost:3000' : '';
     return `${host}${path}`;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setUploadFile(e.target.files[0]);
+      setPasteJson('');
+    }
+  };
+
+  const handleLoadTemplate = () => {
+    const sampleNews = [
+      {
+        title: "CGPSC State Service Exam 2026 Notification Out",
+        title_hi: "सीजीपीएससी राज्य सेवा परीक्षा 2026 अधिसूचना जारी",
+        description: "The Chhattisgarh Public Service Commission has released the official notification for the State Service Exam 2026. Online applications start next week.",
+        description_hi: "छत्तीसगढ़ लोक सेवा आयोग ने राज्य सेवा परीक्षा 2026 के लिए आधिकारिक अधिसूचना जारी कर दी है। ऑनलाइन आवेदन अगले सप्ताह से शुरू होंगे।",
+        category: "exams",
+        source: "CGPSC Portal",
+        url: "https://psc.cg.gov.in"
+      },
+      {
+        title: "Chhattisgarh Vyapam Patwari Recruitment 2026",
+        title_hi: "छत्तीसगढ़ व्यापम पटवारी भर्ती 2026",
+        description: "Official vacancy announcement for 250 posts of Patwari across multiple districts in Chhattisgarh.",
+        description_hi: "छत्तीसगढ़ के विभिन्न जिलों में पटवारी के 250 पदों के लिए आधिकारिक भर्ती घोषणा।",
+        category: "jobs",
+        source: "CG Vyapam",
+        url: "https://vyapam.cgstate.gov.in"
+      },
+      {
+        title: "Chhattisgarh Government Launches New Scheme for Farmers",
+        title_hi: "छत्तीसगढ़ सरकार ने किसानों के लिए नई योजना शुरू की",
+        description: "A new agricultural support scheme has been launched to provide input subsidies directly to the bank accounts of paddy farmers.",
+        description_hi: "धान उत्पादक किसानों के बैंक खातों में सीधे इनपुट सब्सिडी प्रदान करने के लिए एक नई कृषि सहायता योजना शुरू की गई है।",
+        category: "affairs",
+        source: "DPR Chhattisgarh",
+        url: "https://dprcg.gov.in"
+      }
+    ];
+    setPasteJson(JSON.stringify(sampleNews, null, 2));
+    setUploadFile(null); // Clear selected file to prioritize pasted text
+  };
+
+  const handleDownloadTemplate = () => {
+    const sampleNews = [
+      {
+        title: "CGPSC State Service Exam 2026 Notification Out",
+        title_hi: "सीजीपीएससी राज्य सेवा परीक्षा 2026 अधिसूचना जारी",
+        description: "The Chhattisgarh Public Service Commission has released the official notification for the State Service Exam 2026. Online applications start next week.",
+        description_hi: "छत्तीसगढ़ लोक सेवा आयोग ने राज्य सेवा परीक्षा 2026 के लिए आधिकारिक अधिसूचना जारी कर दी है। ऑनलाइन आवेदन अगले सप्ताह से शुरू होंगे।",
+        category: "exams",
+        source: "CGPSC Portal",
+        url: "https://psc.cg.gov.in"
+      },
+      {
+        title: "Chhattisgarh Vyapam Patwari Recruitment 2026",
+        title_hi: "छत्तीसगढ़ व्यापम पटवारी भर्ती 2026",
+        description: "Official vacancy announcement for 250 posts of Patwari across multiple districts in Chhattisgarh.",
+        description_hi: "छत्तीसगढ़ के विभिन्न जिलों में पटवारी के 250 पदों के लिए आधिकारिक भर्ती घोषणा।",
+        category: "jobs",
+        source: "CG Vyapam",
+        url: "https://vyapam.cgstate.gov.in"
+      },
+      {
+        title: "Chhattisgarh Government Launches New Scheme for Farmers",
+        title_hi: "छत्तीसगढ़ सरकार ने किसानों के लिए नई योजना शुरू की",
+        description: "A new agricultural support scheme has been launched to provide input subsidies directly to the bank accounts of paddy farmers.",
+        description_hi: "धान उत्पादक किसानों के बैंक खातों में सीधे इनपुट सब्सिडी प्रदान करने के लिए एक नई कृषि सहायता योजना शुरू की गई है।",
+        category: "affairs",
+        source: "DPR Chhattisgarh",
+        url: "https://dprcg.gov.in"
+      }
+    ];
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sampleNews, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", "news_articles_template.json");
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const handleUploadNewsJson = async () => {
+    setLoadingUpload(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      let articlesToUpload: any[] = [];
+
+      if (uploadFile) {
+        const fileContent = await uploadFile.text();
+        const parsed = JSON.parse(fileContent);
+        if (Array.isArray(parsed)) {
+          articlesToUpload = parsed;
+        } else if (parsed && Array.isArray(parsed.articles)) {
+          articlesToUpload = parsed.articles;
+        } else {
+          throw new Error('Invalid JSON format. Expected an array of articles or an object with an "articles" array.');
+        }
+      } else if (pasteJson.trim()) {
+        const parsed = JSON.parse(pasteJson.trim());
+        if (Array.isArray(parsed)) {
+          articlesToUpload = parsed;
+        } else if (parsed && Array.isArray(parsed.articles)) {
+          articlesToUpload = parsed.articles;
+        } else {
+          throw new Error('Invalid JSON format. Expected an array of articles or an object with an "articles" array.');
+        }
+      }
+
+      if (articlesToUpload.length === 0) {
+        throw new Error('No articles found to upload.');
+      }
+
+      const token = await currentUser.getIdToken();
+      const res = await fetch(getApiUrl('/api/admin/news/upload'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ articles: articlesToUpload })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage(`Successfully uploaded and cached ${data.totalArticles} articles!`);
+        setUploadFile(null);
+        setPasteJson('');
+        setShowUploadSection(false);
+        fetchNewsCache();
+      } else {
+        throw new Error(data.error || 'Server rejected the uploaded JSON.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Upload failed. Check if JSON syntax is correct.');
+    } finally {
+      setLoadingUpload(false);
+    }
   };
 
   const fetchNewsCache = async () => {
@@ -168,6 +318,117 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
         </button>
       </div>
 
+      {/* Upload/Paste News JSON Card */}
+      <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-4">
+        <div className="flex items-center justify-between pb-3 border-b border-border/60 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-saffron/10 border border-saffron-border/30 rounded-lg flex items-center justify-center text-saffron shrink-0">
+              <Newspaper className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-xs font-black uppercase text-text tracking-wider">Upload or Paste News JSON</h3>
+              <span className="text-[10px] text-text-muted font-bold">Import articles dynamically from a file or raw JSON text</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowUploadSection(!showUploadSection)}
+            className="text-[10px] bg-bg-s3 border border-border hover:bg-bg-s3/80 text-text-muted px-2.5 py-1.5 rounded-lg font-black uppercase cursor-pointer"
+          >
+            {showUploadSection ? 'Hide Panel' : 'Show Panel'}
+          </button>
+        </div>
+
+        {showUploadSection && (
+          <div className="flex flex-col gap-4 animate-fade-in">
+            {/* Input options: File Upload or Raw Paste */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* File Upload Box */}
+              <div className="p-4 bg-bg-s3/40 border border-dashed border-border rounded-xl flex flex-col items-center justify-center text-center p-6 gap-3 group hover:border-saffron-border/30 transition-all relative">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+                <div className="w-10 h-10 rounded-full bg-saffron-dim/10 border border-saffron-border/10 flex items-center justify-center text-saffron shrink-0">
+                  <UploadCloud className="w-5.5 h-5.5 group-hover:scale-110 transition-transform" />
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-bold text-text">Choose JSON File</span>
+                  <span className="text-[9px] text-text-muted font-semibold">Drag & drop or browse your local files (.json)</span>
+                </div>
+                {uploadFile && (
+                  <span className="text-[10px] font-black text-saffron bg-saffron/10 border border-saffron-border/25 px-2 py-0.5 rounded">
+                    Selected: {uploadFile.name}
+                  </span>
+                )}
+              </div>
+
+              {/* Paste JSON Box */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase text-text-muted">Paste Raw JSON Array / पेस्ट करें</label>
+                <textarea
+                  placeholder={`[
+  {
+    "title": "CGPSC Notification 2026",
+    "title_hi": "सीजीपीएससी अधिसूचना 2026",
+    "description": "Details about upcoming CGPSC exams...",
+    "category": "exams",
+    "source": "Official Portal",
+    "url": "https://psc.cg.gov.in"
+  }
+]`}
+                  value={pasteJson}
+                  onChange={(e) => setPasteJson(e.target.value)}
+                  rows={6}
+                  className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron/50 rounded-lg p-3 outline-none font-mono placeholder:text-text-muted/40"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/40 w-full">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleLoadTemplate}
+                  className="px-3 py-2 bg-bg-s3 border border-border hover:bg-bg-s3/80 text-text text-[10px] font-black uppercase rounded-lg flex items-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
+                >
+                  <span>📋</span>
+                  <span>Load Sample Text</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="px-3 py-2 bg-bg-s3 border border-border hover:bg-bg-s3/80 text-text text-[10px] font-black uppercase rounded-lg flex items-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
+                >
+                  <span>📥</span>
+                  <span>Download Demo JSON</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleUploadNewsJson}
+                disabled={loadingUpload || (!uploadFile && !pasteJson.trim())}
+                className="px-5 py-3 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md"
+              >
+                {loadingUpload ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Uploading Articles...</span>
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="w-3.5 h-3.5" />
+                    <span>Import JSON Articles</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Filter and search header */}
       <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
         <div className="relative flex-1">
@@ -266,7 +527,7 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
               <div className="flex justify-between items-center text-[10px] border-t border-border/45 pt-3 mt-1 shrink-0">
                 <span className="font-bold text-text-muted uppercase tracking-wider">Feed: {art.source}</span>
                 <a
-                  href={art.link}
+                  href={art.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-saffron hover:underline font-bold flex items-center gap-0.5"

@@ -7,6 +7,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const axios = require('axios');
 
 // Initialize Firebase Admin SDK at startup
 require('./firebase-admin');
@@ -51,6 +52,35 @@ app.get('/api/health', (req, res) => {
                       (!!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-api-key-here') ||
                       (!!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'your-api-key-here')
   });
+});
+
+app.get('/api/generate-image', async (req, res) => {
+  try {
+    const { prompt, seed } = req.query;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    const cleanPrompt = prompt.replace(/[\/?#&%\\]/g, ' ').trim();
+    const seedVal = seed || Math.floor(Math.random() * 1000000);
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=800&height=600&nologo=true&seed=${seedVal}`;
+
+    console.log('[Image Proxy] Fetching from Pollinations:', pollinationsUrl);
+
+    const response = await axios({
+      method: 'get',
+      url: pollinationsUrl,
+      responseType: 'stream',
+      timeout: 25000 // 25 seconds timeout
+    });
+
+    res.setHeader('Content-Type', response.headers['content-type'] || 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    response.data.pipe(res);
+  } catch (err) {
+    console.error('[Image Proxy Error]:', err.message);
+    res.status(500).json({ error: 'Failed to generate image. Please try again later.' });
+  }
 });
 
 app.get('*', (req, res) => {
