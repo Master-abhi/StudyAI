@@ -58,7 +58,6 @@ ${getLanguageInstruction(language)}
 Example of correct 2D diagram format:
 ${mermaidExample}`;
 }
-}
 
 async function chat(message, examName, language, history = []) {
   const messages = [];
