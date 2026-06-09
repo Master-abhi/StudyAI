@@ -490,8 +490,16 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
     const timestamp = new Date().toISOString();
 
     const enrichedQuestions = questions.map((q, index) => {
+      let questionId = '';
+      if (q.id !== undefined && q.id !== null && q.id !== '') {
+        questionId = String(q.id).trim();
+      }
+      if (!questionId) {
+        questionId = `q_${testId}_${index}`;
+      }
+
       return {
-        id: q.id || `q_${testId}_${index}`,
+        id: questionId,
         question: q.question,
         options: q.options,
         correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : 0,
@@ -499,7 +507,14 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
         subject: q.subject || subject || 'General Knowledge',
         difficulty: q.difficulty || 'medium',
         weightage: q.weightage || 'medium',
-        timestamp
+        timestamp,
+        qType: q.qType || 'standard',
+        assertion: q.assertion || '',
+        reason: q.reason || '',
+        columnI: q.columnI || [],
+        columnII: q.columnII || [],
+        statements: q.statements || [],
+        statementLabels: q.statementLabels || []
       };
     });
 
@@ -547,7 +562,14 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
         examNames: Array.isArray(examNames) ? examNames : [examName],
         testId,
         mode: testMode,
-        language: language || 'hindi'
+        language: language || 'hindi',
+        qType: q.qType || 'standard',
+        assertion: q.assertion || '',
+        reason: q.reason || '',
+        columnI: q.columnI || [],
+        columnII: q.columnII || [],
+        statements: q.statements || [],
+        statementLabels: q.statementLabels || []
       });
     });
     await batch.commit();
@@ -640,8 +662,16 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
     
     // Enrich questions
     const enrichedQuestions = questions.map((q, index) => {
+      let questionId = '';
+      if (q.id !== undefined && q.id !== null && q.id !== '') {
+        questionId = String(q.id).trim();
+      }
+      if (!questionId) {
+        questionId = `q_${id}_${index}`;
+      }
+
       return {
-        id: q.id || `q_${id}_${index}`,
+        id: questionId,
         question: q.question,
         options: q.options,
         correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : 0,
@@ -649,7 +679,14 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
         subject: q.subject || subject || 'General Knowledge',
         difficulty: q.difficulty || 'medium',
         weightage: q.weightage || 'medium',
-        timestamp: q.timestamp || timestamp
+        timestamp: q.timestamp || timestamp,
+        qType: q.qType || 'standard',
+        assertion: q.assertion || '',
+        reason: q.reason || '',
+        columnI: q.columnI || [],
+        columnII: q.columnII || [],
+        statements: q.statements || [],
+        statementLabels: q.statementLabels || []
       };
     });
 
@@ -698,7 +735,14 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
         examNames: updatedTest.examNames,
         testId: id,
         mode: testMode,
-        language: language || 'hindi'
+        language: language || 'hindi',
+        qType: q.qType || 'standard',
+        assertion: q.assertion || '',
+        reason: q.reason || '',
+        columnI: q.columnI || [],
+        columnII: q.columnII || [],
+        statements: q.statements || [],
+        statementLabels: q.statementLabels || []
       }, { merge: true });
     });
     await batch.commit();
@@ -1235,4 +1279,65 @@ router.delete('/feedbacks/:id', verifyAdmin, async (req, res) => {
   }
 });
 
+// POST /api/admin/badges - Add a new badge (admin only)
+router.post('/badges', verifyAdmin, async (req, res) => {
+  try {
+    const { name, desc, criteriaType, criteriaValue, icon, emoji, color } = req.body;
+
+    if (!name || !desc || !criteriaType || criteriaValue === undefined || !icon || !emoji || !color) {
+      return res.status(400).json({ error: 'All badge fields are required: name, desc, criteriaType, criteriaValue, icon, emoji, color' });
+    }
+
+    const validCriteriaTypes = ['streak', 'tests', 'mcqs', 'xp', 'accuracy'];
+    if (!validCriteriaTypes.includes(criteriaType)) {
+      return res.status(400).json({ error: `Invalid criteriaType. Must be one of: ${validCriteriaTypes.join(', ')}` });
+    }
+
+    const valueNum = Number(criteriaValue);
+    if (isNaN(valueNum) || valueNum < 0) {
+      return res.status(400).json({ error: 'criteriaValue must be a non-negative number' });
+    }
+
+    const badgeId = `badge_${Date.now()}`;
+    const newBadge = {
+      id: badgeId,
+      name: name.trim().slice(0, 100),
+      desc: desc.trim().slice(0, 200),
+      criteriaType,
+      criteriaValue: valueNum,
+      icon: icon.trim().slice(0, 50),
+      emoji: emoji.trim().slice(0, 10),
+      color: color.trim().slice(0, 200),
+      createdAt: new Date().toISOString()
+    };
+
+    await db.collection('badges').doc(badgeId).set(newBadge);
+    console.log(`[Admin Badge Create] Created badge ${badgeId} ✅`);
+
+    await logStaffActivity(req, 'create_badge', { id: badgeId, name: newBadge.name });
+
+    res.json({ success: true, badge: newBadge });
+  } catch (err) {
+    console.error('[Admin Badge Create Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to create badge.' });
+  }
+});
+
+// DELETE /api/admin/badges/:id - Delete a badge (admin only)
+router.delete('/badges/:id', verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('badges').doc(id).delete();
+    console.log(`[Admin Badge Delete] Deleted badge ${id} ✅`);
+
+    await logStaffActivity(req, 'delete_badge', { id });
+
+    res.json({ success: true, message: 'Badge deleted successfully' });
+  } catch (err) {
+    console.error('[Admin Badge Delete Error]:', err.message);
+    res.status(500).json({ error: 'Failed to delete badge.' });
+  }
+});
+
 module.exports = router;
+

@@ -9,6 +9,13 @@ export interface Question {
   weightage?: 'high' | 'medium' | 'low';
   isCgSpecific?: boolean;
   examRelevance?: string;
+  qType?: 'standard' | 'assertion_reason' | 'match_column' | 'ordering' | 'multi_statement';
+  assertion?: string;
+  reason?: string;
+  columnI?: string[];
+  columnII?: string[];
+  statements?: string[];
+  statementLabels?: string[];
 }
 
 export interface TestState {

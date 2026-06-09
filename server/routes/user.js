@@ -532,4 +532,89 @@ router.post('/feedback', async (req, res) => {
   }
 });
 
+// GET /api/user/badges - Fetch all configured badges/achievements
+router.get('/badges', async (req, res) => {
+  try {
+    const snapshot = await db.collection('badges').orderBy('createdAt', 'asc').get();
+    
+    // If the badges collection is empty, seed it with default achievements
+    if (snapshot.empty) {
+      console.log('[Badges] Collection is empty. Seeding default achievements...');
+      const defaultBadges = [
+        {
+          id: 'first_step',
+          name: 'First Step',
+          desc: 'Complete your first practice test.',
+          criteriaType: 'tests',
+          criteriaValue: 1,
+          icon: 'Rocket',
+          emoji: '🚀',
+          color: 'from-blue-500/15 to-indigo-500/15 border-blue-500/25 text-blue-400',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'streak_3',
+          name: 'Consistency King',
+          desc: 'Maintain a study streak of 3+ days.',
+          criteriaType: 'streak',
+          criteriaValue: 3,
+          icon: 'Flame',
+          emoji: '🔥',
+          color: 'from-orange-500/15 to-red-500/15 border-orange-500/25 text-orange-400',
+          createdAt: new Date(Date.now() + 1000).toISOString()
+        },
+        {
+          id: 'mcq_50',
+          name: 'Practice Guru',
+          desc: 'Solve 50 or more practice questions.',
+          criteriaType: 'mcqs',
+          criteriaValue: 50,
+          icon: 'BookOpen',
+          emoji: '📖',
+          color: 'from-amber-500/15 to-yellow-500/15 border-amber-500/25 text-yellow-400',
+          createdAt: new Date(Date.now() + 2000).toISOString()
+        },
+        {
+          id: 'accuracy_75',
+          name: 'Accuracy Master',
+          desc: 'Achieve over 75% average test accuracy.',
+          criteriaType: 'accuracy',
+          criteriaValue: 75,
+          icon: 'Target',
+          emoji: '🎯',
+          color: 'from-emerald-500/15 to-teal-500/15 border-emerald-500/25 text-emerald-400',
+          createdAt: new Date(Date.now() + 3000).toISOString()
+        },
+        {
+          id: 'syllabus_50',
+          name: 'Scholar',
+          desc: 'Acquire 500+ XP points in study sessions.',
+          criteriaType: 'xp',
+          criteriaValue: 500,
+          icon: 'Award',
+          emoji: '🏅',
+          color: 'from-purple-500/15 to-pink-500/15 border-purple-500/25 text-purple-400',
+          createdAt: new Date(Date.now() + 4000).toISOString()
+        }
+      ];
+
+      const batch = db.batch();
+      defaultBadges.forEach(badge => {
+        const docRef = db.collection('badges').doc(badge.id);
+        batch.set(docRef, badge);
+      });
+      await batch.commit();
+
+      return res.json(defaultBadges);
+    }
+
+    const badges = snapshot.docs.map(doc => doc.data());
+    res.json(badges);
+  } catch (err) {
+    console.error('[Get Badges Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve achievements.' });
+  }
+});
+
 module.exports = router;
+

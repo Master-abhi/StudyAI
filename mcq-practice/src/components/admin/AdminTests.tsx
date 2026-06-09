@@ -29,6 +29,44 @@ interface TestMeta {
   createdAt: string;
 }
 
+const getFormattedQuestionString = (q: any): string => {
+  const qType = q.qType || 'standard';
+  if (qType === 'standard') {
+    return q.question || '';
+  }
+  if (qType === 'assertion_reason') {
+    const directive = q.question || 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए-';
+    return `${directive}\n\n**कथन [As] :** ${q.assertion || ''}\n\n**कारण [R] :** ${q.reason || ''}`;
+  }
+  if (qType === 'match_column') {
+    const directive = q.question || 'निम्नलिखित को सुमेलित कीजिए-';
+    let md = `${directive}\n\n| कॉलम-I | कॉलम-II |\n| :--- | :--- |\n`;
+    const colI = q.columnI || [];
+    const colII = q.columnII || [];
+    const maxLen = Math.max(colI.length, colII.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (colI[i] || colII[i]) {
+        md += `| ${colI[i] || ''} | ${colII[i] || ''} |\n`;
+      }
+    }
+    return md;
+  }
+  if (qType === 'ordering' || qType === 'multi_statement') {
+    const directive = q.question || '';
+    let md = `${directive}\n\n`;
+    const statements = q.statements || [];
+    const labels = q.statementLabels || [];
+    for (let i = 0; i < statements.length; i++) {
+      if (statements[i]) {
+        const label = labels[i] ? `(${labels[i]})` : `(${i + 1})`;
+        md += `${label} ${statements[i]}\n`;
+      }
+    }
+    return md.trim();
+  }
+  return q.question || '';
+};
+
 export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) => {
   const [tests, setTests] = useState<TestMeta[]>([]);
   const [loadingList, setLoadingList] = useState<boolean>(true);
@@ -87,6 +125,26 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       .replace(/\u00A0/g, ' ') // Convert non-breaking spaces to standard spaces
       .trim();
   };
+
+  // Pasted JSON live preview state
+  const [parsedPreviewQuestions, setParsedPreviewQuestions] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      if (uploadJsonText.trim()) {
+        const parsed = JSON.parse(sanitizeJsonString(uploadJsonText));
+        if (parsed && Array.isArray(parsed.questions)) {
+          setParsedPreviewQuestions(parsed.questions);
+        } else {
+          setParsedPreviewQuestions([]);
+        }
+      } else {
+        setParsedPreviewQuestions([]);
+      }
+    } catch (e) {
+      setParsedPreviewQuestions([]);
+    }
+  }, [uploadJsonText]);
 
   const fetchTestsList = async () => {
     setLoadingList(true);
@@ -208,8 +266,14 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       const selectedExamsData = exams.filter(ex => selectedExamIds.includes(ex.id));
       const token = await currentUser.getIdToken();
 
+      const compiledQuestions = (parsed.questions || []).map((q: any) => ({
+        ...q,
+        question: getFormattedQuestionString(q)
+      }));
+
       const payload = {
         ...parsed,
+        questions: compiledQuestions,
         examId: parsed.examId || selectedExamId,
         examName: parsed.examName || activeExam.name,
         examIds: selectedExamIds,
@@ -347,8 +411,14 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       const token = await currentUser.getIdToken();
       const selectedExamsData = exams.filter(ex => editingTest.examIds.includes(ex.id));
       
+      const compiledQuestions = (editingTest.questions || []).map((q: any) => ({
+        ...q,
+        question: getFormattedQuestionString(q)
+      }));
+
       const payload = {
         ...editingTest,
+        questions: compiledQuestions,
         examName: selectedExamsData[0]?.name || editingTest.examName,
         examNames: selectedExamsData.map(ex => ex.name)
       };
@@ -540,11 +610,93 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                       },
                       questions: [
                         {
+                          qType: "standard",
                           question: "छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष कौन थे?",
                           options: ["बनवारी लाल अग्रवाल", "राजेन्द्र प्रसाद शुक्ल", "धर्मजीत सिंह", "डॉ. रमन सिंह"],
                           correctIndex: 1,
                           explanation: "राजेन्द्र प्रसाद शुक्ल छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष थे।",
                           subject: "CG GK"
+                        },
+                        {
+                          qType: "assertion_reason",
+                          question: "निर्देश - नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए-",
+                          assertion: "समुद्रगुप्त को लिच्छवि दौहित्र के नाम से जाना जाता है।",
+                          reason: "उनके पिता चन्द्रगुप्त प्रथम ने लिच्छवि वंश की राजकुमारी कुमारदेवी से विवाह किया था।",
+                          options: [
+                            "[As] और [R] दोनों सत्य हैं, और [R], [As] की सही व्याख्या है।",
+                            "[As] और [R] दोनों सत्य हैं, लेकिन [R], [As] की सही व्याख्या नहीं है।",
+                            "[As] सत्य है, लेकिन [R] असत्य है।",
+                            "[As] असत्य है, लेकिन [R] सत्य है।"
+                          ],
+                          correctIndex: 0,
+                          explanation: "चन्द्रगुप्त प्रथम के लिच्छवि राजकुमारी कुमारदेवी से विवाह के कारण समुद्रगुप्त लिच्छवि वंश का नाती (दौहित्र) कहलाया, इसलिए दोनों कथन सत्य हैं और व्याख्या सही है।",
+                          subject: "History"
+                        },
+                        {
+                          qType: "match_column",
+                          question: "निम्नलिखित को सुमेलित कीजिए-",
+                          columnI: [
+                            "(a) आठ-आठ आँसू रोना",
+                            "(b) घड़ों पानी पड़ जाना",
+                            "(c) डंका बजना",
+                            "(d) गूलर का फूल"
+                          ],
+                          columnII: [
+                            "(I) बहुत शर्मिंदा होना",
+                            "(II) पछतावा होना",
+                            "(III) दुर्लभ वस्तु",
+                            "(IV) ख्याति होना"
+                          ],
+                          options: [
+                            "a-II, b-I, c-IV, d-III",
+                            "a-I, b-II, c-III, d-IV",
+                            "a-III, b-IV, c-I, d-II",
+                            "a-II, b-III, c-I, d-IV"
+                          ],
+                          correctIndex: 0,
+                          explanation: "सही सुमेलन इस प्रकार है: आठ-आठ आँसू रोना (पछतावा होना), घड़ों पानी पड़ जाना (बहुत शर्मिंदा होना), डंका बजना (ख्याति होना), गूलर का फूल (दुर्लभ वस्तु)।",
+                          subject: "Hindi Grammar"
+                        },
+                        {
+                          qType: "ordering",
+                          question: "निम्नलिखित शब्दों को हिन्दी वर्णमाला के क्रम में व्यवस्थित करें-",
+                          statements: [
+                            "आशुतोष",
+                            "शूलपाणि",
+                            "पशुपति",
+                            "चंद्रचूड़",
+                            "इन्दुशेखर"
+                          ],
+                          statementLabels: ["K", "L", "M", "N", "O"],
+                          options: [
+                            "K → O → N → M → L",
+                            "O → K → L → N → M",
+                            "O → N → K → M → L",
+                            "K → O → M → L → N"
+                          ],
+                          correctIndex: 0,
+                          explanation: "वर्णमाला के अनुसार सही क्रम होगा: आशुतोष (K) -> इन्दुशेखर (O) -> चंद्रचूड़ (N) -> पशुपति (M) -> शूलपाणि (L)।",
+                          subject: "Hindi Grammar"
+                        },
+                        {
+                          qType: "multi_statement",
+                          question: "'दोहा' के संबंध में क्या सही है?",
+                          statements: [
+                            "11 मात्राएँ (प्रथम और तृतीय चरण)",
+                            "13 मात्राएँ (प्रथम और तृतीय चरण)",
+                            "16 मात्राएँ (द्वितीय और चतुर्थ चरण)",
+                            "11 मात्राएँ (द्वितीय और चतुर्थ चरण)"
+                          ],
+                          statementLabels: ["J", "K", "L", "M"],
+                          options: [
+                            "केवल J और L",
+                            "केवल K और M",
+                            "J, K और M",
+                            "J, K और L"
+                          ],
+                          correctIndex: 1,
+                          explanation: "दोहा अर्धसम मात्रिक छंद है। इसके प्रथम और तृतीय चरण में 13-13 मात्राएँ (K) तथा द्वितीय और चतुर्थ चरण में 11-11 मात्राएँ (M) होती हैं।",
+                          subject: "Hindi Grammar"
                         }
                       ]
                     }, null, 2))}
@@ -557,9 +709,100 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   value={uploadJsonText}
                   onChange={(e) => setUploadJsonText(e.target.value)}
                   placeholder='{"examId": "...", "questions": [...]}'
-                  className="w-full h-36 bg-bg-s3 text-[10px] font-mono text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none"
+                  className="w-full h-36 bg-bg-s3 text-[10px] font-mono text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none mb-1.5"
                   disabled={uploadLoading}
                 />
+
+                {/* Pasted JSON Questions Live Preview Panel */}
+                {parsedPreviewQuestions.length > 0 && (
+                  <div className="flex flex-col gap-3 border border-border/85 p-4 rounded-xl bg-bg-s3/10 shadow-inner max-h-96 overflow-y-auto select-none no-scrollbar mb-1.5 w-full">
+                    <span className="text-[10px] font-black uppercase text-saffron tracking-wider flex items-center gap-1.5">
+                      <Eye className="w-3.5 h-3.5 animate-pulse" /> Pasted JSON Live Preview ({parsedPreviewQuestions.length} Qs)
+                    </span>
+                    
+                    <div className="flex flex-col gap-4">
+                      {parsedPreviewQuestions.map((pq: any, pIdx: number) => (
+                        <div key={pIdx} className="p-3 bg-bg-s3/40 border border-border rounded-lg flex flex-col gap-2.5 font-sans">
+                          <div className="flex justify-between items-start gap-3 border-b border-border/20 pb-1.5">
+                            <span className="text-[9px] font-black uppercase text-saffron">Q{pIdx + 1} ({pq.qType || 'standard'})</span>
+                            <span className="text-[8px] font-black uppercase text-text-muted bg-bg-s3 px-1.5 py-0.5 rounded border border-border">{pq.subject || 'General'}</span>
+                          </div>
+
+                          {pq.qType === 'assertion_reason' ? (
+                            <div className="flex flex-col gap-2.5">
+                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question || 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:'}</p>
+                              <div className="flex flex-col gap-2">
+                                <div className="bg-bg-s2 border-l-2 border-saffron rounded p-2">
+                                  <span className="text-[7px] font-black uppercase text-saffron block mb-0.5">कथन [As]</span>
+                                  <p className="text-xs text-text leading-normal font-hindi whitespace-pre-wrap">{pq.assertion}</p>
+                                </div>
+                                <div className="bg-bg-s2 border-l-2 border-blue-500 rounded p-2">
+                                  <span className="text-[7px] font-black uppercase text-blue-400 block mb-0.5">कारण [R]</span>
+                                  <p className="text-xs text-text leading-normal font-hindi whitespace-pre-wrap">{pq.reason}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : pq.qType === 'match_column' ? (
+                            <div className="flex flex-col gap-2.5">
+                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question || 'निम्नलिखित को सुमेलित कीजिए-'}</p>
+                              <div className="border border-border rounded-lg overflow-hidden text-[9.5px] font-hindi">
+                                <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[7px] font-black uppercase text-text-muted">
+                                  <div className="px-3 py-1.5 border-r border-border/40">कॉलम-I</div>
+                                  <div className="px-3 py-1.5">कॉलम-II</div>
+                                </div>
+                                <div className="divide-y divide-border/30 bg-bg-s2/40">
+                                  {Array.from({ length: Math.max(pq.columnI?.length || 0, pq.columnII?.length || 0) }).map((_, rIdx) => (
+                                    <div key={rIdx} className="grid grid-cols-2">
+                                      <div className="px-3 py-1.5 border-r border-border/30 font-semibold whitespace-pre-wrap">{pq.columnI?.[rIdx] || ''}</div>
+                                      <div className="px-3 py-1.5 font-semibold whitespace-pre-wrap">{pq.columnII?.[rIdx] || ''}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (pq.qType === 'ordering' || pq.qType === 'multi_statement') ? (
+                            <div className="flex flex-col gap-2.5">
+                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question}</p>
+                              <div className="flex flex-col gap-1 font-hindi">
+                                {pq.statements?.map((stmt: string, sIdx: number) => {
+                                  if (!stmt) return null;
+                                  const label = pq.statementLabels?.[sIdx] || `${sIdx + 1}`;
+                                  return (
+                                    <div key={sIdx} className="flex items-center gap-2 bg-bg-s2 border border-border/30 rounded px-2 py-1">
+                                      <span className="w-5 h-5 bg-bg-s3 border border-border/50 rounded flex items-center justify-center text-[8px] font-black text-saffron shrink-0">{label}</span>
+                                      <span className="text-xs text-text font-semibold whitespace-pre-wrap">{stmt}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question}</p>
+                          )}
+
+                          {/* Options */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2 pt-2 border-t border-border/20 font-sans">
+                            {pq.options?.map((opt: string, optIdx: number) => (
+                              <div 
+                                key={optIdx} 
+                                className={`p-1.5 rounded text-[10px] font-semibold border flex items-center gap-2 ${
+                                  optIdx === pq.correctIndex
+                                    ? 'bg-greenL/5 border-greenL/25 text-greenL'
+                                    : 'bg-bg-s2 border-border text-text-muted'
+                                }`}
+                              >
+                                <span className="w-4 h-4 bg-bg-s1 rounded-full flex items-center justify-center text-[8px] shrink-0 font-black">
+                                  {String.fromCharCode(65 + optIdx)}
+                                </span>
+                                <span className="whitespace-pre-wrap">{opt}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-1 select-none">
@@ -763,14 +1006,76 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
             <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 my-2">
               {previewTest.questions?.map((q: any, idx: number) => (
                 <div key={idx} className="p-4 bg-bg-s3 border border-border rounded-lg flex flex-col gap-3">
-                  <div className="flex justify-between items-start gap-3">
-                    <h4 className="text-xs font-black text-text leading-relaxed">
-                      Q{idx + 1}. {q.question}
-                    </h4>
+                  <div className="flex justify-between items-start gap-3 border-b border-border/20 pb-2">
+                    <span className="text-[10px] font-black uppercase text-saffron">
+                      Q{idx + 1}
+                    </span>
                     <span className="text-[8px] font-black uppercase text-saffron bg-saffron-dim/30 px-1.5 py-0.5 rounded shrink-0 border border-saffron-border/30">
                       {q.subject || 'General'}
                     </span>
                   </div>
+
+                  {q.qType === 'assertion_reason' ? (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                        {q.question || 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:'}
+                      </p>
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="bg-bg-s2 border-l-2 border-saffron rounded p-2.5">
+                          <span className="text-[7.5px] font-black uppercase text-saffron block mb-0.5 select-none">कथन [As]</span>
+                          <p className="text-xs text-text leading-relaxed font-hindi whitespace-pre-wrap">{q.assertion}</p>
+                        </div>
+                        <div className="bg-bg-s2 border-l-2 border-blue-500 rounded p-2.5">
+                          <span className="text-[7.5px] font-black uppercase text-blue-400 block mb-0.5 select-none">कारण [R]</span>
+                          <p className="text-xs text-text leading-relaxed font-hindi whitespace-pre-wrap">{q.reason}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : q.qType === 'match_column' ? (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                        {q.question || 'निम्नलिखित को सुमेलित कीजिए-'}
+                      </p>
+                      <div className="border border-border rounded-lg overflow-hidden text-[10px] font-hindi">
+                        <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[8px] font-black uppercase text-text-muted select-none">
+                          <div className="px-3 py-1.5 border-r border-border/40">कॉलम-I</div>
+                          <div className="px-3 py-1.5">कॉलम-II</div>
+                        </div>
+                        <div className="divide-y divide-border/30 bg-bg-s2/40">
+                          {Array.from({ length: Math.max(q.columnI?.length || 0, q.columnII?.length || 0) }).map((_, i) => (
+                            <div key={i} className="grid grid-cols-2">
+                              <div className="px-3 py-2 border-r border-border/30 font-semibold whitespace-pre-wrap">{q.columnI?.[i] || ''}</div>
+                              <div className="px-3 py-2 font-semibold whitespace-pre-wrap">{q.columnII?.[i] || ''}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (q.qType === 'ordering' || q.qType === 'multi_statement') ? (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                        {q.question}
+                      </p>
+                      <div className="flex flex-col gap-1.5 font-hindi">
+                        {q.statements?.map((stmt: string, i: number) => {
+                          if (!stmt) return null;
+                          const label = q.statementLabels?.[i] || `${i + 1}`;
+                          return (
+                            <div key={i} className="flex items-center gap-2 bg-bg-s2 border border-border/40 rounded px-2.5 py-1.5">
+                              <span className="w-5 h-5 bg-bg-s3 border border-border/60 rounded flex items-center justify-center text-[8.5px] font-black text-saffron shrink-0 select-none">
+                                {label}
+                              </span>
+                              <span className="text-xs text-text font-semibold whitespace-pre-wrap">{stmt}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <h4 className="text-xs font-black text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                      {q.question}
+                    </h4>
+                  )}
                   
                   {/* Options */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1.5">
@@ -783,17 +1088,17 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                             : 'bg-bg-s2 border-border text-text-muted'
                         }`}
                       >
-                        <span className="w-4 h-4 bg-bg-s1 rounded-full flex items-center justify-center text-[9px] shrink-0 font-black">
+                        <span className="w-4 h-4 bg-bg-s1 rounded-full flex items-center justify-center text-[9px] shrink-0 font-black select-none">
                           {String.fromCharCode(65 + optIdx)}
                         </span>
-                        <span>{opt}</span>
+                        <span className="whitespace-pre-wrap">{opt}</span>
                       </div>
                     ))}
                   </div>
 
                   {/* Explanation */}
-                  <div className="mt-2 p-3 bg-bg-s2 border border-border/80 rounded text-[10px] text-text-muted leading-relaxed">
-                    <span className="font-bold text-saffron uppercase block mb-1">Answer Explanation</span>
+                  <div className="mt-2 p-3 bg-bg-s2 border border-border/80 rounded text-[10px] text-text-muted leading-relaxed whitespace-pre-wrap">
+                    <span className="font-bold text-saffron uppercase block mb-1 select-none">Answer Explanation</span>
                     {q.explanation}
                   </div>
                 </div>
@@ -925,20 +1230,216 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                       </div>
                     </div>
 
-                    {/* Question Text */}
+                    {/* Question Type Selection */}
                     <div className="flex flex-col gap-1">
-                      <label className="text-[8px] font-black uppercase text-text-muted">Question Text</label>
-                      <textarea
-                        value={q.question || ''}
+                      <label className="text-[8px] font-black uppercase text-text-muted">Question Type</label>
+                      <select
+                        value={q.qType || 'standard'}
                         onChange={(e) => {
+                          const type = e.target.value as any;
                           const updatedQuestions = [...editingTest.questions];
-                          updatedQuestions[idx] = { ...q, question: e.target.value };
+                          updatedQuestions[idx] = {
+                            ...q,
+                            qType: type,
+                            assertion: q.assertion || '',
+                            reason: q.reason || '',
+                            columnI: q.columnI && q.columnI.length > 0 ? q.columnI : ['', '', '', ''],
+                            columnII: q.columnII && q.columnII.length > 0 ? q.columnII : ['', '', '', ''],
+                            statements: q.statements && q.statements.length > 0 ? q.statements : ['', '', '', ''],
+                            statementLabels: q.statementLabels && q.statementLabels.length > 0 ? q.statementLabels : (type === 'ordering' ? ['K', 'L', 'M', 'N', 'O'] : ['J', 'K', 'L', 'M'])
+                          };
                           setEditingTest({ ...editingTest, questions: updatedQuestions });
                         }}
-                        className="w-full bg-bg-s2 text-xs text-text border border-border p-2.5 rounded outline-none resize-none h-16"
-                        required
-                      />
+                        className="w-full bg-bg-s2 text-xs text-text border border-border px-3 py-2 rounded-lg outline-none cursor-pointer"
+                      >
+                        <option value="standard">Standard MCQ (साधारण बहुविकल्पीय)</option>
+                        <option value="assertion_reason">Assertion & Reason (कथन और कारण)</option>
+                        <option value="match_column">Match the Column (सुमेलित कीजिए)</option>
+                        <option value="ordering">Ordering/Sequencing (क्रम में व्यवस्थित करें)</option>
+                        <option value="multi_statement">Multi-statement Code (बहु-कथनीय प्रश्न)</option>
+                      </select>
                     </div>
+
+                    {/* Conditionally Render Input Fields based on qType */}
+                    {q.qType === 'assertion_reason' ? (
+                      <div className="flex flex-col gap-3 border border-border/60 p-3 rounded-lg bg-bg-s2/40">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8px] font-black uppercase text-text-muted">Directive / Instructions (निर्देश)</label>
+                          <textarea
+                            value={q.question || ''}
+                            onChange={(e) => {
+                              const updatedQuestions = [...editingTest.questions];
+                              updatedQuestions[idx] = { ...q, question: e.target.value };
+                              setEditingTest({ ...editingTest, questions: updatedQuestions });
+                            }}
+                            className="w-full bg-bg-s2 text-xs text-text border border-border p-2 rounded outline-none h-12 resize-none"
+                            placeholder="e.g. निर्देश - नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए-"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[8px] font-black uppercase text-saffron">Assertion [As] (कथन)</label>
+                            <textarea
+                              value={q.assertion || ''}
+                              onChange={(e) => {
+                                const updatedQuestions = [...editingTest.questions];
+                                updatedQuestions[idx] = { ...q, assertion: e.target.value };
+                                setEditingTest({ ...editingTest, questions: updatedQuestions });
+                              }}
+                              className="w-full bg-bg-s2 text-xs text-text border border-border p-2 rounded outline-none h-16 resize-none"
+                              required
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[8px] font-black uppercase text-blue-400">Reason [R] (कारण)</label>
+                            <textarea
+                              value={q.reason || ''}
+                              onChange={(e) => {
+                                const updatedQuestions = [...editingTest.questions];
+                                updatedQuestions[idx] = { ...q, reason: e.target.value };
+                                setEditingTest({ ...editingTest, questions: updatedQuestions });
+                              }}
+                              className="w-full bg-bg-s2 text-xs text-text border border-border p-2 rounded outline-none h-16 resize-none"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : q.qType === 'match_column' ? (
+                      <div className="flex flex-col gap-3 border border-border/60 p-3 rounded-lg bg-bg-s2/40">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8px] font-black uppercase text-text-muted">Directive / Instructions (निर्देश)</label>
+                          <textarea
+                            value={q.question || ''}
+                            onChange={(e) => {
+                              const updatedQuestions = [...editingTest.questions];
+                              updatedQuestions[idx] = { ...q, question: e.target.value };
+                              setEditingTest({ ...editingTest, questions: updatedQuestions });
+                            }}
+                            className="w-full bg-bg-s2 text-xs text-text border border-border p-2 rounded outline-none h-12 resize-none"
+                            placeholder="e.g. निम्नलिखित को सुमेलित कीजिए-"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[8px] font-black uppercase text-text-muted">Column Matches (Pairs)</span>
+                          <div className="flex flex-col gap-2">
+                            {Array.from({ length: 4 }).map((_, colIdx) => {
+                              const colIVal = q.columnI?.[colIdx] || '';
+                              const colIIVal = q.columnII?.[colIdx] || '';
+                              return (
+                                <div key={colIdx} className="grid grid-cols-2 gap-3 items-center">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[9px] font-bold text-text-muted select-none">
+                                      {String.fromCharCode(97 + colIdx)}.
+                                    </span>
+                                    <input
+                                      type="text"
+                                      value={colIVal}
+                                      placeholder={`Column-I Row ${colIdx + 1}`}
+                                      onChange={(e) => {
+                                        const updatedColI = [...(q.columnI || ['', '', '', ''])];
+                                        updatedColI[colIdx] = e.target.value;
+                                        const updatedQuestions = [...editingTest.questions];
+                                        updatedQuestions[idx] = { ...q, columnI: updatedColI };
+                                        setEditingTest({ ...editingTest, questions: updatedQuestions });
+                                      }}
+                                      className="w-full bg-bg-s2 text-xs text-text border border-border px-2 py-1 rounded outline-none"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[9px] font-bold text-text-muted select-none">
+                                      {['I', 'II', 'III', 'IV', 'V'][colIdx]}.
+                                    </span>
+                                    <input
+                                      type="text"
+                                      value={colIIVal}
+                                      placeholder={`Column-II Row ${colIdx + 1}`}
+                                      onChange={(e) => {
+                                        const updatedColII = [...(q.columnII || ['', '', '', ''])];
+                                        updatedColII[colIdx] = e.target.value;
+                                        const updatedQuestions = [...editingTest.questions];
+                                        updatedQuestions[idx] = { ...q, columnII: updatedColII };
+                                        setEditingTest({ ...editingTest, questions: updatedQuestions });
+                                      }}
+                                      className="w-full bg-bg-s2 text-xs text-text border border-border px-2 py-1 rounded outline-none"
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (q.qType === 'ordering' || q.qType === 'multi_statement') ? (
+                      <div className="flex flex-col gap-3 border border-border/60 p-3 rounded-lg bg-bg-s2/40">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8px] font-black uppercase text-text-muted">Directive / Context (निर्देश / प्रसंग)</label>
+                          <textarea
+                            value={q.question || ''}
+                            onChange={(e) => {
+                              const updatedQuestions = [...editingTest.questions];
+                              updatedQuestions[idx] = { ...q, question: e.target.value };
+                              setEditingTest({ ...editingTest, questions: updatedQuestions });
+                            }}
+                            className="w-full bg-bg-s2 text-xs text-text border border-border p-2 rounded outline-none h-12 resize-none"
+                            placeholder="e.g. निम्नलिखित शब्दों को क्रम में व्यवस्थित करें-"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[8px] font-black uppercase text-text-muted">Statements / Items (कथन / पद)</span>
+                          <div className="flex flex-col gap-2">
+                            {Array.from({ length: 5 }).map((_, stmtIdx) => {
+                              const stmtVal = q.statements?.[stmtIdx] || '';
+                              const labelVal = q.statementLabels?.[stmtIdx] || (q.qType === 'ordering' ? ['K', 'L', 'M', 'N', 'O'][stmtIdx] : ['J', 'K', 'L', 'M', 'N'][stmtIdx]);
+                              return (
+                                <div key={stmtIdx} className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={labelVal}
+                                    onChange={(e) => {
+                                      const updatedLabels = [...(q.statementLabels || ['J', 'K', 'L', 'M', 'N'])];
+                                      updatedLabels[stmtIdx] = e.target.value;
+                                      const updatedQuestions = [...editingTest.questions];
+                                      updatedQuestions[idx] = { ...q, statementLabels: updatedLabels };
+                                      setEditingTest({ ...editingTest, questions: updatedQuestions });
+                                    }}
+                                    className="w-8 bg-bg-s2 text-xs text-center font-bold text-saffron border border-border px-1 py-1 rounded outline-none"
+                                    placeholder="Label"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={stmtVal}
+                                    placeholder={`Statement/Item ${stmtIdx + 1}`}
+                                    onChange={(e) => {
+                                      const updatedStmts = [...(q.statements || ['', '', '', '', ''])];
+                                      updatedStmts[stmtIdx] = e.target.value;
+                                      const updatedQuestions = [...editingTest.questions];
+                                      updatedQuestions[idx] = { ...q, statements: updatedStmts };
+                                      setEditingTest({ ...editingTest, questions: updatedQuestions });
+                                    }}
+                                    className="w-full bg-bg-s2 text-xs text-text border border-border px-2 py-1 rounded outline-none"
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[8px] font-black uppercase text-text-muted">Question Text</label>
+                        <textarea
+                          value={q.question || ''}
+                          onChange={(e) => {
+                            const updatedQuestions = [...editingTest.questions];
+                            updatedQuestions[idx] = { ...q, question: e.target.value };
+                            setEditingTest({ ...editingTest, questions: updatedQuestions });
+                          }}
+                          className="w-full bg-bg-s2 text-xs text-text border border-border p-2.5 rounded outline-none resize-none h-16"
+                          required
+                        />
+                      </div>
+                    )}
 
                     {/* Options (A, B, C, D) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
@@ -968,7 +1469,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     </div>
 
                     {/* Correct Index & Explanation */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1.5 border-b border-border/20 pb-3">
                       <div className="flex flex-col gap-1 sm:col-span-1">
                         <label className="text-[8px] font-black uppercase text-text-muted">Correct Answer</label>
                         <select
@@ -998,6 +1499,96 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                           }}
                           className="w-full bg-bg-s2 text-[10px] text-text border border-border p-2 rounded outline-none resize-none h-12"
                         />
+                      </div>
+                    </div>
+
+                    {/* Live Preview Block */}
+                    <div className="mt-3 flex flex-col gap-2 bg-bg-s2/25 p-3.5 rounded-xl border border-dashed border-border/80">
+                      <span className="text-[8.5px] font-black uppercase text-saffron tracking-wider select-none flex items-center gap-1.5">
+                        <Eye className="w-3.5 h-3.5" /> Live Question Rendering Preview
+                      </span>
+                      
+                      <div className="p-4 bg-bg-s3 border border-border rounded-lg shadow-sm font-sans">
+                        {q.qType === 'assertion_reason' ? (
+                          <div className="flex flex-col gap-3">
+                            <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                              {q.question || 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:'}
+                            </p>
+                            <div className="grid grid-cols-1 gap-2">
+                              <div className="bg-bg-s2 border-l-2 border-saffron rounded p-2.5">
+                                <span className="text-[7.5px] font-black uppercase text-saffron block mb-0.5 select-none">कथन [As]</span>
+                                <p className="text-xs text-text leading-normal font-hindi whitespace-pre-wrap">{q.assertion || '(Assertion Text Empty)'}</p>
+                              </div>
+                              <div className="bg-bg-s2 border-l-2 border-blue-500 rounded p-2.5">
+                                <span className="text-[7.5px] font-black uppercase text-blue-400 block mb-0.5 select-none">कारण [R]</span>
+                                <p className="text-xs text-text leading-normal font-hindi whitespace-pre-wrap">{q.reason || '(Reason Text Empty)'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : q.qType === 'match_column' ? (
+                          <div className="flex flex-col gap-3">
+                            <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                              {q.question || 'निम्नलिखित को सुमेलित कीजिए-'}
+                            </p>
+                            <div className="border border-border rounded-lg overflow-hidden text-[9.5px] font-hindi">
+                              <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[7.5px] font-black uppercase text-text-muted select-none">
+                                <div className="px-3 py-1.5 border-r border-border/40">कॉलम-I</div>
+                                <div className="px-3 py-1.5">कॉलम-II</div>
+                              </div>
+                              <div className="divide-y divide-border/30 bg-bg-s2/40">
+                                {Array.from({ length: Math.max(q.columnI?.length || 0, q.columnII?.length || 0) }).map((_, rIdx) => (
+                                  <div key={rIdx} className="grid grid-cols-2">
+                                    <div className="px-3 py-1.5 border-r border-border/30 font-semibold whitespace-pre-wrap">{q.columnI?.[rIdx] || ''}</div>
+                                    <div className="px-3 py-1.5 font-semibold whitespace-pre-wrap">{q.columnII?.[rIdx] || ''}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (q.qType === 'ordering' || q.qType === 'multi_statement') ? (
+                          <div className="flex flex-col gap-3">
+                            <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                              {q.question || '(Directive)'}
+                            </p>
+                            <div className="flex flex-col gap-1.5 font-hindi">
+                              {q.statements?.map((stmt: string, sIdx: number) => {
+                                if (!stmt) return null;
+                                const label = q.statementLabels?.[sIdx] || `${sIdx + 1}`;
+                                return (
+                                  <div key={sIdx} className="flex items-center gap-2 bg-bg-s2 border border-border/40 rounded px-2.5 py-1.5">
+                                    <span className="w-5 h-5 bg-bg-s3 border border-border/60 rounded flex items-center justify-center text-[8.5px] font-black text-saffron shrink-0 select-none">
+                                      {label}
+                                    </span>
+                                    <span className="text-xs text-text font-semibold whitespace-pre-wrap">{stmt}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                            {q.question || '(Standard Question Text)'}
+                          </p>
+                        )}
+                        
+                        {/* Options Live Preview */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-3 border-t border-border/30 font-sans">
+                          {q.options?.map((opt: string, optIdx: number) => (
+                            <div 
+                              key={optIdx} 
+                              className={`p-2 rounded text-[10px] font-bold border transition-colors flex items-center gap-2 ${
+                                optIdx === q.correctIndex
+                                  ? 'bg-greenL/5 border-greenL/25 text-greenL'
+                                  : 'bg-bg-s2 border-border text-text-muted'
+                              }`}
+                            >
+                              <span className="w-4 h-4 bg-bg-s1 rounded-full flex items-center justify-center text-[8.5px] shrink-0 font-black select-none">
+                                {String.fromCharCode(65 + optIdx)}
+                              </span>
+                              <span className="whitespace-pre-wrap">{opt || `(Option ${String.fromCharCode(65 + optIdx)} Empty)`}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -82,9 +82,85 @@ export const MCQCard: React.FC<MCQCardProps> = ({
           <HelpCircle className="w-3.5 h-3.5 text-saffron" />
           <span>Question {index + 1}</span>
         </div>
-        <p className="text-base sm:text-lg font-bold text-text leading-relaxed select-text font-hindi">
-          {question.question}
-        </p>
+
+        {question.qType === 'assertion_reason' ? (
+          <div className="flex flex-col gap-4 mt-1">
+            <p className="text-base sm:text-lg font-bold text-text leading-relaxed select-text font-hindi whitespace-pre-wrap">
+              {question.question || 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:'}
+            </p>
+            <div className="grid grid-cols-1 gap-3">
+              {/* Assertion Box */}
+              <div className="bg-bg-s3/40 border-l-4 border-saffron rounded-r-xl p-4 flex flex-col gap-2 shadow-sm">
+                <span className="text-[9px] font-black uppercase text-saffron tracking-wider select-none">
+                  कथन [Assertion - As]
+                </span>
+                <p className="text-sm sm:text-base font-semibold text-text leading-relaxed font-hindi select-text whitespace-pre-wrap">
+                  {question.assertion}
+                </p>
+              </div>
+
+              {/* Reason Box */}
+              <div className="bg-bg-s3/40 border-l-4 border-blue-500 rounded-r-xl p-4 flex flex-col gap-2 shadow-sm">
+                <span className="text-[9px] font-black uppercase text-blue-400 tracking-wider select-none">
+                  कारण [Reason - R]
+                </span>
+                <p className="text-sm sm:text-base font-semibold text-text leading-relaxed font-hindi select-text whitespace-pre-wrap">
+                  {question.reason}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : question.qType === 'match_column' ? (
+          <div className="flex flex-col gap-4 mt-1">
+            <p className="text-base sm:text-lg font-bold text-text leading-relaxed select-text font-hindi whitespace-pre-wrap">
+              {question.question || 'निम्नलिखित को सुमेलित कीजिए-'}
+            </p>
+            <div className="overflow-hidden border border-border rounded-xl bg-bg-s3/20 shadow-md max-w-full font-sans">
+              <div className="grid grid-cols-2 bg-bg-s3/80 border-b border-border/80 text-[10px] font-black uppercase text-text-muted select-none">
+                <div className="px-4 py-3 border-r border-border/60">कॉलम-I</div>
+                <div className="px-4 py-3">कॉलम-II</div>
+              </div>
+              <div className="divide-y divide-border/40 font-hindi">
+                {Array.from({ length: Math.max(question.columnI?.length || 0, question.columnII?.length || 0) }).map((_, i) => (
+                  <div key={i} className="grid grid-cols-2 hover:bg-bg-s3/30 transition-colors">
+                    <div className="px-4 py-3.5 text-xs sm:text-sm text-text border-r border-border/40 font-semibold select-text leading-relaxed whitespace-pre-wrap">
+                      {question.columnI?.[i] || ''}
+                    </div>
+                    <div className="px-4 py-3.5 text-xs sm:text-sm text-text font-semibold select-text leading-relaxed whitespace-pre-wrap">
+                      {question.columnII?.[i] || ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (question.qType === 'ordering' || question.qType === 'multi_statement') ? (
+          <div className="flex flex-col gap-4 mt-1">
+            <p className="text-base sm:text-lg font-bold text-text leading-relaxed select-text font-hindi whitespace-pre-wrap">
+              {question.question}
+            </p>
+            <div className="flex flex-col gap-2.5 font-hindi">
+              {question.statements?.map((stmt, i) => {
+                if (!stmt) return null;
+                const label = question.statementLabels?.[i] || `${i + 1}`;
+                return (
+                  <div key={i} className="flex items-center gap-3 bg-bg-s3/30 border border-border/50 rounded-xl px-4 py-3 shadow-sm hover:border-saffron-border/30 transition-all">
+                    <span className="w-7 h-7 bg-bg-s3 border border-border/80 rounded-lg flex items-center justify-center text-[10px] font-black text-saffron select-none shrink-0">
+                      {label}
+                    </span>
+                    <span className="text-xs sm:text-sm text-text font-semibold select-text leading-relaxed whitespace-pre-wrap">
+                      {stmt}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <p className="text-base sm:text-lg font-bold text-text leading-relaxed select-text font-hindi whitespace-pre-wrap">
+            {question.question}
+          </p>
+        )}
       </div>
 
       {/* Subtle bottom design stroke */}

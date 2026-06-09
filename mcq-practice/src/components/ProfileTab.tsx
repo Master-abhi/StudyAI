@@ -2,10 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { 
   Flame, Trophy, Award, Star, Clock, 
   CheckCircle2, AlertCircle, History, BookOpen, ChevronRight,
-  ArrowRight, Target, Mail, ShieldCheck, ShieldAlert, Rocket, User,
-  Brain, Cpu
+  ArrowRight, Target, Mail, ShieldCheck, ShieldAlert, User,
+  Brain, Cpu, Loader2
 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
+
+export const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
+  const IconComponent = (LucideIcons as any)[name];
+  if (!IconComponent) return <Award className={className} />;
+  return <IconComponent className={className} />;
+};
 
 interface PerformanceLog {
   testId?: string;
@@ -344,52 +351,119 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const rankInfo = getRankInfo(xp);
   const rankProgress = rankInfo.maxXp === 100000 ? 100 : Math.round(((xp - rankInfo.minXp) / (rankInfo.maxXp - rankInfo.minXp)) * 100);
 
-  // Achievements/Badges mapping
-  const achievements = [
+  const getApiUrl = (path: string) => {
+    const hostname = window.location.hostname;
+    const isLocal = hostname === 'localhost' || 
+                    hostname === '127.0.0.1' || 
+                    hostname === '[::1]' ||
+                    hostname.startsWith('192.168.');
+    if (isLocal && window.location.port !== '3000') {
+      return `http://localhost:3000${path}`;
+    }
+    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
+      return `https://study-ai-olive.vercel.app${path}`;
+    }
+    return path;
+  };
+
+  const DEFAULT_ACHIEVEMENTS = [
     {
       id: 'first_step',
       name: 'First Step',
       desc: 'Complete your first practice test.',
-      unlocked: testsGivenCount > 0,
-      icon: Rocket,
+      criteriaType: 'tests',
+      criteriaValue: 1,
+      icon: 'Rocket',
       color: 'from-blue-500/15 to-indigo-500/15 border-blue-500/25 text-blue-400'
     },
     {
       id: 'streak_3',
       name: 'Consistency King',
       desc: 'Maintain a study streak of 3+ days.',
-      unlocked: streak >= 3,
-      icon: Flame,
+      criteriaType: 'streak',
+      criteriaValue: 3,
+      icon: 'Flame',
       color: 'from-orange-500/15 to-red-500/15 border-orange-500/25 text-orange-400'
     },
     {
       id: 'mcq_50',
       name: 'Practice Guru',
       desc: 'Solve 50 or more practice questions.',
-      unlocked: solvedMcqsCount >= 50,
-      icon: BookOpen,
+      criteriaType: 'mcqs',
+      criteriaValue: 50,
+      icon: 'BookOpen',
       color: 'from-amber-500/15 to-yellow-500/15 border-amber-500/25 text-yellow-400'
     },
     {
       id: 'accuracy_75',
       name: 'Accuracy Master',
       desc: 'Achieve over 75% average test accuracy.',
-      unlocked: overallAccuracy >= 75 && testsGivenCount >= 1,
-      icon: Target,
+      criteriaType: 'accuracy',
+      criteriaValue: 75,
+      icon: 'Target',
       color: 'from-emerald-500/15 to-teal-500/15 border-emerald-500/25 text-emerald-400'
     },
     {
       id: 'syllabus_50',
       name: 'Scholar',
       desc: 'Acquire 500+ XP points in study sessions.',
-      unlocked: xp >= 500,
-      icon: Award,
+      criteriaType: 'xp',
+      criteriaValue: 500,
+      icon: 'Award',
       color: 'from-purple-500/15 to-pink-500/15 border-purple-500/25 text-purple-400'
     }
   ];
 
-  // Leaderboard data resolution
+  const [configuredBadges, setConfiguredBadges] = useState<any[]>(DEFAULT_ACHIEVEMENTS);
+  const [loadingBadges, setLoadingBadges] = useState<boolean>(true);
   const isGuest = userEmail === 'guest@studyworld.app';
+
+  useEffect(() => {
+    const fetchBadges = async () => {
+      if (!currentUser || isGuest) {
+        setLoadingBadges(false);
+        return;
+      }
+      try {
+        const token = await currentUser.getIdToken();
+        const res = await fetch(getApiUrl('/api/user/badges'), {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setConfiguredBadges(data);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load achievements list:', err);
+      } finally {
+        setLoadingBadges(false);
+      }
+    };
+
+    fetchBadges();
+  }, [currentUser, isGuest]);
+
+  const isBadgeUnlocked = (badge: any) => {
+    const val = badge.criteriaValue;
+    switch (badge.criteriaType) {
+      case 'streak':
+        return streak >= val;
+      case 'tests':
+        return testsGivenCount >= val;
+      case 'mcqs':
+        return solvedMcqsCount >= val;
+      case 'xp':
+        return xp >= val;
+      case 'accuracy':
+        return overallAccuracy >= val && testsGivenCount >= 1;
+      default:
+        return false;
+    }
+  };
+
+  // Leaderboard data resolution
   const resolvedRank = rankingData?.rank || (isGuest ? 15 : 1);
   const resolvedTotalUsers = rankingData?.totalUsers || (isGuest ? 140 : 1);
   
@@ -704,26 +778,40 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </h4>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-            {achievements.map((ach) => (
-              <div 
-                key={ach.id}
-                className={`p-3 border rounded-xl flex items-center gap-3 transition-all duration-300 relative overflow-hidden ${
-                  ach.unlocked 
-                    ? `bg-gradient-to-br ${ach.color} hover:scale-[1.02] shadow` 
-                    : 'bg-bg-s3/40 border-border/30 opacity-40 grayscale select-none'
-                }`}
-              >
-                {ach.unlocked && (
-                  <div className="absolute -top-6 -right-6 w-12 h-12 bg-white/5 rounded-full blur-md" />
-                )}
-                
-                <ach.icon className="w-6 h-6 shrink-0" />
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[11px] font-black text-text uppercase tracking-wide truncate">{ach.name}</span>
-                  <span className="text-[9px] text-text-muted mt-0.5 leading-snug">{ach.desc}</span>
-                </div>
+            {loadingBadges ? (
+              <div className="col-span-2 flex items-center justify-center py-6 gap-2 text-text-muted">
+                <Loader2 className="w-4 h-4 animate-spin text-saffron" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Syncing Badges...</span>
               </div>
-            ))}
+            ) : configuredBadges.length === 0 ? (
+              <div className="col-span-2 text-center py-6 text-xs text-text-muted italic">
+                No achievements configured.
+              </div>
+            ) : (
+              configuredBadges.map((ach) => {
+                const unlocked = isBadgeUnlocked(ach);
+                return (
+                  <div 
+                    key={ach.id}
+                    className={`p-3 border rounded-xl flex items-center gap-3 transition-all duration-300 relative overflow-hidden ${
+                      unlocked 
+                        ? `bg-gradient-to-br ${ach.color} hover:scale-[1.02] shadow` 
+                        : 'bg-bg-s3/40 border-border/30 opacity-40 grayscale select-none'
+                    }`}
+                  >
+                    {unlocked && (
+                      <div className="absolute -top-6 -right-6 w-12 h-12 bg-white/5 rounded-full blur-md" />
+                    )}
+                    
+                    <DynamicIcon name={ach.icon} className="w-6 h-6 shrink-0" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-black text-text uppercase tracking-wide truncate">{ach.name}</span>
+                      <span className="text-[9px] text-text-muted mt-0.5 leading-snug">{ach.desc}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 

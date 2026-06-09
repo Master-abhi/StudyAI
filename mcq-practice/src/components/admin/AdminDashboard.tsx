@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, Cpu, 
   ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History, Sliders, Eye,
-  MessageSquare
+  MessageSquare, Award
 } from 'lucide-react';
 import { AdminTests } from './AdminTests';
 import { AdminNews } from './AdminNews';
@@ -14,6 +14,7 @@ import { AdminLogs } from './AdminLogs';
 import { AdminTabsConfig } from './AdminTabsConfig';
 import { AdminExamsConfig } from './AdminExamsConfig';
 import { AdminFeedbacks } from './AdminFeedbacks';
+import { AdminBadges } from './AdminBadges';
 
 import type { Exam } from '../syllabus/syllabusData';
 
@@ -25,7 +26,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
@@ -106,6 +107,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     { id: 'tests', label: 'AI MCQ Tests', icon: Trophy },
     { id: 'news', label: 'News & Alerts', icon: Newspaper },
     { id: 'syllabus', label: 'Syllabus & PDF', icon: BookOpen },
+    { id: 'badges', label: 'Badges Config', icon: Award },
     { id: 'aiconfig', label: 'AI Config', icon: Cpu },
     { id: 'tabsconfig', label: 'Manage Tabs', icon: Sliders },
     { id: 'examsconfig', label: 'Manage Exams', icon: Eye },
@@ -129,6 +131,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return <AdminNews currentUser={currentUser} />;
       case 'syllabus':
         return <AdminSyllabus currentUser={currentUser} exams={exams} onRefreshExams={onRefreshExams} />;
+      case 'badges':
+        return <AdminBadges currentUser={currentUser} />;
       case 'aiconfig':
         return <AdminAIConfig currentUser={currentUser} />;
       case 'tabsconfig':

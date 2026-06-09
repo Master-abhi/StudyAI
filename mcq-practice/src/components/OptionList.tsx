@@ -89,7 +89,7 @@ export const OptionList: React.FC<OptionListProps> = ({
               </div>
 
               {/* Option Text */}
-              <span className="text-sm font-medium leading-relaxed font-hindi">
+              <span className="text-sm font-medium leading-relaxed font-hindi whitespace-pre-wrap">
                 {option}
               </span>
             </div>
