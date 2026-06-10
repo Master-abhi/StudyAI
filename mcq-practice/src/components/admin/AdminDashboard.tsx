@@ -138,7 +138,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
       case 'tabsconfig':
         return <AdminTabsConfig currentUser={currentUser} />;
       case 'examsconfig':
-        return <AdminExamsConfig currentUser={currentUser} exams={exams} />;
+        return <AdminExamsConfig currentUser={currentUser} exams={exams} onRefreshExams={onRefreshExams} />;
       case 'logs':
         return <AdminLogs currentUser={currentUser} />;
     }

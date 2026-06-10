@@ -404,6 +404,8 @@ router.get('/dashboard', async (req, res) => {
         totalTopicsCount = 29;
       } else if (selectedExamId === 'cgv_patwari') {
         totalTopicsCount = 4;
+      } else if (selectedExamId === 'cgv_master') {
+        totalTopicsCount = 385;
       } else if (selectedExamId === 'cg_police_si') {
         totalTopicsCount = 1;
       } else {

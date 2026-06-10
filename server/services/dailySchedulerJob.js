@@ -95,6 +95,8 @@ async function runDailySchedulerForUser(userId) {
         totalTopicsCount = 29;
       } else if (activeExamId === 'cgv_patwari') {
         totalTopicsCount = 4;
+      } else if (activeExamId === 'cgv_master') {
+        totalTopicsCount = 385;
       } else if (activeExamId === 'cg_police_si') {
         totalTopicsCount = 1;
       } else {
@@ -293,6 +295,24 @@ async function runDailySchedulerForUser(userId) {
                 topicId: item.id,
                 subjectId: item.subId,
                 reason: 'Important Patwari exam syllabus topic. Start practicing MCQs.',
+                priority: 5
+              });
+              foundUnstarted = true;
+              break;
+            }
+          }
+        } else if (activeExamId === 'cgv_master') {
+          const defaultMasterTopics = [
+            { id: 'cg_hist_1', subId: 'cgv_master_sub_0' },
+            { id: 'ind_hist_1', subId: 'cgv_master_sub_1' },
+            { id: 'phy_1', subId: 'cgv_master_sub_2' }
+          ];
+          for (const item of defaultMasterTopics) {
+            if (!allTopicIdsInMastery.has(item.id)) {
+              recommendations.push({
+                topicId: item.id,
+                subjectId: item.subId,
+                reason: 'Important Vyapam exam syllabus topic. Start learning.',
                 priority: 5
               });
               foundUnstarted = true;
