@@ -5,6 +5,53 @@ import {
 } from 'lucide-react';
 import type { Exam } from '../syllabus/syllabusData';
 
+const cleanPrefix = (str: string): string => {
+  if (!str) return '';
+  // Match prefixes like (a), (A), (1), (I), (क), (ख) or a., A., 1., क., etc.
+  return str.replace(/^\s*(?:\([^)]+\)|[a-zA-Z0-9\u0900-\u097F]+\.|[a-zA-Z0-9\u0900-\u097F]+\))\s*/, '');
+};
+
+const stripMarkdownTable = (text: string): string => {
+  if (!text) return '';
+  const lines = text.split('\n');
+  const cleanedLines = lines.filter(line => {
+    const trimmed = line.trim();
+    // Remove separator lines like |---|---|
+    if (/^\|?\s*:?-+:?\s*\|(?:\s*:?-+:?\s*\|?)*$/.test(trimmed)) {
+      return false;
+    }
+    // Remove rows starting with |
+    if (trimmed.startsWith('|')) {
+      return false;
+    }
+    return true;
+  });
+  return cleanedLines.join('\n').trim();
+};
+
+const stripAssertionReason = (text: string): string => {
+  if (!text) return '';
+  // Matches newlines followed by markers like **कथन [As] :, **कारण [R] :, Assertion [As] :, As :, R :, etc.
+  const regex = /\n+(?:\*\*)?(?:कथन|कारण|Assertion|Reason|\[As\]|\[R\])\s*(?:\[[^\]]+\])?\s*(?::|：)?/i;
+  const match = text.match(regex);
+  if (match && match.index !== undefined) {
+    return text.substring(0, match.index).trim();
+  }
+  return text;
+};
+
+const stripStatements = (text: string): string => {
+  if (!text) return '';
+  // Match a newline followed by label like (1), 1., (A), A., (a), etc.
+  const regex = /\n+(?:\)?)?(?:\()?[a-zA-Z0-9\u0900-\u097F]+(?:\.|\))\s+/i;
+  const match = text.match(regex);
+  if (match && match.index !== undefined) {
+    return text.substring(0, match.index).trim();
+  }
+  return text;
+};
+
+
 interface AdminTestsProps {
   currentUser: any;
   exams: Exam[];
@@ -730,7 +777,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
                           {pq.qType === 'assertion_reason' ? (
                             <div className="flex flex-col gap-2.5">
-                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question || 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:'}</p>
+                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                                {(() => {
+                                  const cleaned = stripAssertionReason(pq.question);
+                                  return cleaned.trim() ? cleaned : 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:';
+                                })()}
+                              </p>
                               <div className="flex flex-col gap-2">
                                 <div className="bg-bg-s2 border-l-2 border-saffron rounded p-2">
                                   <span className="text-[7px] font-black uppercase text-saffron block mb-0.5">कथन [As]</span>
@@ -744,7 +796,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                             </div>
                           ) : pq.qType === 'match_column' ? (
                             <div className="flex flex-col gap-2.5">
-                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question || 'निम्नलिखित को सुमेलित कीजिए-'}</p>
+                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                                {(() => {
+                                  const cleaned = stripMarkdownTable(pq.question);
+                                  return cleaned.trim() ? cleaned : 'निम्नलिखित को सुमेलित कीजिए-';
+                                })()}
+                              </p>
                               <div className="border border-border rounded-lg overflow-hidden text-[9.5px] font-hindi">
                                 <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[7px] font-black uppercase text-text-muted">
                                   <div className="px-3 py-1.5 border-r border-border/40">कॉलम-I</div>
@@ -753,8 +810,18 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                                 <div className="divide-y divide-border/30 bg-bg-s2/40">
                                   {Array.from({ length: Math.max(pq.columnI?.length || 0, pq.columnII?.length || 0) }).map((_, rIdx) => (
                                     <div key={rIdx} className="grid grid-cols-2">
-                                      <div className="px-3 py-1.5 border-r border-border/30 font-semibold whitespace-pre-wrap">{pq.columnI?.[rIdx] || ''}</div>
-                                      <div className="px-3 py-1.5 font-semibold whitespace-pre-wrap">{pq.columnII?.[rIdx] || ''}</div>
+                                      <div className="px-3 py-1.5 border-r border-border/30 font-semibold whitespace-pre-wrap flex items-start gap-1">
+                                        <span className="text-saffron font-black select-none bg-saffron/10 px-1 py-0.5 rounded text-[8px] shrink-0">
+                                          {String.fromCharCode(65 + rIdx)}
+                                        </span>
+                                        <span>{cleanPrefix(pq.columnI?.[rIdx] || '')}</span>
+                                      </div>
+                                      <div className="px-3 py-1.5 font-semibold whitespace-pre-wrap flex items-start gap-1">
+                                        <span className="text-blue-400 font-black select-none bg-blue-500/10 px-1 py-0.5 rounded text-[8px] shrink-0">
+                                          {rIdx + 1}
+                                        </span>
+                                        <span>{cleanPrefix(pq.columnII?.[rIdx] || '')}</span>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
@@ -762,7 +829,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                             </div>
                           ) : (pq.qType === 'ordering' || pq.qType === 'multi_statement') ? (
                             <div className="flex flex-col gap-2.5">
-                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question}</p>
+                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                                {(() => {
+                                  const cleaned = stripStatements(pq.question);
+                                  return cleaned.trim() ? cleaned : 'नीचे दिए गए कथनों को पढ़िए और सही विकल्प चुनिए:';
+                                })()}
+                              </p>
                               <div className="flex flex-col gap-1 font-hindi">
                                 {pq.statements?.map((stmt: string, sIdx: number) => {
                                   if (!stmt) return null;
@@ -881,19 +953,21 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-border/50 text-[10px] text-text-muted font-black uppercase tracking-wider">
-                    <th className="py-2.5 pr-3">Exam Target</th>
-                    <th className="py-2.5 px-3">Subject / Length</th>
-                    <th className="py-2.5 px-3">Language</th>
-                    <th className="py-2.5 px-3">Date</th>
-                    <th className="py-2.5 pl-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/25">
-                  {filteredRegistryTests.map(test => (
-                    <tr key={test.id} className="hover:bg-bg-s3/20 transition-colors">
-                      <td className="py-3 pr-3 font-bold text-text truncate max-w-[120px]" title={test.examNames ? test.examNames.join(', ') : test.examName}>
+                 <thead>
+                   <tr className="border-b border-border/50 text-[10px] text-text-muted font-black uppercase tracking-wider">
+                     <th className="py-2.5 pr-2 w-8">#</th>
+                     <th className="py-2.5 px-3">Exam Target</th>
+                     <th className="py-2.5 px-3">Subject / Length</th>
+                     <th className="py-2.5 px-3">Language</th>
+                     <th className="py-2.5 px-3">Date</th>
+                     <th className="py-2.5 pl-3 text-right">Actions</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-border/25">
+                   {filteredRegistryTests.map((test, idx) => (
+                     <tr key={test.id} className="hover:bg-bg-s3/20 transition-colors">
+                       <td className="py-3 pr-2 text-text-muted font-black w-8">{idx + 1}</td>
+                       <td className="py-3 px-3 font-bold text-text truncate max-w-[120px]" title={test.examNames ? test.examNames.join(', ') : test.examName}>
                         {test.examNames && test.examNames.length > 1 ? (
                           <div className="flex flex-col">
                             <span className="truncate">{test.examName}</span>
@@ -1018,7 +1092,10 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   {q.qType === 'assertion_reason' ? (
                     <div className="flex flex-col gap-3">
                       <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
-                        {q.question || 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:'}
+                        {(() => {
+                          const cleaned = stripAssertionReason(q.question);
+                          return cleaned.trim() ? cleaned : 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:';
+                        })()}
                       </p>
                       <div className="grid grid-cols-1 gap-2">
                         <div className="bg-bg-s2 border-l-2 border-saffron rounded p-2.5">
@@ -1034,7 +1111,10 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   ) : q.qType === 'match_column' ? (
                     <div className="flex flex-col gap-3">
                       <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
-                        {q.question || 'निम्नलिखित को सुमेलित कीजिए-'}
+                        {(() => {
+                          const cleaned = stripMarkdownTable(q.question);
+                          return cleaned.trim() ? cleaned : 'निम्नलिखित को सुमेलित कीजिए-';
+                        })()}
                       </p>
                       <div className="border border-border rounded-lg overflow-hidden text-[10px] font-hindi">
                         <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[8px] font-black uppercase text-text-muted select-none">
@@ -1044,8 +1124,18 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                         <div className="divide-y divide-border/30 bg-bg-s2/40">
                           {Array.from({ length: Math.max(q.columnI?.length || 0, q.columnII?.length || 0) }).map((_, i) => (
                             <div key={i} className="grid grid-cols-2">
-                              <div className="px-3 py-2 border-r border-border/30 font-semibold whitespace-pre-wrap">{q.columnI?.[i] || ''}</div>
-                              <div className="px-3 py-2 font-semibold whitespace-pre-wrap">{q.columnII?.[i] || ''}</div>
+                              <div className="px-3 py-2 border-r border-border/30 font-semibold whitespace-pre-wrap flex items-start gap-1">
+                                <span className="text-saffron font-black select-none bg-saffron/10 px-1 py-0.5 rounded text-[8px] shrink-0">
+                                  {String.fromCharCode(65 + i)}
+                                </span>
+                                <span>{cleanPrefix(q.columnI?.[i] || '')}</span>
+                              </div>
+                              <div className="px-3 py-2 font-semibold whitespace-pre-wrap flex items-start gap-1">
+                                <span className="text-blue-400 font-black select-none bg-blue-500/10 px-1 py-0.5 rounded text-[8px] shrink-0">
+                                  {i + 1}
+                                </span>
+                                <span>{cleanPrefix(q.columnII?.[i] || '')}</span>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1054,7 +1144,10 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   ) : (q.qType === 'ordering' || q.qType === 'multi_statement') ? (
                     <div className="flex flex-col gap-3">
                       <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
-                        {q.question}
+                        {(() => {
+                          const cleaned = stripStatements(q.question);
+                          return cleaned.trim() ? cleaned : 'नीचे दिए गए कथनों को पढ़िए और सही विकल्प चुनिए:';
+                        })()}
                       </p>
                       <div className="flex flex-col gap-1.5 font-hindi">
                         {q.statements?.map((stmt: string, i: number) => {
@@ -1512,7 +1605,10 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                         {q.qType === 'assertion_reason' ? (
                           <div className="flex flex-col gap-3">
                             <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
-                              {q.question || 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:'}
+                              {(() => {
+                                const cleaned = stripAssertionReason(q.question);
+                                return cleaned.trim() ? cleaned : 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:';
+                              })()}
                             </p>
                             <div className="grid grid-cols-1 gap-2">
                               <div className="bg-bg-s2 border-l-2 border-saffron rounded p-2.5">
@@ -1528,7 +1624,10 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                         ) : q.qType === 'match_column' ? (
                           <div className="flex flex-col gap-3">
                             <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
-                              {q.question || 'निम्नलिखित को सुमेलित कीजिए-'}
+                              {(() => {
+                                const cleaned = stripMarkdownTable(q.question);
+                                return cleaned.trim() ? cleaned : 'निम्नलिखित को सुमेलित कीजिए-';
+                              })()}
                             </p>
                             <div className="border border-border rounded-lg overflow-hidden text-[9.5px] font-hindi">
                               <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[7.5px] font-black uppercase text-text-muted select-none">
@@ -1538,8 +1637,18 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                               <div className="divide-y divide-border/30 bg-bg-s2/40">
                                 {Array.from({ length: Math.max(q.columnI?.length || 0, q.columnII?.length || 0) }).map((_, rIdx) => (
                                   <div key={rIdx} className="grid grid-cols-2">
-                                    <div className="px-3 py-1.5 border-r border-border/30 font-semibold whitespace-pre-wrap">{q.columnI?.[rIdx] || ''}</div>
-                                    <div className="px-3 py-1.5 font-semibold whitespace-pre-wrap">{q.columnII?.[rIdx] || ''}</div>
+                                    <div className="px-3 py-1.5 border-r border-border/30 font-semibold whitespace-pre-wrap flex items-start gap-1">
+                                      <span className="text-saffron font-black select-none bg-saffron/10 px-1 py-0.5 rounded text-[8px] shrink-0">
+                                        {String.fromCharCode(65 + rIdx)}
+                                      </span>
+                                      <span>{cleanPrefix(q.columnI?.[rIdx] || '')}</span>
+                                    </div>
+                                    <div className="px-3 py-1.5 font-semibold whitespace-pre-wrap flex items-start gap-1">
+                                      <span className="text-blue-400 font-black select-none bg-blue-500/10 px-1 py-0.5 rounded text-[8px] shrink-0">
+                                        {rIdx + 1}
+                                      </span>
+                                      <span>{cleanPrefix(q.columnII?.[rIdx] || '')}</span>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -1548,7 +1657,10 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                         ) : (q.qType === 'ordering' || q.qType === 'multi_statement') ? (
                           <div className="flex flex-col gap-3">
                             <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
-                              {q.question || '(Directive)'}
+                              {(() => {
+                                const cleaned = stripStatements(q.question);
+                                return cleaned.trim() ? cleaned : 'नीचे दिए गए कथनों को पढ़िए और सही विकल्प चुनिए:';
+                              })()}
                             </p>
                             <div className="flex flex-col gap-1.5 font-hindi">
                               {q.statements?.map((stmt: string, sIdx: number) => {

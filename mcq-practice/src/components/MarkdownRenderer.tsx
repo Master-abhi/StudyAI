@@ -7,6 +7,7 @@ import rehypeKatex from 'rehype-katex';
 interface MarkdownRendererProps {
   content: string;
   className?: string;
+  pClassName?: string;
 }
 
 // ─── Mermaid diagram block ─────────────────────────────────────────────────
@@ -172,7 +173,61 @@ PlotlyChart.displayName = 'PlotlyChart';
 
 
 
-export const MarkdownRenderer = React.memo(({ content, className = '' }: MarkdownRendererProps) => {
+const preserveSingleNewlines = (text: string): string => {
+  if (!text) return '';
+  const lines = text.split('\n');
+  let inCodeBlock = false;
+  let inTable = false;
+  let inMathBlock = false;
+
+  const processedLines = lines.map((line, idx) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('```')) {
+      inCodeBlock = !inCodeBlock;
+      return line;
+    }
+    if (trimmed.startsWith('$$')) {
+      inMathBlock = !inMathBlock;
+      return line;
+    }
+    if (trimmed.startsWith('|')) {
+      inTable = true;
+      return line;
+    } else if (inTable && trimmed === '') {
+      inTable = false;
+      return line;
+    }
+    if (inCodeBlock || inTable || inMathBlock) {
+      return line;
+    }
+    if (trimmed === '' || line.endsWith('  ') || line.endsWith('\\')) {
+      return line;
+    }
+    const nextLine = lines[idx + 1];
+    if (nextLine !== undefined) {
+      const nextTrimmed = nextLine.trim();
+      if (
+        nextTrimmed !== '' &&
+        !nextTrimmed.startsWith('```') &&
+        !nextTrimmed.startsWith('$$') &&
+        !nextTrimmed.startsWith('|') &&
+        !nextTrimmed.startsWith('-') &&
+        !nextTrimmed.startsWith('*') &&
+        !nextTrimmed.startsWith('#') &&
+        !/^\d+\./.test(nextTrimmed)
+      ) {
+        return line + '  ';
+      }
+    }
+    return line;
+  });
+  return processedLines.join('\n');
+};
+
+export const MarkdownRenderer = React.memo(({ content, className = '', pClassName }: MarkdownRendererProps) => {
+  const processedContent = React.useMemo(() => {
+    return preserveSingleNewlines(content);
+  }, [content]);
   return (
     <div className={`markdown-content select-text font-sans ${className}`}>
       <ReactMarkdown
@@ -189,7 +244,7 @@ export const MarkdownRenderer = React.memo(({ content, className = '' }: Markdow
             <h3 className="text-xs font-bold my-1.5 text-text" {...props} />
           ),
           p: ({ node, ...props }) => (
-            <p className="mb-2 last:mb-0 leading-relaxed text-xs sm:text-sm" {...props} />
+            <p className={pClassName !== undefined ? pClassName : "mb-2 last:mb-0 leading-relaxed text-xs sm:text-sm"} {...props} />
           ),
           ul: ({ node, ...props }) => (
             <ul className="list-disc pl-5 mb-2.5 flex flex-col gap-1 text-xs sm:text-sm" {...props} />
@@ -255,7 +310,7 @@ export const MarkdownRenderer = React.memo(({ content, className = '' }: Markdow
           ),
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );

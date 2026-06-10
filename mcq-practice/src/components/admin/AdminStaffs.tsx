@@ -346,20 +346,23 @@ export const AdminStaffs: React.FC<AdminStaffsProps> = ({ currentUser }) => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-border/80 bg-bg-s3/40 text-[9px] font-black uppercase text-text-muted tracking-wider">
-                    <th className="py-4 px-5">Staff Identity</th>
+                    <th className="py-4 px-5 w-8">#</th>
+                    <th className="py-4 px-4">Staff Identity</th>
                     <th className="py-4 px-4">Internal Email</th>
                     <th className="py-4 px-4">Authorized Roles</th>
                     <th className="py-4 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60 text-xs">
-                  {staffs.map((staff) => (
+                  {staffs.map((staff, idx) => (
                     <tr 
                       key={staff.uid}
                       className="hover:bg-bg-s3/15 transition-colors group"
                     >
+                      {/* Row Index */}
+                      <td className="py-4 px-5 text-text-muted font-black w-8">{idx + 1}</td>
                       {/* Name & ID */}
-                      <td className="py-4 px-5">
+                      <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-saffron-dim/30 border border-saffron-border/30 text-saffron font-black flex items-center justify-center text-xs select-none">
                             {staff.staffId ? staff.staffId.substring(0, 2).toUpperCase() : 'ST'}

@@ -282,16 +282,18 @@ export const AdminLogs: React.FC<AdminLogsProps> = ({ currentUser }) => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-border/80 bg-bg-s3/40 text-[9px] font-black uppercase text-text-muted tracking-wider">
-                    <th className="py-4 px-5">Time (IST)</th>
+                    <th className="py-4 px-5 w-8">#</th>
+                    <th className="py-4 px-4">Time (IST)</th>
                     <th className="py-4 px-4">Staff Actor</th>
                     <th className="py-4 px-4">Action</th>
                     <th className="py-4 px-5">Operational Details</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60 text-xs font-sans">
-                  {filteredStaffLogs.map((log) => (
+                  {filteredStaffLogs.map((log, idx) => (
                     <tr key={log.id} className="hover:bg-bg-s3/15 transition-colors group">
-                      <td className="py-4 px-5 text-[10px] text-text-muted font-mono whitespace-nowrap">
+                      <td className="py-4 px-5 text-text-muted font-black w-8">{idx + 1}</td>
+                      <td className="py-4 px-4 text-[10px] text-text-muted font-mono whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 text-saffron/70" />
                           <span>{formatTimestamp(log.timestamp)}</span>
@@ -334,7 +336,8 @@ export const AdminLogs: React.FC<AdminLogsProps> = ({ currentUser }) => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-border/80 bg-bg-s3/40 text-[9px] font-black uppercase text-text-muted tracking-wider">
-                    <th className="py-4 px-5">Time (IST)</th>
+                    <th className="py-4 px-5 w-8">#</th>
+                    <th className="py-4 px-4">Time (IST)</th>
                     <th className="py-4 px-4">Aspirant Profile</th>
                     <th className="py-4 px-4">Activity Type</th>
                     <th className="py-4 px-4">Syllabus Topic Context</th>
@@ -342,9 +345,10 @@ export const AdminLogs: React.FC<AdminLogsProps> = ({ currentUser }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60 text-xs font-sans">
-                  {filteredUserLogs.map((log) => (
+                  {filteredUserLogs.map((log, idx) => (
                     <tr key={log.id} className="hover:bg-bg-s3/15 transition-colors group">
-                      <td className="py-4 px-5 text-[10px] text-text-muted font-mono whitespace-nowrap">
+                      <td className="py-4 px-5 text-text-muted font-black w-8">{idx + 1}</td>
+                      <td className="py-4 px-4 text-[10px] text-text-muted font-mono whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 text-purple-400" />
                           <span>{formatTimestamp(log.timestamp)}</span>

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Library, FileText } from 'lucide-react';
 import type { Question } from '../types';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface ExplanationCardProps {
   question: Question;
@@ -34,11 +35,11 @@ export const ExplanationCard: React.FC<ExplanationCardProps> = ({
       </div>
 
       {/* Explanation text */}
-      <div className="text-sm text-text/90 leading-relaxed font-medium space-y-2 select-text font-hindi">
-        {question.explanation.split('\n\n').map((paragraph, pIdx) => (
-          <p key={pIdx}>{paragraph}</p>
-        ))}
-      </div>
+      <MarkdownRenderer
+        content={question.explanation}
+        className="text-sm text-text/90 font-medium font-hindi"
+        pClassName="text-sm text-text/90 leading-relaxed font-medium font-hindi mb-2.5 last:mb-0"
+      />
     </motion.div>
   );
 };

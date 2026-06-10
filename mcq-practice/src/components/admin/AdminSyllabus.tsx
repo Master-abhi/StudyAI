@@ -513,15 +513,17 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-border/50 text-[10px] text-text-muted font-black uppercase tracking-wider">
-                        <th className="py-2.5 pr-3">Material Document</th>
+                        <th className="py-2.5 pr-2 w-8">#</th>
+                        <th className="py-2.5 px-3">Material Document</th>
                         <th className="py-2.5 px-3">Type</th>
                         <th className="py-2.5 px-3">Storage Link Path</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/25">
-                      {materials.map(mat => (
+                      {materials.map((mat, idx) => (
                         <tr key={mat.id} className="hover:bg-bg-s3/20 transition-colors">
-                          <td className="py-3 pr-3 font-bold text-text truncate max-w-[150px]" title={mat.title}>
+                          <td className="py-3 pr-2 text-text-muted font-black w-8">{idx + 1}</td>
+                          <td className="py-3 px-3 font-bold text-text truncate max-w-[150px]" title={mat.title}>
                             <div className="flex items-center gap-2">
                               <FileText className="w-4 h-4 text-saffron shrink-0" />
                               <span className="truncate">{mat.title}</span>

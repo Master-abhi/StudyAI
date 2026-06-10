@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, X } from 'lucide-react';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface OptionListProps {
   options: string[];
@@ -89,9 +90,11 @@ export const OptionList: React.FC<OptionListProps> = ({
               </div>
 
               {/* Option Text */}
-              <span className="text-sm font-medium leading-relaxed font-hindi whitespace-pre-wrap">
-                {option}
-              </span>
+              <MarkdownRenderer
+                content={option}
+                className="text-sm font-medium text-inherit font-hindi"
+                pClassName="text-sm font-medium leading-relaxed font-hindi inline-block"
+              />
             </div>
 
             {/* Answer outcome icons */}

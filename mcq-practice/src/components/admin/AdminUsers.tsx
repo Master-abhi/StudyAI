@@ -427,7 +427,8 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-border/80 bg-bg-s3/40 text-[9px] font-black uppercase text-text-muted tracking-wider">
-                  <th className="py-4 px-5">Aspirant Profile</th>
+                  <th className="py-4 px-5 w-8">#</th>
+                  <th className="py-4 px-4">Aspirant Profile</th>
                   <th className="py-4 px-4">Contact Info</th>
                   <th className="py-4 px-4 text-center">Plan Tier Status</th>
                   <th className="py-4 px-4">Metrics</th>
@@ -436,13 +437,15 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60 text-xs">
-                {filteredUsers.map((user) => (
+                {filteredUsers.map((user, idx) => (
                   <tr 
                     key={user.uid}
                     className={`hover:bg-bg-s3/15 transition-colors group ${user.disabled ? 'bg-red-500/5' : ''}`}
                   >
+                    {/* Row Index */}
+                    <td className="py-4 px-5 text-text-muted font-black w-8">{idx + 1}</td>
                     {/* Name & ID */}
-                    <td className="py-4 px-5">
+                    <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-full font-black flex items-center justify-center text-xs select-none border ${
                           user.disabled 
