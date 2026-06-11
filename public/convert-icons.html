@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CG Guru — PWA Icon Converter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-s0: #0B0E14;
+      --bg-s1: #121620;
+      --bg-s2: #181F30;
+      --bg-s3: #222B40;
+      --saffron: #ff9933;
+      --text-color: #F0F4FA;
+      --text-muted: #8F9CAE;
+    }
+    body {
+      background-color: var(--bg-s1);
+      color: var(--text-color);
+      font-family: 'Noto Sans Devanagari', 'Baloo 2', sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .card {
+      background-color: var(--bg-s2);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+    p {
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .preview-container {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 24px 0;
+    }
+    .preview-box {
+      background-color: var(--bg-s0);
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .preview-box span {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+    .btn {
+      background-color: var(--saffron);
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+      width: 100%;
+      margin: 8px 0;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 153, 51, 0.3);
+    }
+    .btn:disabled {
+      background-color: var(--bg-s3);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .instructions {
+      text-align: left;
+      background-color: var(--bg-s3);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 24px;
+      font-size: 14px;
+      border-left: 4px solid var(--saffron);
+    }
+    .instructions ol {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--text-muted);
+    }
+    .instructions li {
+      margin-bottom: 8px;
+    }
+    .instructions li strong {
+      color: var(--text-color);
+    }
+    canvas {
+      display: none;
+    }
+    #source-img {
+      width: 96px;
+      height: 96px;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>PWA Icon Converter 🎓</h1>
+    <p>Aapke app me installable PWA prompts ko configure karne ke liye PNG format icons zaroori hote hain. Yeh tool `favicon.svg` ko correct size ke PNGs me convert karega.</p>
+    
+    <div class="preview-container">
+      <div class="preview-box">
+        <img id="source-img" src="favicon.svg" alt="Source Icon" />
+        <span>Source (favicon.svg)</span>
+      </div>
+    </div>
+
+    <button class="btn" id="btn-192" onclick="convertAndDownload(192)">
+      Download icon-192.png (192x192)
+    </button>
+    <button class="btn" id="btn-512" onclick="convertAndDownload(512)">
+      Download icon-512.png (512x512)
+    </button>
+
+    <div class="instructions">
+      <strong>Agla Kadam (Next Steps):</strong>
+      <ol>
+        <li>Upar diye gaye dono buttons par click karke PNG icons download karein.</li>
+        <li>Downloaded files ko apne project ke <strong>`public`</strong> folder me copy kar dein.</li>
+        <li>Files ke names exact <strong>`icon-192.png`</strong> aur <strong>`icon-512.png`</strong> hone chahiye.</li>
+      </ol>
+    </div>
+  </div>
+
+  <canvas id="conv-canvas"></canvas>
+
+  <script>
+    function convertAndDownload(size) {
+      const img = new Image();
+      // Load source svg
+      img.src = 'favicon.svg';
+      
+      img.onload = function() {
+        const canvas = document.getElementById('conv-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set dimensions
+        canvas.width = size;
+        canvas.height = size;
+        
+        // Clear and draw image
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(img, 0, 0, size, size);
+        
+        // Trigger download
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `icon-${size}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+      
+      img.onerror = function() {
+        alert('Favicon SVG load nahi ho saka. Kripya check karein ki kya server run ho raha hai.');
+      };
+    }
+  </script>
+</body>
+</html>

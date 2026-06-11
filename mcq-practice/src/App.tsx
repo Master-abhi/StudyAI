@@ -191,6 +191,42 @@ export default function App() {
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
+  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>(() => {
+    return (localStorage.getItem('cg_theme') as any) || 'dark';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const applyTheme = (t: 'dark' | 'light' | 'system') => {
+      let resolvedTheme: 'dark' | 'light' = 'dark';
+      if (t === 'system') {
+        resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      } else {
+        resolvedTheme = t;
+      }
+
+      if (resolvedTheme === 'light') {
+        root.setAttribute('data-theme', 'light');
+        root.classList.add('light-theme');
+        root.classList.remove('dark-theme');
+      } else {
+        root.removeAttribute('data-theme');
+        root.classList.remove('light-theme');
+        root.classList.add('dark-theme');
+      }
+    };
+
+    applyTheme(theme);
+    localStorage.setItem('cg_theme', theme);
+
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = () => applyTheme('system');
+      mediaQuery.addEventListener('change', listener);
+      return () => mediaQuery.removeEventListener('change', listener);
+    }
+  }, [theme]);
+
   const [selectedProfileUid, setSelectedProfileUid] = useState<string | null>(null);
   const [publicProfileOpen, setPublicProfileOpen] = useState<boolean>(false);
   const [userMobile, setUserMobile] = useState<string>(() => {
@@ -253,6 +289,7 @@ export default function App() {
     }
   });
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [testDuration, setTestDuration] = useState<number>(30 * 60); // in seconds
   const [sessionCompleted, setSessionCompleted] = useState(false);
 
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -666,7 +703,8 @@ export default function App() {
               startTestPractice(
                 data.questions, 
                 data.mode || 'quiz', 
-                data.subject || 'Practice Test'
+                data.subject || 'Practice Test',
+                data.pattern?.durationMinutes || data.durationMinutes
               );
             }
           }
@@ -901,6 +939,13 @@ export default function App() {
     return () => clearInterval(interval);
   }, [sessionCompleted, isTestActive]);
 
+  // Auto-submit when test duration expires (only for mock mode)
+  useEffect(() => {
+    if (isTestActive && (mode === 'mock' || mode === 'pyq') && !sessionCompleted && elapsedTime >= testDuration) {
+      handleFinishSession();
+    }
+  }, [elapsedTime, isTestActive, mode, sessionCompleted, testDuration]);
+
   // Visited palette tracker
   useEffect(() => {
     if (visited.length > currentIndex) {
@@ -940,7 +985,12 @@ export default function App() {
 
 
   // Launch test session helper
-  const startTestPractice = (testQuestions: Question[], testMode: 'quiz' | 'mock' | 'pyq', subject: string) => {
+  const startTestPractice = (
+    testQuestions: Question[],
+    testMode: 'quiz' | 'mock' | 'pyq',
+    subject: string,
+    durationMinutes?: number
+  ) => {
     setQuestions(testQuestions);
     setMode(testMode);
     setSubjectName(subject);
@@ -949,6 +999,18 @@ export default function App() {
     setMarkedForReview(Array(testQuestions.length).fill(false));
     setVisited(Array(testQuestions.length).fill(false));
     setElapsedTime(0);
+
+    // Calculate dynamic test duration in seconds
+    let durationSeconds = 30 * 60; // default 30 mins
+    if (durationMinutes && durationMinutes > 0) {
+      durationSeconds = durationMinutes * 60;
+    } else if (testMode === 'quiz') {
+      durationSeconds = 5 * 60; // 5 mins default for quiz
+    } else if (testMode === 'mock' || testMode === 'pyq') {
+      durationSeconds = 120 * 60; // 120 mins default for mock exam / PYQ
+    }
+    setTestDuration(durationSeconds);
+
     setSessionCompleted(false);
     setIsTestActive(true);
     setFeedbackEnabled(false);
@@ -1524,6 +1586,7 @@ export default function App() {
                   currentIndex={currentIndex}
                   totalQuestions={questions.length}
                   elapsedTime={elapsedTime}
+                  testDuration={testDuration}
                   mode={mode}
                   onBack={() => setIsTestActive(false)}
                   onTogglePalette={() => setPaletteOpen(!paletteOpen)}
@@ -1732,6 +1795,8 @@ export default function App() {
           onChangeExam={() => setActiveTab('home')}
           language={appLanguage}
           onLanguageChange={setAppLanguage}
+          theme={theme}
+          onThemeChange={setTheme}
           onLogout={handleLogout}
           onClearProgress={handleClearProgress}
           userMobile={userMobile}

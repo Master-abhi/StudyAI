@@ -5,7 +5,7 @@ export interface Question {
   correctIndex: number;
   explanation: string;
   subject?: string;
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: 'easy' | 'medium' | 'moderate' | 'hard';
   weightage?: 'high' | 'medium' | 'low';
   isCgSpecific?: boolean;
   examRelevance?: string;
@@ -16,6 +16,10 @@ export interface Question {
   columnII?: string[];
   statements?: string[];
   statementLabels?: string[];
+  topic?: string;
+  sourcePattern?: string;
+  yearTrend?: string;
+  expectedIn2026?: boolean;
 }
 
 export interface TestState {

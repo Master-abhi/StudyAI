@@ -18,7 +18,7 @@ interface ServerTest {
 
 interface PracticeTabProps {
   activeExam: any;
-  onStartPracticeSession: (questions: Question[], mode: 'quiz' | 'mock' | 'pyq', subject: string) => void;
+  onStartPracticeSession: (questions: Question[], mode: 'quiz' | 'mock' | 'pyq', subject: string, durationMinutes?: number) => void;
   bookmarkedQuestions?: Question[];
   onToggleBookmark?: (question: Question) => void;
 }
@@ -94,7 +94,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       if (!res.ok) throw new Error('Failed to load test details');
       const data = await res.json();
       if (data && data.questions && data.questions.length > 0) {
-        onStartPracticeSession(data.questions, testMode, subject);
+        onStartPracticeSession(data.questions, testMode, subject, data.pattern?.durationMinutes || data.durationMinutes);
       }
     } catch (err) {
       console.error(err);

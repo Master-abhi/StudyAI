@@ -71,6 +71,7 @@ export const MCQCard: React.FC<MCQCardProps> = ({
         return 'text-greenL bg-green-500/10 border-green-500/25';
       case 'hard':
         return 'text-redL bg-red-500/10 border-red-500/25';
+      case 'moderate':
       case 'medium':
       default:
         return 'text-gold bg-gold/10 border-gold/25';
@@ -86,7 +87,9 @@ export const MCQCard: React.FC<MCQCardProps> = ({
           <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border ${
             getDifficultyColor(question.difficulty || 'medium')
           }`}>
-            {question.difficulty || 'Medium'}
+            {question.difficulty
+              ? question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1)
+              : 'Medium'}
           </span>
 
           {/* Tag Badges */}
@@ -99,6 +102,30 @@ export const MCQCard: React.FC<MCQCardProps> = ({
           {question.weightage === 'high' && (
             <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border bg-purple-500/10 border-purple-500/20 text-purple-400">
               🔥 High Weight
+            </span>
+          )}
+
+          {question.topic && (
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded border bg-indigo-500/10 border-indigo-500/20 text-indigo-300 flex items-center gap-1">
+              📁 {question.topic}
+            </span>
+          )}
+
+          {question.sourcePattern && (
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded border bg-cyan-500/10 border-cyan-500/20 text-cyan-300 flex items-center gap-1">
+              🎯 {question.sourcePattern}
+            </span>
+          )}
+
+          {question.yearTrend && (
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded border bg-orange-500/10 border-orange-500/20 text-orange-300 flex items-center gap-1">
+              📈 PYQ: {question.yearTrend}
+            </span>
+          )}
+
+          {question.expectedIn2026 && (
+            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded border bg-rose-500/10 border-rose-500/20 text-rose-400 flex items-center gap-1 animate-pulse">
+              🔮 Expected 2026
             </span>
           )}
         </div>

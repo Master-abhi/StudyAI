@@ -6,6 +6,7 @@ interface PracticeHeaderProps {
   currentIndex: number;
   totalQuestions: number;
   elapsedTime: number;
+  testDuration?: number; // dynamic test duration in seconds
   mode: 'quiz' | 'mock' | 'pyq';
   onBack: () => void;
   onTogglePalette: () => void;
@@ -16,13 +17,14 @@ export const PracticeHeader: React.FC<PracticeHeaderProps> = ({
   currentIndex,
   totalQuestions,
   elapsedTime,
+  testDuration = 30 * 60, // default to 30 mins
   mode,
   onBack,
   onTogglePalette,
 }) => {
   const formatTime = (seconds: number) => {
-    if (mode === 'mock') {
-      const remaining = Math.max(0, 30 * 60 - seconds);
+    if (mode === 'mock' || mode === 'pyq') {
+      const remaining = Math.max(0, testDuration - seconds);
       const m = Math.floor(remaining / 60);
       const s = remaining % 60;
       return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -33,8 +35,8 @@ export const PracticeHeader: React.FC<PracticeHeaderProps> = ({
     }
   };
 
-  const isMock = mode === 'mock';
-  const isTimeUrgent = isMock && (30 * 60 - elapsedTime) < 5 * 60;
+  const isMock = mode === 'mock' || mode === 'pyq';
+  const isTimeUrgent = isMock && (testDuration - elapsedTime) < 5 * 60;
 
   return (
     <header className="sticky top-0 z-40 w-full bg-bg-s2/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between shadow-lg">

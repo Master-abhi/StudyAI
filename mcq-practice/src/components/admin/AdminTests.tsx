@@ -662,7 +662,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                           options: ["बनवारी लाल अग्रवाल", "राजेन्द्र प्रसाद शुक्ल", "धर्मजीत सिंह", "डॉ. रमन सिंह"],
                           correctIndex: 1,
                           explanation: "राजेन्द्र प्रसाद शुक्ल छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष थे।",
-                          subject: "CG GK"
+                          subject: "CG GK",
+                          difficulty: "easy",
+                          topic: "Administration in Chhattisgarh",
+                          sourcePattern: "CG Vyapam PYQ Inspired",
+                          yearTrend: "2020-2023",
+                          expectedIn2026: true
                         },
                         {
                           qType: "assertion_reason",
@@ -677,7 +682,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                           ],
                           correctIndex: 0,
                           explanation: "चन्द्रगुप्त प्रथम के लिच्छवि राजकुमारी कुमारदेवी से विवाह के कारण समुद्रगुप्त लिच्छवि वंश का नाती (दौहित्र) कहलाया, इसलिए दोनों कथन सत्य हैं और व्याख्या सही है।",
-                          subject: "History"
+                          subject: "History",
+                          difficulty: "moderate",
+                          topic: "Gupta Empire",
+                          sourcePattern: "CGPSC PYQ Inspired",
+                          yearTrend: "2021-2024",
+                          expectedIn2026: false
                         },
                         {
                           qType: "match_column",
@@ -702,7 +712,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                           ],
                           correctIndex: 0,
                           explanation: "सही सुमेलन इस प्रकार है: आठ-आठ आँसू रोना (पछतावा होना), घड़ों पानी पड़ जाना (बहुत शर्मिंदा होना), डंका बजना (ख्याति होना), गूलर का फूल (दुर्लभ वस्तु)।",
-                          subject: "Hindi Grammar"
+                          subject: "Hindi Grammar",
+                          difficulty: "moderate",
+                          topic: "Hindi Idioms",
+                          sourcePattern: "CG Vyapam PYQ Inspired",
+                          yearTrend: "2019-2023",
+                          expectedIn2026: true
                         },
                         {
                           qType: "ordering",
@@ -723,7 +738,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                           ],
                           correctIndex: 0,
                           explanation: "वर्णमाला के अनुसार सही क्रम होगा: आशुतोष (K) -> इन्दुशेखर (O) -> चंद्रचूड़ (N) -> पशुपति (M) -> शूलपाणि (L)।",
-                          subject: "Hindi Grammar"
+                           subject: "Hindi Grammar",
+                           difficulty: "moderate",
+                           topic: "Hindi Alphabet and Vocabulary",
+                           sourcePattern: "CG Vyapam PYQ Inspired",
+                           yearTrend: "2018-2022",
+                           expectedIn2026: false
                         },
                         {
                           qType: "multi_statement",
@@ -743,7 +763,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                           ],
                           correctIndex: 1,
                           explanation: "दोहा अर्धसम मात्रिक छंद है। इसके प्रथम और तृतीय चरण में 13-13 मात्राएँ (K) तथा द्वितीय और चतुर्थ चरण में 11-11 मात्राएँ (M) होती हैं।",
-                          subject: "Hindi Grammar"
+                           subject: "Hindi Grammar",
+                           difficulty: "hard",
+                           topic: "Hindi Poetic Metres (Chhand)",
+                           sourcePattern: "CGPSC PYQ Inspired",
+                           yearTrend: "2020-2025",
+                           expectedIn2026: true
                         }
                       ]
                     }, null, 2))}

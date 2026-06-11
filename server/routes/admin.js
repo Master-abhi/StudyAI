@@ -423,6 +423,12 @@ router.post('/tests/generate', verifyStaffOrAdmin('tests'), async (req, res) => 
       mode: testMode,
       language: lang,
       questions: enrichedQuestions,
+      pattern: {
+        totalQuestions: enrichedQuestions.length,
+        totalMarks: enrichedQuestions.length * (testMode === 'mock' ? 2 : 1),
+        durationMinutes: testMode === 'mock' ? 120 : 10,
+        markingScheme: testMode === 'mock' ? '+2 for correct, -0.66 for incorrect' : '+1 for correct, 0 for incorrect'
+      },
       createdAt: timestamp
     };
 
@@ -514,7 +520,11 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
         columnI: q.columnI || [],
         columnII: q.columnII || [],
         statements: q.statements || [],
-        statementLabels: q.statementLabels || []
+        statementLabels: q.statementLabels || [],
+        topic: q.topic || '',
+        sourcePattern: q.sourcePattern || '',
+        yearTrend: q.yearTrend || '',
+        expectedIn2026: q.expectedIn2026 === true
       };
     });
 
@@ -569,7 +579,11 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
         columnI: q.columnI || [],
         columnII: q.columnII || [],
         statements: q.statements || [],
-        statementLabels: q.statementLabels || []
+        statementLabels: q.statementLabels || [],
+        topic: q.topic || '',
+        sourcePattern: q.sourcePattern || '',
+        yearTrend: q.yearTrend || '',
+        expectedIn2026: q.expectedIn2026 === true
       });
     });
     await batch.commit();
@@ -686,7 +700,11 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
         columnI: q.columnI || [],
         columnII: q.columnII || [],
         statements: q.statements || [],
-        statementLabels: q.statementLabels || []
+        statementLabels: q.statementLabels || [],
+        topic: q.topic || '',
+        sourcePattern: q.sourcePattern || '',
+        yearTrend: q.yearTrend || '',
+        expectedIn2026: q.expectedIn2026 === true
       };
     });
 
@@ -742,7 +760,11 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
         columnI: q.columnI || [],
         columnII: q.columnII || [],
         statements: q.statements || [],
-        statementLabels: q.statementLabels || []
+        statementLabels: q.statementLabels || [],
+        topic: q.topic || '',
+        sourcePattern: q.sourcePattern || '',
+        yearTrend: q.yearTrend || '',
+        expectedIn2026: q.expectedIn2026 === true
       }, { merge: true });
     });
     await batch.commit();

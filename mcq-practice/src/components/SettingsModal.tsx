@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   Settings, LogOut, Trash2, Globe, BookOpen, 
   Lock, Mail, Key, Eye, EyeOff, Pencil, Smartphone,
-  MessageSquare
+  MessageSquare, Sun, Moon, Monitor
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -13,6 +13,8 @@ interface SettingsModalProps {
   onChangeExam: () => void;
   language: 'hi' | 'en';
   onLanguageChange: (lang: 'hi' | 'en') => void;
+  theme: 'dark' | 'light' | 'system';
+  onThemeChange: (theme: 'dark' | 'light' | 'system') => void;
   onLogout: () => void;
   onClearProgress: () => void;
   currentUser?: any;
@@ -28,6 +30,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onChangeExam,
   language,
   onLanguageChange,
+  theme,
+  onThemeChange,
   onLogout,
   onClearProgress,
   currentUser,
@@ -325,6 +329,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </label>
             <div className="grid grid-cols-2 gap-2 mt-0.5 bg-bg-s3/60 p-1 border border-border/70 rounded-xl">
               <button
+                type="button"
                 onClick={() => onLanguageChange('hi')}
                 className={`py-2 rounded-lg text-xs font-black uppercase transition-all cursor-pointer ${
                   language === 'hi'
@@ -335,6 +340,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 हिं Hindi
               </button>
               <button
+                type="button"
                 onClick={() => onLanguageChange('en')}
                 className={`py-2 rounded-lg text-xs font-black uppercase transition-all cursor-pointer ${
                   language === 'en'
@@ -343,6 +349,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }`}
               >
                 EN English
+              </button>
+            </div>
+          </div>
+
+          {/* Theme select */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[9px] font-black uppercase text-text-muted flex items-center gap-1">
+              <Sun className="w-3 h-3 text-saffron" />
+              <span>Theme / थीम</span>
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 mt-0.5 bg-bg-s3/60 p-1 border border-border/70 rounded-xl">
+              <button
+                type="button"
+                onClick={() => onThemeChange('light')}
+                className={`py-1.5 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                  theme === 'light'
+                    ? 'bg-saffron text-bg-s1 border-saffron shadow-md scale-[1.02]'
+                    : 'text-text-muted hover:text-text hover:bg-bg-s3/30'
+                }`}
+              >
+                <Sun className="w-3.5 h-3.5" />
+                <span>Light</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onThemeChange('dark')}
+                className={`py-1.5 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                  theme === 'dark'
+                    ? 'bg-saffron text-bg-s1 border-saffron shadow-md scale-[1.02]'
+                    : 'text-text-muted hover:text-text hover:bg-bg-s3/30'
+                }`}
+              >
+                <Moon className="w-3.5 h-3.5" />
+                <span>Dark</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onThemeChange('system')}
+                className={`py-1.5 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                  theme === 'system'
+                    ? 'bg-saffron text-bg-s1 border-saffron shadow-md scale-[1.02]'
+                    : 'text-text-muted hover:text-text hover:bg-bg-s3/30'
+                }`}
+              >
+                <Monitor className="w-3.5 h-3.5" />
+                <span>System</span>
               </button>
             </div>
           </div>

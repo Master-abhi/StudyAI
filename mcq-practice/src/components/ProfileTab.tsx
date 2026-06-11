@@ -501,7 +501,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full max-w-lg md:max-w-5xl mx-auto pb-16 font-sans">
       
       {/* 1. Enhanced Profile Header Hero (Spans full width of the desktop dashboard grid) */}
-      <div className="md:col-span-12 p-6 md:p-8 bg-gradient-to-br from-bg-s2 via-[#161d2d] to-[#121620] border border-border rounded-xl shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0">
+      <div className="md:col-span-12 p-6 md:p-8 bg-bg-s2 border border-border rounded-xl shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0">
         <div className="absolute top-0 right-0 w-48 h-48 bg-saffron-dim/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 -left-10 w-36 h-36 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
         
@@ -818,7 +818,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         {/* 6. Diagnostics: Strong & Weak Areas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Strong Areas */}
-          <div className="p-4.5 bg-gradient-to-br from-[#121c17]/60 via-[#16271e]/45 to-[#121620]/30 border border-greenL/15 hover:border-greenL/30 rounded-xl shadow-md hover:shadow-greenL/5 flex flex-col gap-3 transition-all duration-300">
+          <div className="p-4.5 bg-greenL/5 border border-greenL/15 hover:border-greenL/30 rounded-xl shadow-md hover:shadow-greenL/5 flex flex-col gap-3 transition-all duration-300">
             <h5 className="text-[10px] font-black uppercase text-greenL flex items-center gap-1.5 border-b border-greenL/10 pb-2 shrink-0 tracking-wider text-left">
               <CheckCircle2 className="w-4 h-4 text-greenL" />
               <span>Strong Subjects / मजबूत विषय</span>
@@ -842,7 +842,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
 
           {/* Focus Areas */}
-          <div className="p-4.5 bg-gradient-to-br from-[#201316]/60 via-[#2a171b]/45 to-[#121620]/30 border border-redL/15 hover:border-redL/30 rounded-xl shadow-md hover:shadow-redL/5 flex flex-col gap-3 transition-all duration-300">
+          <div className="p-4.5 bg-redL/5 border border-redL/15 hover:border-redL/30 rounded-xl shadow-md hover:shadow-redL/5 flex flex-col gap-3 transition-all duration-300">
             <h5 className="text-[10px] font-black uppercase text-redL flex items-center gap-1.5 border-b border-redL/10 pb-2 shrink-0 tracking-wider text-left">
               <AlertCircle className="w-4 h-4 text-redL" />
               <span>Focus Subjects / ध्यान देने योग्य</span>
@@ -1131,7 +1131,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
 
         {/* 8. AI Recommendations Coaching tips (Premium Glowing Overhaul) */}
-        <div className="p-6 bg-gradient-to-br from-bg-s2 via-[#161d2d] to-[#121620] border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-5 relative overflow-hidden transition-all duration-300 hover:border-saffron-border/60">
+        <div className="p-6 bg-bg-s2 border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-5 relative overflow-hidden transition-all duration-300 hover:border-saffron-border/60">
           {/* Glowing background circles for modern premium appearance */}
           <div className="absolute top-0 right-0 w-36 h-36 bg-saffron-dim/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
           <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -1149,7 +1149,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
           
           {/* Main Persona Banner */}
-          <div className="p-4 bg-gradient-to-r from-saffron-dim/15 to-[#1c2233] border border-saffron-border/10 rounded-xl flex gap-3.5 relative shadow-inner text-left">
+          <div className="p-4 bg-saffron-dim/15 border border-saffron-border/10 rounded-xl flex gap-3.5 relative shadow-inner text-left">
             <div className="w-9 h-9 rounded-full bg-saffron-dim/20 border border-saffron-border/20 flex items-center justify-center text-saffron shrink-0 shadow-sm mt-0.5">
               <Cpu className="w-4.5 h-4.5 animate-pulse" />
             </div>

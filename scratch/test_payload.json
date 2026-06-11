@@ -21,7 +21,12 @@
       ],
       "correctIndex": 0,
       "explanation": "छत्तीसगढ़ राज्य का गठन 1 नवंबर 2000 को मध्य प्रदेश से पृथक करके किया गया था। यह भारत का 26वाँ राज्य बना। राज्य गठन की मांग लंबे समय से चल रही थी। परीक्षा में राज्य गठन के साथ प्रथम मुख्यमंत्री, प्रथम राज्यपाल तथा राज्य निर्माण आंदोलन से जुड़े प्रश्न भी पूछे जाते हैं।",
-      "subject": "CG GK"
+      "subject": "CG GK",
+      "difficulty": "easy",
+      "topic": "State Formation of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2018-2023",
+      "expectedIn2026": true
     },
     {
       "question": "छत्तीसगढ़ का राजकीय पशु कौन है?",
@@ -33,7 +38,12 @@
       ],
       "correctIndex": 1,
       "explanation": "जंगली भैंसा (Wild Buffalo) छत्तीसगढ़ का राजकीय पशु है। यह राज्य के वन्यजीवों में विशेष महत्व रखता है तथा उदंती-सीतानदी क्षेत्र में इसके संरक्षण हेतु विशेष परियोजनाएँ संचालित की जाती हैं। प्रतियोगी परीक्षाओं में राज्य पशु, राज्य पक्षी और राज्य वृक्ष को अक्सर एक साथ पूछा जाता है।",
-      "subject": "CG GK"
+      "subject": "CG GK",
+      "difficulty": "easy",
+      "topic": "State Symbols of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2015-2022",
+      "expectedIn2026": false
     },
     {
       "question": "छत्तीसगढ़ का राजकीय पक्षी कौन है?",
@@ -45,7 +55,12 @@
       ],
       "correctIndex": 1,
       "explanation": "पहाड़ी मैना छत्तीसगढ़ का राजकीय पक्षी है। यह अपनी मधुर आवाज और मानव आवाज की नकल करने की क्षमता के लिए प्रसिद्ध है। बस्तर क्षेत्र में इसकी अच्छी संख्या पाई जाती है।",
-      "subject": "CG GK"
+      "subject": "CG GK",
+      "difficulty": "easy",
+      "topic": "State Symbols of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2015-2022",
+      "expectedIn2026": false
     },
     {
       "question": "चित्रकोट जलप्रपात किस नदी पर स्थित है?",
@@ -57,7 +72,12 @@
       ],
       "correctIndex": 1,
       "explanation": "चित्रकोट जलप्रपात बस्तर जिले में इंद्रावती नदी पर स्थित है। इसकी चौड़ाई और अर्धवृत्ताकार आकृति के कारण इसे 'भारत का नियाग्रा' भी कहा जाता है। वर्षा ऋतु में इसका सौंदर्य और भी बढ़ जाता है।",
-      "subject": "CG Geography"
+      "subject": "CG Geography",
+      "difficulty": "moderate",
+      "topic": "Waterfalls of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2019-2024",
+      "expectedIn2026": true
     },
     {
       "question": "राजिम को 'छत्तीसगढ़ का प्रयाग' क्यों कहा जाता है?",
@@ -69,7 +89,12 @@
       ],
       "correctIndex": 1,
       "explanation": "राजिम में महानदी, पैरी और सोंढूर नदियों का संगम होता है। तीन नदियों के संगम के कारण इसे 'छत्तीसगढ़ का प्रयाग' कहा जाता है। यहाँ प्रतिवर्ष प्रसिद्ध राजिम कुंभ का आयोजन किया जाता है।",
-      "subject": "CG Geography"
+      "subject": "CG Geography",
+      "difficulty": "easy",
+      "topic": "Rivers and Water Resources of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2020-2024",
+      "expectedIn2026": true
     },
     {
       "question": "भोरमदेव मंदिर किस जिले में स्थित है?",
@@ -81,7 +106,12 @@
       ],
       "correctIndex": 0,
       "explanation": "भोरमदेव मंदिर कबीरधाम जिले में स्थित है। इसकी स्थापत्य कला खजुराहो के मंदिरों से मिलती-जुलती है, इसलिए इसे 'छत्तीसगढ़ का खजुराहो' कहा जाता है। यह नागवंशी शासकों द्वारा निर्मित माना जाता है।",
-      "subject": "CG History"
+      "subject": "CG History",
+      "difficulty": "moderate",
+      "topic": "Art and Culture of Chhattisgarh",
+      "sourcePattern": "CGPSC PYQ Inspired",
+      "yearTrend": "2019-2023",
+      "expectedIn2026": false
     },
     {
       "question": "छत्तीसगढ़ उच्च न्यायालय कहाँ स्थित है?",
@@ -93,7 +123,12 @@
       ],
       "correctIndex": 1,
       "explanation": "छत्तीसगढ़ उच्च न्यायालय बिलासपुर में स्थित है। राज्य गठन के बाद इसकी स्थापना की गई थी। प्रतियोगी परीक्षाओं में उच्च न्यायालय, विधानसभा और राजधानी से जुड़े प्रश्न अक्सर पूछे जाते हैं।",
-      "subject": "CG Polity"
+      "subject": "CG Polity",
+      "difficulty": "easy",
+      "topic": "Administrative Structure and Judiciary of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2018-2024",
+      "expectedIn2026": true
     },
     {
       "question": "बैलाडीला क्षेत्र किस खनिज के लिए प्रसिद्ध है?",
@@ -105,7 +140,12 @@
       ],
       "correctIndex": 2,
       "explanation": "बैलाडीला क्षेत्र उच्च गुणवत्ता वाले लौह अयस्क के लिए विश्व प्रसिद्ध है। यहाँ से प्राप्त लौह अयस्क का निर्यात जापान सहित अनेक देशों को किया जाता है।",
-      "subject": "CG Economy"
+      "subject": "CG Economy",
+      "difficulty": "moderate",
+      "topic": "Minerals and Industries of Chhattisgarh",
+      "sourcePattern": "CGPSC PYQ Inspired",
+      "yearTrend": "2021-2025",
+      "expectedIn2026": true
     },
     {
       "question": "सिरपुर किस नदी के तट पर स्थित है?",
@@ -117,7 +157,12 @@
       ],
       "correctIndex": 0,
       "explanation": "सिरपुर महानदी के तट पर स्थित प्राचीन नगर है। यह दक्षिण कोसल की ऐतिहासिक राजधानी रहा है। यहाँ स्थित लक्ष्मण मंदिर भारत के प्राचीन ईंट निर्मित मंदिरों में से एक है।",
-      "subject": "CG History"
+      "subject": "CG History",
+      "difficulty": "moderate",
+      "topic": "History and Archeology of Chhattisgarh",
+      "sourcePattern": "CGPSC PYQ Inspired",
+      "yearTrend": "2018-2024",
+      "expectedIn2026": false
     },
     {
       "question": "पंथी नृत्य किस समुदाय से संबंधित है?",
@@ -129,7 +174,12 @@
       ],
       "correctIndex": 1,
       "explanation": "पंथी नृत्य सतनामी समुदाय का प्रमुख लोकनृत्य है। यह गुरु घासीदास जी की शिक्षाओं और सतनाम पंथ की परंपराओं को प्रदर्शित करता है।",
-      "subject": "CG Culture"
+      "subject": "CG Culture",
+      "difficulty": "moderate",
+      "topic": "Art and Culture of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2020-2025",
+      "expectedIn2026": true
     },
     {
       "question": "कोरबा को किस नाम से जाना जाता है?",
@@ -141,7 +191,12 @@
       ],
       "correctIndex": 1,
       "explanation": "कोरबा को 'ऊर्जा राजधानी' कहा जाता है क्योंकि यहाँ विशाल कोयला भंडार और अनेक ताप विद्युत संयंत्र स्थित हैं। राज्य की विद्युत उत्पादन क्षमता में इसका महत्वपूर्ण योगदान है।",
-      "subject": "CG Economy"
+      "subject": "CG Economy",
+      "difficulty": "easy",
+      "topic": "Minerals and Industries of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2019-2023",
+      "expectedIn2026": false
     },
     {
       "question": "बस्तर दशहरा लगभग कितने दिनों तक मनाया जाता है?",
@@ -153,7 +208,12 @@
       ],
       "correctIndex": 3,
       "explanation": "बस्तर दशहरा लगभग 75 दिनों तक चलने वाला विश्व का सबसे लंबा दशहरा उत्सव माना जाता है। यह भगवान राम की विजय के बजाय माँ दंतेश्वरी की आराधना से जुड़ा हुआ है।",
-      "subject": "CG Culture"
+      "subject": "CG Culture",
+      "difficulty": "moderate",
+      "topic": "Tribes and Festivals of Chhattisgarh",
+      "sourcePattern": "CGPSC PYQ Inspired",
+      "yearTrend": "2022-2025",
+      "expectedIn2026": true
     },
     {
       "question": "छत्तीसगढ़ विधानसभा में कुल कितनी सीटें हैं?",
@@ -165,7 +225,12 @@
       ],
       "correctIndex": 1,
       "explanation": "छत्तीसगढ़ विधानसभा में कुल 90 निर्वाचित सदस्य होते हैं। राज्य गठन के बाद से विधानसभा की यही संरचना लागू है।",
-      "subject": "CG Polity"
+      "subject": "CG Polity",
+      "difficulty": "easy",
+      "topic": "Polity and Government of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2020-2024",
+      "expectedIn2026": false
     },
     {
       "question": "उदंती-सीतानदी टाइगर रिजर्व किस विशेष वन्यजीव संरक्षण के लिए प्रसिद्ध है?",
@@ -177,7 +242,12 @@
       ],
       "correctIndex": 1,
       "explanation": "उदंती-सीतानदी टाइगर रिजर्व जंगली भैंसा संरक्षण परियोजना के लिए प्रसिद्ध है। जंगली भैंसा छत्तीसगढ़ का राजकीय पशु भी है और इसकी संख्या बढ़ाने के लिए विशेष प्रयास किए जा रहे हैं।",
-      "subject": "CG Environment"
+      "subject": "CG Environment",
+      "difficulty": "moderate",
+      "topic": "Forests and Wildlife of Chhattisgarh",
+      "sourcePattern": "CGPSC PYQ Inspired",
+      "yearTrend": "2019-2024",
+      "expectedIn2026": true
     },
     {
       "question": "छत्तीसगढ़ के प्रथम मुख्यमंत्री कौन थे?",
@@ -189,7 +259,12 @@
       ],
       "correctIndex": 2,
       "explanation": "अजीत जोगी छत्तीसगढ़ के प्रथम मुख्यमंत्री थे। उन्होंने नवगठित राज्य की प्रशासनिक व्यवस्था स्थापित करने में महत्वपूर्ण भूमिका निभाई थी।",
-      "subject": "CG Polity"
+      "subject": "CG Polity",
+      "difficulty": "easy",
+      "topic": "Polity and Government of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2017-2023",
+      "expectedIn2026": false
     },
     {
       "question": "दक्षिण कोसल की प्राचीन राजधानी किसे माना जाता है?",
@@ -201,7 +276,12 @@
       ],
       "correctIndex": 1,
       "explanation": "सिरपुर, जिसे प्राचीन काल में श्रीपुर कहा जाता था, दक्षिण कोसल की राजधानी थी। यह बौद्ध, जैन और हिंदू संस्कृति के संगम का महत्वपूर्ण केंद्र था।",
-      "subject": "CG History"
+      "subject": "CG History",
+      "difficulty": "moderate",
+      "topic": "History and Archeology of Chhattisgarh",
+      "sourcePattern": "CGPSC PYQ Inspired",
+      "yearTrend": "2020-2025",
+      "expectedIn2026": true
     },
     {
       "question": "छत्तीसगढ़ का राजकीय वृक्ष कौन सा है?",
@@ -213,7 +293,12 @@
       ],
       "correctIndex": 2,
       "explanation": "साल (Shorea robusta) छत्तीसगढ़ का राजकीय वृक्ष है। राज्य के बड़े वन क्षेत्र में साल के घने जंगल पाए जाते हैं और इसका आर्थिक महत्व भी अत्यधिक है।",
-      "subject": "CG GK"
+      "subject": "CG GK",
+      "difficulty": "easy",
+      "topic": "State Symbols of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2015-2022",
+      "expectedIn2026": false
     },
     {
       "question": "राउत नाचा मुख्य रूप से किस पर्व से संबंधित है?",
@@ -225,7 +310,12 @@
       ],
       "correctIndex": 0,
       "explanation": "राउत नाचा यादव समुदाय का प्रमुख लोकनृत्य है, जो दीपावली के अवसर पर किया जाता है। इसे छत्तीसगढ़ की सांस्कृतिक पहचान माना जाता है।",
-      "subject": "CG Culture"
+      "subject": "CG Culture",
+      "difficulty": "easy",
+      "topic": "Art and Culture of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2019-2024",
+      "expectedIn2026": true
     },
     {
       "question": "छत्तीसगढ़ को 'धान का कटोरा' क्यों कहा जाता है?",
@@ -237,7 +327,12 @@
       ],
       "correctIndex": 2,
       "explanation": "छत्तीसगढ़ में बड़े पैमाने पर धान की खेती की जाती है। उपजाऊ मिट्टी, पर्याप्त वर्षा और कृषि पर आधारित अर्थव्यवस्था के कारण इसे 'धान का कटोरा' कहा जाता है।",
-      "subject": "CG Agriculture"
+      "subject": "CG Agriculture",
+      "difficulty": "easy",
+      "topic": "Agriculture and Economy of Chhattisgarh",
+      "sourcePattern": "CG Vyapam PYQ Inspired",
+      "yearTrend": "2018-2023",
+      "expectedIn2026": false
     },
     {
       "question": "कांगेर घाटी राष्ट्रीय उद्यान किस जिले में स्थित है?",
@@ -249,7 +344,12 @@
       ],
       "correctIndex": 2,
       "explanation": "कांगेर घाटी राष्ट्रीय उद्यान बस्तर जिले में स्थित है। यह अपनी जैव विविधता, कुटुमसर गुफा, कैलाश गुफा और घने वनों के लिए प्रसिद्ध है। यह छत्तीसगढ़ के महत्वपूर्ण संरक्षित क्षेत्रों में से एक है।",
-      "subject": "CG Environment"
+      "subject": "CG Environment",
+      "difficulty": "moderate",
+      "topic": "Forests and Wildlife of Chhattisgarh",
+      "sourcePattern": "CGPSC PYQ Inspired",
+      "yearTrend": "2021-2025",
+      "expectedIn2026": true
     }
   ]
 }

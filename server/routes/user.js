@@ -136,7 +136,11 @@ function cleanQuestions(questions) {
       difficulty: cleanString(q.difficulty, 20) || 'medium',
       weightage: cleanString(q.weightage, 20) || 'medium',
       isCgSpecific: typeof q.isCgSpecific === 'boolean' ? q.isCgSpecific : false,
-      examRelevance: cleanString(q.examRelevance, 200) || ''
+      examRelevance: cleanString(q.examRelevance, 200) || '',
+      topic: cleanString(q.topic, 150) || '',
+      sourcePattern: cleanString(q.sourcePattern, 150) || '',
+      yearTrend: cleanString(q.yearTrend, 50) || '',
+      expectedIn2026: typeof q.expectedIn2026 === 'boolean' ? q.expectedIn2026 : false
     };
   }).filter(Boolean);
 }
