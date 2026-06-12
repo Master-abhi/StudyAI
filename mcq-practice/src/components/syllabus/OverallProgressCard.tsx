@@ -89,7 +89,7 @@ export const OverallProgressCard: React.FC<OverallProgressCardProps> = ({
               cy="48"
               r="40"
               fill="transparent"
-              stroke="#121620"
+              stroke="var(--bg-s1, #121620)"
               strokeWidth="8"
             />
             <motion.circle

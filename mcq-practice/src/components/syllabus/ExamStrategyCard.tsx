@@ -75,9 +75,9 @@ export const ExamStrategyCard: React.FC<ExamStrategyCardProps> = ({ exam }) => {
               {exam.subjects.map((sub) => {
                 const questionCount = Math.round(sub.weightage / 2);
                 const importanceColors = {
-                  Highest: 'bg-red-500/15 text-redL border-red-500/30',
+                  Highest: 'bg-redL/15 text-redL border-redL/30',
                   High: 'bg-saffron-dim text-saffron border-saffron-border/40',
-                  Medium: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                  Medium: 'bg-amberL/10 text-amberL border-amberL/20',
                   Low: 'bg-bg-s3 text-text-muted border-border'
                 };
 

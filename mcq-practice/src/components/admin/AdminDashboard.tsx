@@ -15,6 +15,7 @@ import { AdminTabsConfig } from './AdminTabsConfig';
 import { AdminExamsConfig } from './AdminExamsConfig';
 import { AdminFeedbacks } from './AdminFeedbacks';
 import { AdminBadges } from './AdminBadges';
+import { AdminReports } from './AdminReports';
 
 import type { Exam } from '../syllabus/syllabusData';
 
@@ -26,7 +27,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'reports' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
@@ -103,6 +104,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'feedbacks', label: 'Feedbacks', icon: MessageSquare },
+    { id: 'reports', label: 'Reported Questions', icon: AlertTriangle },
     { id: 'staffs', label: 'Staff Accounts', icon: ShieldCheck },
     { id: 'tests', label: 'AI MCQ Tests', icon: Trophy },
     { id: 'news', label: 'News & Alerts', icon: Newspaper },
@@ -123,6 +125,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return <AdminUsers currentUser={currentUser} />;
       case 'feedbacks':
         return <AdminFeedbacks currentUser={currentUser} />;
+      case 'reports':
+        return <AdminReports currentUser={currentUser} />;
       case 'staffs':
         return <AdminStaffs currentUser={currentUser} />;
       case 'tests':

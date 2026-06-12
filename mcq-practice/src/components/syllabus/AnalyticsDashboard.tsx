@@ -39,37 +39,37 @@ interface AnalyticsDashboardProps {
 const PROFILE_MAPPING: Record<string, { label: string; color: string; desc: string }> = {
   highly_consistent: {
     label: 'Highly Consistent Student',
-    color: 'bg-green-500/10 border-green-500/30 text-greenL',
+    color: 'bg-greenL/10 border-greenL/30 text-greenL',
     desc: 'You study regularly, maintain streaks, and put in dedicated time. Keep this momentum!'
   },
   fast_learner: {
     label: 'Fast Learner',
-    color: 'bg-purple-500/10 border-purple-500/30 text-purple-400',
+    color: 'bg-purpleL/10 border-purpleL/30 text-purpleL',
     desc: 'You build topic mastery rapidly and maintain strong practice accuracies. Continue scaling up!'
   },
   slow_learner: {
     label: 'Steady & Persistent Learner',
-    color: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
+    color: 'bg-blueL/10 border-blueL/30 text-blueL',
     desc: 'You build mastery carefully and step-by-step. Persistence is key to CGPSC success!'
   },
   revision_focused: {
     label: 'Revision-Focused Learner',
-    color: 'bg-orange-500/10 border-orange-500/30 text-saffron',
+    color: 'bg-saffron-dim border-saffron-border/30 text-saffron',
     desc: 'You excel at spaced repetition, ensuring previous concepts are highly retained.'
   },
   practice_focused: {
     label: 'Practice-Focused Learner',
-    color: 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400',
+    color: 'bg-indigoL/10 border-indigoL/30 text-indigoL',
     desc: 'You solve a high volume of MCQ practices. Balance this by reviewing details and notes.'
   },
   at_risk: {
     label: 'At-Risk Student',
-    color: 'bg-red-500/10 border-red-500/30 text-redL',
+    color: 'bg-redL/10 border-redL/30 text-redL',
     desc: 'Low practice scores combined with recent inactivity. Let\'s review study plans and kickstart practice.'
   },
   regular_learner: {
     label: 'Regular Learner',
-    color: 'bg-gray-500/10 border-border text-text-muted',
+    color: 'bg-bg-s3/40 border-border text-text-muted',
     desc: 'You are moving at a steady pace. Build up streaks and practices for better readiness.'
   }
 };
@@ -238,11 +238,11 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="p-5 bg-[#121620]/60 border border-saffron-border/30 rounded-lg shadow-lg flex flex-col justify-between relative overflow-hidden"
+          className="p-5 bg-bg-s2 border border-saffron-border/30 rounded-lg shadow-lg flex flex-col justify-between relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purpleL/10 rounded-full blur-2xl pointer-events-none" />
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-black uppercase text-purple-400 tracking-widest flex items-center gap-1.5">
+            <span className="text-[10px] font-black uppercase text-purpleL tracking-widest flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5" />
               <span>AI PREDICTIVE MODELS</span>
             </span>
@@ -258,7 +258,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             </div>
             <div className="flex justify-between items-center border-b border-border/40 pb-1.5">
               <span className="text-text-muted">Expected Rank Range:</span>
-              <span className="text-purple-400 font-bold">
+              <span className="text-purpleL font-bold">
                 #{serverAnalytics ? serverAnalytics.predictions.predictedRank : '1,500+'} <span className="text-[9px] text-text-muted font-normal">(estimated)</span>
               </span>
             </div>
@@ -275,7 +275,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <span className="text-text-muted">Completion Target:</span>
-              <span className="text-blue-400 font-bold">
+              <span className="text-blueL font-bold">
                 {serverAnalytics 
                   ? new Date(serverAnalytics.predictions.completionForecastDate).toLocaleDateString('en-IN', {
                       day: 'numeric', month: 'short'

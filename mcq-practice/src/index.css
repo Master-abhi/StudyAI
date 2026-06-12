@@ -21,29 +21,39 @@
   --border-color: rgba(255, 255, 255, 0.06);
   --green-l: #2ECC71;
   --red-l: #FF4757;
+
+  --purple-l: #c084fc;
+  --blue-l: #60a5fa;
+  --indigo-l: #818cf8;
+  --amber-l: #fbbf24;
 }
 
 /* Light Theme Variables */
 :root[data-theme="light"], .light-theme {
-  --bg-s0: #EDF2F7;
-  --bg-s1: #F7FAFC;
+  --bg-s0: #F1F5F9;
+  --bg-s1: #F8FAFC;
   --bg-s2: #FFFFFF;
   --bg-s3: #E2E8F0;
 
   --saffron: #D97706; /* Amber-600 */
-  --saffron-dim: rgba(217, 119, 6, 0.08);
-  --saffron-border: rgba(217, 119, 6, 0.2);
+  --saffron-dim: rgba(217, 119, 6, 0.07);
+  --saffron-border: rgba(217, 119, 6, 0.18);
 
   --gold: #CA8A04; /* Yellow-600 */
-  --gold-dim: rgba(202, 138, 4, 0.08);
-  --gold-border: rgba(202, 138, 4, 0.2);
+  --gold-dim: rgba(202, 138, 4, 0.07);
+  --gold-border: rgba(202, 138, 4, 0.18);
 
   --text-color: #1E293B; /* Slate-800 */
-  --text-muted: #475569; /* Slate-600 */
+  --text-muted: #64748B; /* Slate-500 for better readability */
 
-  --border-color: rgba(0, 0, 0, 0.08);
+  --border-color: rgba(0, 0, 0, 0.10);
   --green-l: #16A34A; /* Green-600 */
   --red-l: #DC2626; /* Red-600 */
+
+  --purple-l: #7e22ce; /* Purple-700 */
+  --blue-l: #1d4ed8; /* Blue-700 */
+  --indigo-l: #4338ca; /* Indigo-700 */
+  --amber-l: #b45309; /* Amber-700 */
 }
 
 @theme {
@@ -66,6 +76,11 @@
   --color-border: var(--border-color);
   --color-greenL: var(--green-l);
   --color-redL: var(--red-l);
+
+  --color-purpleL: var(--purple-l);
+  --color-blueL: var(--blue-l);
+  --color-indigoL: var(--indigo-l);
+  --color-amberL: var(--amber-l);
 
   --radius-lg: 16px;
   --radius-md: 12px;
@@ -126,6 +141,17 @@
     background-color: var(--bg-s3) !important;
   }
 
+  /* Syllabus component hardcoded dark backgrounds */
+  .bg-\[\#141a28\]\/60, [class*="bg-[#141a28]"] {
+    background-color: rgba(226, 232, 240, 0.5) !important;
+  }
+  .bg-\[\#141b2a\], [class*="bg-[#141b2a]"] {
+    background-color: var(--bg-s3) !important;
+  }
+  .bg-\[\#121620\]\/60, [class*="bg-[#121620]/60"] {
+    background-color: var(--bg-s1) !important;
+  }
+
   /* Overlay opacity backdrops */
   .bg-\[\#0B0E14\]\/90 {
     background-color: rgba(226, 232, 240, 0.9) !important;
@@ -154,6 +180,34 @@
     background-color: rgba(217, 119, 6, 0.08) !important;
   }
 
+  /* SVG progress ring backgrounds – make them lighter */
+  .progress-ring-bg-light {
+    stroke: var(--bg-s3) !important;
+  }
+
+  /* Shadow adjustments — softer in light mode */
+  [class*="shadow-[0_4px_20px_rgba(0,0,0"] {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+  }
+  [class*="shadow-[0_4px_12px_rgba(255,153,51"] {
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.06) !important;
+  }
+  [class*="shadow-[0_0_15px_rgba(255,153,51"] {
+    box-shadow: 0 0 15px rgba(217, 119, 6, 0.06) !important;
+  }
+  [class*="shadow-[0_0_10px_rgba(255,153,51"] {
+    box-shadow: 0 0 10px rgba(217, 119, 6, 0.04) !important;
+  }
+  [class*="shadow-[0_0_10px_rgba(255,71,87"] {
+    box-shadow: 0 0 10px rgba(220, 38, 38, 0.04) !important;
+  }
+
+  /* Option dropdown in light mode should show dark text */
+  select option {
+    background-color: var(--bg-s2) !important;
+    color: var(--text-color) !important;
+  }
+
   /* Border adjustments for light mode opacity colors */
   .border-b-border\/60 {
     border-bottom-color: var(--border-color) !important;
@@ -172,5 +226,10 @@
   }
   .border-border\/40 {
     border-color: var(--border-color) !important;
+  }
+
+  /* Ensure body background is correct */
+  body {
+    background-color: var(--bg-s1) !important;
   }
 }

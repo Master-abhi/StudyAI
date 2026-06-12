@@ -56,17 +56,17 @@ export const TopicList: React.FC<TopicListProps> = ({
           },
           'Revised': {
             label: 'Revised (Mastered)',
-            style: 'bg-purple-600/10 text-purple-400 border-purple-500/25',
-            indicator: 'bg-purple-500'
+            style: 'bg-purpleL/10 text-purpleL border-purpleL/25',
+            indicator: 'bg-purpleL'
           },
           'Completed': {
             label: 'Completed',
-            style: 'bg-green-500/10 text-greenL border-green-500/20',
+            style: 'bg-greenL/10 text-greenL border-greenL/20',
             indicator: 'bg-greenL'
           },
           'Weak Area': {
             label: 'Weak Area',
-            style: 'bg-red-500/10 text-redL border-red-500/20 shadow-[0_0_10px_rgba(255,71,87,0.03)]',
+            style: 'bg-redL/10 text-redL border-redL/20 shadow-[0_0_10px_rgba(255,71,87,0.03)]',
             indicator: 'bg-redL'
           }
         }[progress.status];
@@ -139,7 +139,7 @@ export const TopicList: React.FC<TopicListProps> = ({
                   animate={{ height: 'auto' }}
                   exit={{ height: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="border-t border-border/50 bg-[#141b2a] overflow-hidden"
+                  className="border-t border-border/50 bg-bg-s3/60 overflow-hidden"
                 >
                   <div className="p-4 flex flex-col gap-4">
                     
@@ -264,7 +264,7 @@ export const TopicList: React.FC<TopicListProps> = ({
                           onClick={() => onMarkRevised(topic.id)}
                           className={`px-3 py-2 text-[10px] font-black uppercase rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${
                             progress.status === 'Revised'
-                              ? 'bg-purple-600/25 border-purple-500/30 text-purple-400'
+                              ? 'bg-purpleL/25 border-purpleL/30 text-purpleL'
                               : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s2'
                           }`}
                         >

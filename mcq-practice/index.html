@@ -25,6 +25,20 @@
       window.SYLLABUS_DATA = typeof SYLLABUS_DATA !== 'undefined' ? SYLLABUS_DATA : undefined;
     </script>
     <script src="/firebase-config.js"></script>
+    <script>
+      // Apply saved theme immediately to prevent FOUC (Flash of Unstyled Content)
+      (function() {
+        var theme = localStorage.getItem('cg_theme') || 'dark';
+        var resolved = theme;
+        if (theme === 'system') {
+          resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        if (resolved === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.classList.add('light-theme');
+        }
+      })();
+    </script>
   </head>
   <body class="bg-[#121620]">
     <div id="root"></div>

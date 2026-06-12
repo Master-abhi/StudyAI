@@ -536,6 +536,33 @@ router.post('/feedback', async (req, res) => {
   }
 });
 
+// POST /api/user/report - User reports an error in a question or requests review
+router.post('/report', async (req, res) => {
+  try {
+    const { question, reason } = req.body;
+    if (!question || !reason || typeof reason !== 'string' || !reason.trim()) {
+      return res.status(400).json({ error: 'Question details and reason for review are required' });
+    }
+
+    const reportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    await db.collection('reported_questions').doc(reportId).set({
+      id: reportId,
+      uid: req.user.uid,
+      email: req.user.email || '',
+      displayName: req.user.name || req.user.displayName || 'Aspirant',
+      question: question,
+      reason: reason.trim().slice(0, 2000),
+      createdAt: new Date().toISOString()
+    });
+
+    res.json({ success: true, message: 'Question reported successfully' });
+  } catch (err) {
+    console.error('[Question Report Submit] Error:', err.message);
+    res.status(500).json({ error: 'Failed to submit question report' });
+  }
+});
+
 // GET /api/user/badges - Fetch all configured badges/achievements
 router.get('/badges', async (req, res) => {
   try {

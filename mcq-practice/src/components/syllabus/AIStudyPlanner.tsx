@@ -253,10 +253,10 @@ export const AIStudyPlanner: React.FC<AIStudyPlannerProps> = ({
             >
               <div className="flex items-start gap-3">
                 <div className={`p-2.5 rounded shrink-0 mt-0.5 ${
-                  rec.type === 'weakness' ? 'bg-red-500/10 text-redL border border-red-500/25' :
+                  rec.type === 'weakness' ? 'bg-redL/10 text-redL border border-redL/25' :
                   rec.type === 'revision' ? 'bg-saffron-dim text-saffron border border-saffron-border/30' :
-                  rec.type === 'high_priority' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
-                  'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                  rec.type === 'high_priority' ? 'bg-amberL/10 text-amberL border border-amberL/20' :
+                  'bg-blueL/10 text-blueL border border-blueL/20'
                 }`}>
                   <Sparkles className="w-4 h-4 animate-pulse" />
                 </div>

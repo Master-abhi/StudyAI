@@ -120,8 +120,8 @@ export const RevisionPlanner: React.FC<RevisionPlannerProps> = ({
           {targetMilestones.map((milestone, idx) => {
             const days = getDaysRemaining(milestone.targetDate);
             let color = 'from-saffron/10 to-transparent border-saffron-border/30';
-            if (days <= 7) color = 'from-red-500/10 to-transparent border-red-500/35';
-            else if (days >= 20) color = 'from-green-500/10 to-transparent border-green-500/25';
+            if (days <= 7) color = 'from-redL/10 to-transparent border-redL/35';
+            else if (days >= 20) color = 'from-greenL/10 to-transparent border-greenL/25';
 
             return (
               <div 
@@ -154,7 +154,7 @@ export const RevisionPlanner: React.FC<RevisionPlannerProps> = ({
               <AlertCircle className="w-4 h-4" />
               <span>Overdue Revisions ({overdueTasks.length})</span>
             </h5>
-            <span className="text-[9px] bg-red-500/10 border border-red-500/25 text-redL px-1.5 py-0.5 rounded font-black uppercase">
+            <span className="text-[9px] bg-redL/10 border border-redL/25 text-redL px-1.5 py-0.5 rounded font-black uppercase">
               Action Required
             </span>
           </div>
@@ -169,7 +169,7 @@ export const RevisionPlanner: React.FC<RevisionPlannerProps> = ({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, x: -50 }}
-                    className="p-3 bg-bg-s3/70 hover:bg-bg-s3 border border-border hover:border-red-500/25 rounded flex items-center justify-between gap-3 transition-colors group"
+                    className="p-3 bg-bg-s3/70 hover:bg-bg-s3 border border-border hover:border-redL/25 rounded flex items-center justify-between gap-3 transition-colors group"
                   >
                     <div className="flex flex-col gap-0.5">
                       <span className="text-xs font-bold text-text flex items-center gap-1.5 group-hover:text-redL transition-colors">

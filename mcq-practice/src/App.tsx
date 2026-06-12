@@ -19,13 +19,14 @@ import {
   GraduationCap,
   Flame,
   FileText,
-  Landmark
+  Landmark,
+  HelpCircle
 } from 'lucide-react';
 
 import type { Question } from './types';
 import { PracticeHeader } from './components/PracticeHeader';
 import { ProgressBarSection } from './components/ProgressBarSection';
-import { MCQCard } from './components/MCQCard';
+import { MCQCard, stripAssertionReason } from './components/MCQCard';
 import { OptionList } from './components/OptionList';
 import { ExplanationCard } from './components/ExplanationCard';
 import { QuestionPalette } from './components/QuestionPalette';
@@ -191,6 +192,10 @@ export default function App() {
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
+  const [reportModalOpen, setReportModalOpen] = useState<boolean>(false);
+  const [reportingQuestion, setReportingQuestion] = useState<Question | null>(null);
+  const [reportReason, setReportReason] = useState<string>('');
+  const [submittingReport, setSubmittingReport] = useState<boolean>(false);
   const [theme, setTheme] = useState<'dark' | 'light' | 'system'>(() => {
     return (localStorage.getItem('cg_theme') as any) || 'dark';
   });
@@ -961,8 +966,52 @@ export default function App() {
     if (feedbackEnabled && answers[currentIndex] !== null) return;
 
     const newAnswers = [...answers];
-    newAnswers[currentIndex] = optIdx;
+    if (newAnswers[currentIndex] === optIdx) {
+      newAnswers[currentIndex] = null; // Toggle selection off
+    } else {
+      newAnswers[currentIndex] = optIdx;
+    }
     setAnswers(newAnswers);
+  };
+
+  const handleReportQuestion = (question: Question) => {
+    setReportingQuestion(question);
+    setReportReason('');
+    setReportModalOpen(true);
+  };
+
+  const handleReportQuestionSubmit = async () => {
+    if (!reportingQuestion || !reportReason.trim()) return;
+    setSubmittingReport(true);
+    try {
+      const token = currentUser ? await currentUser.getIdToken() : '';
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(getApiUrl('/api/user/report'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          question: reportingQuestion,
+          reason: reportReason
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to submit question report.');
+      }
+
+      alert(appLanguage === 'hi' ? 'रिपोर्ट सफलतापूर्वक दर्ज कर ली गई है।' : 'Question reported successfully.');
+      setReportModalOpen(false);
+      setReportReason('');
+      setReportingQuestion(null);
+    } catch (err: any) {
+      alert(err.message || 'Error submitting report.');
+    } finally {
+      setSubmittingReport(false);
+    }
   };
 
   const handleToggleBookmark = (question: Question) => {
@@ -1049,18 +1098,8 @@ export default function App() {
     const wrongCount = answers.filter((ans, idx) => ans !== null && ans !== questions[idx].correctIndex).length;
     const skippedCount = questions.length - answers.filter(ans => ans !== null).length;
 
-    let gainedXp = 0;
-    questions.forEach((q, idx) => {
-      if (answers[idx] !== null && answers[idx] === q.correctIndex) {
-        if (q.difficulty === 'hard') {
-          gainedXp += 2;
-        } else {
-          gainedXp += 1;
-        }
-      }
-    });
-
-    const newXp = xp + gainedXp;
+    const gainedXp = correctCount * 1 - wrongCount * 0.25;
+    const newXp = Math.max(0, Math.round((xp + gainedXp) * 100) / 100);
     setXp(newXp);
 
     const newMcqsSolved = solvedMcqsCount + questions.length;
@@ -1373,8 +1412,10 @@ export default function App() {
     }
   };
 
+  const isWorkspaceActive = isTestActive && rulesAccepted;
+
   return (
-    <div className="min-h-screen bg-[#0B0E14] text-text flex flex-col md:flex-row items-stretch select-none font-sans overflow-x-hidden relative">
+    <div className="min-h-screen bg-bg-s0 text-text flex flex-col md:flex-row items-stretch select-none font-sans overflow-x-hidden relative">
       
       {/* Desktop Left Sidebar Navigation */}
       {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
@@ -1499,7 +1540,11 @@ export default function App() {
         )}
 
         {/* Dynamic Body Router */}
-        <main className={`flex-1 px-4 py-4 flex flex-col gap-4 overflow-y-auto ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40' : 'w-full'}`}>
+        <main className={`flex-1 flex flex-col ${
+          isWorkspaceActive
+            ? 'h-[100dvh] max-h-[100dvh] overflow-hidden w-full p-0 gap-0'
+            : 'px-4 py-4 gap-4 overflow-y-auto ' + (!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40' : 'w-full')
+        }`}>
           <AnimatePresence mode="wait">
             {!isTestActive ? (
               /* Tab layout panels wrapper */
@@ -1522,37 +1567,57 @@ export default function App() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="max-w-md w-full mx-auto my-8 p-6 bg-gradient-to-br from-bg-s2 to-[#121620] border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-6 text-center relative overflow-hidden"
+                  className="max-w-md w-full mx-auto my-8 p-6 bg-gradient-to-br from-bg-s2 to-bg-s1 border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-6 text-center relative overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-saffron-dim/10 rounded-full blur-2xl pointer-events-none" />
                   <div className="w-12 h-12 bg-saffron-dim/20 rounded-full flex items-center justify-center mx-auto text-saffron shrink-0">
                     <FileText className="w-6 h-6" />
                   </div>
-                  <h2 className="text-base font-black text-text uppercase tracking-wider">Test Instructions / परीक्षा निर्देश</h2>
+                  <h2 className="text-base font-black text-text uppercase tracking-wider">
+                    {appLanguage === 'hi' ? 'परीक्षा निर्देश' : 'Test Instructions'}
+                  </h2>
                   
                   <div className="flex flex-col gap-4 text-left bg-bg-s3/55 border border-border p-4 rounded-xl text-xs text-text-muted leading-relaxed">
                     <div className="flex items-start gap-2">
                       <span className="text-saffron">•</span>
                       <p>
-                        <strong className="text-text">XP Reward System:</strong> Easy and Medium questions award <strong className="text-saffron">1 XP</strong>. Hard questions award <strong className="text-saffron">2 XP</strong>.
+                        {appLanguage === 'hi' ? (
+                          <>
+                            <strong className="text-text">XP रिवॉर्ड सिस्टम:</strong> प्रत्येक सही उत्तर के लिए <strong className="text-saffron">+1 XP</strong> दिया जाएगा, और प्रत्येक गलत उत्तर के लिए <strong className="text-redL">-0.25 XP</strong> काट लिया जाएगा। छोड़े गए प्रश्नों के लिए 0 XP मिलेगा।
+                          </>
+                        ) : (
+                          <>
+                            <strong className="text-text">XP Reward System:</strong> Each correct answer awards <strong className="text-saffron">+1 XP</strong>, and each incorrect answer deducts <strong className="text-redL">-0.25 XP</strong>. Skipped questions award 0 XP.
+                          </>
+                        )}
                       </p>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="text-saffron">•</span>
                       <p>
-                        <strong className="text-text">No Immediate Feedback:</strong> Correct or incorrect indicators and detailed explanations will remain hidden during the test.
+                        {appLanguage === 'hi' ? (
+                          <>
+                            <strong className="text-text">लचीला उत्तर चयन:</strong> आप सबमिट करने से पहले किसी भी समय अपने चुने हुए विकल्पों को चुन सकते हैं, हटा सकते हैं या बदल सकते हैं।
+                          </>
+                        ) : (
+                          <>
+                            <strong className="text-text">Flexible Answering:</strong> You can select, clear, or change your selected options at any point before submitting.
+                          </>
+                        )}
                       </p>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="text-saffron">•</span>
                       <p>
-                        <strong className="text-text">Flexible Answering:</strong> You can select, clear, or change your selected options at any point before submitting.
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-saffron">•</span>
-                      <p>
-                        <strong className="text-text">Post-Submit Review:</strong> Complete solutions and explanations will be unlocked once you submit the test and click "Retake Session", or from your profile history.
+                        {appLanguage === 'hi' ? (
+                          <>
+                            <strong className="text-text">सबमिट के बाद समीक्षा:</strong> जब आप टेस्ट सबमिट करेंगे और "Retake Session" पर क्लिक करेंगे, या अपने प्रोफाइल इतिहास से, पूर्ण समाधान और स्पष्टीकरण अनलॉक हो जाएंगे।
+                          </>
+                        ) : (
+                          <>
+                            <strong className="text-text">Post-Submit Review:</strong> Complete solutions and explanations will be unlocked once you submit the test and click "Retake Session", or from your profile history.
+                          </>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -1562,13 +1627,13 @@ export default function App() {
                       onClick={() => setRulesAccepted(true)}
                       className="w-full py-3.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-all active:scale-[0.98] shadow-md"
                     >
-                      Agree & Start / सहमत हूँ और शुरू करें
+                      {appLanguage === 'hi' ? 'सहमत हूँ और शुरू करें' : 'Agree & Start'}
                     </button>
                     <button
                       onClick={() => setIsTestActive(false)}
                       className="w-full py-3.5 bg-bg-s3 hover:bg-bg-s2 border border-border text-xs font-black uppercase text-text rounded-lg cursor-pointer transition-all"
                     >
-                      Cancel / रद्द करें
+                      {appLanguage === 'hi' ? 'रद्द करें' : 'Cancel'}
                     </button>
                   </div>
                 </motion.div>
@@ -1614,7 +1679,7 @@ export default function App() {
                 />
 
                 {/* Workspace Cards */}
-                <div className="flex-1 py-1.5 flex flex-col gap-4">
+                <div className="flex-1 px-4 py-3 flex flex-col gap-4 overflow-y-auto">
                   {!sessionCompleted ? (
                     <div className="flex flex-col gap-4">
                       {/* MCQ Card */}
@@ -1623,7 +1688,7 @@ export default function App() {
                         index={currentIndex}
                         isBookmarked={bookmarks.some(q => q.question === questions[currentIndex].question || (questions[currentIndex].id && q.id === questions[currentIndex].id))}
                         onToggleBookmark={() => handleToggleBookmark(questions[currentIndex])}
-                        onReport={() => alert('Question reported. Our moderators will review.')}
+                        onReport={() => handleReportQuestion(questions[currentIndex])}
                       />
 
                       {/* Options selection */}
@@ -1635,6 +1700,8 @@ export default function App() {
                         onSelectOption={handleSelectOption}
                         showFeedback={feedbackEnabled}
                       />
+
+
 
                       {/* AI explanation and tutor prompt cards */}
                       <AnimatePresence>
@@ -1648,7 +1715,7 @@ export default function App() {
                   ) : (
                     /* Final session scorecard summary panel */
                     <div className="flex flex-col gap-5 py-2">
-                      <div className="text-center flex flex-col items-center justify-center p-5 bg-[#121620] border border-saffron-border/30 rounded-lg relative overflow-hidden">
+                      <div className="text-center flex flex-col items-center justify-center p-5 bg-bg-s1 border border-saffron-border/30 rounded-lg relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-saffron-dim/20 rounded-full blur-2xl pointer-events-none" />
                         <Award className="w-16 h-16 text-saffron fill-saffron/10 mb-2 animate-bounce" />
                         <h2 className="text-lg font-black text-text uppercase tracking-wider">Practice Finished!</h2>
@@ -1697,17 +1764,28 @@ export default function App() {
                 {/* Sticky test workspace navigation footer */}
                 {!sessionCompleted && (
                   <div className="sticky bottom-0 left-0 right-0 bg-bg-s2/90 backdrop-blur-md border-t border-border px-4 py-3.5 flex items-center justify-between z-20 shadow-xl shrink-0">
-                    <button
-                      onClick={handleToggleReview}
-                      className={`px-3 py-2 text-xs font-bold rounded border transition-colors flex items-center gap-1.5 cursor-pointer ${
-                        markedForReview[currentIndex]
-                          ? 'bg-purple-600/10 border-purple-500/30 text-purple-400'
-                          : 'bg-bg-s3 border-border hover:bg-bg-s3/80 text-text-muted hover:text-text'
-                      }`}
-                    >
-                      <BookmarkCheck className="w-3.5 h-3.5" />
-                      <span>{markedForReview[currentIndex] ? 'Reviewed' : 'Review'}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleToggleReview}
+                        className={`px-3 py-2 text-xs font-bold rounded border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                          markedForReview[currentIndex]
+                            ? 'bg-purple-600/10 border-purple-500/30 text-purple-400'
+                            : 'bg-bg-s3 border-border hover:bg-bg-s3/80 text-text-muted hover:text-text'
+                        }`}
+                      >
+                        <BookmarkCheck className="w-3.5 h-3.5" />
+                        <span>{markedForReview[currentIndex] ? 'Reviewed' : 'Review'}</span>
+                      </button>
+
+                      {answers[currentIndex] !== null && (!feedbackEnabled || !sessionCompleted) && (
+                        <button
+                          onClick={() => handleSelectOption(answers[currentIndex]!)}
+                          className="px-3 py-2 text-xs font-bold rounded border bg-bg-s3 border-border hover:bg-bg-s3/80 text-text-muted hover:text-text transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-sm"
+                        >
+                          <span>Clear</span>
+                        </button>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-2.5">
                       <button
@@ -1825,6 +1903,80 @@ export default function App() {
           initialPromptType={null}
         />
 
+        {/* Question Error Reporting Modal Overlay */}
+        <AnimatePresence>
+          {reportModalOpen && reportingQuestion && (
+            <div className="fixed inset-0 bg-bg-s0/90 backdrop-blur-md z-[99999] flex items-center justify-center p-4 overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-md bg-bg-s2 border border-border rounded-xl shadow-2xl overflow-hidden p-6 flex flex-col gap-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-500/10 border border-red-500/25 rounded-lg flex items-center justify-center text-redL shrink-0">
+                    <HelpCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-text">
+                      {appLanguage === 'hi' ? 'प्रश्न समीक्षा / रिपोर्ट त्रुटि' : 'Report Error / Request Review'}
+                    </h3>
+                    <p className="text-[10px] text-text-muted font-bold tracking-wide mt-0.5">
+                      {appLanguage === 'hi' ? 'प्रशासक को प्रश्न में पाई गई त्रुटि बताएं' : 'Submit feedback to the admin regarding this question'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5 mt-2 bg-bg-s3/40 border border-border/80 p-3.5 rounded-lg text-xs leading-relaxed text-text">
+                  <span className="text-[9px] font-black uppercase text-saffron tracking-wider select-none">
+                    {appLanguage === 'hi' ? 'प्रश्न:' : 'Question:'}
+                  </span>
+                  <p className="line-clamp-3 font-semibold text-text-muted">
+                    {reportingQuestion.question ? stripAssertionReason(reportingQuestion.question).trim().slice(0, 150) + '...' : ''}
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase text-text-muted tracking-wider">
+                    {appLanguage === 'hi' ? 'त्रुटि विवरण / समीक्षा का कारण' : 'Specify Error / Reason for review'}
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    placeholder={appLanguage === 'hi' ? 'कृपया त्रुटि विवरण दर्ज करें (जैसे: उत्तर गलत है, गलत अनुवाद)...' : 'Write details of the error (e.g. incorrect key, bad translations)...'}
+                    className="w-full bg-bg-s3/70 border border-border focus:border-saffron focus:ring-1 focus:ring-saffron/20 p-3 rounded-lg outline-none text-xs text-text placeholder:text-text-muted font-bold resize-none"
+                  />
+                </div>
+
+                <div className="flex gap-3 mt-2">
+                  <button
+                    onClick={handleReportQuestionSubmit}
+                    disabled={submittingReport || !reportReason.trim()}
+                    className="flex-1 py-2.5 bg-saffron hover:bg-orange-500 disabled:opacity-50 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-all text-center flex items-center justify-center gap-1.5 shadow"
+                  >
+                    {submittingReport ? (
+                      <span className="w-3.5 h-3.5 border-2 border-bg-s1 border-t-transparent rounded-full animate-spin" />
+                    ) : null}
+                    <span>{appLanguage === 'hi' ? 'जमा करें' : 'Submit'}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setReportModalOpen(false);
+                      setReportingQuestion(null);
+                      setReportReason('');
+                    }}
+                    disabled={submittingReport}
+                    className="flex-1 py-2.5 bg-bg-s3 hover:bg-bg-s2 border border-border text-xs font-black uppercase text-text rounded-lg cursor-pointer transition-all text-center"
+                  >
+                    {appLanguage === 'hi' ? 'रद्द करें' : 'Cancel'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* Public Profile Modal for Leaderboard users */}
         {selectedProfileUid && (
           <PublicProfileModal
@@ -1842,7 +1994,7 @@ export default function App() {
         {/* First-Time Exam Selector Modal for New Users */}
         <AnimatePresence>
           {showFirstTimeExamSelector && (
-            <div className="fixed inset-0 bg-[#0B0E14]/90 backdrop-blur-md flex items-center justify-center p-4 z-[99999] overflow-y-auto">
+            <div className="fixed inset-0 bg-bg-s0/90 backdrop-blur-md flex items-center justify-center p-4 z-[99999] overflow-y-auto">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}

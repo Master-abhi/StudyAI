@@ -41,7 +41,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
           cy={size / 2}
           r={radius}
           fill="transparent"
-          stroke="#1d263b"
+          stroke="var(--bg-s3, #1d263b)"
           strokeWidth={strokeWidth}
         />
 

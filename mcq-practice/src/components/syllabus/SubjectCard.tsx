@@ -42,9 +42,9 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
 
   // Visual styling for importance levels
   const importanceStyles = {
-    Highest: 'bg-red-500/10 text-redL border-red-500/30',
+    Highest: 'bg-redL/10 text-redL border-redL/30',
     High: 'bg-saffron-dim text-saffron border-saffron-border/30',
-    Medium: 'bg-amber-500/10 text-amber-500 border-amber-500/25',
+    Medium: 'bg-amberL/10 text-amberL border-amberL/25',
     Low: 'bg-bg-s3 text-text-muted border-border'
   }[subject.importance];
 
@@ -126,7 +126,7 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
             animate={{ height: 'auto' }}
             exit={{ height: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden border-t border-border/60 bg-[#141a28]/60"
+            className="overflow-hidden border-t border-border/60 bg-bg-s3/40"
           >
             <div className="p-5 flex flex-col gap-5">
               {subject.chapters.map(chapter => (

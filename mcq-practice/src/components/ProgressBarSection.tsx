@@ -21,7 +21,7 @@ export const ProgressBarSection: React.FC<ProgressBarSectionProps> = ({
   const progressPercent = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
   return (
-    <div className="w-full bg-[#121620] px-4 py-3 flex flex-col gap-2 relative">
+    <div className="w-full bg-bg-s1 px-4 py-3 flex flex-col gap-2 relative">
       <div className="flex items-center justify-between">
         {/* XP and Streak display */}
         <div className="flex items-center gap-3">

@@ -787,62 +787,62 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
                 {/* Pasted JSON Questions Live Preview Panel */}
                 {parsedPreviewQuestions.length > 0 && (
-                  <div className="flex flex-col gap-3 border border-border/85 p-4 rounded-xl bg-bg-s3/10 shadow-inner max-h-96 overflow-y-auto select-none no-scrollbar mb-1.5 w-full">
-                    <span className="text-[10px] font-black uppercase text-saffron tracking-wider flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 animate-pulse" /> Pasted JSON Live Preview ({parsedPreviewQuestions.length} Qs)
+                  <div className="flex flex-col gap-3.5 border border-border p-5 rounded-xl bg-bg-s2/40 shadow-md max-h-[600px] overflow-y-auto select-text mb-2.5 w-full">
+                    <span className="text-xs font-black uppercase text-saffron tracking-wider flex items-center gap-1.5 select-none">
+                      <Eye className="w-4 h-4 animate-pulse" /> Pasted JSON Live Preview ({parsedPreviewQuestions.length} Qs)
                     </span>
                     
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-5">
                       {parsedPreviewQuestions.map((pq: any, pIdx: number) => (
-                        <div key={pIdx} className="p-3 bg-bg-s3/40 border border-border rounded-lg flex flex-col gap-2.5 font-sans">
-                          <div className="flex justify-between items-start gap-3 border-b border-border/20 pb-1.5">
-                            <span className="text-[9px] font-black uppercase text-saffron">Q{pIdx + 1} ({pq.qType || 'standard'})</span>
-                            <span className="text-[8px] font-black uppercase text-text-muted bg-bg-s3 px-1.5 py-0.5 rounded border border-border">{pq.subject || 'General'}</span>
+                        <div key={pIdx} className="p-4.5 bg-bg-s3 border border-border/80 rounded-xl flex flex-col gap-3.5 font-sans shadow-sm">
+                          <div className="flex justify-between items-center gap-3 border-b border-border/30 pb-2 select-none">
+                            <span className="text-[10px] font-black uppercase text-saffron tracking-wider">Q{pIdx + 1} ({pq.qType || 'standard'})</span>
+                            <span className="text-[9px] font-black uppercase text-text-muted bg-bg-s2 px-2 py-0.5 rounded border border-border">{pq.subject || 'General'}</span>
                           </div>
 
                           {pq.qType === 'assertion_reason' ? (
-                            <div className="flex flex-col gap-2.5">
-                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                            <div className="flex flex-col gap-3.5">
+                              <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
                                 {(() => {
                                   const cleaned = stripAssertionReason(pq.question);
                                   return cleaned.trim() ? cleaned : 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:';
                                 })()}
                               </p>
-                              <div className="flex flex-col gap-2">
-                                <div className="bg-bg-s2 border-l-2 border-saffron rounded p-2">
-                                  <span className="text-[7px] font-black uppercase text-saffron block mb-0.5">कथन [As]</span>
-                                  <p className="text-xs text-text leading-normal font-hindi whitespace-pre-wrap">{pq.assertion}</p>
+                              <div className="flex flex-col gap-2.5">
+                                <div className="bg-bg-s2 border-l-4 border-saffron rounded-r-lg p-3 flex flex-col gap-1">
+                                  <span className="text-[9px] font-black uppercase text-saffron block select-none">कथन [Assertion - As]</span>
+                                  <p className="text-xs sm:text-sm text-text font-medium leading-relaxed font-hindi whitespace-pre-wrap">{pq.assertion}</p>
                                 </div>
-                                <div className="bg-bg-s2 border-l-2 border-blue-500 rounded p-2">
-                                  <span className="text-[7px] font-black uppercase text-blue-400 block mb-0.5">कारण [R]</span>
-                                  <p className="text-xs text-text leading-normal font-hindi whitespace-pre-wrap">{pq.reason}</p>
+                                <div className="bg-bg-s2 border-l-4 border-blue-500 rounded-r-lg p-3 flex flex-col gap-1">
+                                  <span className="text-[9px] font-black uppercase text-blue-400 block select-none">कारण [Reason - R]</span>
+                                  <p className="text-xs sm:text-sm text-text font-medium leading-relaxed font-hindi whitespace-pre-wrap">{pq.reason}</p>
                                 </div>
                               </div>
                             </div>
                           ) : pq.qType === 'match_column' ? (
-                            <div className="flex flex-col gap-2.5">
-                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                            <div className="flex flex-col gap-3.5">
+                              <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
                                 {(() => {
                                   const cleaned = stripMarkdownTable(pq.question);
                                   return cleaned.trim() ? cleaned : 'निम्नलिखित को सुमेलित कीजिए-';
                                 })()}
                               </p>
-                              <div className="border border-border rounded-lg overflow-hidden text-[9.5px] font-hindi">
-                                <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[7px] font-black uppercase text-text-muted">
-                                  <div className="px-3 py-1.5 border-r border-border/40">कॉलम-I</div>
-                                  <div className="px-3 py-1.5">कॉलम-II</div>
+                              <div className="border border-border rounded-xl overflow-hidden text-xs sm:text-sm font-hindi shadow-sm">
+                                <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[10px] font-black uppercase text-text-muted select-none">
+                                  <div className="px-4 py-2 border-r border-border/40">कॉलम-I</div>
+                                  <div className="px-4 py-2">कॉलम-II</div>
                                 </div>
                                 <div className="divide-y divide-border/30 bg-bg-s2/40">
                                   {Array.from({ length: Math.max(pq.columnI?.length || 0, pq.columnII?.length || 0) }).map((_, rIdx) => (
                                     <div key={rIdx} className="grid grid-cols-2">
-                                      <div className="px-3 py-1.5 border-r border-border/30 font-semibold whitespace-pre-wrap flex items-start gap-1">
-                                        <span className="text-saffron font-black select-none bg-saffron/10 px-1 py-0.5 rounded text-[8px] shrink-0">
+                                      <div className="px-4 py-2.5 border-r border-border/30 font-semibold whitespace-pre-wrap flex items-start gap-2">
+                                        <span className="text-saffron font-black select-none bg-saffron/10 px-1.5 py-0.5 rounded text-[10px] shrink-0">
                                           {String.fromCharCode(65 + rIdx)}
                                         </span>
                                         <span>{cleanPrefix(pq.columnI?.[rIdx] || '')}</span>
                                       </div>
-                                      <div className="px-3 py-1.5 font-semibold whitespace-pre-wrap flex items-start gap-1">
-                                        <span className="text-blue-400 font-black select-none bg-blue-500/10 px-1 py-0.5 rounded text-[8px] shrink-0">
+                                      <div className="px-4 py-2.5 font-semibold whitespace-pre-wrap flex items-start gap-2">
+                                        <span className="text-blue-400 font-black select-none bg-blue-500/10 px-1.5 py-0.5 rounded text-[10px] shrink-0">
                                           {rIdx + 1}
                                         </span>
                                         <span>{cleanPrefix(pq.columnII?.[rIdx] || '')}</span>
@@ -853,42 +853,42 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                               </div>
                             </div>
                           ) : (pq.qType === 'ordering' || pq.qType === 'multi_statement') ? (
-                            <div className="flex flex-col gap-2.5">
-                              <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                            <div className="flex flex-col gap-3.5">
+                              <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
                                 {(() => {
                                   const cleaned = stripStatements(pq.question);
                                   return cleaned.trim() ? cleaned : 'नीचे दिए गए कथनों को पढ़िए और सही विकल्प चुनिए:';
                                 })()}
                               </p>
-                              <div className="flex flex-col gap-1 font-hindi">
+                              <div className="flex flex-col gap-2 font-hindi">
                                 {pq.statements?.map((stmt: string, sIdx: number) => {
                                   if (!stmt) return null;
                                   const label = pq.statementLabels?.[sIdx] || `${sIdx + 1}`;
                                   return (
-                                    <div key={sIdx} className="flex items-center gap-2 bg-bg-s2 border border-border/30 rounded px-2 py-1">
-                                      <span className="w-5 h-5 bg-bg-s3 border border-border/50 rounded flex items-center justify-center text-[8px] font-black text-saffron shrink-0">{label}</span>
-                                      <span className="text-xs text-text font-semibold whitespace-pre-wrap">{stmt}</span>
+                                    <div key={sIdx} className="flex items-center gap-3 bg-bg-s2 border border-border/30 rounded-xl px-3 py-2.5 shadow-sm">
+                                      <span className="w-6 h-6 bg-bg-s3 border border-border/60 rounded-lg flex items-center justify-center text-[10px] font-black text-saffron shrink-0 select-none">{label}</span>
+                                      <span className="text-xs sm:text-sm text-text font-semibold whitespace-pre-wrap leading-relaxed">{stmt}</span>
                                     </div>
                                   );
                                 })}
                               </div>
                             </div>
                           ) : (
-                            <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question}</p>
+                            <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question}</p>
                           )}
 
                           {/* Options */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2 pt-2 border-t border-border/20 font-sans">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-3 border-t border-border/20 font-sans">
                             {pq.options?.map((opt: string, optIdx: number) => (
                               <div 
                                 key={optIdx} 
-                                className={`p-1.5 rounded text-[10px] font-semibold border flex items-center gap-2 ${
+                                className={`p-2.5 rounded-lg text-xs sm:text-sm font-semibold border flex items-center gap-2.5 ${
                                   optIdx === pq.correctIndex
                                     ? 'bg-greenL/5 border-greenL/25 text-greenL'
                                     : 'bg-bg-s2 border-border text-text-muted'
                                 }`}
                               >
-                                <span className="w-4 h-4 bg-bg-s1 rounded-full flex items-center justify-center text-[8px] shrink-0 font-black">
+                                <span className="w-5 h-5 bg-bg-s1 rounded-full flex items-center justify-center text-[10px] shrink-0 font-black select-none">
                                   {String.fromCharCode(65 + optIdx)}
                                 </span>
                                 <span className="whitespace-pre-wrap">{opt}</span>
@@ -1021,8 +1021,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                               </span>
                             )}
                           </div>
-                        </div>
-                      </td>
+                        </td>
                       <td className="py-3 px-3">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-text bg-bg-s3 px-2 py-0.5 border border-border rounded flex items-center gap-1 w-max">
                           <Globe className="w-3 h-3 text-saffron" />
@@ -1076,11 +1075,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
       {/* Preview Modal Overlay */}
       {previewTest && (
-        <div className="fixed inset-0 bg-[#0B0E14]/85 backdrop-blur-md z-[999] flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl bg-bg-s2 border border-border rounded-xl shadow-2xl p-6 flex flex-col gap-4 max-h-[85vh]">
-            <div className="flex justify-between items-center border-b border-border pb-3">
+        <div className="fixed inset-0 bg-[#0B0E14]/85 backdrop-blur-md z-[999] flex items-center justify-center p-4 select-text">
+          <div className="w-full max-w-4xl bg-bg-s2 border border-border rounded-xl shadow-2xl p-6 flex flex-col gap-4 max-h-[90vh]">
+            <div className="flex justify-between items-center border-b border-border pb-3 select-none">
               <div className="flex flex-col">
-                <h3 className="text-xs font-black uppercase text-saffron tracking-wider">Test Questions Preview</h3>
+                <h3 className="text-sm font-black uppercase text-saffron tracking-wider">Test Questions Preview</h3>
                 <span className="text-[10px] text-text-muted font-bold mt-0.5">
                   {previewTest.examNames ? previewTest.examNames.join(' • ') : previewTest.examName} — {previewTest.subject === 'all' ? 'All Subjects' : previewTest.subject}
                 </span>
@@ -1094,7 +1093,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
             </div>
 
             {previewTest.pattern && (
-              <div className="p-3 bg-bg-s3/60 border border-saffron-border/20 rounded-lg flex flex-wrap gap-x-5 gap-y-2 text-[9px] font-black uppercase text-text-muted tracking-wider select-none shrink-0 mb-1 font-sans">
+              <div className="p-3 bg-bg-s3/60 border border-saffron-border/20 rounded-lg flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-extrabold uppercase text-text-muted tracking-wider select-none shrink-0 mb-1 font-sans">
                 <span>Total Questions: <strong className="text-text">{previewTest.pattern.totalQuestions || previewTest.questions?.length}</strong></span>
                 <span>Total Marks: <strong className="text-text">{previewTest.pattern.totalMarks}</strong></span>
                 <span>Duration: <strong className="text-text">{previewTest.pattern.durationMinutes} Mins</strong></span>
@@ -1104,59 +1103,59 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
             <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 my-2">
               {previewTest.questions?.map((q: any, idx: number) => (
-                <div key={idx} className="p-4 bg-bg-s3 border border-border rounded-lg flex flex-col gap-3">
-                  <div className="flex justify-between items-start gap-3 border-b border-border/20 pb-2">
-                    <span className="text-[10px] font-black uppercase text-saffron">
+                <div key={idx} className="p-5 bg-bg-s3 border border-border rounded-xl flex flex-col gap-4 shadow-sm">
+                  <div className="flex justify-between items-center gap-3 border-b border-border/20 pb-2 select-none">
+                    <span className="text-xs font-black uppercase text-saffron">
                       Q{idx + 1}
                     </span>
-                    <span className="text-[8px] font-black uppercase text-saffron bg-saffron-dim/30 px-1.5 py-0.5 rounded shrink-0 border border-saffron-border/30">
+                    <span className="text-[9px] font-black uppercase text-saffron bg-saffron-dim/30 px-2.5 py-0.5 rounded shrink-0 border border-saffron-border/30">
                       {q.subject || 'General'}
                     </span>
                   </div>
 
                   {q.qType === 'assertion_reason' ? (
-                    <div className="flex flex-col gap-3">
-                      <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                    <div className="flex flex-col gap-3.5">
+                      <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
                         {(() => {
                           const cleaned = stripAssertionReason(q.question);
                           return cleaned.trim() ? cleaned : 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:';
                         })()}
                       </p>
-                      <div className="grid grid-cols-1 gap-2">
-                        <div className="bg-bg-s2 border-l-2 border-saffron rounded p-2.5">
-                          <span className="text-[7.5px] font-black uppercase text-saffron block mb-0.5 select-none">कथन [As]</span>
-                          <p className="text-xs text-text leading-relaxed font-hindi whitespace-pre-wrap">{q.assertion}</p>
+                      <div className="grid grid-cols-1 gap-2.5">
+                        <div className="bg-bg-s2 border-l-4 border-saffron rounded-r-lg p-3 flex flex-col gap-1">
+                          <span className="text-[9px] font-black uppercase text-saffron block select-none">कथन [Assertion - As]</span>
+                          <p className="text-xs sm:text-sm text-text font-medium leading-relaxed font-hindi whitespace-pre-wrap">{q.assertion}</p>
                         </div>
-                        <div className="bg-bg-s2 border-l-2 border-blue-500 rounded p-2.5">
-                          <span className="text-[7.5px] font-black uppercase text-blue-400 block mb-0.5 select-none">कारण [R]</span>
-                          <p className="text-xs text-text leading-relaxed font-hindi whitespace-pre-wrap">{q.reason}</p>
+                        <div className="bg-bg-s2 border-l-4 border-blue-500 rounded-r-lg p-3 flex flex-col gap-1">
+                          <span className="text-[9px] font-black uppercase text-blue-400 block select-none">कारण [Reason - R]</span>
+                          <p className="text-xs sm:text-sm text-text font-medium leading-relaxed font-hindi whitespace-pre-wrap">{q.reason}</p>
                         </div>
                       </div>
                     </div>
                   ) : q.qType === 'match_column' ? (
-                    <div className="flex flex-col gap-3">
-                      <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                    <div className="flex flex-col gap-3.5">
+                      <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
                         {(() => {
                           const cleaned = stripMarkdownTable(q.question);
                           return cleaned.trim() ? cleaned : 'निम्नलिखित को सुमेलित कीजिए-';
                         })()}
                       </p>
-                      <div className="border border-border rounded-lg overflow-hidden text-[10px] font-hindi">
-                        <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[8px] font-black uppercase text-text-muted select-none">
-                          <div className="px-3 py-1.5 border-r border-border/40">कॉलम-I</div>
-                          <div className="px-3 py-1.5">कॉलम-II</div>
+                      <div className="border border-border rounded-xl overflow-hidden text-xs sm:text-sm font-hindi shadow-sm">
+                        <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[10px] font-black uppercase text-text-muted select-none">
+                          <div className="px-4 py-2 border-r border-border/40">कॉलम-I</div>
+                          <div className="px-4 py-2">कॉलम-II</div>
                         </div>
                         <div className="divide-y divide-border/30 bg-bg-s2/40">
                           {Array.from({ length: Math.max(q.columnI?.length || 0, q.columnII?.length || 0) }).map((_, i) => (
                             <div key={i} className="grid grid-cols-2">
-                              <div className="px-3 py-2 border-r border-border/30 font-semibold whitespace-pre-wrap flex items-start gap-1">
-                                <span className="text-saffron font-black select-none bg-saffron/10 px-1 py-0.5 rounded text-[8px] shrink-0">
+                              <div className="px-4 py-2.5 border-r border-border/30 font-semibold whitespace-pre-wrap flex items-start gap-2">
+                                <span className="text-saffron font-black select-none bg-saffron/10 px-1.5 py-0.5 rounded text-[10px] shrink-0">
                                   {String.fromCharCode(65 + i)}
                                 </span>
                                 <span>{cleanPrefix(q.columnI?.[i] || '')}</span>
                               </div>
-                              <div className="px-3 py-2 font-semibold whitespace-pre-wrap flex items-start gap-1">
-                                <span className="text-blue-400 font-black select-none bg-blue-500/10 px-1 py-0.5 rounded text-[8px] shrink-0">
+                              <div className="px-4 py-2.5 font-semibold whitespace-pre-wrap flex items-start gap-2">
+                                <span className="text-blue-400 font-black select-none bg-blue-500/10 px-1.5 py-0.5 rounded text-[10px] shrink-0">
                                   {i + 1}
                                 </span>
                                 <span>{cleanPrefix(q.columnII?.[i] || '')}</span>
@@ -1167,23 +1166,23 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                       </div>
                     </div>
                   ) : (q.qType === 'ordering' || q.qType === 'multi_statement') ? (
-                    <div className="flex flex-col gap-3">
-                      <p className="text-xs font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
+                    <div className="flex flex-col gap-3.5">
+                      <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
                         {(() => {
                           const cleaned = stripStatements(q.question);
                           return cleaned.trim() ? cleaned : 'नीचे दिए गए कथनों को पढ़िए और सही विकल्प चुनिए:';
                         })()}
                       </p>
-                      <div className="flex flex-col gap-1.5 font-hindi">
+                      <div className="flex flex-col gap-2 font-hindi">
                         {q.statements?.map((stmt: string, i: number) => {
                           if (!stmt) return null;
                           const label = q.statementLabels?.[i] || `${i + 1}`;
                           return (
-                            <div key={i} className="flex items-center gap-2 bg-bg-s2 border border-border/40 rounded px-2.5 py-1.5">
-                              <span className="w-5 h-5 bg-bg-s3 border border-border/60 rounded flex items-center justify-center text-[8.5px] font-black text-saffron shrink-0 select-none">
+                            <div key={i} className="flex items-center gap-3 bg-bg-s2 border border-border/30 rounded-xl px-3 py-2.5 shadow-sm">
+                              <span className="w-6 h-6 bg-bg-s3 border border-border/60 rounded-lg flex items-center justify-center text-[10px] font-black text-saffron shrink-0 select-none">
                                 {label}
                               </span>
-                              <span className="text-xs text-text font-semibold whitespace-pre-wrap">{stmt}</span>
+                              <span className="text-xs sm:text-sm text-text font-semibold whitespace-pre-wrap leading-relaxed">{stmt}</span>
                             </div>
                           );
                         })}

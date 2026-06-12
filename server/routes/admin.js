@@ -1301,6 +1301,31 @@ router.delete('/feedbacks/:id', verifyAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/reports - Retrieve all reported questions (admin only)
+router.get('/reports', verifyAdmin, async (req, res) => {
+  try {
+    const snapshot = await db.collection('reported_questions').orderBy('createdAt', 'desc').get();
+    const reports = snapshot.docs.map(doc => doc.data());
+    res.json(reports);
+  } catch (err) {
+    console.error('[Admin Reports GET] Error:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve reported questions.' });
+  }
+});
+
+// DELETE /api/admin/reports/:id - Delete a reported question entry (admin only)
+router.delete('/reports/:id', verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('reported_questions').doc(id).delete();
+    console.log(`[Admin Report Delete] Deleted reported question ${id} ✅`);
+    res.json({ success: true, message: 'Report deleted successfully' });
+  } catch (err) {
+    console.error('[Admin Report Delete] Error:', err.message);
+    res.status(500).json({ error: 'Failed to delete report.' });
+  }
+});
+
 // POST /api/admin/badges - Add a new badge (admin only)
 router.post('/badges', verifyAdmin, async (req, res) => {
   try {

@@ -97,7 +97,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       {/* Left Column: Greet, Target Exam, Quick Actions */}
       <div className="flex flex-col gap-6 md:col-span-7">
         {/* 1. Hero Greet Panel */}
-        <div className="p-6 bg-gradient-to-br from-bg-s2 to-[#121620] border border-border rounded-xl shadow-lg relative overflow-hidden flex flex-col gap-4">
+        <div className="p-6 bg-gradient-to-br from-bg-s2 to-bg-s1 border border-border rounded-xl shadow-lg relative overflow-hidden flex flex-col gap-4">
           <div className="absolute top-0 right-0 w-32 h-32 bg-saffron-dim/10 rounded-full blur-2xl pointer-events-none" />
           
           <div className="flex items-center justify-between">
@@ -169,7 +169,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             {tabVisibility?.practice !== false && (
               <button
                 onClick={() => onStartPracticeMode('quiz')}
-                className="p-4 bg-[#ff9933]/5 hover:bg-[#ff9933]/10 border border-[#ff9933]/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+                className="p-4 bg-saffron-dim hover:bg-saffron-dim/80 border border-saffron-border/30 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
               >
                 <Zap className="w-5.5 h-5.5 text-saffron" />
                 <span className="text-sm font-bold text-text mt-1">Daily Quiz</span>
@@ -329,7 +329,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       {/* Exam Selector Drawer/Overlay Modal */}
       <AnimatePresence>
         {showExamSelector && (
-          <div className="fixed inset-0 bg-[#0B0E14]/85 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-bg-s0/85 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
