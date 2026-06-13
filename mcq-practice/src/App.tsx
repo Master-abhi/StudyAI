@@ -960,6 +960,28 @@ export default function App() {
     }
   }, [currentIndex, visited.length]);
 
+  // Lock body scroll when workspace is active (testing)
+  useEffect(() => {
+    const isWActive = isTestActive && rulesAccepted;
+    if (isWActive) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.height = '100dvh';
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.height = '100dvh';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.height = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.height = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.height = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.height = '';
+    };
+  }, [isTestActive, rulesAccepted]);
+
   // Select option handler
   const handleSelectOption = (optIdx: number) => {
     if (sessionCompleted) return;
@@ -1643,7 +1665,7 @@ export default function App() {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
-                  className="flex flex-col gap-4 flex-1"
+                  className="flex flex-col gap-0 flex-1 min-h-0 overflow-hidden relative"
                 >
                 {/* CBT Header */}
                 <PracticeHeader
