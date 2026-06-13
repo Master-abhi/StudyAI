@@ -39,6 +39,62 @@ const upload = multer({
 
 const MATERIALS_COL = db.collection('materials');
 
+const normalizeQuestion = (q) => {
+  const id = q.id || q.qId || '';
+  let qType = q.qType || 'standard';
+  if (typeof qType === 'string') {
+    const upper = qType.toUpperCase();
+    if (upper === 'MCQ' || upper === 'STANDARD') {
+      qType = 'standard';
+    } else if (upper === 'ASSERTION_REASON') {
+      qType = 'assertion_reason';
+    } else if (upper === 'MATCH_COLUMN') {
+      qType = 'match_column';
+    } else if (upper === 'ORDERING') {
+      qType = 'ordering';
+    } else if (upper === 'MULTI_STATEMENT') {
+      qType = 'multi_statement';
+    } else {
+      qType = qType.toLowerCase();
+    }
+  }
+
+  let columnI = q.columnI || [];
+  let columnII = q.columnII || [];
+  if (Array.isArray(q.columnA)) {
+    columnI = q.columnA.map((col) => (typeof col === 'object' && col !== null ? (col.text || '') : String(col)));
+  }
+  if (Array.isArray(q.columnB)) {
+    columnII = q.columnB.map((col) => (typeof col === 'object' && col !== null ? (col.text || '') : String(col)));
+  }
+
+  let statements = q.statements || [];
+  let statementLabels = q.statementLabels || [];
+  if (Array.isArray(q.itemsToOrder)) {
+    statements = q.itemsToOrder.map((item) => (typeof item === 'object' && item !== null ? (item.text || '') : String(item)));
+    statementLabels = q.itemsToOrder.map((item) => (typeof item === 'object' && item !== null ? (item.id || '') : ''));
+  } else if (Array.isArray(q.statements) && q.statements.length > 0 && typeof q.statements[0] === 'object') {
+    statements = q.statements.map((item) => (typeof item === 'object' && item !== null ? (item.text || '') : String(item)));
+    statementLabels = q.statements.map((item) => (typeof item === 'object' && item !== null ? (item.id || '') : ''));
+  }
+
+  const options = Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [];
+  const correctIndex = typeof q.correctIndex === 'number' ? q.correctIndex : parseInt(q.correctIndex, 10) || 0;
+
+  return {
+    ...q,
+    id,
+    qType,
+    columnI,
+    columnII,
+    statements,
+    statementLabels,
+    options,
+    correctIndex
+  };
+};
+
+
 // ── AI Config Routes ──
 
 router.get('/config/ai', verifyAdmin, async (req, res) => {
@@ -610,6 +666,295 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
   } catch (err) {
     console.error('[Admin Test Upload Error]:', err.message);
     res.status(500).json({ error: err.message || 'Failed to upload test.' });
+  }
+});
+
+// Upload JSON questions directly to the global Question Bank
+router.post('/questions/pool/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { questions, examIds } = req.body;
+
+    if (!questions || !Array.isArray(questions)) {
+      return res.status(400).json({ error: 'questions array is required' });
+    }
+
+    const timestamp = new Date().toISOString();
+
+    const normalizedQuestions = questions.map((q, index) => {
+      const normQ = normalizeQuestion(q);
+      let questionId = normQ.id || normQ.qId || '';
+      if (!questionId) {
+        questionId = `q_pool_${Date.now()}_${index}`;
+      }
+
+      // Merge examTags from question and selected examIds
+      const qExamTags = Array.isArray(normQ.examTags) ? normQ.examTags : [];
+      const inputExamIds = Array.isArray(examIds) ? examIds : [];
+      const tagsSet = new Set([...qExamTags, ...inputExamIds]);
+      const mergedExamTags = Array.from(tagsSet).filter(Boolean);
+
+      return {
+        id: questionId,
+        question: normQ.question,
+        options: normQ.options,
+        correctIndex: normQ.correctIndex,
+        explanation: normQ.explanation || '',
+        subject: normQ.subject || 'General Knowledge',
+        difficulty: normQ.difficulty || 'medium',
+        weightage: normQ.weightage || 'medium',
+        timestamp,
+        qType: normQ.qType || 'standard',
+        assertion: normQ.assertion || '',
+        reason: normQ.reason || '',
+        columnI: normQ.columnI || [],
+        columnII: normQ.columnII || [],
+        statements: normQ.statements || [],
+        statementLabels: normQ.statementLabels || [],
+        topic: normQ.topic || '',
+        subtopic: normQ.subtopic || '',
+        sourcePattern: normQ.sourcePattern || '',
+        yearTrend: normQ.yearTrend || '',
+        expectedIn2026: normQ.expectedIn2026 === true,
+        examTags: mergedExamTags,
+        isVerified: normQ.isVerified === true,
+        isPYQ: normQ.isPYQ === true,
+        pyqYear: normQ.pyqYear || null
+      };
+    });
+
+    // Write to Firestore in batches of 500
+    const BATCH_SIZE = 500;
+    let successCount = 0;
+
+    for (let i = 0; i < normalizedQuestions.length; i += BATCH_SIZE) {
+      const chunk = normalizedQuestions.slice(i, i + BATCH_SIZE);
+      const batch = db.batch();
+
+      chunk.forEach((q) => {
+        const qRef = db.collection('question_bank').doc(q.id);
+        batch.set(qRef, q);
+      });
+
+      await batch.commit();
+      successCount += chunk.length;
+    }
+
+    console.log(`[Admin Pool Upload] Saved ${successCount} questions to question_bank ✅`);
+    await logStaffActivity(req, 'upload_question_pool', { count: successCount });
+
+    res.json({
+      success: true,
+      message: `Successfully uploaded ${successCount} questions to the global Question Bank.`
+    });
+  } catch (err) {
+    console.error('[Admin Pool Upload Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to upload questions to the pool.' });
+  }
+});
+
+// Get stats from the Question Bank
+router.get('/questions/pool/stats', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const snapshot = await db.collection('question_bank').get();
+    let totalCount = snapshot.size;
+
+    const subjects = {};
+    const exams = {};
+
+    snapshot.docs.forEach(doc => {
+      const q = doc.data();
+      const sub = q.subject || 'General Knowledge';
+      subjects[sub] = (subjects[sub] || 0) + 1;
+
+      if (Array.isArray(q.examTags)) {
+        q.examTags.forEach(tag => {
+          exams[tag] = (exams[tag] || 0) + 1;
+        });
+      }
+    });
+
+    res.json({
+      totalCount,
+      subjects,
+      exams
+    });
+  } catch (err) {
+    console.error('[Admin Pool Stats Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve question bank stats.' });
+  }
+});
+
+// Generate a test from the global Question Bank pool
+router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { examId, examName, examIds, examNames, subject, mode, language, questionCount } = req.body;
+
+    if (!examId || !examName) {
+      return res.status(400).json({ error: 'examId and examName are required' });
+    }
+
+    const count = parseInt(questionCount, 10) || 10;
+    const testMode = mode || 'quiz';
+    const selectedSubject = subject || 'all';
+
+    // Query the question_bank collection for matching examId tag
+    let query = db.collection('question_bank').where('examTags', 'array-contains', examId);
+    const snapshot = await query.get();
+    
+    let poolQuestions = snapshot.docs.map(doc => doc.data());
+
+    // Filter by subject in-memory
+    if (selectedSubject !== 'all' && selectedSubject !== 'mixed' && selectedSubject !== '') {
+      const subNorm = selectedSubject.toLowerCase().trim();
+      poolQuestions = poolQuestions.filter(q => {
+        const qSub = (q.subject || '').toLowerCase().trim();
+        return qSub === subNorm;
+      });
+    }
+
+    if (poolQuestions.length === 0) {
+      return res.status(400).json({ 
+        error: `No questions found in the Question Bank matching Exam: "${examName}" and Subject: "${selectedSubject}".` 
+      });
+    }
+
+    // Shuffle in-place
+    for (let i = poolQuestions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [poolQuestions[i], poolQuestions[j]] = [poolQuestions[j], poolQuestions[i]];
+    }
+
+    // Select the requested number
+    const selectedQuestions = poolQuestions.slice(0, count);
+
+    const testId = `test_pool_${Date.now()}`;
+    const timestamp = new Date().toISOString();
+
+    // Re-assign IDs and format for individual test consumption
+    const enrichedQuestions = selectedQuestions.map((q, index) => {
+      const newQId = `q_${testId}_${index}`;
+      
+      let directive = q.question || '';
+      let formattedQuestion = directive;
+      if (q.qType === 'assertion_reason') {
+        const dir = directive || 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए-';
+        formattedQuestion = `${dir}\n\n**कथन [As] :** ${q.assertion || ''}\n\n**कारण [R] :** ${q.reason || ''}`;
+      } else if (q.qType === 'match_column') {
+        const dir = directive || 'निम्नलिखित को सुमेलित कीजिए-';
+        let md = `${dir}\n\n| कॉलम-I | कॉलम-II |\n| :--- | :--- |\n`;
+        const colI = q.columnI || [];
+        const colII = q.columnII || [];
+        const maxLen = Math.max(colI.length, colII.length);
+        for (let idx = 0; idx < maxLen; idx++) {
+          if (colI[idx] || colII[idx]) {
+            md += `| ${colI[idx] || ''} | ${colII[idx] || ''} |\n`;
+          }
+        }
+        formattedQuestion = md;
+      } else if (q.qType === 'ordering' || q.qType === 'multi_statement') {
+        const dir = directive || '';
+        let md = `${dir}\n\n`;
+        const stmts = q.statements || [];
+        const labels = q.statementLabels || [];
+        for (let idx = 0; idx < stmts.length; idx++) {
+          if (stmts[idx]) {
+            const label = labels[idx] ? `(${labels[idx]})` : `(${idx + 1})`;
+            md += `${label} ${stmts[idx]}\n`;
+          }
+        }
+        formattedQuestion = md.trim();
+      }
+
+      return {
+        ...q,
+        id: newQId,
+        question: formattedQuestion,
+        timestamp
+      };
+    });
+
+    const testPattern = {
+      totalQuestions: enrichedQuestions.length,
+      totalMarks: enrichedQuestions.length * (testMode === 'mock' ? 2 : 1),
+      durationMinutes: testMode === 'mock' ? 120 : 10,
+      markingScheme: testMode === 'mock' ? '+2 for correct, -0.66 for incorrect' : '+1 for correct, 0 for incorrect'
+    };
+
+    const newTest = {
+      id: testId,
+      examId,
+      examName,
+      examIds: Array.isArray(examIds) ? examIds : [examId],
+      examNames: Array.isArray(examNames) ? examNames : [examName],
+      subject: selectedSubject === 'all' || selectedSubject === 'mixed' ? 'Mixed Subjects' : selectedSubject,
+      mode: testMode,
+      language: language || 'hindi',
+      questions: enrichedQuestions,
+      pattern: testPattern,
+      createdAt: timestamp,
+      generatedFromPool: true
+    };
+
+    // Save test to tests collection
+    await db.collection('tests').doc(testId).set(newTest);
+
+    // Save individual questions to questions collection
+    const batch = db.batch();
+    enrichedQuestions.forEach((q) => {
+      const qRef = db.collection('questions').doc(q.id);
+      batch.set(qRef, {
+        id: q.id,
+        question: q.question,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        explanation: q.explanation,
+        subject: q.subject,
+        difficulty: q.difficulty || 'medium',
+        timestamp: q.timestamp,
+        examId,
+        examName,
+        examIds: Array.isArray(examIds) ? examIds : [examId],
+        examNames: Array.isArray(examNames) ? examNames : [examName],
+        testId,
+        mode: testMode,
+        language: language || 'hindi',
+        qType: q.qType || 'standard',
+        assertion: q.assertion || '',
+        reason: q.reason || '',
+        columnI: q.columnI || [],
+        columnII: q.columnII || [],
+        statements: q.statements || [],
+        statementLabels: q.statementLabels || [],
+        topic: q.topic || '',
+        sourcePattern: q.sourcePattern || '',
+        yearTrend: q.yearTrend || '',
+        expectedIn2026: q.expectedIn2026 === true
+      });
+    });
+    await batch.commit();
+
+    console.log(`[Admin Test Pool Gen] Generated test ${testId} with ${enrichedQuestions.length} questions ✅`);
+    await logStaffActivity(req, 'generate_test_from_pool', { testId, examName, count: enrichedQuestions.length });
+
+    res.json({
+      success: true,
+      test: {
+        id: testId,
+        examId,
+        examName,
+        examIds: newTest.examIds,
+        examNames: newTest.examNames,
+        subject: newTest.subject,
+        mode: testMode,
+        language: newTest.language,
+        totalQuestions: enrichedQuestions.length,
+        pattern: testPattern,
+        createdAt: newTest.createdAt
+      }
+    });
+  } catch (err) {
+    console.error('[Admin Test Pool Gen Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to generate test from the pool.' });
   }
 });
 

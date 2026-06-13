@@ -76,6 +76,61 @@ interface TestMeta {
   createdAt: string;
 }
 
+const normalizeQuestion = (q: any): any => {
+  const id = q.id || q.qId || '';
+  let qType = q.qType || 'standard';
+  if (typeof qType === 'string') {
+    const upper = qType.toUpperCase();
+    if (upper === 'MCQ' || upper === 'STANDARD') {
+      qType = 'standard';
+    } else if (upper === 'ASSERTION_REASON') {
+      qType = 'assertion_reason';
+    } else if (upper === 'MATCH_COLUMN') {
+      qType = 'match_column';
+    } else if (upper === 'ORDERING') {
+      qType = 'ordering';
+    } else if (upper === 'MULTI_STATEMENT') {
+      qType = 'multi_statement';
+    } else {
+      qType = qType.toLowerCase();
+    }
+  }
+
+  let columnI = q.columnI || [];
+  let columnII = q.columnII || [];
+  if (Array.isArray(q.columnA)) {
+    columnI = q.columnA.map((col: any) => (typeof col === 'object' && col !== null ? (col.text || '') : String(col)));
+  }
+  if (Array.isArray(q.columnB)) {
+    columnII = q.columnB.map((col: any) => (typeof col === 'object' && col !== null ? (col.text || '') : String(col)));
+  }
+
+  let statements = q.statements || [];
+  let statementLabels = q.statementLabels || [];
+  if (Array.isArray(q.itemsToOrder)) {
+    statements = q.itemsToOrder.map((item: any) => (typeof item === 'object' && item !== null ? (item.text || '') : String(item)));
+    statementLabels = q.itemsToOrder.map((item: any) => (typeof item === 'object' && item !== null ? (item.id || '') : ''));
+  } else if (Array.isArray(q.statements) && q.statements.length > 0 && typeof q.statements[0] === 'object') {
+    statements = q.statements.map((item: any) => (typeof item === 'object' && item !== null ? (item.text || '') : String(item)));
+    statementLabels = q.statements.map((item: any) => (typeof item === 'object' && item !== null ? (item.id || '') : ''));
+  }
+
+  const options = Array.isArray(q.options) ? q.options.map((opt: any) => String(opt)) : [];
+  const correctIndex = typeof q.correctIndex === 'number' ? q.correctIndex : parseInt(q.correctIndex, 10) || 0;
+
+  return {
+    ...q,
+    id,
+    qType,
+    columnI,
+    columnII,
+    statements,
+    statementLabels,
+    options,
+    correctIndex
+  };
+};
+
 const getFormattedQuestionString = (q: any): string => {
   const qType = q.qType || 'standard';
   if (qType === 'standard') {
@@ -130,9 +185,20 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [filterExamId, setFilterExamId] = useState<string>('all');
 
   // Creator state
-  const [creatorTab, setCreatorTab] = useState<'generate' | 'upload'>('generate');
+  const [creatorTab, setCreatorTab] = useState<'generate' | 'upload' | 'pool_upload' | 'pool_generate'>('generate');
   const [uploadJsonText, setUploadJsonText] = useState<string>('');
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
+
+  // Pool state
+  const [poolStats, setPoolStats] = useState<{ totalCount: number; subjects: { [key: string]: number }; exams: { [key: string]: number } } | null>(null);
+  const [loadingStats, setLoadingStats] = useState<boolean>(false);
+  
+  // Pool generation form state
+  const [poolGenSubject, setPoolGenSubject] = useState<string>('all');
+  const [poolGenCount, setPoolGenCount] = useState<number>(10);
+  const [poolGenMode, setPoolGenMode] = useState<'quiz' | 'mock'>('quiz');
+  const [poolGenLanguage, setPoolGenLanguage] = useState<'english' | 'hindi'>('hindi');
+  const [loadingPoolGen, setLoadingPoolGen] = useState<boolean>(false);
 
   // Preview State
   const [previewTest, setPreviewTest] = useState<any | null>(null);
@@ -151,7 +217,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
     return test.examId === filterExamId || (Array.isArray(test.examIds) && test.examIds.includes(filterExamId));
   });
 
-    const getApiUrl = (path: string) => {
+  const getApiUrl = (path: string) => {
     const hostname = window.location.hostname;
     const isLocal = hostname === 'localhost' || 
                     hostname === '127.0.0.1' || 
@@ -180,8 +246,10 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
     try {
       if (uploadJsonText.trim()) {
         const parsed = JSON.parse(sanitizeJsonString(uploadJsonText));
-        if (parsed && Array.isArray(parsed.questions)) {
-          setParsedPreviewQuestions(parsed.questions);
+        const questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+        if (Array.isArray(questionsArray)) {
+          const normalized = questionsArray.map((q: any) => normalizeQuestion(q));
+          setParsedPreviewQuestions(normalized);
         } else {
           setParsedPreviewQuestions([]);
         }
@@ -192,6 +260,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       setParsedPreviewQuestions([]);
     }
   }, [uploadJsonText]);
+
 
   const fetchTestsList = async () => {
     setLoadingList(true);
@@ -214,8 +283,27 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
     }
   };
 
+  const fetchPoolStats = async () => {
+    setLoadingStats(true);
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(getApiUrl('/api/admin/questions/pool/stats'), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPoolStats(data);
+      }
+    } catch (e) {
+      console.error("Error fetching pool stats", e);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   useEffect(() => {
     fetchTestsList();
+    fetchPoolStats();
   }, [currentUser]);
 
   // Handle exam select change to reset selected subject to default
@@ -351,6 +439,104 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       setUploadLoading(false);
     }
   };
+
+  const handleUploadPoolQuestions = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadJsonText.trim()) {
+      setErrorMessage('JSON content is empty.');
+      return;
+    }
+
+    setUploadLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const parsed = JSON.parse(sanitizeJsonString(uploadJsonText));
+      const questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+
+      if (!Array.isArray(questionsArray) || questionsArray.length === 0) {
+        throw new Error('Could not find questions array in the JSON.');
+      }
+
+      const normalizedQuestions = questionsArray.map((q: any) => normalizeQuestion(q));
+      const token = await currentUser.getIdToken();
+
+      const payload = {
+        questions: normalizedQuestions,
+        examIds: selectedExamIds
+      };
+
+      const res = await fetch(getApiUrl('/api/admin/questions/pool/upload'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage(data.message || `Successfully uploaded questions to the Question Bank!`);
+        setUploadJsonText('');
+        fetchPoolStats();
+      } else {
+        throw new Error(data.error || 'Failed to upload questions to the pool.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Error parsing or uploading questions to the pool.');
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const handleGenerateFromPool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingPoolGen(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const token = await currentUser.getIdToken();
+      const selectedExamsData = exams.filter(ex => selectedExamIds.includes(ex.id));
+
+      const payload = {
+        examId: activeExam.id,
+        examName: activeExam.name,
+        examIds: selectedExamIds,
+        examNames: selectedExamsData.map(ex => ex.name),
+        subject: poolGenSubject,
+        mode: poolGenMode,
+        language: poolGenLanguage,
+        questionCount: poolGenCount
+      };
+
+      const res = await fetch(getApiUrl('/api/admin/tests/generate-from-pool'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage(`Successfully generated ${poolGenMode} (${poolGenCount} Qs) from the pool!`);
+        fetchTestsList();
+      } else {
+        throw new Error(data.error || 'Failed to generate test from pool.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Failed to generate test from pool.');
+    } finally {
+      setLoadingPoolGen(false);
+    }
+  };
+
 
   const renderTargetExamsSelection = (disabled: boolean) => (
     <div className="flex flex-col gap-1.5 border border-border p-3 rounded-lg bg-bg-s3/40 select-none">
@@ -518,111 +704,153 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         
         {/* Generate & Upload Creator Panel */}
         <div className="bg-bg-s2 border border-border p-5 rounded-xl shadow-md flex flex-col gap-4">
-          <div className="flex bg-bg-s3 border border-border p-1 rounded-lg w-full mb-1 select-none">
+          <div className="grid grid-cols-2 gap-1 bg-bg-s3 border border-border p-1 rounded-lg w-full mb-1 select-none">
             <button
               type="button"
               onClick={() => { setCreatorTab('generate'); setErrorMessage(''); setSuccessMessage(''); }}
-              className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded cursor-pointer transition-colors ${
+              className={`py-1.5 text-[9px] font-black uppercase rounded cursor-pointer transition-colors ${
                 creatorTab === 'generate' ? 'bg-saffron text-bg-s1 font-black shadow-sm' : 'text-text-muted hover:text-text'
               }`}
             >
-              AI Generator
+              AI Gen
             </button>
             <button
               type="button"
               onClick={() => { setCreatorTab('upload'); setErrorMessage(''); setSuccessMessage(''); }}
-              className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded cursor-pointer transition-colors ${
+              className={`py-1.5 text-[9px] font-black uppercase rounded cursor-pointer transition-colors ${
                 creatorTab === 'upload' ? 'bg-saffron text-bg-s1 font-black shadow-sm' : 'text-text-muted hover:text-text'
               }`}
             >
-              JSON Upload
+              Upload Test
+            </button>
+            <button
+              type="button"
+              onClick={() => { setCreatorTab('pool_generate'); setErrorMessage(''); setSuccessMessage(''); }}
+              className={`py-1.5 text-[9px] font-black uppercase rounded cursor-pointer transition-colors ${
+                creatorTab === 'pool_generate' ? 'bg-saffron text-bg-s1 font-black shadow-sm' : 'text-text-muted hover:text-text'
+              }`}
+            >
+              Pool Gen
+            </button>
+            <button
+              type="button"
+              onClick={() => { setCreatorTab('pool_upload'); setErrorMessage(''); setSuccessMessage(''); }}
+              className={`py-1.5 text-[9px] font-black uppercase rounded cursor-pointer transition-colors ${
+                creatorTab === 'pool_upload' ? 'bg-saffron text-bg-s1 font-black shadow-sm' : 'text-text-muted hover:text-text'
+              }`}
+            >
+              Pool Upload
             </button>
           </div>
 
-          {creatorTab === 'generate' ? (
+          {loadingStats && !poolStats ? (
+            <div className="flex items-center justify-center p-3 text-[10px] text-text-muted font-sans gap-2 select-none bg-bg-s3/40 border border-border/60 rounded-lg">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-saffron" />
+              <span>Fetching stats...</span>
+            </div>
+          ) : poolStats && (creatorTab === 'pool_generate' || creatorTab === 'pool_upload') ? (
+            <div className="bg-bg-s3/40 border border-border/60 rounded-lg p-3 text-[10px] text-text-muted font-sans flex flex-col gap-1.5 select-none">
+              <span className="font-black text-saffron uppercase tracking-wider block">📂 Question Bank Pool Stats</span>
+              <div className="grid grid-cols-2 gap-2 mt-0.5">
+                <div className="flex flex-col">
+                  <span className="text-text font-black text-base leading-none">{poolStats.totalCount}</span>
+                  <span>Total Pool Qs</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-text font-black text-base leading-none">{Object.keys(poolStats.subjects || {}).length}</span>
+                  <span>Total Subjects</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+
+          {creatorTab === 'generate' && (
             <form onSubmit={handleGenerateTest} className="flex flex-col gap-4 font-sans">
-            {/* Exam Select */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-black uppercase text-text-muted">Base Syllabus Exam</label>
-              <select
-                value={selectedExamId}
-                onChange={handleExamChange}
-                className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
-                disabled={loadingGen}
-              >
-                {exams.map(ex => (
-                  <option key={ex.id} value={ex.id}>{ex.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Target Exams Checkboxes */}
-            {renderTargetExamsSelection(loadingGen)}
-
-            {/* Subject Select */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-black uppercase text-text-muted">Subject Scope</label>
-              <select
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
-                disabled={loadingGen}
-              >
-                <option value="all">All Subjects (Mixed Pattern)</option>
-                {activeExam?.subjects?.map(s => (
-                  <option key={s.id} value={s.name}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Mode & Language (2-column row) */}
-            <div className="grid grid-cols-2 gap-3">
+              {/* Exam Select */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Test Length</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">Base Syllabus Exam</label>
                 <select
-                  value={selectedMode}
-                  onChange={(e) => setSelectedMode(e.target.value as any)}
+                  value={selectedExamId}
+                  onChange={handleExamChange}
                   className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
                   disabled={loadingGen}
                 >
-                  <option value="quiz">Quiz (5 Qs)</option>
-                  <option value="mock">Full Mock (25 Qs)</option>
+                  {exams.map(ex => (
+                    <option key={ex.id} value={ex.id}>{ex.name}</option>
+                  ))}
                 </select>
               </div>
 
+              {/* Target Exams Checkboxes */}
+              {renderTargetExamsSelection(loadingGen)}
+
+              {/* Subject Select */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Language</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">Subject Scope</label>
                 <select
-                  value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value as any)}
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
                   className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
                   disabled={loadingGen}
                 >
-                  <option value="hindi">Hindi (Devanagari)</option>
-                  <option value="english">English</option>
+                  <option value="all">All Subjects (Mixed Pattern)</option>
+                  {activeExam?.subjects?.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
                 </select>
               </div>
-            </div>
-            {/* Submit button */}
-            <button
-              type="submit"
-              disabled={loadingGen}
-              className="w-full mt-2 py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md"
-            >
-              {loadingGen ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Generating (15-20s)...</span>
-                </>
-              ) : (
-                <>
-                  <Settings className="w-3.5 h-3.5" />
-                  <span>Trigger Generation</span>
-                </>
-              )}
-            </button>
-          </form>
-          ) : (
+
+              {/* Grid: Mode & Language */}
+              <div className="grid grid-cols-2 gap-3.5">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Test Mode</label>
+                  <select
+                    value={selectedMode}
+                    onChange={(e) => setSelectedMode(e.target.value as any)}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                    disabled={loadingGen}
+                  >
+                    <option value="quiz">Standard Quiz</option>
+                    <option value="mock">Full Length Mock</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Language</label>
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value as any)}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                    disabled={loadingGen}
+                  >
+                    <option value="hindi">Hindi (Devanagari)</option>
+                    <option value="english">English</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Submit button */}
+              <button
+                type="submit"
+                disabled={loadingGen}
+                className="w-full mt-2 py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md"
+              >
+                {loadingGen ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Generating (15-20s)...</span>
+                  </>
+                ) : (
+                  <>
+                    <Settings className="w-3.5 h-3.5" />
+                    <span>Trigger Generation</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {creatorTab === 'upload' && (
             <form onSubmit={handleUploadTest} className="flex flex-col gap-4 font-sans">
               {/* Target Exams Checkboxes */}
               {renderTargetExamsSelection(uploadLoading)}
@@ -668,107 +896,6 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                           sourcePattern: "CG Vyapam PYQ Inspired",
                           yearTrend: "2020-2023",
                           expectedIn2026: true
-                        },
-                        {
-                          qType: "assertion_reason",
-                          question: "निर्देश - नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए-",
-                          assertion: "समुद्रगुप्त को लिच्छवि दौहित्र के नाम से जाना जाता है।",
-                          reason: "उनके पिता चन्द्रगुप्त प्रथम ने लिच्छवि वंश की राजकुमारी कुमारदेवी से विवाह किया था।",
-                          options: [
-                            "[As] और [R] दोनों सत्य हैं, और [R], [As] की सही व्याख्या है।",
-                            "[As] और [R] दोनों सत्य हैं, लेकिन [R], [As] की सही व्याख्या नहीं है।",
-                            "[As] सत्य है, लेकिन [R] असत्य है।",
-                            "[As] असत्य है, लेकिन [R] सत्य है।"
-                          ],
-                          correctIndex: 0,
-                          explanation: "चन्द्रगुप्त प्रथम के लिच्छवि राजकुमारी कुमारदेवी से विवाह के कारण समुद्रगुप्त लिच्छवि वंश का नाती (दौहित्र) कहलाया, इसलिए दोनों कथन सत्य हैं और व्याख्या सही है।",
-                          subject: "History",
-                          difficulty: "moderate",
-                          topic: "Gupta Empire",
-                          sourcePattern: "CGPSC PYQ Inspired",
-                          yearTrend: "2021-2024",
-                          expectedIn2026: false
-                        },
-                        {
-                          qType: "match_column",
-                          question: "निम्नलिखित को सुमेलित कीजिए-",
-                          columnI: [
-                            "(a) आठ-आठ आँसू रोना",
-                            "(b) घड़ों पानी पड़ जाना",
-                            "(c) डंका बजना",
-                            "(d) गूलर का फूल"
-                          ],
-                          columnII: [
-                            "(I) बहुत शर्मिंदा होना",
-                            "(II) पछतावा होना",
-                            "(III) दुर्लभ वस्तु",
-                            "(IV) ख्याति होना"
-                          ],
-                          options: [
-                            "a-II, b-I, c-IV, d-III",
-                            "a-I, b-II, c-III, d-IV",
-                            "a-III, b-IV, c-I, d-II",
-                            "a-II, b-III, c-I, d-IV"
-                          ],
-                          correctIndex: 0,
-                          explanation: "सही सुमेलन इस प्रकार है: आठ-आठ आँसू रोना (पछतावा होना), घड़ों पानी पड़ जाना (बहुत शर्मिंदा होना), डंका बजना (ख्याति होना), गूलर का फूल (दुर्लभ वस्तु)।",
-                          subject: "Hindi Grammar",
-                          difficulty: "moderate",
-                          topic: "Hindi Idioms",
-                          sourcePattern: "CG Vyapam PYQ Inspired",
-                          yearTrend: "2019-2023",
-                          expectedIn2026: true
-                        },
-                        {
-                          qType: "ordering",
-                          question: "निम्नलिखित शब्दों को हिन्दी वर्णमाला के क्रम में व्यवस्थित करें-",
-                          statements: [
-                            "आशुतोष",
-                            "शूलपाणि",
-                            "पशुपति",
-                            "चंद्रचूड़",
-                            "इन्दुशेखर"
-                          ],
-                          statementLabels: ["K", "L", "M", "N", "O"],
-                          options: [
-                            "K → O → N → M → L",
-                            "O → K → L → N → M",
-                            "O → N → K → M → L",
-                            "K → O → M → L → N"
-                          ],
-                          correctIndex: 0,
-                          explanation: "वर्णमाला के अनुसार सही क्रम होगा: आशुतोष (K) -> इन्दुशेखर (O) -> चंद्रचूड़ (N) -> पशुपति (M) -> शूलपाणि (L)।",
-                           subject: "Hindi Grammar",
-                           difficulty: "moderate",
-                           topic: "Hindi Alphabet and Vocabulary",
-                           sourcePattern: "CG Vyapam PYQ Inspired",
-                           yearTrend: "2018-2022",
-                           expectedIn2026: false
-                        },
-                        {
-                          qType: "multi_statement",
-                          question: "'दोहा' के संबंध में क्या सही है?",
-                          statements: [
-                            "11 मात्राएँ (प्रथम और तृतीय चरण)",
-                            "13 मात्राएँ (प्रथम और तृतीय चरण)",
-                            "16 मात्राएँ (द्वितीय और चतुर्थ चरण)",
-                            "11 मात्राएँ (द्वितीय और चतुर्थ चरण)"
-                          ],
-                          statementLabels: ["J", "K", "L", "M"],
-                          options: [
-                            "केवल J और L",
-                            "केवल K और M",
-                            "J, K और M",
-                            "J, K और L"
-                          ],
-                          correctIndex: 1,
-                          explanation: "दोहा अर्धसम मात्रिक छंद है। इसके प्रथम और तृतीय चरण में 13-13 मात्राएँ (K) तथा द्वितीय और चतुर्थ चरण में 11-11 मात्राएँ (M) होती हैं।",
-                           subject: "Hindi Grammar",
-                           difficulty: "hard",
-                           topic: "Hindi Poetic Metres (Chhand)",
-                           sourcePattern: "CGPSC PYQ Inspired",
-                           yearTrend: "2020-2025",
-                           expectedIn2026: true
                         }
                       ]
                     }, null, 2))}
@@ -785,116 +912,33 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   disabled={uploadLoading}
                 />
 
-                {/* Pasted JSON Questions Live Preview Panel */}
                 {parsedPreviewQuestions.length > 0 && (
-                  <div className="flex flex-col gap-3.5 border border-border p-5 rounded-xl bg-bg-s2/40 shadow-md max-h-[600px] overflow-y-auto select-text mb-2.5 w-full">
+                  <div className="flex flex-col gap-3.5 border border-border p-5 rounded-xl bg-bg-s2/40 shadow-md max-h-[300px] overflow-y-auto select-text mb-2.5 w-full">
                     <span className="text-xs font-black uppercase text-saffron tracking-wider flex items-center gap-1.5 select-none">
                       <Eye className="w-4 h-4 animate-pulse" /> Pasted JSON Live Preview ({parsedPreviewQuestions.length} Qs)
                     </span>
-                    
-                    <div className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-4">
                       {parsedPreviewQuestions.map((pq: any, pIdx: number) => (
-                        <div key={pIdx} className="p-4.5 bg-bg-s3 border border-border/80 rounded-xl flex flex-col gap-3.5 font-sans shadow-sm">
-                          <div className="flex justify-between items-center gap-3 border-b border-border/30 pb-2 select-none">
-                            <span className="text-[10px] font-black uppercase text-saffron tracking-wider">Q{pIdx + 1} ({pq.qType || 'standard'})</span>
-                            <span className="text-[9px] font-black uppercase text-text-muted bg-bg-s2 px-2 py-0.5 rounded border border-border">{pq.subject || 'General'}</span>
+                        <div key={pIdx} className="p-3 bg-bg-s3 border border-border/60 rounded-lg flex flex-col gap-2 font-sans shadow-sm">
+                          <div className="flex justify-between items-center gap-2 border-b border-border/20 pb-1.5 select-none">
+                            <span className="text-[9px] font-black uppercase text-saffron tracking-wider">Q{pIdx + 1} ({pq.qType || 'standard'})</span>
+                            <span className="text-[8px] font-black uppercase text-text-muted bg-bg-s2 px-1.5 py-0.5 rounded border border-border">{pq.subject || 'General'}</span>
                           </div>
-
-                          {pq.qType === 'assertion_reason' ? (
-                            <div className="flex flex-col gap-3.5">
-                              <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
-                                {(() => {
-                                  const cleaned = stripAssertionReason(pq.question);
-                                  return cleaned.trim() ? cleaned : 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:';
-                                })()}
-                              </p>
-                              <div className="flex flex-col gap-2.5">
-                                <div className="bg-bg-s2 border-l-4 border-saffron rounded-r-lg p-3 flex flex-col gap-1">
-                                  <span className="text-[9px] font-black uppercase text-saffron block select-none">कथन [Assertion - As]</span>
-                                  <p className="text-xs sm:text-sm text-text font-medium leading-relaxed font-hindi whitespace-pre-wrap">{pq.assertion}</p>
+                          <p className="text-xs font-semibold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question}</p>
+                          {pq.options && pq.options.length > 0 && (
+                            <div className="grid grid-cols-2 gap-1.5 mt-1 border-t border-border/20 pt-1.5">
+                              {pq.options.map((opt: string, optIdx: number) => (
+                                <div key={optIdx} className={`px-2 py-1.5 rounded text-[10px] font-semibold border flex items-center gap-1.5 ${
+                                  optIdx === pq.correctIndex ? 'bg-greenL/5 border-greenL/25 text-greenL' : 'bg-bg-s2 border-border text-text-muted'
+                                }`}>
+                                  <span className="w-4 h-4 bg-bg-s1 rounded-full flex items-center justify-center text-[9px] shrink-0 font-black">
+                                    {String.fromCharCode(65 + optIdx)}
+                                  </span>
+                                  <span className="truncate">{opt}</span>
                                 </div>
-                                <div className="bg-bg-s2 border-l-4 border-blue-500 rounded-r-lg p-3 flex flex-col gap-1">
-                                  <span className="text-[9px] font-black uppercase text-blue-400 block select-none">कारण [Reason - R]</span>
-                                  <p className="text-xs sm:text-sm text-text font-medium leading-relaxed font-hindi whitespace-pre-wrap">{pq.reason}</p>
-                                </div>
-                              </div>
+                              ))}
                             </div>
-                          ) : pq.qType === 'match_column' ? (
-                            <div className="flex flex-col gap-3.5">
-                              <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
-                                {(() => {
-                                  const cleaned = stripMarkdownTable(pq.question);
-                                  return cleaned.trim() ? cleaned : 'निम्नलिखित को सुमेलित कीजिए-';
-                                })()}
-                              </p>
-                              <div className="border border-border rounded-xl overflow-hidden text-xs sm:text-sm font-hindi shadow-sm">
-                                <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[10px] font-black uppercase text-text-muted select-none">
-                                  <div className="px-4 py-2 border-r border-border/40">कॉलम-I</div>
-                                  <div className="px-4 py-2">कॉलम-II</div>
-                                </div>
-                                <div className="divide-y divide-border/30 bg-bg-s2/40">
-                                  {Array.from({ length: Math.max(pq.columnI?.length || 0, pq.columnII?.length || 0) }).map((_, rIdx) => (
-                                    <div key={rIdx} className="grid grid-cols-2">
-                                      <div className="px-4 py-2.5 border-r border-border/30 font-semibold whitespace-pre-wrap flex items-start gap-2">
-                                        <span className="text-saffron font-black select-none bg-saffron/10 px-1.5 py-0.5 rounded text-[10px] shrink-0">
-                                          {String.fromCharCode(65 + rIdx)}
-                                        </span>
-                                        <span>{cleanPrefix(pq.columnI?.[rIdx] || '')}</span>
-                                      </div>
-                                      <div className="px-4 py-2.5 font-semibold whitespace-pre-wrap flex items-start gap-2">
-                                        <span className="text-blue-400 font-black select-none bg-blue-500/10 px-1.5 py-0.5 rounded text-[10px] shrink-0">
-                                          {rIdx + 1}
-                                        </span>
-                                        <span>{cleanPrefix(pq.columnII?.[rIdx] || '')}</span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          ) : (pq.qType === 'ordering' || pq.qType === 'multi_statement') ? (
-                            <div className="flex flex-col gap-3.5">
-                              <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">
-                                {(() => {
-                                  const cleaned = stripStatements(pq.question);
-                                  return cleaned.trim() ? cleaned : 'नीचे दिए गए कथनों को पढ़िए और सही विकल्प चुनिए:';
-                                })()}
-                              </p>
-                              <div className="flex flex-col gap-2 font-hindi">
-                                {pq.statements?.map((stmt: string, sIdx: number) => {
-                                  if (!stmt) return null;
-                                  const label = pq.statementLabels?.[sIdx] || `${sIdx + 1}`;
-                                  return (
-                                    <div key={sIdx} className="flex items-center gap-3 bg-bg-s2 border border-border/30 rounded-xl px-3 py-2.5 shadow-sm">
-                                      <span className="w-6 h-6 bg-bg-s3 border border-border/60 rounded-lg flex items-center justify-center text-[10px] font-black text-saffron shrink-0 select-none">{label}</span>
-                                      <span className="text-xs sm:text-sm text-text font-semibold whitespace-pre-wrap leading-relaxed">{stmt}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-sm sm:text-base font-bold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question}</p>
                           )}
-
-                          {/* Options */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-3 border-t border-border/20 font-sans">
-                            {pq.options?.map((opt: string, optIdx: number) => (
-                              <div 
-                                key={optIdx} 
-                                className={`p-2.5 rounded-lg text-xs sm:text-sm font-semibold border flex items-center gap-2.5 ${
-                                  optIdx === pq.correctIndex
-                                    ? 'bg-greenL/5 border-greenL/25 text-greenL'
-                                    : 'bg-bg-s2 border-border text-text-muted'
-                                }`}
-                              >
-                                <span className="w-5 h-5 bg-bg-s1 rounded-full flex items-center justify-center text-[10px] shrink-0 font-black select-none">
-                                  {String.fromCharCode(65 + optIdx)}
-                                </span>
-                                <span className="whitespace-pre-wrap">{opt}</span>
-                              </div>
-                            ))}
-                          </div>
                         </div>
                       ))}
                     </div>
@@ -931,6 +975,200 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   <>
                     <Plus className="w-3.5 h-3.5" />
                     <span>Upload Test Paper</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {creatorTab === 'pool_generate' && (
+            <form onSubmit={handleGenerateFromPool} className="flex flex-col gap-4 font-sans">
+              {/* Exam Select */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-text-muted">Base Syllabus Exam</label>
+                <select
+                  value={selectedExamId}
+                  onChange={handleExamChange}
+                  className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                  disabled={loadingPoolGen}
+                >
+                  {exams.map(ex => (
+                    <option key={ex.id} value={ex.id}>{ex.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Target Exams Checkboxes */}
+              {renderTargetExamsSelection(loadingPoolGen)}
+
+              {/* Subject Select */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-text-muted">Subject Pool Filter</label>
+                <select
+                  value={poolGenSubject}
+                  onChange={(e) => setPoolGenSubject(e.target.value)}
+                  className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                  disabled={loadingPoolGen}
+                >
+                  <option value="all">Mixed (All Subjects)</option>
+                  {poolStats && Object.keys(poolStats.subjects || {}).map(sub => (
+                    <option key={sub} value={sub}>{sub} ({poolStats.subjects[sub]} Qs in pool)</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Question Count Input */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-text-muted">Number of Questions ({poolGenCount})</label>
+                <input
+                  type="range"
+                  min="5"
+                  max="100"
+                  step="5"
+                  value={poolGenCount}
+                  onChange={(e) => setPoolGenCount(parseInt(e.target.value, 10))}
+                  className="w-full h-1.5 bg-bg-s3 rounded-lg appearance-none cursor-pointer accent-saffron"
+                  disabled={loadingPoolGen}
+                />
+                <div className="flex justify-between text-[8px] font-black uppercase text-text-muted select-none mt-0.5">
+                  <span>5 Qs</span>
+                  <span>50 Qs</span>
+                  <span>100 Qs</span>
+                </div>
+              </div>
+
+              {/* Grid: Mode & Language */}
+              <div className="grid grid-cols-2 gap-3.5">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Test Mode</label>
+                  <select
+                    value={poolGenMode}
+                    onChange={(e) => setPoolGenMode(e.target.value as any)}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                    disabled={loadingPoolGen}
+                  >
+                    <option value="quiz">Standard Quiz</option>
+                    <option value="mock">Full Length Mock</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Language</label>
+                  <select
+                    value={poolGenLanguage}
+                    onChange={(e) => setPoolGenLanguage(e.target.value as any)}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                    disabled={loadingPoolGen}
+                  >
+                    <option value="hindi">Hindi (Devanagari)</option>
+                    <option value="english">English</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Submit button */}
+              <button
+                type="submit"
+                disabled={loadingPoolGen}
+                className="w-full mt-2 py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md"
+              >
+                {loadingPoolGen ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Generating from Pool...</span>
+                  </>
+                ) : (
+                  <>
+                    <Settings className="w-3.5 h-3.5" />
+                    <span>Generate Test from Pool</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {creatorTab === 'pool_upload' && (
+            <form onSubmit={handleUploadPoolQuestions} className="flex flex-col gap-4 font-sans">
+              {/* Target Exams Checkboxes */}
+              {renderTargetExamsSelection(uploadLoading)}
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-text-muted">Upload Pool JSON File</label>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileUpload}
+                  className="w-full bg-bg-s3 text-xs text-text border border-border px-3 py-2.5 rounded-lg outline-none cursor-pointer file:bg-saffron file:text-bg-s1 file:border-none file:px-2.5 file:py-1 file:rounded file:text-[9px] file:font-black file:uppercase file:cursor-pointer"
+                  disabled={uploadLoading}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-center w-full">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Or Paste Raw JSON Array</label>
+                  <button
+                    type="button"
+                    onClick={() => setUploadJsonText(JSON.stringify([
+                      {
+                        qId: "CG_GK_001",
+                        qType: "MCQ",
+                        examTags: ["cgpsc_sse"],
+                        subject: "CG GK",
+                        topic: "Administration in Chhattisgarh",
+                        language: "hi",
+                        question: "छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष कौन थे?",
+                        options: ["बनवारी लाल अग्रवाल", "राजेन्द्र प्रसाद शुक्ल", "धर्मजीत सिंह", "डॉ. रमन सिंह"],
+                        correctIndex: 1,
+                        explanation: "राजेन्द्र प्रसाद शुक्ल छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष थे।"
+                      }
+                    ], null, 2))}
+                    className="text-[8px] font-black uppercase text-saffron hover:underline cursor-pointer"
+                  >
+                    Insert Template
+                  </button>
+                </div>
+                <textarea
+                  value={uploadJsonText}
+                  onChange={(e) => setUploadJsonText(e.target.value)}
+                  placeholder='[{"qId": "...", "qType": "MCQ", "question": "...", "options": [...]}]'
+                  className="w-full h-36 bg-bg-s3 text-[10px] font-mono text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none mb-1.5"
+                  disabled={uploadLoading}
+                />
+
+                {/* Live Preview Panel */}
+                {parsedPreviewQuestions.length > 0 && (
+                  <div className="flex flex-col gap-3.5 border border-border p-5 rounded-xl bg-bg-s2/40 shadow-md max-h-[300px] overflow-y-auto select-text mb-2.5 w-full">
+                    <span className="text-xs font-black uppercase text-saffron tracking-wider flex items-center gap-1.5 select-none">
+                      <Eye className="w-4 h-4 animate-pulse" /> Pasted JSON Live Preview ({parsedPreviewQuestions.length} Qs)
+                    </span>
+                    <div className="flex flex-col gap-4">
+                      {parsedPreviewQuestions.map((pq: any, pIdx: number) => (
+                        <div key={pIdx} className="p-3 bg-bg-s3 border border-border/60 rounded-lg flex flex-col gap-2 font-sans shadow-sm">
+                          <div className="flex justify-between items-center gap-2 border-b border-border/20 pb-1.5 select-none">
+                            <span className="text-[9px] font-black uppercase text-saffron tracking-wider">Q{pIdx + 1} ({pq.qType || 'standard'})</span>
+                            <span className="text-[8px] font-black uppercase text-text-muted bg-bg-s2 px-1.5 py-0.5 rounded border border-border">{pq.subject || 'General'}</span>
+                          </div>
+                          <p className="text-xs font-semibold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={uploadLoading || !uploadJsonText.trim()}
+                className="w-full py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md"
+              >
+                {uploadLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Uploading Pool Qs...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Upload to Question Bank</span>
                   </>
                 )}
               </button>
@@ -1021,7 +1259,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                               </span>
                             )}
                           </div>
-                        </td>
+                        </div>
+                      </td>
                       <td className="py-3 px-3">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-text bg-bg-s3 px-2 py-0.5 border border-border rounded flex items-center gap-1 w-max">
                           <Globe className="w-3 h-3 text-saffron" />
