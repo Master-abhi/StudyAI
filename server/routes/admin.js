@@ -188,7 +188,11 @@ router.get('/config/tabs', async (req, res) => {
       chat: true,
       news: true,
       syllabus: true,
-      profile: true
+      profile: true,
+      syllabus_ai_planner: true,
+      syllabus_revision: true,
+      syllabus_analytics: true,
+      syllabus_strategy: true
     };
     if (doc.exists) {
       const data = doc.data();
@@ -211,7 +215,10 @@ router.post('/config/tabs', verifyAdmin, async (req, res) => {
     }
     
     const updatedVisibility = {};
-    const validTabs = ['home', 'practice', 'chat', 'news', 'syllabus', 'profile'];
+    const validTabs = [
+      'home', 'practice', 'chat', 'news', 'syllabus', 'profile',
+      'syllabus_ai_planner', 'syllabus_revision', 'syllabus_analytics', 'syllabus_strategy'
+    ];
     for (const key of validTabs) {
       if (visibility.hasOwnProperty(key)) {
         updatedVisibility[key] = !!visibility[key];
@@ -443,7 +450,7 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
 // Generate AI test and save to Firestore
 router.post('/tests/generate', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
-    const { examId, examName, examIds, examNames, subject, mode, language, subjects } = req.body;
+    const { examId, examName, examIds, examNames, subject, mode, language, subjects, durationMinutes } = req.body;
 
     if (!examId || !examName) {
       return res.status(400).json({ error: 'examId and examName are required' });
@@ -481,9 +488,9 @@ router.post('/tests/generate', verifyStaffOrAdmin('tests'), async (req, res) => 
       questions: enrichedQuestions,
       pattern: {
         totalQuestions: enrichedQuestions.length,
-        totalMarks: enrichedQuestions.length * (testMode === 'mock' ? 2 : 1),
-        durationMinutes: testMode === 'mock' ? 120 : 10,
-        markingScheme: testMode === 'mock' ? '+2 for correct, -0.66 for incorrect' : '+1 for correct, 0 for incorrect'
+        totalMarks: enrichedQuestions.length,
+        durationMinutes: parseInt(durationMinutes, 10) || (testMode === 'mock' ? 120 : 10),
+        markingScheme: testMode === 'mock' ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
       },
       createdAt: timestamp
     };
@@ -587,9 +594,9 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
     const testMode = mode || 'quiz';
     const testPattern = pattern || {
       totalQuestions: enrichedQuestions.length,
-      totalMarks: enrichedQuestions.length * (testMode === 'mock' ? 2 : 1),
+      totalMarks: enrichedQuestions.length,
       durationMinutes: testMode === 'mock' ? 120 : 10,
-      markingScheme: testMode === 'mock' ? '+2 for correct, -0.66 for incorrect' : '+1 for correct, 0 for incorrect'
+      markingScheme: testMode === 'mock' ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
     };
 
     const newTest = {
@@ -787,7 +794,7 @@ router.get('/questions/pool/stats', verifyStaffOrAdmin('tests'), async (req, res
 // Generate a test from the global Question Bank pool
 router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
-    const { examId, examName, examIds, examNames, subject, mode, language, questionCount } = req.body;
+    const { examId, examName, examIds, examNames, subject, mode, language, questionCount, durationMinutes } = req.body;
 
     if (!examId || !examName) {
       return res.status(400).json({ error: 'examId and examName are required' });
@@ -797,35 +804,90 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
     const testMode = mode || 'quiz';
     const selectedSubject = subject || 'all';
 
-    // Query the question_bank collection for matching examId tag
-    let query = db.collection('question_bank').where('examTags', 'array-contains', examId);
-    const snapshot = await query.get();
-    
-    let poolQuestions = snapshot.docs.map(doc => doc.data());
+    const targetExamIds = Array.isArray(examIds) && examIds.length > 0 ? examIds : [examId];
+    const limitedExamIds = targetExamIds.slice(0, 10);
 
-    // Filter by subject in-memory
-    if (selectedSubject !== 'all' && selectedSubject !== 'mixed' && selectedSubject !== '') {
-      const subNorm = selectedSubject.toLowerCase().trim();
-      poolQuestions = poolQuestions.filter(q => {
-        const qSub = (q.subject || '').toLowerCase().trim();
-        return qSub === subNorm;
-      });
+    // 1. Fetch questions matching target exams
+    let examQuestions = [];
+    try {
+      const examSnapshot = await db.collection('question_bank')
+        .where('examTags', 'array-contains-any', limitedExamIds)
+        .get();
+      examQuestions = examSnapshot.docs.map(doc => doc.data());
+    } catch (e) {
+      console.warn('[Generate from Pool] Firestore array-contains-any query failed or no matches:', e.message);
     }
 
-    if (poolQuestions.length === 0) {
+    // 2. Filter matching exams by target subject
+    let primaryMatches = examQuestions;
+    if (selectedSubject !== 'all' && selectedSubject !== 'mixed' && selectedSubject !== '') {
+      const subNorm = selectedSubject.toLowerCase().trim();
+      primaryMatches = examQuestions.filter(q => (q.subject || '').toLowerCase().trim() === subNorm);
+    }
+
+    let finalQuestions = [...primaryMatches];
+
+    // Helper to shuffle array in-place
+    const shuffle = (array) => {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    };
+
+    // Shuffle primary matches
+    shuffle(finalQuestions);
+
+    // 3. Fallback level 1: Same subject across other exams (if subject is not all/mixed)
+    if (finalQuestions.length < count && selectedSubject !== 'all' && selectedSubject !== 'mixed' && selectedSubject !== '') {
+      const subNorm = selectedSubject.toLowerCase().trim();
+      const globalSnapshot = await db.collection('question_bank').limit(1000).get();
+      const globalQuestions = globalSnapshot.docs.map(doc => doc.data());
+
+      let otherExamsSubjectMatches = globalQuestions.filter(q => 
+        (q.subject || '').toLowerCase().trim() === subNorm &&
+        !finalQuestions.some(fq => fq.id === q.id)
+      );
+
+      shuffle(otherExamsSubjectMatches);
+      const toAdd = otherExamsSubjectMatches.slice(0, count - finalQuestions.length);
+      finalQuestions = [...finalQuestions, ...toAdd];
+    }
+
+    // 4. Fallback level 2: Other subjects within the target exams
+    if (finalQuestions.length < count) {
+      let otherSubjectsInExams = examQuestions.filter(q => 
+        !finalQuestions.some(fq => fq.id === q.id)
+      );
+
+      shuffle(otherSubjectsInExams);
+      const toAdd = otherSubjectsInExams.slice(0, count - finalQuestions.length);
+      finalQuestions = [...finalQuestions, ...toAdd];
+    }
+
+    // 5. Fallback level 3: Any other questions in the global pool
+    if (finalQuestions.length < count) {
+      const globalSnapshot = await db.collection('question_bank').limit(1000).get();
+      const globalQuestions = globalSnapshot.docs.map(doc => doc.data());
+
+      let globalOthers = globalQuestions.filter(q => 
+        !finalQuestions.some(fq => fq.id === q.id)
+      );
+
+      shuffle(globalOthers);
+      const toAdd = globalOthers.slice(0, count - finalQuestions.length);
+      finalQuestions = [...finalQuestions, ...toAdd];
+    }
+
+    if (finalQuestions.length === 0) {
       return res.status(400).json({ 
         error: `No questions found in the Question Bank matching Exam: "${examName}" and Subject: "${selectedSubject}".` 
       });
     }
 
-    // Shuffle in-place
-    for (let i = poolQuestions.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [poolQuestions[i], poolQuestions[j]] = [poolQuestions[j], poolQuestions[i]];
-    }
-
     // Select the requested number
-    const selectedQuestions = poolQuestions.slice(0, count);
+    const selectedQuestions = finalQuestions.slice(0, count);
 
     const testId = `test_pool_${Date.now()}`;
     const timestamp = new Date().toISOString();
@@ -875,9 +937,9 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
 
     const testPattern = {
       totalQuestions: enrichedQuestions.length,
-      totalMarks: enrichedQuestions.length * (testMode === 'mock' ? 2 : 1),
-      durationMinutes: testMode === 'mock' ? 120 : 10,
-      markingScheme: testMode === 'mock' ? '+2 for correct, -0.66 for incorrect' : '+1 for correct, 0 for incorrect'
+      totalMarks: enrichedQuestions.length,
+      durationMinutes: parseInt(durationMinutes, 10) || (testMode === 'mock' ? 120 : 10),
+      markingScheme: testMode === 'mock' ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
     };
 
     const newTest = {
@@ -1056,9 +1118,9 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
     const testMode = mode || doc.data().mode || 'quiz';
     const testPattern = pattern || doc.data().pattern || {
       totalQuestions: enrichedQuestions.length,
-      totalMarks: enrichedQuestions.length * (testMode === 'mock' ? 2 : 1),
+      totalMarks: enrichedQuestions.length,
       durationMinutes: testMode === 'mock' ? 120 : 10,
-      markingScheme: testMode === 'mock' ? '+2 for correct, -0.66 for incorrect' : '+1 for correct, 0 for incorrect'
+      markingScheme: testMode === 'mock' ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
     };
 
     const updatedTest = {

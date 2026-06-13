@@ -182,6 +182,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedMode, setSelectedMode] = useState<'quiz' | 'mock'>('quiz');
   const [selectedLanguage, setSelectedLanguage] = useState<'english' | 'hindi'>('hindi');
+  const [selectedDuration, setSelectedDuration] = useState<number>(10);
   const [filterExamId, setFilterExamId] = useState<string>('all');
 
   // Creator state
@@ -198,6 +199,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [poolGenCount, setPoolGenCount] = useState<number>(10);
   const [poolGenMode, setPoolGenMode] = useState<'quiz' | 'mock'>('quiz');
   const [poolGenLanguage, setPoolGenLanguage] = useState<'english' | 'hindi'>('hindi');
+  const [poolGenDuration, setPoolGenDuration] = useState<number>(10);
   const [loadingPoolGen, setLoadingPoolGen] = useState<boolean>(false);
 
   // Preview State
@@ -233,10 +235,130 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   };
 
   const sanitizeJsonString = (str: string) => {
-    return str
+    let cleanStr = str.trim();
+    
+    // Strip markdown code block formatting (e.g. ```json ... ```)
+    if (cleanStr.startsWith('```')) {
+      cleanStr = cleanStr.replace(/^```(?:json)?/i, '').trim();
+      cleanStr = cleanStr.replace(/```$/, '').trim();
+    }
+
+    let inString = false;
+    let escaped = false;
+    let result = '';
+    
+    for (let i = 0; i < cleanStr.length; i++) {
+      const char = cleanStr[i];
+      
+      if (inString) {
+        if (escaped) {
+          result += char;
+          escaped = false;
+        } else if (char === '\\') {
+          result += char;
+          escaped = true;
+        } else if (char === '"') {
+          result += char;
+          inString = false;
+        } else if (char === '\n' || char === '\r') {
+          // Raw newline inside a string literal! Let's check if it's a missing closing quote.
+          // Look ahead to see if the next non-whitespace character starts with a double quote.
+          let lookAheadIdx = i + 1;
+          while (lookAheadIdx < cleanStr.length && /\s/.test(cleanStr[lookAheadIdx])) {
+            lookAheadIdx++;
+          }
+          
+          let isMissingQuote = false;
+          if (lookAheadIdx < cleanStr.length && cleanStr[lookAheadIdx] === '"') {
+            isMissingQuote = true;
+          }
+          
+          if (isMissingQuote) {
+            // Auto-insert the missing closing quote before the newline
+            result += '"';
+            inString = false;
+            result += char; // append the newline as structural whitespace
+          } else {
+            // Standard multiline string: escape the newline character
+            if (char === '\n') {
+              result += '\\n';
+            } else if (char === '\r') {
+              result += '\\r';
+            }
+          }
+        } else {
+          const code = char.charCodeAt(0);
+          if (code < 32) {
+            if (char === '\t') {
+              result += '\\t';
+            } else if (char === '\b') {
+              result += '\\b';
+            } else if (char === '\f') {
+              result += '\\f';
+            } else {
+              const hex = code.toString(16).padStart(4, '0');
+              result += '\\u' + hex;
+            }
+          } else {
+            result += char;
+          }
+        }
+      } else {
+        if (char === '"' || char === '{' || char === '[') {
+          // We are starting a new string, object, or array. Let's check if the previous token
+          // was a closing quote, closing bracket, or closing brace, and we forgot a comma.
+          let lastCharIdx = result.length - 1;
+          while (lastCharIdx >= 0 && /\s/.test(result[lastCharIdx])) {
+            lastCharIdx--;
+          }
+          
+          if (lastCharIdx >= 0) {
+            const lastNonWsChar = result[lastCharIdx];
+            // If the last character was a closing quote, closing bracket, or closing brace,
+            // we should auto-insert a comma.
+            if (lastNonWsChar === '"' || lastNonWsChar === ']' || lastNonWsChar === '}') {
+              result = result.slice(0, lastCharIdx + 1) + ',' + result.slice(lastCharIdx + 1);
+            }
+          }
+          
+          if (char === '"') {
+            inString = true;
+          }
+        }
+        
+        // Auto-remove trailing commas
+        if (char === ',') {
+          let nextIdx = i + 1;
+          while (nextIdx < cleanStr.length && /\s/.test(cleanStr[nextIdx])) {
+            nextIdx++;
+          }
+          if (nextIdx < cleanStr.length && (cleanStr[nextIdx] === '}' || cleanStr[nextIdx] === ']')) {
+            // Trailing comma! Skip appending it
+            continue;
+          }
+        }
+        
+        result += char;
+      }
+    }
+
+    return result
       .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
       .replace(/\u00A0/g, ' ') // Convert non-breaking spaces to standard spaces
       .trim();
+  };
+
+  const getJsonErrorContext = (jsonText: string, errMessage: string): string => {
+    const match = errMessage.match(/at position (\d+)/);
+    if (!match) return '';
+    
+    const pos = parseInt(match[1], 10);
+    const start = Math.max(0, pos - 40);
+    const end = Math.min(jsonText.length, pos + 40);
+    const context = jsonText.slice(start, end);
+    const prefix = context.slice(0, pos - start);
+    const pointer = ' '.repeat(prefix.length) + '^';
+    return `\n\nContext around error:\n>>> ${context} <<<\n    ${pointer}`;
   };
 
   // Pasted JSON live preview state
@@ -245,7 +367,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   useEffect(() => {
     try {
       if (uploadJsonText.trim()) {
-        const parsed = JSON.parse(sanitizeJsonString(uploadJsonText));
+        const sanitized = sanitizeJsonString(uploadJsonText);
+        if (!sanitized.startsWith('{') && !sanitized.startsWith('[')) {
+          setParsedPreviewQuestions([]);
+          return;
+        }
+        const parsed = JSON.parse(sanitized);
         const questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || []);
         if (Array.isArray(questionsArray)) {
           const normalized = questionsArray.map((q: any) => normalizeQuestion(q));
@@ -337,7 +464,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         subject: selectedSubject,
         mode: selectedMode,
         language: selectedLanguage,
-        subjects: activeExam.subjects.map(s => s.name)
+        subjects: activeExam.subjects.map(s => s.name),
+        durationMinutes: selectedDuration
       };
 
       const res = await fetch(getApiUrl('/api/admin/tests/generate'), {
@@ -371,14 +499,23 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
     const reader = new FileReader();
     reader.onload = (event) => {
+      const text = event.target?.result as string;
       try {
-        const text = event.target?.result as string;
+        const sanitized = sanitizeJsonString(text);
+        if (!sanitized.startsWith('{') && !sanitized.startsWith('[')) {
+          throw new Error("The selected file does not appear to be a valid JSON structure (it must start with '{' or '[').");
+        }
         // Basic parse check
-        JSON.parse(sanitizeJsonString(text));
+        JSON.parse(sanitized);
         setUploadJsonText(text);
         setErrorMessage('');
-      } catch (err) {
-        setErrorMessage('Selected file contains invalid JSON.');
+      } catch (err: any) {
+        let errorMsg = err.message || 'Selected file contains invalid JSON.';
+        if (err.message && err.message.includes('position')) {
+          const sanitized = sanitizeJsonString(text);
+          errorMsg += getJsonErrorContext(sanitized, err.message);
+        }
+        setErrorMessage(errorMsg);
       }
     };
     reader.readAsText(file);
@@ -397,7 +534,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
     setSuccessMessage('');
 
     try {
-      const parsed = JSON.parse(sanitizeJsonString(uploadJsonText));
+      const sanitized = sanitizeJsonString(uploadJsonText);
+      if (!sanitized.startsWith('{') && !sanitized.startsWith('[')) {
+        throw new Error("The pasted text does not appear to be a valid JSON structure (it must start with '{' or '['). Please verify your text.");
+      }
+      const parsed = JSON.parse(sanitized);
       const selectedExamsData = exams.filter(ex => selectedExamIds.includes(ex.id));
       const token = await currentUser.getIdToken();
 
@@ -434,7 +575,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       }
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err.message || 'Error parsing or uploading test JSON.');
+      let errorMsg = err.message || 'Error parsing or uploading test JSON.';
+      if (err.message && err.message.includes('position')) {
+        const sanitized = sanitizeJsonString(uploadJsonText);
+        errorMsg += getJsonErrorContext(sanitized, err.message);
+      }
+      setErrorMessage(errorMsg);
     } finally {
       setUploadLoading(false);
     }
@@ -452,7 +598,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
     setSuccessMessage('');
 
     try {
-      const parsed = JSON.parse(sanitizeJsonString(uploadJsonText));
+      const sanitized = sanitizeJsonString(uploadJsonText);
+      if (!sanitized.startsWith('{') && !sanitized.startsWith('[')) {
+        throw new Error("The pasted text does not appear to be a valid JSON structure (it must start with '{' or '['). Please verify your text.");
+      }
+      const parsed = JSON.parse(sanitized);
       const questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || []);
 
       if (!Array.isArray(questionsArray) || questionsArray.length === 0) {
@@ -486,7 +636,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       }
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err.message || 'Error parsing or uploading questions to the pool.');
+      let errorMsg = err.message || 'Error parsing or uploading questions to the pool.';
+      if (err.message && err.message.includes('position')) {
+        const sanitized = sanitizeJsonString(uploadJsonText);
+        errorMsg += getJsonErrorContext(sanitized, err.message);
+      }
+      setErrorMessage(errorMsg);
     } finally {
       setUploadLoading(false);
     }
@@ -510,7 +665,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         subject: poolGenSubject,
         mode: poolGenMode,
         language: poolGenLanguage,
-        questionCount: poolGenCount
+        questionCount: poolGenCount,
+        durationMinutes: poolGenDuration
       };
 
       const res = await fetch(getApiUrl('/api/admin/tests/generate-from-pool'), {
@@ -694,7 +850,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       {errorMessage && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 text-redL rounded-xl flex items-center gap-2.5 text-xs animate-fade-in">
           <ShieldAlert className="w-4 h-4 shrink-0" />
-          <span>{errorMessage}</span>
+          <span className="whitespace-pre-wrap font-mono">{errorMessage}</span>
           <button onClick={() => setErrorMessage('')} className="ml-auto text-redL/60 hover:text-redL">✕</button>
         </div>
       )}
@@ -801,13 +957,17 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                 </select>
               </div>
 
-              {/* Grid: Mode & Language */}
-              <div className="grid grid-cols-2 gap-3.5">
+              {/* Grid: Mode, Language & Duration */}
+              <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase text-text-muted">Test Mode</label>
                   <select
                     value={selectedMode}
-                    onChange={(e) => setSelectedMode(e.target.value as any)}
+                    onChange={(e) => {
+                      const newMode = e.target.value as 'quiz' | 'mock';
+                      setSelectedMode(newMode);
+                      setSelectedDuration(newMode === 'mock' ? 120 : 10);
+                    }}
                     className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
                     disabled={loadingGen}
                   >
@@ -826,6 +986,19 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     <option value="hindi">Hindi (Devanagari)</option>
                     <option value="english">English</option>
                   </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Duration (Mins)</label>
+                  <input
+                    type="number"
+                    value={selectedDuration}
+                    onChange={(e) => setSelectedDuration(parseInt(e.target.value, 10) || 0)}
+                    min="1"
+                    max="300"
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none"
+                    disabled={loadingGen}
+                    required
+                  />
                 </div>
               </div>
 
@@ -879,9 +1052,9 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                       language: "hindi",
                       pattern: {
                         totalQuestions: 5,
-                        totalMarks: 10,
+                        totalMarks: 5,
                         durationMinutes: 10,
-                        markingScheme: "+2 for correct, -0.66 for incorrect"
+                        markingScheme: "+1 for correct, -0.25 for incorrect"
                       },
                       questions: [
                         {
@@ -1037,13 +1210,17 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                 </div>
               </div>
 
-              {/* Grid: Mode & Language */}
-              <div className="grid grid-cols-2 gap-3.5">
+              {/* Grid: Mode, Language & Duration */}
+              <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase text-text-muted">Test Mode</label>
                   <select
                     value={poolGenMode}
-                    onChange={(e) => setPoolGenMode(e.target.value as any)}
+                    onChange={(e) => {
+                      const newMode = e.target.value as 'quiz' | 'mock';
+                      setPoolGenMode(newMode);
+                      setPoolGenDuration(newMode === 'mock' ? 120 : 10);
+                    }}
                     className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
                     disabled={loadingPoolGen}
                   >
@@ -1062,6 +1239,19 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     <option value="hindi">Hindi (Devanagari)</option>
                     <option value="english">English</option>
                   </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Duration (Mins)</label>
+                  <input
+                    type="number"
+                    value={poolGenDuration}
+                    onChange={(e) => setPoolGenDuration(parseInt(e.target.value, 10) || 0)}
+                    min="1"
+                    max="300"
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none"
+                    disabled={loadingPoolGen}
+                    required
+                  />
                 </div>
               </div>
 
@@ -1523,8 +1713,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                 </div>
               </div>
 
-              {/* Subject, Mode, Language */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Subject, Mode, Language & Duration */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] font-black uppercase text-text-muted">Subject / Scope</label>
                   <input
@@ -1558,6 +1748,25 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     <option value="hindi">Hindi (Devanagari)</option>
                     <option value="english">English</option>
                   </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-black uppercase text-text-muted">Duration (Mins)</label>
+                  <input
+                    type="number"
+                    value={editingTest.pattern?.durationMinutes || 0}
+                    onChange={(e) => setEditingTest({
+                      ...editingTest,
+                      pattern: {
+                        ...(editingTest.pattern || {}),
+                        durationMinutes: parseInt(e.target.value, 10) || 0
+                      }
+                    })}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none"
+                    min="1"
+                    max="300"
+                    required
+                  />
                 </div>
               </div>
 

@@ -27,6 +27,9 @@ interface SyllabusPageProps {
   streak: number;
   onStartPractice: (subjectName: string, testId?: string) => void;
   onGoBack: () => void;
+  tabVisibility?: Record<string, boolean>;
+  targetExamDate: string;
+  onTargetDateChange: (date: string) => void;
 }
 
 type ActiveTab = 'tracker' | 'ai_planner' | 'revision' | 'analytics' | 'strategy';
@@ -41,12 +44,24 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   onMarkRevised,
   streak,
   onStartPractice,
-  onGoBack
+  onGoBack,
+  tabVisibility,
+  targetExamDate,
+  onTargetDateChange
 }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('tracker');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Completed' | 'In Progress' | 'Weak Area' | 'Not Started'>('all');
   const [expandedSubjectId, setExpandedSubjectId] = useState<string | null>(null);
+
+  // Check if current active tab is visible, if not, fallback to tracker
+  const isTabVisible = (tabId: string) => {
+    if (tabId === 'tracker') return true;
+    const configKey = tabId === 'ai_planner' ? 'syllabus_ai_planner' : `syllabus_${tabId}`;
+    return tabVisibility?.[configKey] !== false;
+  };
+
+  const resolvedActiveTab = isTabVisible(activeTab) ? activeTab : 'tracker';
 
   const activeExam = exams.find(e => e.id === activeExamId) || exams[0];
 
@@ -124,6 +139,8 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
         activeExam={activeExam}
         onSelectExam={onSelectExam}
         onBack={onGoBack}
+        targetExamDate={targetExamDate}
+        onTargetDateChange={onTargetDateChange}
       />
 
       {/* 2. Overall Hero progress card */}
@@ -137,13 +154,13 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
       <div className="flex items-center gap-1 border-b border-border/80 pb-0.5 overflow-x-auto no-scrollbar">
         {[
           { id: 'tracker', label: 'Syllabus Tracker', icon: BookOpen },
-          { id: 'ai_planner', label: 'AI Study Planner', icon: BrainCircuit },
-          { id: 'revision', label: 'Spaced Revision', icon: RefreshCw },
-          { id: 'analytics', label: 'Analytics Dashboard', icon: BarChart3 },
-          { id: 'strategy', label: 'Exam Strategy', icon: Lightbulb }
-        ].map(tab => {
+          { id: 'ai_planner', label: 'AI Study Planner', icon: BrainCircuit, configKey: 'syllabus_ai_planner' },
+          { id: 'revision', label: 'Spaced Revision', icon: RefreshCw, configKey: 'syllabus_revision' },
+          { id: 'analytics', label: 'Analytics Dashboard', icon: BarChart3, configKey: 'syllabus_analytics' },
+          { id: 'strategy', label: 'Exam Strategy', icon: Lightbulb, configKey: 'syllabus_strategy' }
+        ].filter(tab => !tab.configKey || tabVisibility?.[tab.configKey] !== false).map(tab => {
           const Icon = tab.icon;
-          const isSelected = activeTab === tab.id;
+          const isSelected = resolvedActiveTab === tab.id;
           return (
             <button
               key={tab.id}
@@ -165,14 +182,14 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
       <div className="min-h-[400px]">
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab}
+            key={resolvedActiveTab}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.2 }}
           >
             {/* View: Syllabus Tracker */}
-            {activeTab === 'tracker' && (
+            {resolvedActiveTab === 'tracker' && (
               <div className="flex flex-col gap-5">
                 
                 {/* Search and Filters Bar */}
@@ -240,7 +257,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
             )}
 
             {/* View: AI Study Planner */}
-            {activeTab === 'ai_planner' && (
+            {resolvedActiveTab === 'ai_planner' && (
               <AIStudyPlanner 
                 exam={activeExam}
                 topicProgress={topicProgress}
@@ -250,7 +267,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
             )}
 
             {/* View: Spaced Revision Planner */}
-            {activeTab === 'revision' && (
+            {resolvedActiveTab === 'revision' && (
               <RevisionPlanner 
                 exam={activeExam}
                 topicProgress={topicProgress}
@@ -259,7 +276,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
             )}
 
             {/* View: Analytics & Streak Dashboard */}
-            {activeTab === 'analytics' && (
+            {resolvedActiveTab === 'analytics' && (
               <div className="flex flex-col gap-6">
                 <AnalyticsDashboard 
                   exam={activeExam}
@@ -277,7 +294,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
             )}
 
             {/* View: Exam Strategy */}
-            {activeTab === 'strategy' && (
+            {resolvedActiveTab === 'strategy' && (
               <ExamStrategyCard 
                 exam={activeExam}
               />

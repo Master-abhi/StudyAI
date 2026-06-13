@@ -172,7 +172,11 @@ export default function App() {
     chat: true,
     news: true,
     syllabus: true,
-    profile: true
+    profile: true,
+    syllabus_ai_planner: true,
+    syllabus_revision: true,
+    syllabus_analytics: true,
+    syllabus_strategy: true
   });
   const [examVisibility, setExamVisibility] = useState<Record<string, boolean>>({});
   const [isTestActive, setIsTestActive] = useState<boolean>(false);
@@ -267,6 +271,28 @@ export default function App() {
   const [activeExamId, setActiveExamId] = useState<string>(() => {
     return localStorage.getItem('examprep_selectedExam') || 'cgpsc_sse';
   });
+  const [activeExamTargetDate, setActiveExamTargetDate] = useState<string>(() => {
+    const activeSelected = localStorage.getItem('examprep_selectedExam') || 'cgpsc_sse';
+    let stored = localStorage.getItem(`examprep_target_date_${activeSelected}`);
+    if (!stored) {
+      const initDate = new Date();
+      initDate.setDate(initDate.getDate() + 365);
+      stored = initDate.toISOString().split('T')[0];
+      localStorage.setItem(`examprep_target_date_${activeSelected}`, stored);
+    }
+    return stored;
+  });
+
+  useEffect(() => {
+    let stored = localStorage.getItem(`examprep_target_date_${activeExamId}`);
+    if (!stored) {
+      const initDate = new Date();
+      initDate.setDate(initDate.getDate() + 365);
+      stored = initDate.toISOString().split('T')[0];
+      localStorage.setItem(`examprep_target_date_${activeExamId}`, stored);
+    }
+    setActiveExamTargetDate(stored);
+  }, [activeExamId]);
   const [showFirstTimeExamSelector, setShowFirstTimeExamSelector] = useState<boolean>(false);
   const [hasSelectedExamThisSession, setHasSelectedExamThisSession] = useState<boolean>(false);
   const [topicProgress, setTopicProgress] = useState<Record<string, any>>({});
@@ -305,9 +331,33 @@ export default function App() {
   const [rankingData, setRankingData] = useState<any>(null);
 
   const [exams, setExams] = useState<Exam[]>(EXAMS_DATA);
+  const getDaysRemainingForExam = (examId: string): number => {
+    let storedTarget = localStorage.getItem(`examprep_target_date_${examId}`);
+    if (examId === activeExamId) {
+      storedTarget = activeExamTargetDate;
+    }
+    if (!storedTarget) {
+      return 365;
+    }
+    const target = new Date(storedTarget);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    target.setHours(0, 0, 0, 0);
+    const diffTime = target.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  };
+
   const visibleExams = (() => {
     const filtered = exams.filter(ex => examVisibility[ex.id] !== false);
-    return filtered.length > 0 ? filtered : exams;
+    const mapped = filtered.map(ex => ({
+      ...ex,
+      daysRemaining: getDaysRemainingForExam(ex.id)
+    }));
+    return mapped.length > 0 ? mapped : exams.map(ex => ({
+      ...ex,
+      daysRemaining: getDaysRemainingForExam(ex.id)
+    }));
   })();
   const activeExam = visibleExams.find(e => e.id === activeExamId) || visibleExams[0];
 
@@ -348,6 +398,34 @@ export default function App() {
 
   const fetchTabVisibility = async () => {
     try {
+      // Try to fetch directly from Firestore client SDK if available for faster updates
+      const firebase = (window as any).firebase;
+      if (firebase && firebase.auth().currentUser) {
+        try {
+          const doc = await firebase.firestore().collection('config').doc('tabs').get();
+          if (doc.exists) {
+            const data = doc.data();
+            if (data && data.visibility) {
+              setTabVisibility(data.visibility);
+              
+              // Redirect if current active tab is hidden
+              const currentTab = activeTab;
+              if (data.visibility[currentTab] === false) {
+                const tabsOrder = ['home', 'practice', 'chat', 'news', 'syllabus', 'profile'];
+                const firstVisible = tabsOrder.find(t => data.visibility[t] !== false);
+                if (firstVisible) {
+                  setActiveTab(firstVisible as any);
+                }
+              }
+              return; // Successfully updated from Firestore
+            }
+          }
+        } catch (fsErr) {
+          console.warn('[Firestore Direct Tab Fetch Failed, falling back to API]:', fsErr);
+        }
+      }
+
+      // Fallback to Server API
       const res = await fetch(getApiUrl('/api/admin/config/tabs'));
       if (res.ok) {
         const data = await res.json();
@@ -388,7 +466,7 @@ export default function App() {
     fetchCustomSyllabi();
     fetchTabVisibility();
     fetchExamVisibility();
-  }, []);
+  }, [activeTab]);
 
   // Ensure active exam is valid and visible for regular users
   useEffect(() => {
@@ -1338,7 +1416,6 @@ export default function App() {
             topicProgress={topicProgress}
             testHistory={testHistory}
             serverAnalytics={serverAnalytics}
-            onClearProgress={handleClearProgress}
             isAdmin={isAdmin}
             onOpenAdmin={() => setActiveTab('admin')}
             isStaff={isStaff}
@@ -1412,6 +1489,12 @@ export default function App() {
             exams={visibleExams}
             activeExamId={activeExamId}
             onSelectExam={handleSelectExam}
+            tabVisibility={tabVisibility}
+            targetExamDate={activeExamTargetDate}
+            onTargetDateChange={(dateStr) => {
+              localStorage.setItem('examprep_target_date_' + activeExamId, dateStr);
+              setActiveExamTargetDate(dateStr);
+            }}
             topicProgress={topicProgress}
             serverAnalytics={serverAnalytics}
             onToggleActivity={onToggleActivity}
@@ -1905,6 +1988,11 @@ export default function App() {
             localStorage.setItem('examprep_userMobile', mobile);
           }}
           getApiUrl={getApiUrl}
+          targetExamDate={activeExamTargetDate}
+          onTargetDateChange={(dateStr) => {
+            localStorage.setItem('examprep_target_date_' + activeExamId, dateStr);
+            setActiveExamTargetDate(dateStr);
+          }}
         />
 
         {/* AI Explainer Video summaries and PDF notes study workspaces */}

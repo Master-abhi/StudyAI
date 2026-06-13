@@ -42,7 +42,6 @@ interface ProfileTabProps {
   topicProgress: any;
   testHistory: PerformanceLog[];
   serverAnalytics: any;
-  onClearProgress: () => void;
   isAdmin?: boolean;
   onOpenAdmin?: () => void;
   isStaff?: boolean;
@@ -69,7 +68,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   topicProgress,
   testHistory = [],
   serverAnalytics,
-  onClearProgress,
   isAdmin = false,
   onOpenAdmin,
   isStaff = false,
@@ -864,22 +862,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               )}
             </div>
           </div>
-        </div>
-
-        {/* Settings Action card */}
-        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
-          <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
-            <span>Account Settings</span>
-          </h4>
-          <p className="text-[10px] text-text-muted leading-relaxed">
-            Purging local progress will clear your Streak, earned XP points, and locally stored test performance histories. This cannot be undone.
-          </p>
-          <button 
-            onClick={onClearProgress}
-            className="w-full mt-1.5 py-3 border border-red-500/25 hover:border-red-500 text-redL hover:bg-red-500/10 text-xs font-black uppercase rounded-lg cursor-pointer transition-all duration-200"
-          >
-            Clear All Local Progress
-          </button>
         </div>
       </div>
 

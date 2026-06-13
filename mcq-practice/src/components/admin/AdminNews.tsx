@@ -52,6 +52,133 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
     return path;
   };
 
+  const sanitizeJsonString = (str: string) => {
+    let cleanStr = str.trim();
+    
+    // Strip markdown code block formatting (e.g. ```json ... ```)
+    if (cleanStr.startsWith('```')) {
+      cleanStr = cleanStr.replace(/^```(?:json)?/i, '').trim();
+      cleanStr = cleanStr.replace(/```$/, '').trim();
+    }
+
+    let inString = false;
+    let escaped = false;
+    let result = '';
+    
+    for (let i = 0; i < cleanStr.length; i++) {
+      const char = cleanStr[i];
+      
+      if (inString) {
+        if (escaped) {
+          result += char;
+          escaped = false;
+        } else if (char === '\\') {
+          result += char;
+          escaped = true;
+        } else if (char === '"') {
+          result += char;
+          inString = false;
+        } else if (char === '\n' || char === '\r') {
+          // Raw newline inside a string literal! Let's check if it's a missing closing quote.
+          // Look ahead to see if the next non-whitespace character starts with a double quote.
+          let lookAheadIdx = i + 1;
+          while (lookAheadIdx < cleanStr.length && /\s/.test(cleanStr[lookAheadIdx])) {
+            lookAheadIdx++;
+          }
+          
+          let isMissingQuote = false;
+          if (lookAheadIdx < cleanStr.length && cleanStr[lookAheadIdx] === '"') {
+            isMissingQuote = true;
+          }
+          
+          if (isMissingQuote) {
+            // Auto-insert the missing closing quote before the newline
+            result += '"';
+            inString = false;
+            result += char; // append the newline as structural whitespace
+          } else {
+            // Standard multiline string: escape the newline character
+            if (char === '\n') {
+              result += '\\n';
+            } else if (char === '\r') {
+              result += '\\r';
+            }
+          }
+        } else {
+          const code = char.charCodeAt(0);
+          if (code < 32) {
+            if (char === '\t') {
+              result += '\\t';
+            } else if (char === '\b') {
+              result += '\\b';
+            } else if (char === '\f') {
+              result += '\\f';
+            } else {
+              const hex = code.toString(16).padStart(4, '0');
+              result += '\\u' + hex;
+            }
+          } else {
+            result += char;
+          }
+        }
+      } else {
+        if (char === '"' || char === '{' || char === '[') {
+          // We are starting a new string, object, or array. Let's check if the previous token
+          // was a closing quote, closing bracket, or closing brace, and we forgot a comma.
+          let lastCharIdx = result.length - 1;
+          while (lastCharIdx >= 0 && /\s/.test(result[lastCharIdx])) {
+            lastCharIdx--;
+          }
+          
+          if (lastCharIdx >= 0) {
+            const lastNonWsChar = result[lastCharIdx];
+            // If the last character was a closing quote, closing bracket, or closing brace,
+            // we should auto-insert a comma.
+            if (lastNonWsChar === '"' || lastNonWsChar === ']' || lastNonWsChar === '}') {
+              result = result.slice(0, lastCharIdx + 1) + ',' + result.slice(lastCharIdx + 1);
+            }
+          }
+          
+          if (char === '"') {
+            inString = true;
+          }
+        }
+        
+        // Auto-remove trailing commas
+        if (char === ',') {
+          let nextIdx = i + 1;
+          while (nextIdx < cleanStr.length && /\s/.test(cleanStr[nextIdx])) {
+            nextIdx++;
+          }
+          if (nextIdx < cleanStr.length && (cleanStr[nextIdx] === '}' || cleanStr[nextIdx] === ']')) {
+            // Trailing comma! Skip appending it
+            continue;
+          }
+        }
+        
+        result += char;
+      }
+    }
+
+    return result
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
+      .replace(/\u00A0/g, ' ') // Convert non-breaking spaces to standard spaces
+      .trim();
+  };
+
+  const getJsonErrorContext = (jsonText: string, errMessage: string): string => {
+    const match = errMessage.match(/at position (\d+)/);
+    if (!match) return '';
+    
+    const pos = parseInt(match[1], 10);
+    const start = Math.max(0, pos - 40);
+    const end = Math.min(jsonText.length, pos + 40);
+    const context = jsonText.slice(start, end);
+    const prefix = context.slice(0, pos - start);
+    const pointer = ' '.repeat(prefix.length) + '^';
+    return `\n\nContext around error:\n>>> ${context} <<<\n    ${pointer}`;
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setUploadFile(e.target.files[0]);
@@ -142,7 +269,11 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
 
       if (uploadFile) {
         const fileContent = await uploadFile.text();
-        const parsed = JSON.parse(fileContent);
+        const sanitized = sanitizeJsonString(fileContent);
+        if (!sanitized.startsWith('{') && !sanitized.startsWith('[')) {
+          throw new Error("The selected file does not appear to be a valid JSON structure (it must start with '{' or '[').");
+        }
+        const parsed = JSON.parse(sanitized);
         if (Array.isArray(parsed)) {
           articlesToUpload = parsed;
         } else if (parsed && Array.isArray(parsed.articles)) {
@@ -151,7 +282,11 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
           throw new Error('Invalid JSON format. Expected an array of articles or an object with an "articles" array.');
         }
       } else if (pasteJson.trim()) {
-        const parsed = JSON.parse(pasteJson.trim());
+        const sanitized = sanitizeJsonString(pasteJson.trim());
+        if (!sanitized.startsWith('{') && !sanitized.startsWith('[')) {
+          throw new Error("The pasted text does not appear to be a valid JSON structure (it must start with '{' or '['). Please verify your text.");
+        }
+        const parsed = JSON.parse(sanitized);
         if (Array.isArray(parsed)) {
           articlesToUpload = parsed;
         } else if (parsed && Array.isArray(parsed.articles)) {
@@ -187,7 +322,13 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
       }
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err.message || 'Upload failed. Check if JSON syntax is correct.');
+      let errorMsg = err.message || 'Upload failed. Check if JSON syntax is correct.';
+      if (err.message && err.message.includes('position')) {
+        const rawInput = uploadFile ? await uploadFile.text() : pasteJson;
+        const sanitized = sanitizeJsonString(rawInput);
+        errorMsg += getJsonErrorContext(sanitized, err.message);
+      }
+      setErrorMessage(errorMsg);
     } finally {
       setLoadingUpload(false);
     }
@@ -284,7 +425,7 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
       {errorMessage && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 text-redL rounded-xl flex items-center gap-2.5 text-xs animate-fade-in">
           <ShieldAlert className="w-4 h-4 shrink-0" />
-          <span>{errorMessage}</span>
+          <span className="whitespace-pre-wrap font-mono">{errorMessage}</span>
           <button onClick={() => setErrorMessage('')} className="ml-auto text-redL/60 hover:text-redL">✕</button>
         </div>
       )}

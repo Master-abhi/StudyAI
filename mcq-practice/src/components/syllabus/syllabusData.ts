@@ -64,7 +64,7 @@ const DETAILED_EXAMS_DATA: Exam[] = [
     fullName: 'Chhattisgarh State Service Exam (Prelims)',
     icon: '🏛️',
     stage: 'Prelims',
-    daysRemaining: 78,
+    daysRemaining: 365,
     totalMarks: 200,
     subjects: [
       {
@@ -414,7 +414,7 @@ const DETAILED_EXAMS_DATA: Exam[] = [
     fullName: 'CG Vyapam Patwari Recruitment Exam',
     icon: '🏘️',
     stage: 'Written Exam',
-    daysRemaining: 45,
+    daysRemaining: 365,
     totalMarks: 150,
     subjects: [
       {
@@ -499,7 +499,7 @@ const DETAILED_EXAMS_DATA: Exam[] = [
     fullName: 'CG Police Sub Inspector Exam (Mains)',
     icon: '👮',
     stage: 'Mains',
-    daysRemaining: 92,
+    daysRemaining: 365,
     totalMarks: 300,
     subjects: [
       {
@@ -535,7 +535,7 @@ const mapOldExamToNew = (oldId: string, oldExam: any): Exam => {
     fullName: oldExam.fullName || oldExam.name,
     icon: oldExam.icon || '🏛️',
     stage: oldExam.stage || (oldExam.pattern?.type?.includes('Mains') ? 'Mains' : 'Prelims'),
-    daysRemaining: oldExam.daysRemaining || 60,
+    daysRemaining: oldExam.daysRemaining || 365,
     totalMarks: oldExam.pattern?.totalMarks || 100,
     subjects: (oldExam.subjects || []).map((sub: any, subIdx: number) => {
       let chapters: Chapter[] = [];

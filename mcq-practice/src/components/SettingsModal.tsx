@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   Settings, LogOut, Trash2, Globe, BookOpen, 
   Lock, Mail, Key, Eye, EyeOff, Pencil, Smartphone,
-  MessageSquare, Sun, Moon, Monitor
+  MessageSquare, Sun, Moon, Monitor, Calendar
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -21,6 +21,8 @@ interface SettingsModalProps {
   userMobile: string;
   onMobileChange: (mobile: string) => void;
   getApiUrl: (path: string) => string;
+  targetExamDate: string;
+  onTargetDateChange: (date: string) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -37,7 +39,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   currentUser,
   userMobile,
   onMobileChange,
-  getApiUrl
+  getApiUrl,
+  targetExamDate,
+  onTargetDateChange
 }) => {
   const [clearingChat, setClearingChat] = useState<boolean>(false);
   
@@ -319,6 +323,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 Change
               </span>
             </button>
+          </div>
+
+          {/* Target Exam Date */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[9px] font-black uppercase text-text-muted flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-saffron" />
+              <span>Target Exam Date / परीक्षा की तारीख</span>
+            </label>
+            <input
+              type="date"
+              value={targetExamDate}
+              onChange={(e) => onTargetDateChange(e.target.value)}
+              className="p-3 bg-bg-s3 border border-border/80 rounded-xl text-xs font-bold text-text outline-none focus:border-saffron transition-all cursor-pointer min-h-[42px]"
+            />
           </div>
 
           {/* Language select */}
@@ -768,8 +786,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         )}
 
-        {/* 3. Destructive Action Buttons */}
-        <div className="flex flex-col gap-2 border-t border-border/40 pt-4 mt-1.5">
+        {/* 3. Account Settings / Destructive Actions */}
+        <div className="flex flex-col gap-3.5 border-t border-border/40 pt-4 mt-1.5">
+          <span className="text-[9px] font-black uppercase text-text-muted tracking-widest flex items-center gap-1">
+            <Settings className="w-3.5 h-3.5 text-saffron" />
+            <span>Account Settings / अकाउंट सेटिंग्स</span>
+          </span>
+
+          <div className="p-3.5 bg-bg-s3/40 border border-border/70 rounded-xl flex flex-col gap-3 shadow-inner">
+            <p className="text-[10px] text-text-muted leading-relaxed">
+              Purging local progress will clear your Streak, earned XP points, and locally stored test performance histories. This cannot be undone.
+            </p>
+            <button
+              onClick={() => {
+                if (window.confirm('Purging local progress will clear your Streak, earned XP points, and locally stored test performance histories. This cannot be undone. Are you sure you want to proceed?')) {
+                  onClearProgress();
+                  onClose();
+                }
+              }}
+              className="w-full py-2.5 border border-red-500/25 hover:border-red-500 text-redL hover:bg-red-500/10 text-[10px] font-black uppercase rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-200"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear All Local Progress</span>
+            </button>
+          </div>
+
           <button
             onClick={handleClearChatHistory}
             disabled={clearingChat}
@@ -781,23 +822,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <button
             onClick={() => {
-              if (window.confirm('Erase all of your locally saved syllabus progress rates? This action is irreversible.')) {
-                onClearProgress();
-                onClose();
-              }
-            }}
-            className="w-full py-2.5 bg-bg-s3 hover:bg-red-500/10 border border-border text-redL text-[10px] font-black uppercase rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Clear Study Progress</span>
-          </button>
-
-          <button
-            onClick={() => {
               onLogout();
               onClose();
             }}
-            className="w-full py-3 mt-1.5 bg-gradient-to-r from-red-600 to-red-500 hover:brightness-110 active:scale-[0.98] text-white text-[10px] font-black uppercase rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-md"
+            className="w-full py-3 mt-1 bg-gradient-to-r from-red-600 to-red-500 hover:brightness-110 active:scale-[0.98] text-white text-[10px] font-black uppercase rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-md"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Log Out Session</span>

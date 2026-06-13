@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Sliders, Save, Loader2, CheckCircle, ShieldAlert, 
-  Home, Trophy, MessageSquare, Newspaper, BookOpen, User, Eye, EyeOff
+  Home, Trophy, MessageSquare, Newspaper, BookOpen, User, Eye, EyeOff,
+  BrainCircuit, RefreshCw, BarChart3, Lightbulb
 } from 'lucide-react';
 
 interface AdminTabsConfigProps {
@@ -22,7 +23,11 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
     chat: true,
     news: true,
     syllabus: true,
-    profile: true
+    profile: true,
+    syllabus_ai_planner: true,
+    syllabus_revision: true,
+    syllabus_analytics: true,
+    syllabus_strategy: true
   });
 
   const [loadingGet, setLoadingGet] = useState<boolean>(true);
@@ -93,6 +98,23 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
 
     try {
       const token = await currentUser.getIdToken();
+      
+      // Try to save directly to Firestore client SDK first
+      const firebase = (window as any).firebase;
+      let savedDirectly = false;
+      if (firebase && currentUser) {
+        try {
+          await firebase.firestore().collection('config').doc('tabs').set({
+            visibility,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+          savedDirectly = true;
+          console.log('[Firestore Direct Tab Save Success]');
+        } catch (fsErr) {
+          console.warn('[Firestore Direct Tab Save Failed, falling back to API]:', fsErr);
+        }
+      }
+
       const url = getApiUrl('/api/admin/config/tabs');
       console.log('Saving tabs visibility config to:', url, visibility);
 
@@ -112,13 +134,16 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
         data = JSON.parse(text);
       } catch (e) {
         console.error('Failed to parse response JSON:', text);
-        throw new Error(`Server returned invalid response (Status ${res.status}): ${text.slice(0, 100)}`);
+        // If we saved directly, ignore server parse errors
+        if (!savedDirectly) {
+          throw new Error(`Server returned invalid response (Status ${res.status}): ${text.slice(0, 100)}`);
+        }
       }
 
-      if (res.ok && data.success) {
+      if ((res.ok && data?.success) || savedDirectly) {
         setSuccessMessage('Tab visibility settings updated successfully! Changes will take effect immediately.');
       } else {
-        throw new Error(data.error || 'Server rejected updates.');
+        throw new Error(data?.error || 'Server rejected updates.');
       }
     } catch (err: any) {
       console.error('Save tabs visibility config failed:', err);
@@ -134,7 +159,11 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
     { id: 'chat', label: 'AI Guru / एआई गुरु', desc: 'The AI Tutor Chat Bot interface offering instant doubt clearing, spaced repetition recall questions, and study assistance.', icon: MessageSquare },
     { id: 'news', label: 'News & Alerts / समाचार और अलर्ट', desc: 'Bilingual news feeds summarizing state notifications, job alerts, and board announcements translated via Gemini AI.', icon: Newspaper },
     { id: 'syllabus', label: 'Syllabus / पाठ्यक्रम', desc: 'Detailed syllabus trackers featuring custom exam syllabi parsing, study material PDFs, and learning checklists.', icon: BookOpen },
-    { id: 'profile', label: 'Profile / प्रोफाइल', desc: 'User history panel displaying stats, rolling weekly MCQ charts, achievements, global leaderboards, and system settings.', icon: User }
+    { id: 'profile', label: 'Profile / प्रोफाइल', desc: 'User history panel displaying stats, rolling weekly MCQ charts, achievements, global leaderboards, and system settings.', icon: User },
+    { id: 'syllabus_ai_planner', label: 'Syllabus: AI Study Planner', desc: 'AI Study Planner tab inside the Syllabus tab. Provides personalized day-by-day study schedules and progress tracking.', icon: BrainCircuit },
+    { id: 'syllabus_revision', label: 'Syllabus: Spaced Revision', desc: 'Spaced Revision sub-tab inside the Syllabus tab. Helps track when to revise topics based on memory curves.', icon: RefreshCw },
+    { id: 'syllabus_analytics', label: 'Syllabus: Analytics Dashboard', desc: 'Analytics Dashboard sub-tab inside the Syllabus tab. Displays progress charts and topic accuracy data.', icon: BarChart3 },
+    { id: 'syllabus_strategy', label: 'Syllabus: Exam Strategy', desc: 'Exam Strategy sub-tab inside the Syllabus tab. Displays tips, marks distribution, and syllabus weightage.', icon: Lightbulb }
   ];
 
   return (
