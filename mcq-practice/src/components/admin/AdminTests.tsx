@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Trophy, Plus, Trash2, Calendar, Globe, 
-  Settings, Loader2, X, Eye, ShieldAlert, CheckCircle, Pencil 
+  Settings, Loader2, X, Eye, ShieldAlert, CheckCircle, Pencil,
+  AlertTriangle, AlertCircle, Save, Sparkles, Upload, Database, FolderUp
 } from 'lucide-react';
 import type { Exam } from '../syllabus/syllabusData';
+import { MarkdownRenderer } from '../MarkdownRenderer';
 
 const cleanPrefix = (str: string): string => {
   if (!str) return '';
@@ -190,12 +192,25 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [uploadJsonText, setUploadJsonText] = useState<string>('');
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
 
+  const [jsonSyntaxError, setJsonSyntaxError] = useState<string>('');
+  const [questionErrors, setQuestionErrors] = useState<{[key: number]: string[]}>({});
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  // States for inline question editor
+  const [editQId, setEditQId] = useState<string>('');
+  const [editQuestionText, setEditQuestionText] = useState<string>('');
+  const [editOptions, setEditOptions] = useState<string[]>(['', '', '', '']);
+  const [editCorrectIndex, setEditCorrectIndex] = useState<number>(0);
+  const [editExplanation, setEditExplanation] = useState<string>('');
+  const [editSubject, setEditSubject] = useState<string>('');
+  const [editTopic, setEditTopic] = useState<string>('');
+
   // Pool state
   const [poolStats, setPoolStats] = useState<{ totalCount: number; subjects: { [key: string]: number }; exams: { [key: string]: number } } | null>(null);
   const [loadingStats, setLoadingStats] = useState<boolean>(false);
   
   // Pool generation form state
-  const [poolGenSubject, setPoolGenSubject] = useState<string>('all');
+  const [selectedPoolSubjects, setSelectedPoolSubjects] = useState<string[]>([]);
   const [poolGenCount, setPoolGenCount] = useState<number>(10);
   const [poolGenMode, setPoolGenMode] = useState<'quiz' | 'mock'>('quiz');
   const [poolGenLanguage, setPoolGenLanguage] = useState<'english' | 'hindi'>('hindi');
@@ -255,8 +270,30 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
           result += char;
           escaped = false;
         } else if (char === '\\') {
-          result += char;
-          escaped = true;
+          const nextChar = cleanStr[i + 1];
+          const nextNextChar = cleanStr[i + 2];
+          
+          const isValidJsonEscape = 
+            nextChar === '"' || 
+            nextChar === '\\' || 
+            nextChar === '/' ||
+            nextChar === 'b' || 
+            nextChar === 'f' || 
+            nextChar === 'n' || 
+            nextChar === 'r' || 
+            nextChar === 't' ||
+            (nextChar === 'u' && /^[0-9a-fA-F]{4}$/.test(cleanStr.slice(i + 2, i + 6)));
+            
+          const isLatexCommand = 
+            (nextChar === 'b' || nextChar === 'f' || nextChar === 'n' || nextChar === 'r' || nextChar === 't' || nextChar === 'u') &&
+            (nextNextChar && /^[a-zA-Z]$/.test(nextNextChar));
+            
+          if (!isValidJsonEscape || isLatexCommand) {
+            result += '\\\\';
+          } else {
+            result += char;
+            escaped = true;
+          }
         } else if (char === '"') {
           result += char;
           inString = false;
@@ -364,7 +401,62 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   // Pasted JSON live preview state
   const [parsedPreviewQuestions, setParsedPreviewQuestions] = useState<any[]>([]);
 
+  const startEditing = (idx: number) => {
+    const q = parsedPreviewQuestions[idx];
+    setEditQId(q.id || q.qId || '');
+    setEditQuestionText(q.question || '');
+    setEditOptions(Array.isArray(q.options) && q.options.length === 4 ? [...q.options] : ['', '', '', '']);
+    setEditCorrectIndex(typeof q.correctIndex === 'number' ? q.correctIndex : 0);
+    setEditExplanation(q.explanation || '');
+    setEditSubject(q.subject || '');
+    setEditTopic(q.topic || '');
+    setEditingIndex(idx);
+  };
+
+  const saveEditing = () => {
+    if (editingIndex === null) return;
+    
+    const originalQ = parsedPreviewQuestions[editingIndex];
+    const updatedQuestion = {
+      ...originalQ,
+      id: editQId || undefined,
+      qId: editQId || undefined,
+      question: editQuestionText,
+      options: editOptions.map(o => String(o).trim()),
+      correctIndex: editCorrectIndex,
+      explanation: editExplanation,
+      subject: editSubject,
+      topic: editTopic
+    };
+    
+    try {
+      const sanitized = sanitizeJsonString(uploadJsonText);
+      const parsed = JSON.parse(sanitized);
+      if (Array.isArray(parsed)) {
+        const updatedArray = [...parsedPreviewQuestions];
+        updatedArray[editingIndex] = updatedQuestion;
+        setUploadJsonText(JSON.stringify(updatedArray, null, 2));
+      } else {
+        const updatedObject = {
+          ...parsed,
+          questions: [...parsedPreviewQuestions]
+        };
+        updatedObject.questions[editingIndex] = updatedQuestion;
+        setUploadJsonText(JSON.stringify(updatedObject, null, 2));
+      }
+    } catch (e) {
+      // Fallback
+      const updatedArray = [...parsedPreviewQuestions];
+      updatedArray[editingIndex] = updatedQuestion;
+      setUploadJsonText(JSON.stringify(updatedArray, null, 2));
+    }
+    setEditingIndex(null);
+  };
+
   useEffect(() => {
+    setJsonSyntaxError('');
+    setQuestionErrors({});
+    
     try {
       if (uploadJsonText.trim()) {
         const sanitized = sanitizeJsonString(uploadJsonText);
@@ -372,21 +464,335 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
           setParsedPreviewQuestions([]);
           return;
         }
+        
         const parsed = JSON.parse(sanitized);
         const questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+        
         if (Array.isArray(questionsArray)) {
           const normalized = questionsArray.map((q: any) => normalizeQuestion(q));
           setParsedPreviewQuestions(normalized);
+          
+          const errorsMap: {[key: number]: string[]} = {};
+          const isPoolUpload = sanitized.startsWith('[');
+          
+          normalized.forEach((pq: any, idx: number) => {
+            const errs: string[] = [];
+            if (!pq.question || !pq.question.trim()) {
+              errs.push("Question text is empty.");
+            }
+            if (!Array.isArray(pq.options) || pq.options.length !== 4) {
+              errs.push(`Options count is ${pq.options ? pq.options.length : 0} (must be exactly 4).`);
+            } else {
+              const emptyOpts = pq.options.filter((o: any) => !String(o).trim());
+              if (emptyOpts.length > 0) {
+                errs.push("One or more options are empty.");
+              }
+            }
+            if (typeof pq.correctIndex !== 'number' || pq.correctIndex < 0 || pq.correctIndex > 3) {
+              errs.push(`correctIndex must be between 0 and 3 (current: ${pq.correctIndex}).`);
+            }
+            if (!pq.explanation || !pq.explanation.trim()) {
+              errs.push("Explanation is empty.");
+            }
+            if (!pq.subject || !pq.subject.trim()) {
+              errs.push("Subject is empty.");
+            }
+            if (isPoolUpload && (!pq.qId || !pq.qId.trim())) {
+              errs.push("qId is missing or empty (required for pool questions).");
+            }
+            
+            if (errs.length > 0) {
+              errorsMap[idx] = errs;
+            }
+          });
+          
+          setQuestionErrors(errorsMap);
         } else {
           setParsedPreviewQuestions([]);
         }
       } else {
         setParsedPreviewQuestions([]);
       }
-    } catch (e) {
+    } catch (e: any) {
       setParsedPreviewQuestions([]);
+      const sanitized = sanitizeJsonString(uploadJsonText);
+      const contextualError = e.message + getJsonErrorContext(sanitized, e.message);
+      setJsonSyntaxError(contextualError);
     }
   }, [uploadJsonText]);
+
+  const renderAdvancedPreviewPanel = () => {
+    const totalErrors = Object.keys(questionErrors).length;
+    
+    if (!uploadJsonText.trim()) return null;
+
+    return (
+      <div className="flex flex-col gap-4 w-full mt-2 select-text">
+        {/* Syntax Error Box */}
+        {jsonSyntaxError && (
+          <div className="p-4 bg-redL/10 border border-redL/20 rounded-xl flex flex-col gap-1.5 shadow-sm text-redL animate-fadeIn select-text">
+            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider select-none">
+              <ShieldAlert className="w-4 h-4 shrink-0" />
+              <span>JSON Syntax Error</span>
+            </div>
+            <pre className="text-[10px] font-mono whitespace-pre-wrap leading-relaxed bg-black/30 p-2.5 rounded-lg border border-redL/10 select-text">
+              {jsonSyntaxError}
+            </pre>
+            <span className="text-[9px] font-semibold text-text-muted select-none">
+              💡 Tip: Make sure your double quotes are properly closed, comma separations are correct, and brackets are balanced.
+            </span>
+          </div>
+        )}
+
+        {/* Semantic Validation Alert */}
+        {!jsonSyntaxError && totalErrors > 0 && (
+          <div className="p-4 bg-amberL/10 border border-amberL/20 rounded-xl flex flex-col gap-1.5 shadow-sm text-amberL animate-fadeIn select-none">
+            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>JSON Validation Alert ({totalErrors} Question{totalErrors > 1 ? 's' : ''} have mistakes)</span>
+            </div>
+            <p className="text-[10px] font-semibold leading-relaxed">
+              We parsed your JSON but found some structural mistakes in the questions. You can click the <span className="font-bold">"Edit"</span> button on each faulty question below to fix it directly in our editor.
+            </p>
+          </div>
+        )}
+
+        {/* Live Preview List */}
+        {parsedPreviewQuestions.length > 0 && (
+          <div className="flex flex-col gap-3.5 border border-border p-5 rounded-xl bg-bg-s2/40 shadow-md max-h-[450px] overflow-y-auto w-full select-text">
+            <span className="text-xs font-black uppercase text-saffron tracking-wider flex items-center justify-between gap-1.5 select-none border-b border-border/40 pb-2.5">
+              <span className="flex items-center gap-1.5">
+                <Eye className="w-4 h-4 animate-pulse" /> Pasted JSON Live Preview ({parsedPreviewQuestions.length} Qs)
+              </span>
+              {totalErrors > 0 && (
+                <span className="text-[9px] bg-redL/20 text-redL px-2 py-0.5 rounded-full border border-redL/30 font-bold uppercase tracking-wider">
+                  {totalErrors} Mistake{totalErrors > 1 ? 's' : ''} found
+                </span>
+              )}
+            </span>
+            
+            <div className="flex flex-col gap-5">
+              {parsedPreviewQuestions.map((pq: any, pIdx: number) => {
+                const errors = questionErrors[pIdx] || [];
+                const isEditing = editingIndex === pIdx;
+                
+                return (
+                  <div key={pIdx} className={`p-4 bg-bg-s3 border rounded-xl flex flex-col gap-3 font-sans shadow-sm transition-all duration-200 ${
+                    errors.length > 0 ? 'border-redL/30 shadow-redL/5' : 'border-border/60'
+                  }`}>
+                    {/* Header */}
+                    <div className="flex justify-between items-center gap-2 border-b border-border/20 pb-2.5 select-none">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase text-saffron tracking-wider">
+                          Q{pIdx + 1} ({pq.qType || 'standard'})
+                        </span>
+                        {errors.length > 0 && (
+                          <span className="text-[8px] bg-redL/20 text-redL border border-redL/30 px-1.5 py-0.5 rounded font-black uppercase tracking-wider flex items-center gap-1">
+                            <AlertCircle className="w-2.5 h-2.5" /> ERROR
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[8px] font-black uppercase text-text-muted bg-bg-s2 px-1.5 py-0.5 rounded border border-border">
+                          {pq.subject || 'General'}
+                        </span>
+                        {!isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => startEditing(pIdx)}
+                            className="px-2 py-1 bg-saffron/10 hover:bg-saffron text-saffron hover:text-bg-s1 border border-saffron/20 rounded text-[9px] font-black uppercase flex items-center gap-1 cursor-pointer transition-all duration-150 active:scale-95"
+                          >
+                            <Pencil className="w-2.5 h-2.5" /> Edit
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Validation Errors Box */}
+                    {errors.length > 0 && !isEditing && (
+                      <div className="p-2.5 bg-redL/10 border border-redL/25 text-redL rounded-lg flex flex-col gap-1 text-[9px] font-semibold font-sans">
+                        {errors.map((err, errIdx) => (
+                          <div key={errIdx} className="flex items-start gap-1">
+                            <span className="text-redL select-none shrink-0">•</span>
+                            <span>{err}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Inline Editor Form */}
+                    {isEditing ? (
+                      <div className="flex flex-col gap-3.5 p-3.5 bg-bg-s2 border border-saffron/20 rounded-xl text-xs select-text animate-slideDown">
+                        <span className="text-[9px] font-black uppercase text-saffron tracking-wider select-none">
+                          📝 Editing Question {pIdx + 1}
+                        </span>
+                        
+                        {/* qId (if pool or present) */}
+                        {(pq.qId || pq.id || creatorTab === 'pool_upload') && (
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[9px] font-black uppercase text-text-muted animate-fadeIn">Question ID (qId)</label>
+                            <input
+                              type="text"
+                              value={editQId}
+                              onChange={(e) => setEditQId(e.target.value)}
+                              placeholder="e.g. CG_GK_001"
+                              className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none font-mono"
+                            />
+                          </div>
+                        )}
+
+                        {/* Question Text */}
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase text-text-muted">Question Text (Supports Math Formulas like $E=mc^2$)</label>
+                          <textarea
+                            value={editQuestionText}
+                            onChange={(e) => setEditQuestionText(e.target.value)}
+                            rows={3}
+                            placeholder="Enter question content..."
+                            className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-y font-hindi"
+                          />
+                        </div>
+
+                        {/* Options */}
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[9px] font-black uppercase text-text-muted">Options</label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {[0, 1, 2, 3].map((optIdx) => (
+                              <div key={optIdx} className="flex items-center gap-2 bg-bg-s3 border border-border rounded-lg px-2 py-1 focus-within:border-saffron">
+                                <span className="w-5 h-5 bg-bg-s2 rounded-full flex items-center justify-center text-[10px] font-black text-saffron select-none">
+                                  {String.fromCharCode(65 + optIdx)}
+                                </span>
+                                <input
+                                  type="text"
+                                  value={editOptions[optIdx] || ''}
+                                  onChange={(e) => {
+                                    const next = [...editOptions];
+                                    next[optIdx] = e.target.value;
+                                    setEditOptions(next);
+                                  }}
+                                  placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
+                                  className="w-full bg-transparent text-xs text-text outline-none py-1 font-hindi"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Correct Index */}
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase text-text-muted">Correct Option</label>
+                          <select
+                            value={editCorrectIndex}
+                            onChange={(e) => setEditCorrectIndex(Number(e.target.value))}
+                            className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none cursor-pointer"
+                          >
+                            <option value={0}>Option A (Correct)</option>
+                            <option value={1}>Option B (Correct)</option>
+                            <option value={2}>Option C (Correct)</option>
+                            <option value={3}>Option D (Correct)</option>
+                          </select>
+                        </div>
+
+                        {/* Explanation */}
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase text-text-muted">Explanation</label>
+                          <textarea
+                            value={editExplanation}
+                            onChange={(e) => setEditExplanation(e.target.value)}
+                            rows={2}
+                            placeholder="Explain why the answer is correct..."
+                            className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-y font-hindi"
+                          />
+                        </div>
+
+                        {/* Subject & Topic */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[9px] font-black uppercase text-text-muted">Subject</label>
+                            <input
+                              type="text"
+                              value={editSubject}
+                              onChange={(e) => setEditSubject(e.target.value)}
+                              placeholder="e.g. CG GK"
+                              className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[9px] font-black uppercase text-text-muted">Topic</label>
+                            <input
+                              type="text"
+                              value={editTopic}
+                              onChange={(e) => setEditTopic(e.target.value)}
+                              placeholder="e.g. History"
+                              className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-end gap-2 mt-2 select-none">
+                          <button
+                            type="button"
+                            onClick={() => setEditingIndex(null)}
+                            className="px-3.5 py-2 bg-bg-s3 hover:bg-bg-s1 text-text-muted rounded-lg text-[10px] font-black uppercase cursor-pointer border border-border"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={saveEditing}
+                            className="px-4 py-2 bg-greenL text-bg-s1 hover:bg-emerald-600 rounded-lg text-[10px] font-black uppercase cursor-pointer flex items-center gap-1.5 shadow-md"
+                          >
+                            <Save className="w-3.5 h-3.5" /> Save Changes
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Read-only Preview Content */
+                      <div className="flex flex-col gap-2.5">
+                        {/* Question text with formulas support */}
+                        <div className="text-xs font-semibold text-text leading-relaxed font-hindi w-full max-w-full overflow-hidden break-words">
+                          <MarkdownRenderer content={pq.question || ''} />
+                        </div>
+                        
+                        {/* Options with formulas support */}
+                        {pq.options && pq.options.length > 0 && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mt-1 border-t border-border/20 pt-2.5">
+                            {pq.options.map((opt: string, optIdx: number) => (
+                              <div key={optIdx} className={`p-3 rounded-lg text-xs font-semibold border flex items-start gap-2.5 ${
+                                optIdx === pq.correctIndex ? 'bg-greenL/5 border-greenL/25 text-greenL' : 'bg-bg-s2 border-border text-text-muted'
+                              }`}>
+                                <span className="w-4 h-4 bg-bg-s1 rounded-full flex items-center justify-center text-[9px] shrink-0 font-black mt-0.5">
+                                  {String.fromCharCode(65 + optIdx)}
+                                </span>
+                                <div className="leading-relaxed w-full max-w-full overflow-hidden break-words font-hindi">
+                                  <MarkdownRenderer content={opt || ''} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Explanation with formulas support */}
+                        {pq.explanation && (
+                          <div className="mt-2.5 p-3 bg-bg-s2/50 border border-border/40 rounded-lg flex flex-col gap-1 text-[11px] leading-relaxed">
+                            <span className="font-black uppercase text-saffron text-[9px] tracking-wider select-none">Explanation</span>
+                            <div className="text-text-muted font-hindi w-full max-w-full overflow-hidden break-words">
+                              <MarkdownRenderer content={pq.explanation || ''} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
 
   const fetchTestsList = async () => {
@@ -528,6 +934,14 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       setErrorMessage('JSON content is empty.');
       return;
     }
+    if (jsonSyntaxError) {
+      setErrorMessage('Please fix JSON syntax errors before uploading.');
+      return;
+    }
+    if (Object.keys(questionErrors).length > 0) {
+      setErrorMessage('Please fix all question validation errors before uploading.');
+      return;
+    }
 
     setUploadLoading(true);
     setErrorMessage('');
@@ -590,6 +1004,14 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
     e.preventDefault();
     if (!uploadJsonText.trim()) {
       setErrorMessage('JSON content is empty.');
+      return;
+    }
+    if (jsonSyntaxError) {
+      setErrorMessage('Please fix JSON syntax errors before uploading.');
+      return;
+    }
+    if (Object.keys(questionErrors).length > 0) {
+      setErrorMessage('Please fix all question validation errors before uploading.');
       return;
     }
 
@@ -662,7 +1084,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         examName: activeExam.name,
         examIds: selectedExamIds,
         examNames: selectedExamsData.map(ex => ex.name),
-        subject: poolGenSubject,
+        subject: selectedPoolSubjects.length > 0 ? selectedPoolSubjects : 'all',
         mode: poolGenMode,
         language: poolGenLanguage,
         questionCount: poolGenCount,
@@ -697,7 +1119,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const renderTargetExamsSelection = (disabled: boolean) => (
     <div className="flex flex-col gap-1.5 border border-border p-3 rounded-lg bg-bg-s3/40 select-none">
       <span className="text-[10px] font-black uppercase text-text-muted">Target Exams (Select all that apply)</span>
-      <div className="grid grid-cols-1 gap-2 mt-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 mt-1.5">
         {exams.map(ex => (
           <label key={ex.id} className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
             <input
@@ -855,47 +1277,51 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         </div>
       )}
 
-      {/* Grid: Creator Form on Left, List on Right (Desktop Layout) */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+      {/* Stack: Creator Form on Top, List below (Full Width Layout) */}
+      <div className="flex flex-col gap-6 w-full">
         
         {/* Generate & Upload Creator Panel */}
-        <div className="bg-bg-s2 border border-border p-5 rounded-xl shadow-md flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-1 bg-bg-s3 border border-border p-1 rounded-lg w-full mb-1 select-none">
+        <div className="w-full bg-bg-s2 border border-border p-5 rounded-xl shadow-md flex flex-col gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-bg-s3 border border-border p-1.5 rounded-xl w-full mb-2 select-none">
             <button
               type="button"
               onClick={() => { setCreatorTab('generate'); setErrorMessage(''); setSuccessMessage(''); }}
-              className={`py-1.5 text-[9px] font-black uppercase rounded cursor-pointer transition-colors ${
-                creatorTab === 'generate' ? 'bg-saffron text-bg-s1 font-black shadow-sm' : 'text-text-muted hover:text-text'
+              className={`py-2 px-3 text-[10px] md:text-xs font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-2 ${
+                creatorTab === 'generate' ? 'bg-saffron text-bg-s1 font-black shadow-md' : 'text-text-muted hover:text-text hover:bg-bg-s2/40'
               }`}
             >
-              AI Gen
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>AI Gen</span>
             </button>
             <button
               type="button"
               onClick={() => { setCreatorTab('upload'); setErrorMessage(''); setSuccessMessage(''); }}
-              className={`py-1.5 text-[9px] font-black uppercase rounded cursor-pointer transition-colors ${
-                creatorTab === 'upload' ? 'bg-saffron text-bg-s1 font-black shadow-sm' : 'text-text-muted hover:text-text'
+              className={`py-2 px-3 text-[10px] md:text-xs font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-2 ${
+                creatorTab === 'upload' ? 'bg-saffron text-bg-s1 font-black shadow-md' : 'text-text-muted hover:text-text hover:bg-bg-s2/40'
               }`}
             >
-              Upload Test
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload Test</span>
             </button>
             <button
               type="button"
               onClick={() => { setCreatorTab('pool_generate'); setErrorMessage(''); setSuccessMessage(''); }}
-              className={`py-1.5 text-[9px] font-black uppercase rounded cursor-pointer transition-colors ${
-                creatorTab === 'pool_generate' ? 'bg-saffron text-bg-s1 font-black shadow-sm' : 'text-text-muted hover:text-text'
+              className={`py-2 px-3 text-[10px] md:text-xs font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-2 ${
+                creatorTab === 'pool_generate' ? 'bg-saffron text-bg-s1 font-black shadow-md' : 'text-text-muted hover:text-text hover:bg-bg-s2/40'
               }`}
             >
-              Pool Gen
+              <Database className="w-3.5 h-3.5" />
+              <span>Pool Gen</span>
             </button>
             <button
               type="button"
               onClick={() => { setCreatorTab('pool_upload'); setErrorMessage(''); setSuccessMessage(''); }}
-              className={`py-1.5 text-[9px] font-black uppercase rounded cursor-pointer transition-colors ${
-                creatorTab === 'pool_upload' ? 'bg-saffron text-bg-s1 font-black shadow-sm' : 'text-text-muted hover:text-text'
+              className={`py-2 px-3 text-[10px] md:text-xs font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-2 ${
+                creatorTab === 'pool_upload' ? 'bg-saffron text-bg-s1 font-black shadow-md' : 'text-text-muted hover:text-text hover:bg-bg-s2/40'
               }`}
             >
-              Pool Upload
+              <FolderUp className="w-3.5 h-3.5" />
+              <span>Pool Upload</span>
             </button>
           </div>
 
@@ -922,43 +1348,40 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
 
           {creatorTab === 'generate' && (
-            <form onSubmit={handleGenerateTest} className="flex flex-col gap-4 font-sans">
-              {/* Exam Select */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Base Syllabus Exam</label>
-                <select
-                  value={selectedExamId}
-                  onChange={handleExamChange}
-                  className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
-                  disabled={loadingGen}
-                >
-                  {exams.map(ex => (
-                    <option key={ex.id} value={ex.id}>{ex.name}</option>
-                  ))}
-                </select>
-              </div>
+            <form onSubmit={handleGenerateTest} className="flex flex-col gap-5 font-sans">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {/* Exam Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Base Syllabus Exam</label>
+                  <select
+                    value={selectedExamId}
+                    onChange={handleExamChange}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                    disabled={loadingGen}
+                  >
+                    {exams.map(ex => (
+                      <option key={ex.id} value={ex.id}>{ex.name}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Target Exams Checkboxes */}
-              {renderTargetExamsSelection(loadingGen)}
+                {/* Subject Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Subject Scope</label>
+                  <select
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                    disabled={loadingGen}
+                  >
+                    <option value="all">All Subjects (Mixed Pattern)</option>
+                    {activeExam?.subjects?.map(s => (
+                      <option key={s.id} value={s.name}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Subject Select */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Subject Scope</label>
-                <select
-                  value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
-                  className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
-                  disabled={loadingGen}
-                >
-                  <option value="all">All Subjects (Mixed Pattern)</option>
-                  {activeExam?.subjects?.map(s => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Grid: Mode, Language & Duration */}
-              <div className="grid grid-cols-3 gap-3">
+                {/* Test Mode */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase text-text-muted">Test Mode</label>
                   <select
@@ -975,6 +1398,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     <option value="mock">Full Length Mock</option>
                   </select>
                 </div>
+
+                {/* Language */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase text-text-muted">Language</label>
                   <select
@@ -987,6 +1412,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     <option value="english">English</option>
                   </select>
                 </div>
+
+                {/* Duration */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase text-text-muted">Duration (Mins)</label>
                   <input
@@ -1001,6 +1428,9 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   />
                 </div>
               </div>
+
+              {/* Target Exams Checkboxes */}
+              {renderTargetExamsSelection(loadingGen)}
 
               {/* Submit button */}
               <button
@@ -1024,120 +1454,97 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
           )}
 
           {creatorTab === 'upload' && (
-            <form onSubmit={handleUploadTest} className="flex flex-col gap-4 font-sans">
+            <form onSubmit={handleUploadTest} className="flex flex-col gap-5 font-sans">
               {/* Target Exams Checkboxes */}
               {renderTargetExamsSelection(uploadLoading)}
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Upload JSON File</label>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleFileUpload}
-                  className="w-full bg-bg-s3 text-xs text-text border border-border px-3 py-2.5 rounded-lg outline-none cursor-pointer file:bg-saffron file:text-bg-s1 file:border-none file:px-2.5 file:py-1 file:rounded file:text-[9px] file:font-black file:uppercase file:cursor-pointer"
-                  disabled={uploadLoading}
-                />
-              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Left side: Upload JSON file and Exam IDs reference */}
+                <div className="lg:col-span-4 flex flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-black uppercase text-text-muted">Upload JSON File</label>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileUpload}
+                      className="w-full bg-bg-s3 text-xs text-text border border-border px-3 py-2.5 rounded-lg outline-none cursor-pointer file:bg-saffron file:text-bg-s1 file:border-none file:px-2.5 file:py-1 file:rounded file:text-[9px] file:font-black file:uppercase file:cursor-pointer"
+                      disabled={uploadLoading}
+                    />
+                  </div>
 
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between items-center w-full">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Or Paste Raw JSON</label>
-                  <button
-                    type="button"
-                    onClick={() => setUploadJsonText(JSON.stringify({
-                      examId: "cgpsc_sse",
-                      examName: "CGPSC SSE",
-                      subject: "All Subjects",
-                      mode: "mock",
-                      language: "hindi",
-                      pattern: {
-                        totalQuestions: 5,
-                        totalMarks: 5,
-                        durationMinutes: 10,
-                        markingScheme: "+1 for correct, -0.25 for incorrect"
-                      },
-                      questions: [
-                        {
-                          qType: "standard",
-                          question: "छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष कौन थे?",
-                          options: ["बनवारी लाल अग्रवाल", "राजेन्द्र प्रसाद शुक्ल", "धर्मजीत सिंह", "डॉ. रमन सिंह"],
-                          correctIndex: 1,
-                          explanation: "राजेन्द्र प्रसाद शुक्ल छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष थे।",
-                          subject: "CG GK",
-                          difficulty: "easy",
-                          topic: "Administration in Chhattisgarh",
-                          sourcePattern: "CG Vyapam PYQ Inspired",
-                          yearTrend: "2020-2023",
-                          expectedIn2026: true
-                        }
-                      ]
-                    }, null, 2))}
-                    className="text-[8px] font-black uppercase text-saffron hover:underline cursor-pointer"
-                  >
-                    Insert Template
-                  </button>
-                </div>
-                <textarea
-                  value={uploadJsonText}
-                  onChange={(e) => setUploadJsonText(e.target.value)}
-                  placeholder='{"examId": "...", "questions": [...]}'
-                  className="w-full h-36 bg-bg-s3 text-[10px] font-mono text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none mb-1.5"
-                  disabled={uploadLoading}
-                />
-
-                {parsedPreviewQuestions.length > 0 && (
-                  <div className="flex flex-col gap-3.5 border border-border p-5 rounded-xl bg-bg-s2/40 shadow-md max-h-[300px] overflow-y-auto select-text mb-2.5 w-full">
-                    <span className="text-xs font-black uppercase text-saffron tracking-wider flex items-center gap-1.5 select-none">
-                      <Eye className="w-4 h-4 animate-pulse" /> Pasted JSON Live Preview ({parsedPreviewQuestions.length} Qs)
-                    </span>
-                    <div className="flex flex-col gap-4">
-                      {parsedPreviewQuestions.map((pq: any, pIdx: number) => (
-                        <div key={pIdx} className="p-3 bg-bg-s3 border border-border/60 rounded-lg flex flex-col gap-2 font-sans shadow-sm">
-                          <div className="flex justify-between items-center gap-2 border-b border-border/20 pb-1.5 select-none">
-                            <span className="text-[9px] font-black uppercase text-saffron tracking-wider">Q{pIdx + 1} ({pq.qType || 'standard'})</span>
-                            <span className="text-[8px] font-black uppercase text-text-muted bg-bg-s2 px-1.5 py-0.5 rounded border border-border">{pq.subject || 'General'}</span>
-                          </div>
-                          <p className="text-xs font-semibold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question}</p>
-                          {pq.options && pq.options.length > 0 && (
-                            <div className="grid grid-cols-2 gap-1.5 mt-1 border-t border-border/20 pt-1.5">
-                              {pq.options.map((opt: string, optIdx: number) => (
-                                <div key={optIdx} className={`px-2 py-1.5 rounded text-[10px] font-semibold border flex items-center gap-1.5 ${
-                                  optIdx === pq.correctIndex ? 'bg-greenL/5 border-greenL/25 text-greenL' : 'bg-bg-s2 border-border text-text-muted'
-                                }`}>
-                                  <span className="w-4 h-4 bg-bg-s1 rounded-full flex items-center justify-center text-[9px] shrink-0 font-black">
-                                    {String.fromCharCode(65 + optIdx)}
-                                  </span>
-                                  <span className="truncate">{opt}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                  <div className="flex flex-col gap-1.5 select-none">
+                    <span className="text-[9px] font-black uppercase text-text-muted">Active Exam IDs Reference (Click ID to copy)</span>
+                    <div className="max-h-52 overflow-y-auto bg-bg-s3 border border-border rounded-lg p-2.5 font-mono text-[9px] text-text-muted leading-relaxed flex flex-col gap-1.5 no-scrollbar">
+                      {exams.map(ex => (
+                        <div key={ex.id} className="flex justify-between items-center gap-2 border-b border-border/20 pb-1">
+                          <span className="font-bold text-text truncate max-w-[150px]" title={ex.fullName || ex.name}>{ex.name}</span>
+                          <span className="text-saffron font-bold cursor-pointer hover:underline" onClick={() => {
+                            navigator.clipboard.writeText(ex.id);
+                            alert(`Copied "${ex.id}" to clipboard!`);
+                          }}>{ex.id}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
 
-              <div className="flex flex-col gap-1 select-none">
-                <span className="text-[9px] font-black uppercase text-text-muted">Active Exam IDs Reference (Click ID to copy)</span>
-                <div className="max-h-24 overflow-y-auto bg-bg-s3 border border-border rounded-lg p-2 font-mono text-[9px] text-text-muted leading-relaxed flex flex-col gap-1.5 no-scrollbar">
-                  {exams.map(ex => (
-                    <div key={ex.id} className="flex justify-between items-center gap-2 border-b border-border/20 pb-1">
-                      <span className="font-bold text-text truncate max-w-[150px]" title={ex.fullName || ex.name}>{ex.name}</span>
-                      <span className="text-saffron font-bold cursor-pointer hover:underline" onClick={() => {
-                        navigator.clipboard.writeText(ex.id);
-                        alert(`Copied "${ex.id}" to clipboard!`);
-                      }}>{ex.id}</span>
+                {/* Right side: Paste Raw JSON text field and validation preview */}
+                <div className="lg:col-span-8 flex flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center w-full">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Or Paste Raw JSON</label>
+                      <button
+                        type="button"
+                        onClick={() => setUploadJsonText(JSON.stringify({
+                          examId: "cgpsc_sse",
+                          examName: "CGPSC SSE",
+                          subject: "All Subjects",
+                          mode: "mock",
+                          language: "hindi",
+                          pattern: {
+                            totalQuestions: 5,
+                            totalMarks: 5,
+                            durationMinutes: 10,
+                            markingScheme: "+1 for correct, -0.25 for incorrect"
+                          },
+                          questions: [
+                            {
+                              qType: "standard",
+                              question: "छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष कौन थे?",
+                              options: ["बनवारी लाल अग्रवाल", "राजेन्द्र प्रसाद शुक्ल", "धर्मजीत सिंह", "डॉ. रमन सिंह"],
+                              correctIndex: 1,
+                              explanation: "राजेन्द्र प्रसाद शुक्ल छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष थे।",
+                              subject: "CG GK",
+                              difficulty: "easy",
+                              topic: "Administration in Chhattisgarh",
+                              sourcePattern: "CG Vyapam PYQ Inspired",
+                              yearTrend: "2020-2023",
+                              expectedIn2026: true
+                            }
+                          ]
+                        }, null, 2))}
+                        className="text-[8px] font-black uppercase text-saffron hover:underline cursor-pointer"
+                      >
+                        Insert Template
+                      </button>
                     </div>
-                  ))}
+                    <textarea
+                      value={uploadJsonText}
+                      onChange={(e) => setUploadJsonText(e.target.value)}
+                      placeholder='{"examId": "...", "questions": [...]}'
+                      className="w-full h-36 bg-bg-s3 text-[10px] font-mono text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none"
+                      disabled={uploadLoading}
+                    />
+                  </div>
+
+                  {renderAdvancedPreviewPanel()}
                 </div>
               </div>
 
               <button
                 type="submit"
-                disabled={uploadLoading || !uploadJsonText.trim()}
-                className="w-full py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md"
+                disabled={uploadLoading || !uploadJsonText.trim() || !!jsonSyntaxError || Object.keys(questionErrors).length > 0}
+                className="w-full py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md mt-2"
               >
                 {uploadLoading ? (
                   <>
@@ -1155,63 +1562,93 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
           )}
 
           {creatorTab === 'pool_generate' && (
-            <form onSubmit={handleGenerateFromPool} className="flex flex-col gap-4 font-sans">
-              {/* Exam Select */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Base Syllabus Exam</label>
-                <select
-                  value={selectedExamId}
-                  onChange={handleExamChange}
-                  className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
-                  disabled={loadingPoolGen}
-                >
-                  {exams.map(ex => (
-                    <option key={ex.id} value={ex.id}>{ex.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Target Exams Checkboxes */}
-              {renderTargetExamsSelection(loadingPoolGen)}
-
-              {/* Subject Select */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Subject Pool Filter</label>
-                <select
-                  value={poolGenSubject}
-                  onChange={(e) => setPoolGenSubject(e.target.value)}
-                  className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
-                  disabled={loadingPoolGen}
-                >
-                  <option value="all">Mixed (All Subjects)</option>
-                  {poolStats && Object.keys(poolStats.subjects || {}).map(sub => (
-                    <option key={sub} value={sub}>{sub} ({poolStats.subjects[sub]} Qs in pool)</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Question Count Input */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Number of Questions ({poolGenCount})</label>
-                <input
-                  type="range"
-                  min="5"
-                  max="100"
-                  step="5"
-                  value={poolGenCount}
-                  onChange={(e) => setPoolGenCount(parseInt(e.target.value, 10))}
-                  className="w-full h-1.5 bg-bg-s3 rounded-lg appearance-none cursor-pointer accent-saffron"
-                  disabled={loadingPoolGen}
-                />
-                <div className="flex justify-between text-[8px] font-black uppercase text-text-muted select-none mt-0.5">
-                  <span>5 Qs</span>
-                  <span>50 Qs</span>
-                  <span>100 Qs</span>
+            <form onSubmit={handleGenerateFromPool} className="flex flex-col gap-5 font-sans">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {/* Exam Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Base Syllabus Exam</label>
+                  <select
+                    value={selectedExamId}
+                    onChange={handleExamChange}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                    disabled={loadingPoolGen}
+                  >
+                    {exams.map(ex => (
+                      <option key={ex.id} value={ex.id}>{ex.name}</option>
+                    ))}
+                  </select>
                 </div>
-              </div>
 
-              {/* Grid: Mode, Language & Duration */}
-              <div className="grid grid-cols-3 gap-3">
+                {/* Subject Select */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center w-full">
+                    <label className="text-[10px] font-black uppercase text-text-muted">Subject Pool Filter</label>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPoolSubjects([])}
+                      className="text-[8px] font-black uppercase text-saffron hover:underline cursor-pointer"
+                    >
+                      Reset (All)
+                    </button>
+                  </div>
+                  <div className="w-full h-[95px] overflow-y-auto bg-bg-s3 border border-border p-2 rounded-lg flex flex-col gap-1.5 no-scrollbar select-none">
+                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer border-b border-border/20 pb-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedPoolSubjects.length === 0}
+                        onChange={() => setSelectedPoolSubjects([])}
+                        className="rounded border-border text-saffron focus:ring-saffron accent-saffron cursor-pointer"
+                      />
+                      <span className={selectedPoolSubjects.length === 0 ? "text-saffron font-black uppercase text-[10px]" : "text-text-muted font-bold text-[10px]"}>
+                        Mixed (All Subjects)
+                      </span>
+                    </label>
+                    {poolStats && Object.keys(poolStats.subjects || {}).map(sub => {
+                      const isChecked = selectedPoolSubjects.includes(sub);
+                      return (
+                        <label key={sub} className="flex items-center gap-2 text-[10px] font-semibold cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedPoolSubjects(prev => [...prev, sub]);
+                              } else {
+                                setSelectedPoolSubjects(prev => prev.filter(s => s !== sub));
+                              }
+                            }}
+                            className="rounded border-border text-saffron focus:ring-saffron accent-saffron cursor-pointer"
+                          />
+                          <span className={isChecked ? "text-saffron font-bold" : "text-text-muted hover:text-text"}>
+                            {sub} <span className="text-[8px] font-normal opacity-60">({poolStats.subjects[sub]} Qs)</span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Question Count Input */}
+                <div className="flex flex-col gap-1.5 justify-center">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Questions ({poolGenCount})</label>
+                  <input
+                    type="range"
+                    min="5"
+                    max="100"
+                    step="5"
+                    value={poolGenCount}
+                    onChange={(e) => setPoolGenCount(parseInt(e.target.value, 10))}
+                    className="w-full h-1.5 bg-bg-s3 rounded-lg appearance-none cursor-pointer accent-saffron my-2"
+                    disabled={loadingPoolGen}
+                  />
+                  <div className="flex justify-between text-[7.5px] font-black uppercase text-text-muted select-none">
+                    <span>5 Qs</span>
+                    <span>50 Qs</span>
+                    <span>100 Qs</span>
+                  </div>
+                </div>
+
+                {/* Test Mode */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase text-text-muted">Test Mode</label>
                   <select
@@ -1228,6 +1665,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     <option value="mock">Full Length Mock</option>
                   </select>
                 </div>
+
+                {/* Language */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase text-text-muted">Language</label>
                   <select
@@ -1240,6 +1679,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     <option value="english">English</option>
                   </select>
                 </div>
+
+                {/* Duration */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase text-text-muted">Duration (Mins)</label>
                   <input
@@ -1255,11 +1696,14 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                 </div>
               </div>
 
+              {/* Target Exams Checkboxes */}
+              {renderTargetExamsSelection(loadingPoolGen)}
+
               {/* Submit button */}
               <button
                 type="submit"
                 disabled={loadingPoolGen}
-                className="w-full mt-2 py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md"
+                className="w-full py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md mt-2"
               >
                 {loadingPoolGen ? (
                   <>
@@ -1277,78 +1721,83 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
           )}
 
           {creatorTab === 'pool_upload' && (
-            <form onSubmit={handleUploadPoolQuestions} className="flex flex-col gap-4 font-sans">
+            <form onSubmit={handleUploadPoolQuestions} className="flex flex-col gap-5 font-sans">
               {/* Target Exams Checkboxes */}
               {renderTargetExamsSelection(uploadLoading)}
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Upload Pool JSON File</label>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleFileUpload}
-                  className="w-full bg-bg-s3 text-xs text-text border border-border px-3 py-2.5 rounded-lg outline-none cursor-pointer file:bg-saffron file:text-bg-s1 file:border-none file:px-2.5 file:py-1 file:rounded file:text-[9px] file:font-black file:uppercase file:cursor-pointer"
-                  disabled={uploadLoading}
-                />
-              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Left side: Upload JSON file and Exam IDs reference */}
+                <div className="lg:col-span-4 flex flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-black uppercase text-text-muted">Upload Pool JSON File</label>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileUpload}
+                      className="w-full bg-bg-s3 text-xs text-text border border-border px-3 py-2.5 rounded-lg outline-none cursor-pointer file:bg-saffron file:text-bg-s1 file:border-none file:px-2.5 file:py-1 file:rounded file:text-[9px] file:font-black file:uppercase file:cursor-pointer"
+                      disabled={uploadLoading}
+                    />
+                  </div>
 
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between items-center w-full">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Or Paste Raw JSON Array</label>
-                  <button
-                    type="button"
-                    onClick={() => setUploadJsonText(JSON.stringify([
-                      {
-                        qId: "CG_GK_001",
-                        qType: "MCQ",
-                        examTags: ["cgpsc_sse"],
-                        subject: "CG GK",
-                        topic: "Administration in Chhattisgarh",
-                        language: "hi",
-                        question: "छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष कौन थे?",
-                        options: ["बनवारी लाल अग्रवाल", "राजेन्द्र प्रसाद शुक्ल", "धर्मजीत सिंह", "डॉ. रमन सिंह"],
-                        correctIndex: 1,
-                        explanation: "राजेन्द्र प्रसाद शुक्ल छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष थे।"
-                      }
-                    ], null, 2))}
-                    className="text-[8px] font-black uppercase text-saffron hover:underline cursor-pointer"
-                  >
-                    Insert Template
-                  </button>
-                </div>
-                <textarea
-                  value={uploadJsonText}
-                  onChange={(e) => setUploadJsonText(e.target.value)}
-                  placeholder='[{"qId": "...", "qType": "MCQ", "question": "...", "options": [...]}]'
-                  className="w-full h-36 bg-bg-s3 text-[10px] font-mono text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none mb-1.5"
-                  disabled={uploadLoading}
-                />
-
-                {/* Live Preview Panel */}
-                {parsedPreviewQuestions.length > 0 && (
-                  <div className="flex flex-col gap-3.5 border border-border p-5 rounded-xl bg-bg-s2/40 shadow-md max-h-[300px] overflow-y-auto select-text mb-2.5 w-full">
-                    <span className="text-xs font-black uppercase text-saffron tracking-wider flex items-center gap-1.5 select-none">
-                      <Eye className="w-4 h-4 animate-pulse" /> Pasted JSON Live Preview ({parsedPreviewQuestions.length} Qs)
-                    </span>
-                    <div className="flex flex-col gap-4">
-                      {parsedPreviewQuestions.map((pq: any, pIdx: number) => (
-                        <div key={pIdx} className="p-3 bg-bg-s3 border border-border/60 rounded-lg flex flex-col gap-2 font-sans shadow-sm">
-                          <div className="flex justify-between items-center gap-2 border-b border-border/20 pb-1.5 select-none">
-                            <span className="text-[9px] font-black uppercase text-saffron tracking-wider">Q{pIdx + 1} ({pq.qType || 'standard'})</span>
-                            <span className="text-[8px] font-black uppercase text-text-muted bg-bg-s2 px-1.5 py-0.5 rounded border border-border">{pq.subject || 'General'}</span>
-                          </div>
-                          <p className="text-xs font-semibold text-text leading-relaxed font-hindi whitespace-pre-wrap">{pq.question}</p>
+                  <div className="flex flex-col gap-1.5 select-none">
+                    <span className="text-[9px] font-black uppercase text-text-muted">Active Exam IDs Reference (Click ID to copy)</span>
+                    <div className="max-h-52 overflow-y-auto bg-bg-s3 border border-border rounded-lg p-2.5 font-mono text-[9px] text-text-muted leading-relaxed flex flex-col gap-1.5 no-scrollbar">
+                      {exams.map(ex => (
+                        <div key={ex.id} className="flex justify-between items-center gap-2 border-b border-border/20 pb-1">
+                          <span className="font-bold text-text truncate max-w-[150px]" title={ex.fullName || ex.name}>{ex.name}</span>
+                          <span className="text-saffron font-bold cursor-pointer hover:underline" onClick={() => {
+                            navigator.clipboard.writeText(ex.id);
+                            alert(`Copied "${ex.id}" to clipboard!`);
+                          }}>{ex.id}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                )}
+                </div>
+
+                {/* Right side: Paste Raw JSON Array text field and validation preview */}
+                <div className="lg:col-span-8 flex flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center w-full">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Or Paste Raw JSON Array</label>
+                      <button
+                        type="button"
+                        onClick={() => setUploadJsonText(JSON.stringify([
+                          {
+                            qId: "CG_GK_001",
+                            qType: "MCQ",
+                            examTags: ["cgpsc_sse"],
+                            subject: "CG GK",
+                            topic: "Administration in Chhattisgarh",
+                            language: "hi",
+                            question: "छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष कौन थे?",
+                            options: ["बनवारी लाल अग्रवाल", "राजेन्द्र प्रसाद शुक्ल", "धर्मजीत सिंह", "डॉ. रमन सिंह"],
+                            correctIndex: 1,
+                            explanation: "राजेन्द्र प्रसाद शुक्ल छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष थे।"
+                          }
+                        ], null, 2))}
+                        className="text-[8px] font-black uppercase text-saffron hover:underline cursor-pointer"
+                      >
+                        Insert Template
+                      </button>
+                    </div>
+                    <textarea
+                      value={uploadJsonText}
+                      onChange={(e) => setUploadJsonText(e.target.value)}
+                      placeholder='[{"qId": "...", "qType": "MCQ", "question": "...", "options": [...]}]'
+                      className="w-full h-36 bg-bg-s3 text-[10px] font-mono text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none"
+                      disabled={uploadLoading}
+                    />
+                  </div>
+
+                  {renderAdvancedPreviewPanel()}
+                </div>
               </div>
 
               <button
                 type="submit"
-                disabled={uploadLoading || !uploadJsonText.trim()}
-                className="w-full py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md"
+                disabled={uploadLoading || !uploadJsonText.trim() || !!jsonSyntaxError || Object.keys(questionErrors).length > 0}
+                className="w-full py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md mt-2"
               >
                 {uploadLoading ? (
                   <>
@@ -1366,8 +1815,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
           )}
         </div>
 
-        {/* Existing Tests Table List (2 columns wide) */}
-        <div className="xl:col-span-2 bg-bg-s2 border border-border p-5 rounded-xl shadow-md flex flex-col gap-4">
+        {/* Existing Tests Table List */}
+        <div className="w-full bg-bg-s2 border border-border p-5 rounded-xl shadow-md flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-3">
             <div className="flex items-center gap-2">
               <Trophy className="w-4.5 h-4.5 text-saffron" />

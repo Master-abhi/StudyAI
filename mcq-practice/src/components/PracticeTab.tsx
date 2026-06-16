@@ -18,21 +18,76 @@ interface ServerTest {
 
 interface PracticeTabProps {
   activeExam: any;
-  onStartPracticeSession: (questions: Question[], mode: 'quiz' | 'mock' | 'pyq', subject: string, durationMinutes?: number) => void;
+  onStartPracticeSession: (questions: Question[], mode: 'quiz' | 'mock' | 'pyq', subject: string, durationMinutes?: number, testId?: string) => void;
   bookmarkedQuestions?: Question[];
   onToggleBookmark?: (question: Question) => void;
+  testHistory?: any[];
 }
 
 export const PracticeTab: React.FC<PracticeTabProps> = ({
   activeExam,
   onStartPracticeSession,
   bookmarkedQuestions = [],
-  onToggleBookmark
+  onToggleBookmark,
+  testHistory = []
 }) => {
   const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'saved'>('quiz');
   const [tests, setTests] = useState<ServerTest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedSavedQuestion, setSelectedSavedQuestion] = useState<Question | null>(null);
+
+  const [testProgress, setTestProgress] = useState<{ [testId: string]: { answers: (number | null)[]; completed: boolean } }>({});
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('examprep_test_progress');
+      if (stored) {
+        setTestProgress(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('[PracticeTab] Error loading test progress:', e);
+    }
+  }, []);
+
+  const getTestProgressInfo = (test: ServerTest) => {
+    // 1. Check in-progress map in localStorage
+    if (testProgress && testProgress[test.id]) {
+      const saved = testProgress[test.id];
+      const answers = Array.isArray(saved.answers) ? saved.answers : [];
+      const attempted = answers.filter(a => a !== null).length;
+      return {
+        attemptedCount: attempted,
+        totalQuestions: test.totalQuestions || answers.length || 5,
+        completed: saved.completed
+      };
+    }
+
+    // 2. Check in testHistory prop
+    if (testHistory && Array.isArray(testHistory)) {
+      let match = testHistory.find((log: any) => log.testId === test.id);
+      if (!match) {
+        // Fallback: match by subject name and mode
+        match = testHistory.find((log: any) => 
+          (log.subject || '').trim().toLowerCase() === (test.subject || '').trim().toLowerCase() && 
+          log.mode === test.mode
+        );
+      }
+
+      if (match) {
+        const correct = match.correct !== undefined ? match.correct : 0;
+        const wrong = match.wrong !== undefined ? match.wrong : 0;
+        const total = match.total !== undefined ? match.total : (test.totalQuestions || 5);
+        const attempted = correct + wrong;
+        return {
+          attemptedCount: attempted,
+          totalQuestions: total,
+          completed: true
+        };
+      }
+    }
+
+    return null;
+  };
 
   // Filter and search states
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -94,7 +149,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       if (!res.ok) throw new Error('Failed to load test details');
       const data = await res.json();
       if (data && data.questions && data.questions.length > 0) {
-        onStartPracticeSession(data.questions, testMode, subject, data.pattern?.durationMinutes || data.durationMinutes);
+        onStartPracticeSession(data.questions, testMode, subject, data.pattern?.durationMinutes || data.durationMinutes, testId);
       }
     } catch (err) {
       console.error(err);
@@ -463,29 +518,51 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredTests.map(test => (
-                  <motion.div
-                    key={test.id}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-bg-s2 border border-border rounded-xl flex items-center justify-between shadow-sm hover:border-saffron-border/30 transition-all duration-200"
-                  >
-                    <div className="flex flex-col gap-0.5 truncate pr-3">
-                      <h4 className="text-xs font-black text-text truncate leading-tight">{test.subject}</h4>
-                      <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider">
-                        {test.totalQuestions} questions • {test.language} • {activeMode}
-                      </span>
-                    </div>
-                    
-                    <button
-                      onClick={() => handleStartEducatorTest(test.id, test.mode, test.subject)}
-                      className="px-3.5 py-2 bg-saffron hover:bg-orange-500 text-[10px] font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1 shrink-0 transition-all active:scale-95 cursor-pointer shadow hover:shadow-saffron-dim"
+                {filteredTests.map(test => {
+                  const progress = getTestProgressInfo(test);
+                  return (
+                    <motion.div
+                      key={test.id}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-bg-s2 border border-border rounded-xl flex items-center justify-between shadow-sm hover:border-saffron-border/30 transition-all duration-200 gap-3"
                     >
-                      <Play className="w-3.5 h-3.5 fill-bg-s1" />
-                      <span>Start</span>
-                    </button>
-                  </motion.div>
-                ))}
+                      <div className="flex flex-col gap-0.5 truncate pr-2 flex-1">
+                        <h4 className="text-xs font-black text-text truncate leading-tight">{test.subject}</h4>
+                        <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider">
+                          {test.totalQuestions} questions • {test.language} • {activeMode === 'quiz' ? 'Quiz' : 'Mock Exam'}
+                        </span>
+                        
+                        {progress && (
+                          <div className="flex flex-col gap-1 mt-2.5 w-full max-w-[200px]">
+                            <div className="flex justify-between items-center text-[8px] font-bold uppercase tracking-wide">
+                              <span className={progress.completed ? "text-greenL font-black" : "text-saffron font-black"}>
+                                {progress.completed ? "Completed" : "In Progress"}
+                              </span>
+                              <span className="text-text-muted">
+                                {progress.attemptedCount}/{progress.totalQuestions} Qs ({Math.round((progress.attemptedCount / progress.totalQuestions) * 100)}%)
+                              </span>
+                            </div>
+                            <div className="w-full h-1 bg-bg-s3 border border-border/40 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-300 ${progress.completed ? 'bg-greenL' : 'bg-saffron'}`}
+                                style={{ width: `${Math.min(100, Math.round((progress.attemptedCount / progress.totalQuestions) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <button
+                        onClick={() => handleStartEducatorTest(test.id, test.mode, test.subject)}
+                        className="px-3.5 py-2 bg-saffron hover:bg-orange-500 text-[10px] font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1 shrink-0 transition-all active:scale-95 cursor-pointer shadow hover:shadow-saffron-dim"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-bg-s1" />
+                        <span>{progress ? (progress.completed ? 'Retake' : 'Resume') : 'Start'}</span>
+                      </button>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </div>

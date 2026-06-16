@@ -9,6 +9,21 @@ interface AuthModalProps {
   onGuest: () => void;
 }
 
+const getApiUrl = (path: string): string => {
+  const hostname = window.location.hostname;
+  const isLocal = hostname === 'localhost' || 
+                  hostname === '127.0.0.1' || 
+                  hostname === '[::1]' ||
+                  hostname.startsWith('192.168.');
+  if (isLocal && window.location.port !== '3000') {
+    return `http://localhost:3000${path}`;
+  }
+  if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
+    return `https://study-ai-olive.vercel.app${path}`;
+  }
+  return path;
+};
+
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
@@ -51,14 +66,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               
               // Sync user profile to Firestore
               const token = await freshUser.getIdToken(true);
-              const host = window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1' || 
-                           window.location.hostname === '[::1]' ||
-                           window.location.hostname.startsWith('192.168.')
-                           ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
-                           : '';
-
-              await fetch(`${host}/api/user/sync`, {
+              await fetch(getApiUrl('/api/user/sync'), {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -178,14 +186,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const cred = await firebase.auth().signInWithPopup(provider);
       
       const token = await cred.user.getIdToken(true);
-      const host = window.location.hostname === 'localhost' || 
-                   window.location.hostname === '127.0.0.1' || 
-                   window.location.hostname === '[::1]' ||
-                   window.location.hostname.startsWith('192.168.')
-                   ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
-                   : '';
-
-      const syncRes = await fetch(`${host}/api/user/sync`, {
+      const syncRes = await fetch(getApiUrl('/api/user/sync'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -267,14 +268,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       // 3. Sync registration details (name, username, phone, email) to backend Firestore immediately
       try {
         const token = await createdUser.getIdToken(true);
-        const host = window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1' || 
-                     window.location.hostname === '[::1]' ||
-                     window.location.hostname.startsWith('192.168.')
-                     ? (window.location.port !== '3000' ? 'http://localhost:3000' : '')
-                     : '';
-
-        const syncRes = await fetch(`${host}/api/user/sync`, {
+        const syncRes = await fetch(getApiUrl('/api/user/sync'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

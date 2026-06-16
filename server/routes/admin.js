@@ -818,11 +818,25 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
       console.warn('[Generate from Pool] Firestore array-contains-any query failed or no matches:', e.message);
     }
 
+    // Helper to parse subject list
+    const getSubjectList = (subVal) => {
+      if (!subVal) return [];
+      if (Array.isArray(subVal)) {
+        return subVal.map(s => String(s).toLowerCase().trim()).filter(Boolean);
+      }
+      if (typeof subVal === 'string') {
+        return subVal.split(',').map(s => s.toLowerCase().trim()).filter(Boolean);
+      }
+      return [String(subVal).toLowerCase().trim()];
+    };
+
+    const targetSubjects = getSubjectList(selectedSubject);
+    const hasSubjectFilter = targetSubjects.length > 0 && !targetSubjects.includes('all') && !targetSubjects.includes('mixed');
+
     // 2. Filter matching exams by target subject
     let primaryMatches = examQuestions;
-    if (selectedSubject !== 'all' && selectedSubject !== 'mixed' && selectedSubject !== '') {
-      const subNorm = selectedSubject.toLowerCase().trim();
-      primaryMatches = examQuestions.filter(q => (q.subject || '').toLowerCase().trim() === subNorm);
+    if (hasSubjectFilter) {
+      primaryMatches = examQuestions.filter(q => targetSubjects.includes((q.subject || '').toLowerCase().trim()));
     }
 
     let finalQuestions = [...primaryMatches];
@@ -840,13 +854,12 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
     shuffle(finalQuestions);
 
     // 3. Fallback level 1: Same subject across other exams (if subject is not all/mixed)
-    if (finalQuestions.length < count && selectedSubject !== 'all' && selectedSubject !== 'mixed' && selectedSubject !== '') {
-      const subNorm = selectedSubject.toLowerCase().trim();
+    if (finalQuestions.length < count && hasSubjectFilter) {
       const globalSnapshot = await db.collection('question_bank').limit(1000).get();
       const globalQuestions = globalSnapshot.docs.map(doc => doc.data());
 
       let otherExamsSubjectMatches = globalQuestions.filter(q => 
-        (q.subject || '').toLowerCase().trim() === subNorm &&
+        targetSubjects.includes((q.subject || '').toLowerCase().trim()) &&
         !finalQuestions.some(fq => fq.id === q.id)
       );
 
@@ -948,7 +961,9 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
       examName,
       examIds: Array.isArray(examIds) ? examIds : [examId],
       examNames: Array.isArray(examNames) ? examNames : [examName],
-      subject: selectedSubject === 'all' || selectedSubject === 'mixed' ? 'Mixed Subjects' : selectedSubject,
+      subject: hasSubjectFilter
+        ? (Array.isArray(selectedSubject) ? selectedSubject.join(', ') : selectedSubject)
+        : 'Mixed Subjects',
       mode: testMode,
       language: language || 'hindi',
       questions: enrichedQuestions,

@@ -73,8 +73,30 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
           result += char;
           escaped = false;
         } else if (char === '\\') {
-          result += char;
-          escaped = true;
+          const nextChar = cleanStr[i + 1];
+          const nextNextChar = cleanStr[i + 2];
+          
+          const isValidJsonEscape = 
+            nextChar === '"' || 
+            nextChar === '\\' || 
+            nextChar === '/' ||
+            nextChar === 'b' || 
+            nextChar === 'f' || 
+            nextChar === 'n' || 
+            nextChar === 'r' || 
+            nextChar === 't' ||
+            (nextChar === 'u' && /^[0-9a-fA-F]{4}$/.test(cleanStr.slice(i + 2, i + 6)));
+            
+          const isLatexCommand = 
+            (nextChar === 'b' || nextChar === 'f' || nextChar === 'n' || nextChar === 'r' || nextChar === 't' || nextChar === 'u') &&
+            (nextNextChar && /^[a-zA-Z]$/.test(nextNextChar));
+            
+          if (!isValidJsonEscape || isLatexCommand) {
+            result += '\\\\';
+          } else {
+            result += char;
+            escaped = true;
+          }
         } else if (char === '"') {
           result += char;
           inString = false;

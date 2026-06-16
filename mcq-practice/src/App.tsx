@@ -186,6 +186,23 @@ export default function App() {
   const [staffRoles, setStaffRoles] = useState<string[]>([]);
   const [initialSelectedArticle, setInitialSelectedArticle] = useState<any>(null);
 
+  const [activeTestId, setActiveTestId] = useState<string | null>(null);
+
+  const saveTestProgress = (testId: string | null, currentAnswers: (number | null)[], completed = false) => {
+    if (!testId) return;
+    try {
+      const stored = localStorage.getItem('examprep_test_progress');
+      const progressMap = stored ? JSON.parse(stored) : {};
+      progressMap[testId] = {
+        answers: currentAnswers,
+        completed: completed || (progressMap[testId]?.completed || false)
+      };
+      localStorage.setItem('examprep_test_progress', JSON.stringify(progressMap));
+    } catch (e) {
+      console.error('[saveTestProgress] Error saving progress:', e);
+    }
+  };
+
   // Persist activeTab selection
   useEffect(() => {
     localStorage.setItem('cg_active_tab', activeTab);
@@ -1072,6 +1089,10 @@ export default function App() {
       newAnswers[currentIndex] = optIdx;
     }
     setAnswers(newAnswers);
+
+    if (activeTestId) {
+      saveTestProgress(activeTestId, newAnswers, false);
+    }
   };
 
   const handleReportQuestion = (question: Question) => {
@@ -1138,13 +1159,34 @@ export default function App() {
     testQuestions: Question[],
     testMode: 'quiz' | 'mock' | 'pyq',
     subject: string,
-    durationMinutes?: number
+    durationMinutes?: number,
+    testId?: string
   ) => {
+    setActiveTestId(testId || null);
     setQuestions(testQuestions);
     setMode(testMode);
     setSubjectName(subject);
     setCurrentIndex(0);
-    setAnswers(Array(testQuestions.length).fill(null));
+
+    // Load saved progress if resuming
+    let initialAnswers = Array(testQuestions.length).fill(null);
+    if (testId) {
+      try {
+        const stored = localStorage.getItem('examprep_test_progress');
+        if (stored) {
+          const progressMap = JSON.parse(stored);
+          const saved = progressMap[testId];
+          if (saved && !saved.completed && Array.isArray(saved.answers)) {
+            if (saved.answers.length === testQuestions.length) {
+              initialAnswers = saved.answers;
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[startTestPractice] Error loading saved progress:', e);
+      }
+    }
+    setAnswers(initialAnswers);
     setMarkedForReview(Array(testQuestions.length).fill(false));
     setVisited(Array(testQuestions.length).fill(false));
     setElapsedTime(0);
@@ -1206,6 +1248,7 @@ export default function App() {
     setSolvedMcqsCount(newMcqsSolved);
 
     const newRecord = {
+      testId: activeTestId,
       subject: subjectName,
       exam: activeExamId,
       mode: mode,
@@ -1220,6 +1263,10 @@ export default function App() {
 
     const newHistory = [newRecord, ...testHistory];
     setTestHistory(newHistory);
+
+    if (activeTestId) {
+      saveTestProgress(activeTestId, answers, true);
+    }
 
     // Sync to Express REST databases if authenticated user is logged in
     if (currentUser) {
@@ -1376,6 +1423,7 @@ export default function App() {
             onStartPracticeSession={startTestPractice}
             bookmarkedQuestions={bookmarks}
             onToggleBookmark={handleToggleBookmark}
+            testHistory={testHistory}
           />
         );
       case 'chat':
@@ -1841,7 +1889,11 @@ export default function App() {
                       <div className="flex gap-3 mt-1.5 shrink-0">
                         <button
                           onClick={() => {
-                            setAnswers(Array(questions.length).fill(null));
+                            const clearedAnswers = Array(questions.length).fill(null);
+                            setAnswers(clearedAnswers);
+                            if (activeTestId) {
+                              saveTestProgress(activeTestId, clearedAnswers, false);
+                            }
                             setMarkedForReview(Array(questions.length).fill(false));
                             setVisited(Array(questions.length).fill(false));
                             setElapsedTime(0);
