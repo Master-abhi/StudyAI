@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, Zap, BookOpen, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, Zap, BookOpen, Search, SlidersHorizontal, X, Keyboard } from 'lucide-react';
 import type { Question } from '../types';
+import { TypingTest } from './TypingTest';
 
 interface ServerTest {
   id: string;
@@ -22,6 +23,8 @@ interface PracticeTabProps {
   bookmarkedQuestions?: Question[];
   onToggleBookmark?: (question: Question) => void;
   testHistory?: any[];
+  currentUser?: any;
+  onSaveTypingResults?: (netWpm: number, grossWpm: number, accuracy: number, correctChars: number, incorrectChars: number, language: string, duration: number, topicId: string, topicTitle: string) => void;
 }
 
 export const PracticeTab: React.FC<PracticeTabProps> = ({
@@ -29,9 +32,11 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   onStartPracticeSession,
   bookmarkedQuestions = [],
   onToggleBookmark,
-  testHistory = []
+  testHistory = [],
+  currentUser,
+  onSaveTypingResults
 }) => {
-  const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'saved'>('quiz');
+  const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'typing' | 'saved'>('quiz');
   const [tests, setTests] = useState<ServerTest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedSavedQuestion, setSelectedSavedQuestion] = useState<Question | null>(null);
@@ -271,11 +276,12 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       </div>
 
       {/* 2. Unified Mode selectors */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 shrink-0">
         {[
           { id: 'quiz', label: 'Quizzes', icon: <Zap className="w-5 h-5 text-saffron" />, desc: 'Educator tests' },
           { id: 'mock', label: 'Mock Exams', icon: <Trophy className="w-5 h-5 text-saffron" />, desc: 'Full length tests' },
           { id: 'pyq', label: 'PYQ Papers', icon: <BookOpen className="w-5 h-5 text-saffron" />, desc: 'Previous papers' },
+          { id: 'typing', label: 'Typing Test', icon: <Keyboard className="w-5 h-5 text-saffron" />, desc: 'Speed & Accuracy' },
           { id: 'saved', label: 'Saved MCQs', icon: <Bookmark className="w-5 h-5 text-saffron" />, desc: `Saved (${bookmarkedQuestions.length})` }
         ].map(m => (
           <button
@@ -302,6 +308,8 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
           <div className="h-28 bg-bg-s2 border border-border rounded-xl flex items-center justify-center animate-pulse text-xs text-text-muted">
             Loading tests...
           </div>
+        ) : activeMode === 'typing' ? (
+          <TypingTest currentUser={currentUser} onSaveResults={onSaveTypingResults} />
         ) : activeMode === 'pyq' ? (
           /* PYQ start card */
           <motion.div

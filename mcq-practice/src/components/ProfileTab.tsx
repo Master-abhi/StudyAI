@@ -41,6 +41,7 @@ interface ProfileTabProps {
   activeExam: any;
   topicProgress: any;
   testHistory: PerformanceLog[];
+  typingResults?: any[];
   serverAnalytics: any;
   isAdmin?: boolean;
   onOpenAdmin?: () => void;
@@ -67,6 +68,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   activeExam,
   topicProgress,
   testHistory = [],
+  typingResults = [],
   serverAnalytics,
   isAdmin = false,
   onOpenAdmin,
@@ -81,6 +83,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   onVisitProfile
 }) => {
   const [showHistoryLimit, setShowHistoryLimit] = useState<number>(5);
+  const [showTypingLimit, setShowTypingLimit] = useState<number>(5);
   const [uploadingAvatar, setUploadingAvatar] = useState<boolean>(false);
 
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1110,7 +1113,80 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           )}
         </div>
 
+        {/* 8. Typing Test Performance History */}
+        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
+          <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
+            <LucideIcons.Keyboard className="w-4 h-4 text-saffron" />
+            <span>Typing Test Performance History</span>
+          </h4>
 
+          {typingResults.length === 0 ? (
+            <div className="text-center py-6 text-xs text-text-muted">
+              No typing tests completed yet. Take typing tests in the Practice tab.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                {[...typingResults].reverse().slice(0, showTypingLimit).map((log, idx) => {
+                  return (
+                    <div
+                      key={idx}
+                      className="w-full p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3"
+                    >
+                      <div className="flex flex-col truncate">
+                        <span className="text-text truncate leading-tight flex items-center gap-1.5">
+                          {log.topicTitle}
+                          <span className="text-[8px] bg-saffron-dim/40 text-saffron border border-saffron-border/30 px-1.5 py-0.5 rounded font-black uppercase">
+                            {log.language === 'krutidev' ? 'कृत्तिदेव 010' : 'English'}
+                          </span>
+                        </span>
+                        <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
+                          Net: {log.netWpm} WPM • Gross: {log.grossWpm} WPM • Accuracy: {log.accuracy}%
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`font-black ${
+                          log.accuracy >= 95 ? 'text-greenL' :
+                          log.accuracy >= 85 ? 'text-saffron' :
+                          'text-redL'
+                        }`}>
+                          {log.accuracy}% Acc
+                        </span>
+                        <span className="text-[9px] text-text-muted font-normal">
+                          {new Date(log.date).toLocaleDateString('en-IN', {
+                            day: 'numeric', month: 'short'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {(typingResults.length > showTypingLimit || showTypingLimit > 5) && (
+                <div className="flex gap-2 w-full">
+                  {typingResults.length > showTypingLimit && (
+                    <button
+                      onClick={() => setShowTypingLimit(prev => prev + 5)}
+                      className="flex-1 text-center py-2 bg-bg-s3 border border-border text-[9px] font-black uppercase text-text-muted hover:text-text rounded cursor-pointer transition-colors"
+                    >
+                      Show More Logs
+                    </button>
+                  )}
+                  {showTypingLimit > 5 && (
+                    <button
+                      onClick={() => setShowTypingLimit(5)}
+                      className="flex-1 text-center py-2 bg-bg-s3 border border-border text-[9px] font-black uppercase text-text-muted hover:text-text rounded cursor-pointer transition-colors"
+                    >
+                      Show Less
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* 8. AI Recommendations Coaching tips (Premium Glowing Overhaul) */}
         <div className="p-6 bg-bg-s2 border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-5 relative overflow-hidden transition-all duration-300 hover:border-saffron-border/60">

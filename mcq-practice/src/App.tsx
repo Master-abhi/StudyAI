@@ -284,6 +284,15 @@ export default function App() {
     }
   });
 
+  const [typingResults, setTypingResults] = useState<any[]>(() => {
+    const val = localStorage.getItem('examprep_typingResults');
+    try {
+      return val ? JSON.parse(val) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Syllabus / Exam State
   const [activeExamId, setActiveExamId] = useState<string>(() => {
     return localStorage.getItem('examprep_selectedExam') || 'cgpsc_sse';
@@ -528,6 +537,7 @@ export default function App() {
     setStreakLastDate('');
     setSolvedMcqsCount(0);
     setTestHistory([]);
+    setTypingResults([]);
     setTopicProgress({});
     setServerAnalytics(null);
     setRankingData(null);
@@ -541,6 +551,7 @@ export default function App() {
       'examprep_streak_last_date',
       'examprep_mcqsSolved',
       'examprep_testResults',
+      'examprep_typingResults',
       'userName',
       'cg_is_guest',
       'cg_active_tab'
@@ -649,6 +660,7 @@ export default function App() {
           setStreakLastDate(profileData.streak?.lastDate || '');
           setSolvedMcqsCount(profileData.mcqsSolved || 0);
           setTestHistory(profileData.testResults || []);
+          setTypingResults(profileData.typingResults || []);
           setUserMobile(profileData.mobile || '');
           setUserPlan(profileData.plan || 'free');
           localStorage.setItem('examprep_userMobile', profileData.mobile || '');
@@ -784,6 +796,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('examprep_testResults', JSON.stringify(testHistory));
   }, [testHistory]);
+
+  useEffect(() => {
+    localStorage.setItem('examprep_typingResults', JSON.stringify(typingResults));
+  }, [typingResults]);
 
   // Handle study trigger navigation parameter and testId check on mount
   useEffect(() => {
@@ -1328,6 +1344,68 @@ export default function App() {
     }
   };
 
+  const saveTypingResults = async (
+    netWpm: number,
+    grossWpm: number,
+    accuracy: number,
+    correctChars: number,
+    incorrectChars: number,
+    language: string,
+    duration: number,
+    topicId: string,
+    topicTitle: string
+  ) => {
+    const newResult = {
+      date: new Date().toISOString(),
+      topicId,
+      topicTitle,
+      language,
+      duration,
+      netWpm,
+      grossWpm,
+      accuracy,
+      correctChars,
+      incorrectChars
+    };
+
+    const newHistory = [...typingResults, newResult].slice(-100);
+    setTypingResults(newHistory);
+
+    if (currentUser) {
+      try {
+        const token = await currentUser.getIdToken();
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        };
+
+        // 1. Client-side Firestore direct update
+        const firebase = (window as any).firebase;
+        if (firebase) {
+          try {
+            await firebase.firestore().collection('users').doc(currentUser.uid).set({
+              typingResults: newHistory,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+          } catch (fsErr) {
+            console.warn('[Firestore Direct Save typingResults Failed]:', fsErr);
+          }
+        }
+
+        // 2. Sync to express server database
+        await fetch(getApiUrl('/api/user/sync'), {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            typingResults: newHistory
+          })
+        });
+      } catch (err) {
+        console.error('[Save Typing Results Error]:', err);
+      }
+    }
+  };
+
   const handleSelectExam = (examId: string) => {
     setActiveExamId(examId);
     // Persist to server
@@ -1424,6 +1502,8 @@ export default function App() {
             bookmarkedQuestions={bookmarks}
             onToggleBookmark={handleToggleBookmark}
             testHistory={testHistory}
+            currentUser={currentUser}
+            onSaveTypingResults={saveTypingResults}
           />
         );
       case 'chat':
@@ -1463,6 +1543,7 @@ export default function App() {
             activeExam={activeExam}
             topicProgress={topicProgress}
             testHistory={testHistory}
+            typingResults={typingResults}
             serverAnalytics={serverAnalytics}
             isAdmin={isAdmin}
             onOpenAdmin={() => setActiveTab('admin')}

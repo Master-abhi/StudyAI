@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, Cpu, 
   ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History, Sliders, Eye,
-  MessageSquare, Award
+  MessageSquare, Award, Keyboard
 } from 'lucide-react';
+import { AdminTyping } from './AdminTyping';
 import { AdminTests } from './AdminTests';
 import { AdminNews } from './AdminNews';
 import { AdminSyllabus } from './AdminSyllabus';
@@ -27,7 +28,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'reports' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'reports' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges' | 'typing'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
@@ -110,6 +111,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     { id: 'news', label: 'News & Alerts', icon: Newspaper },
     { id: 'syllabus', label: 'Syllabus & PDF', icon: BookOpen },
     { id: 'badges', label: 'Badges Config', icon: Award },
+    { id: 'typing', label: 'Typing Config', icon: Keyboard },
     { id: 'aiconfig', label: 'AI Config', icon: Cpu },
     { id: 'tabsconfig', label: 'Manage Tabs', icon: Sliders },
     { id: 'examsconfig', label: 'Manage Exams', icon: Eye },
@@ -143,6 +145,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return <AdminTabsConfig currentUser={currentUser} />;
       case 'examsconfig':
         return <AdminExamsConfig currentUser={currentUser} exams={exams} onRefreshExams={onRefreshExams} />;
+      case 'typing':
+        return <AdminTyping currentUser={currentUser} />;
       case 'logs':
         return <AdminLogs currentUser={currentUser} />;
     }

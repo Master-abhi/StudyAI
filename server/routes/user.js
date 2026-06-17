@@ -238,6 +238,25 @@ function cleanSubjectScore(value) {
   };
 }
 
+function cleanTypingResults(value) {
+  if (!Array.isArray(value)) return null;
+  return value.slice(-100).map((result) => {
+    if (!result || typeof result !== 'object' || Array.isArray(result)) return null;
+    return {
+      date: cleanString(result.date, 50) || new Date().toISOString(),
+      topicId: cleanString(result.topicId, 100) || '',
+      topicTitle: cleanString(result.topicTitle, 150) || '',
+      language: cleanString(result.language, 20) || 'english',
+      duration: clampInteger(result.duration, 0, 3600) || 60,
+      netWpm: clampInteger(result.netWpm, 0, 300) || 0,
+      grossWpm: clampInteger(result.grossWpm, 0, 300) || 0,
+      accuracy: clampInteger(result.accuracy, 0, 100) || 0,
+      correctChars: clampInteger(result.correctChars, 0, 10000) || 0,
+      incorrectChars: clampInteger(result.incorrectChars, 0, 10000) || 0
+    };
+  }).filter(Boolean);
+}
+
 router.get('/data', async (req, res) => {
   try {
     const doc = await db.collection('users').doc(req.user.uid).get();
@@ -256,9 +275,11 @@ router.post('/sync', async (req, res) => {
     //   return res.status(403).json({ error: 'Please verify your email address before syncing data.' });
     // }
 
-    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email, username, photoURL } = req.body;
+    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email, username, photoURL, typingResults } = req.body;
 
     const update = {};
+    const cleanTyping = cleanTypingResults(typingResults);
+    if (cleanTyping) update.typingResults = cleanTyping;
     const cleanResults = cleanTestResults(testResults);
     const cleanPoints = clampInteger(points, 0, MAX_POINTS);
     const cleanMcqsSolved = clampInteger(mcqsSolved, 0, MAX_MCQS_SOLVED);
