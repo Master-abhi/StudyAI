@@ -57,7 +57,7 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
       
       {/* Subject Header Row */}
       <div 
-        className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer select-none relative"
+        className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer select-none relative"
         onClick={onToggleExpand}
       >
         {/* Glow effect when expanded */}
@@ -67,41 +67,41 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
 
         {/* Left Section: Subject Info & Badges */}
         <div className="flex-1 flex flex-col gap-2">
-          <div className="flex items-center flex-wrap gap-2.5">
+          <div className="flex items-center flex-wrap gap-2">
             <h3 className="text-sm font-black text-text leading-tight group-hover:text-saffron transition-colors">
               {subject.name}
             </h3>
             
             {subject.isCgSpecific && (
-              <span className="text-[8px] font-black bg-saffron text-bg-s1 px-1.5 py-0.5 rounded shadow">
+              <span className="text-[8px] font-black bg-saffron text-bg-s1 px-1.5 py-0.5 rounded shadow shrink-0">
                 CG STATE GK
               </span>
             )}
             
-            <span className={`text-[8px] font-black px-2 py-0.5 border rounded uppercase tracking-wider ${importanceStyles}`}>
+            <span className={`text-[8px] font-black px-2 py-0.5 border rounded uppercase tracking-wider shrink-0 ${importanceStyles}`}>
               {subject.importance} Priority
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-text-muted font-semibold mt-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-text-muted font-semibold mt-0.5">
             <span>Est. Weightage: <strong className="text-text font-bold">{subject.weightage} Marks</strong></span>
             <span>•</span>
-            <span>Completed: <strong className="text-text font-bold">{completedTopics}</strong> / {totalTopics} topics</span>
+            <span>Completed: <strong className="text-text font-bold">{completedTopics}</strong>/{totalTopics}</span>
             <span>•</span>
             <span>Remaining: <strong className="text-text font-bold">{remainingTopics}</strong></span>
           </div>
         </div>
 
         {/* Right Section: Progress & Expand Icon */}
-        <div className="flex items-center justify-between md:justify-end gap-5 shrink-0">
-          <div className="flex flex-col items-end gap-1.5 min-w-[120px]">
-            <div className="flex justify-between w-full text-xs font-black text-text">
+        <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-5 shrink-0 w-full md:w-auto border-t border-border/20 md:border-none pt-2.5 md:pt-0 mt-1 md:mt-0">
+          <div className="flex flex-col items-start md:items-end gap-1 flex-1 md:flex-initial md:min-w-[120px]">
+            <div className="flex justify-between w-full text-[10px] sm:text-xs font-black text-text">
               <span className="text-text-muted font-normal">Progress</span>
               <span>{Math.round(completionPercent)}%</span>
             </div>
             
             {/* Custom animated progress bar */}
-            <div className="w-full bg-bg-s3 h-2 rounded-full overflow-hidden border border-border/80">
+            <div className="w-full bg-bg-s3 h-1.5 sm:h-2 rounded-full overflow-hidden border border-border/80">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${completionPercent}%` }}
@@ -111,7 +111,7 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
             </div>
           </div>
 
-          <div className="p-1.5 bg-bg-s3 border border-border rounded text-text-muted group-hover:text-text transition-colors">
+          <div className="p-1.5 bg-bg-s3 border border-border rounded text-text-muted group-hover:text-text transition-colors shrink-0">
             {isExpanded ? <ChevronUp className="w-4 h-4 text-saffron" /> : <ChevronDown className="w-4 h-4" />}
           </div>
         </div>
@@ -128,12 +128,12 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden border-t border-border/60 bg-bg-s3/40"
           >
-            <div className="p-5 flex flex-col gap-5">
+            <div className="p-3.5 sm:p-5 flex flex-col gap-4 sm:gap-5">
               {subject.chapters.map(chapter => (
                 <div key={chapter.id} className="flex flex-col gap-2">
                   
                   {/* Chapter Header */}
-                  <h4 className="text-xs font-black text-saffron uppercase tracking-wide flex items-center gap-1.5 pl-1.5">
+                  <h4 className="text-xs font-black text-saffron uppercase tracking-wide flex items-center gap-1.5 pl-1">
                     <Layers className="w-3.5 h-3.5 text-saffron/70" />
                     <span>{chapter.name}</span>
                   </h4>

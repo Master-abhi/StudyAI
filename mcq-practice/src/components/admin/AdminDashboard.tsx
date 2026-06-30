@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, Cpu, 
   ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History, Sliders, Eye,
-  MessageSquare, Award, Keyboard
+  MessageSquare, Award, Keyboard, Brain
 } from 'lucide-react';
 import { AdminTyping } from './AdminTyping';
 import { AdminTests } from './AdminTests';
@@ -17,6 +17,7 @@ import { AdminExamsConfig } from './AdminExamsConfig';
 import { AdminFeedbacks } from './AdminFeedbacks';
 import { AdminBadges } from './AdminBadges';
 import { AdminReports } from './AdminReports';
+import { AdminTraining } from './AdminTraining';
 
 import type { Exam } from '../syllabus/syllabusData';
 
@@ -28,7 +29,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'reports' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges' | 'typing'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'reports' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges' | 'typing' | 'training'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
@@ -113,6 +114,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     { id: 'badges', label: 'Badges Config', icon: Award },
     { id: 'typing', label: 'Typing Config', icon: Keyboard },
     { id: 'aiconfig', label: 'AI Config', icon: Cpu },
+    { id: 'training', label: 'AI Training / Facts', icon: Brain },
     { id: 'tabsconfig', label: 'Manage Tabs', icon: Sliders },
     { id: 'examsconfig', label: 'Manage Exams', icon: Eye },
     { id: 'logs', label: 'Activity Logs', icon: History },
@@ -141,6 +143,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return <AdminBadges currentUser={currentUser} />;
       case 'aiconfig':
         return <AdminAIConfig currentUser={currentUser} />;
+      case 'training':
+        return <AdminTraining currentUser={currentUser} />;
       case 'tabsconfig':
         return <AdminTabsConfig currentUser={currentUser} />;
       case 'examsconfig':

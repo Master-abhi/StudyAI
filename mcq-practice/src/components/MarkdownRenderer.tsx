@@ -284,7 +284,7 @@ export const MarkdownRenderer = React.memo(({ content, className = '', pClassNam
 
             // ── Mermaid block: render as 2D diagram ──
             if (lang === 'mermaid') {
-              return <MermaidDiagram code={String(children).trim()} />;
+              return null;
             }
 
             // ── Plotly block: render as Chart ──

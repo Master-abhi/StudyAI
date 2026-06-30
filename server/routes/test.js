@@ -97,9 +97,9 @@ router.post('/generate', async (req, res) => {
       questions: enrichedQuestions,
       pattern: {
         totalQuestions: enrichedQuestions.length,
-        totalMarks: enrichedQuestions.length * (testMode === 'mock' ? 2 : 1),
-        durationMinutes: testMode === 'mock' ? 120 : 10,
-        markingScheme: testMode === 'mock' ? '+2 for correct, -0.66 for incorrect' : '+1 for correct, 0 for incorrect'
+        totalMarks: enrichedQuestions.length * ((testMode === 'mock' || testMode === 'pyq') ? 2 : 1),
+        durationMinutes: (testMode === 'mock' || testMode === 'pyq') ? 120 : 10,
+        markingScheme: (testMode === 'mock' || testMode === 'pyq') ? '+2 for correct, -0.66 for incorrect' : '+1 for correct, 0 for incorrect'
       },
       createdAt: timestamp
     };

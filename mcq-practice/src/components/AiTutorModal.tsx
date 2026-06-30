@@ -171,7 +171,7 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 260 }}
-            className="relative w-full max-w-lg h-[80vh] sm:h-[650px] bg-bg-s2 border-t sm:border border-border/85 rounded-t-lg sm:rounded-lg flex flex-col overflow-hidden shadow-2xl"
+            className="relative w-full max-w-lg h-[80dvh] sm:h-[650px] bg-bg-s2 border-t sm:border border-border/85 rounded-t-lg sm:rounded-lg flex flex-col overflow-hidden shadow-2xl"
           >
             {/* Top Bar / Header */}
             <div className="px-4 py-3 bg-bg-s3 flex items-center justify-between border-b border-border">

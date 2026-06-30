@@ -240,6 +240,17 @@ export default function App() {
         root.classList.remove('light-theme');
         root.classList.add('dark-theme');
       }
+
+      // Update Capacitor Status Bar style dynamically
+      import('@capacitor/core').then(({ Capacitor }) => {
+        if (Capacitor.isNativePlatform()) {
+          import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+            const isDark = resolvedTheme === 'dark';
+            StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => {});
+            StatusBar.setBackgroundColor({ color: isDark ? '#121620' : '#ffffff' }).catch(() => {});
+          });
+        }
+      }).catch(() => {});
     };
 
     applyTheme(theme);
@@ -612,6 +623,87 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // Capacitor Native Integrations (StatusBar, SplashScreen, App BackButton)
+  useEffect(() => {
+    import('@capacitor/core').then(({ Capacitor }) => {
+      if (Capacitor.isNativePlatform()) {
+        Promise.all([
+          import('@capacitor/status-bar'),
+          import('@capacitor/splash-screen'),
+          import('@capacitor/app')
+        ]).then(([{ StatusBar, Style }, { SplashScreen }, { App: CapApp }]) => {
+          // 1. Hide splash screen
+          SplashScreen.hide().catch((err) => console.warn('SplashScreen hide err:', err));
+
+          // 2. Set initial status bar styling
+          const updateStatusBar = async () => {
+            try {
+              const currentTheme = localStorage.getItem('cg_theme') || 'dark';
+              const isDark = currentTheme === 'dark' || (currentTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+              await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
+              await StatusBar.setBackgroundColor({ color: isDark ? '#121620' : '#ffffff' });
+            } catch (err) {
+              console.warn('StatusBar style err:', err);
+            }
+          };
+          updateStatusBar();
+
+          // 3. Setup hardware back button listener
+          const backButtonListener = CapApp.addListener('backButton', (data) => {
+            if (typeof (window as any).onCapacitorBackButton === 'function') {
+              (window as any).onCapacitorBackButton(data);
+            }
+          });
+
+          return () => {
+            backButtonListener.then((l) => l.remove());
+          };
+        }).catch((err) => console.error('Capacitor plugins import error:', err));
+      }
+    });
+  }, []);
+
+  // Sync state values with back button handler to avoid React stale closures
+  useEffect(() => {
+    (window as any).onCapacitorBackButton = (data: any) => {
+      if (aiModalOpen) {
+        setAiModalOpen(false);
+      } else if (studyModalOpen) {
+        setStudyModalOpen(false);
+      } else if (reportModalOpen) {
+        setReportModalOpen(false);
+      } else if (settingsModalOpen) {
+        setSettingsModalOpen(false);
+      } else if (paletteOpen) {
+        setPaletteOpen(false);
+      } else if (showFirstTimeExamSelector) {
+        setShowFirstTimeExamSelector(false);
+      } else if (authModalOpen) {
+        if (isGuest || currentUser) {
+          setAuthModalOpen(false);
+        } else {
+          import('@capacitor/app').then(({ App: CapApp }) => CapApp.exitApp());
+        }
+      } else {
+        if (data.canGoBack) {
+          window.history.back();
+        } else {
+          import('@capacitor/app').then(({ App: CapApp }) => CapApp.exitApp());
+        }
+      }
+    };
+  }, [
+    aiModalOpen,
+    studyModalOpen,
+    reportModalOpen,
+    settingsModalOpen,
+    paletteOpen,
+    showFirstTimeExamSelector,
+    authModalOpen,
+    isGuest,
+    currentUser
+  ]);
 
   // Listen to currentUser custom claims to check admin/staff state
   useEffect(() => {
@@ -1750,7 +1842,11 @@ export default function App() {
       )}
 
       {/* Main Content Area Container */}
-      <div className={`flex-1 flex flex-col min-h-screen bg-bg-s1 relative transition-all duration-300 ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'pb-16 md:pb-0' : 'pb-0'}`}>
+      <div className={`flex-1 flex flex-col bg-bg-s1 relative transition-all duration-300 ${
+        activeTab === 'chat' 
+          ? 'h-[100dvh] md:h-screen overflow-hidden' 
+          : 'min-h-screen'
+      } ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'pb-16 md:pb-0' : 'pb-0'}`}>
         
         {/* Mobile Sticky Top Header (Shown if test workspace is NOT active, hidden on desktop) */}
         {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
@@ -1774,10 +1870,10 @@ export default function App() {
         )}
 
         {/* Dynamic Body Router */}
-        <main className={`flex-1 flex flex-col ${
+        <main className={`flex-1 flex flex-col min-h-0 ${
           isWorkspaceActive
             ? 'h-[100dvh] max-h-[100dvh] overflow-hidden w-full p-0 gap-0'
-            : 'px-4 py-4 gap-4 overflow-y-auto ' + (!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40' : 'w-full')
+            : (activeTab === 'chat' ? 'h-full max-h-full overflow-hidden ' : 'overflow-y-auto ') + 'px-4 py-4 gap-4 ' + (!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40' : 'w-full')
         }`}>
           <AnimatePresence mode="wait">
             {!isTestActive ? (
@@ -1788,7 +1884,7 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
                 transition={{ duration: 0.15 }}
-                className="flex-1 flex flex-col"
+                className="flex-1 flex flex-col min-h-0"
               >
                 {renderTabContent()}
               </motion.div>

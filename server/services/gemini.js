@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { getTrainingData, getRelevantTrainingData } = require('./trainingData');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy-key');
 const MODEL = 'gemini-3.5-flash';
@@ -13,61 +14,93 @@ function getLanguageInstruction(language) {
 }
 
 function cleanGemmaResponse(text) {
-  const patterns = [
-    "CG Guru AI",
-    "Introduction:",
-    "Detailed Breakdown:",
-    "Check:",
-    "Did I use Cyrillic characters?",
-    "Your Professional Persona",
-    "Academic Rigor",
-    "Language Protocol",
-    "Exam Relevance"
+  if (!text || !text.trim()) return '';
+  let cleaned = text;
+
+  // 1. Remove <think>...</think> or <thinking>...</thinking> blocks (Gemma thinking tags)
+  cleaned = cleaned.replace(/<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi, '');
+
+  // 2. Remove planning/thinking blocks at the beginning
+  //    Matches lines starting with Plan:, Approach:, Strategy:, Steps:, Thinking:, Let me think, etc.
+  const planningBlockRegex = /^(?:[\s\S]*?)(?:(?:^|\n)\s*(?:Plan|Planning|Approach|Strategy|Steps|Thinking|Let me think|Here's my plan|Here is my plan|My approach|Let me outline|Let me structure|I'll structure|I will structure|Let me organize|First, let me|Before I begin|Before I start|Before answering|Let me first|I need to|I'll need to|I will need to|Okay,? (?:so|let)|Alright,? (?:so|let)|Sure,? (?:let me)|Step-by-step|Breaking (?:this|it) down|Analysis:|Key points to cover|Points to cover|Topics to cover|I'll cover|Let me cover|Overview of|Outline:)\s*[:.]?.*(?:\n(?:[-*\d.]\s*.+|\s+.+))*\n*)/i;
+  
+  // Try to detect if first ~1500 chars contain planning content
+  const firstPart = cleaned.substring(0, 1500);
+  const planningKeywords = [
+    'Plan:', 'Planning:', 'Approach:', 'Strategy:', 'Steps:', 'Thinking:',
+    'Let me think', "Here's my plan", 'Here is my plan', 'My approach:',
+    'Let me outline', 'Let me structure', "I'll structure", 'Let me organize',
+    'Before I begin', 'Before I start', 'Before answering', 'Let me first',
+    'Step-by-step', 'Breaking this down', 'Breaking it down', 'Analysis:',
+    'Key points to cover', 'Points to cover', 'Topics to cover',
+    'Outline:', 'Let me plan', "I'll plan", 'First, I need to',
+    'Here is the plan', "Here's the plan", 'My plan:', 'Thought process',
+    'Let me analyze', 'Okay, so', 'Alright, let me', 'Sure, let me',
+    'CG Guru AI', 'Introduction:', 'Detailed Breakdown:', 'Check:',
+    'Did I use Cyrillic characters?', 'Your Professional Persona',
+    'Academic Rigor', 'Language Protocol', 'Exam Relevance',
+    'I will now', "Now I'll", 'Now let me', 'response_planning',
+    'answer_planning', 'pre_planning', 'pre-planning'
   ];
 
-  for (const pattern of patterns) {
-    const idx = text.indexOf(pattern);
+  const hasPlanningPrefix = planningKeywords.some(kw => 
+    firstPart.toLowerCase().includes(kw.toLowerCase())
+  );
 
-    if (idx !== -1 && idx < 1000) {
+  if (hasPlanningPrefix) {
+    // Find where the actual content starts (no greetings in starters — we strip those separately)
+    const contentStarters = [
+      '## ', '### ', '# ',
+      'भारत', 'छत्तीसगढ़', 'यह ', 'इस ', 'इसका ', 'इसमें ',
+      '**', '| ', '---',
+      'The ', 'This ', 'In ', 'Here ', 'According ',
+      'जी ', 'हाँ ', 'बिल्कुल',
+      'नमस्ते', 'प्रिय विद्यार्थी', 'प्रिय छात्र', 'आइए', 'आइये'
+    ];
 
-      const starts = [
-        "नमस्ते",
-        "प्रिय विद्यार्थी",
-        "##",
-        "###",
-        "# ",
-        "भारत",
-        "छत्तीसगढ़"
-      ];
-
-      for (const start of starts) {
-        const answerStart = text.indexOf(start);
-
-        if (answerStart !== -1) {
-          return text.substring(answerStart).trim();
+    let bestStart = -1;
+    for (const starter of contentStarters) {
+      // Find the starter after the planning section
+      let searchFrom = 0;
+      let idx = cleaned.indexOf(starter, searchFrom);
+      
+      // Skip if it appears inside the planning block (within first 200 chars)
+      while (idx !== -1 && idx < 200) {
+        idx = cleaned.indexOf(starter, idx + 1);
+      }
+      
+      if (idx !== -1 && (bestStart === -1 || idx < bestStart)) {
+        // Check that what follows looks like real content (not a planning bullet)
+        const lineStart = cleaned.lastIndexOf('\n', idx);
+        const beforeOnLine = cleaned.substring(lineStart + 1, idx).trim();
+        if (!beforeOnLine.match(/^[-*\d.]+\s*$/)) {
+          bestStart = idx;
         }
       }
     }
+
+    if (bestStart > 0) {
+      cleaned = cleaned.substring(bestStart);
+    }
   }
 
-  return text.trim();
+  // 3. Strip greetings from the beginning of the response
+  cleaned = cleaned.replace(/^\s*(नमस्ते|Namaste|नमस्कार|Hello|Hi|प्रिय विद्यार्थी|प्रिय छात्र|Dear Student)[\s,\-—!।]*\n?/i, '').trimStart();
+
+  // 4. Remove any trailing self-check or meta-commentary
+  cleaned = cleaned.replace(/\n*(?:Did I (?:use|follow|check|meet|include).*$)/im, '');
+  cleaned = cleaned.replace(/\n*(?:Let me (?:verify|check|double-check|review).*$)/im, '');
+  cleaned = cleaned.replace(/\n*(?:Self-check:?.*$)/im, '');
+  cleaned = cleaned.replace(/\n*(?:Checklist:?.*$)/im, '');
+
+  return cleaned.trim();
 }
 
 function getExamSystemPrompt(examName, language) {
-  const mermaidExample = [
-    '```mermaid',
-    'flowchart TD',
-    '    A[DC Supply] --> B[Field Coil]',
-    '    B --> C[Magnetic Field Created]',
-    '    C --> D[Armature Coil]',
-    '    D --> E[Rotation via Lorentz Force]',
-    '    E --> F[Commutator]',
-    '    F --> G[Brushes]',
-    '    G --> D',
-    '```'
-  ].join('\n');
-
   return `You are **CG Guru AI** — an elite, highly professional, deeply knowledgeable CGVYAPAM and CGPSC expert educator and academic tutor. Your purpose is to help a student prepare for: **${examName}** with extreme rigor, precision, and comprehensive study notes.
+
+## CRITICAL OUTPUT RULE — NO PLANNING, NO THINKING, NO GREETINGS, NO PRE-ANALYSIS:
+You MUST NEVER include any planning, thinking, pre-analysis, outlining, step-by-step approach description, or meta-commentary at the beginning of your response. Do NOT write lines like "Plan:", "Approach:", "Steps:", "Let me think...", "Here's my plan", "Breaking this down", "First, I need to...", "Key points to cover", or any similar planning text. Also, do NOT start with any greeting like "नमस्ते", "प्रिय विद्यार्थी", "Hello", "Hi", "Namaste", or any welcoming phrase. Start your response DIRECTLY with the actual educational content — the topic heading, the explanation, the answer. Your response must look like a polished, final answer from the very first word. Absolutely NO internal monologue, thinking process, or social greetings should be visible.
 
 ${getLanguageInstruction(language)}
 
@@ -80,39 +113,8 @@ ${getLanguageInstruction(language)}
 6. **Language Protocol**: Always write Hindi text in the Devanagari script and English text in the Roman script. Avoid mixing scripts in a confusing manner.
 7. **Exam Relevance**: Clearly explain how the topic connects to the specific **${examName}** exam and its syllabus. When generating MCQs, provide exactly 4 distinct options (A, B, C, D) with a detailed conceptual explanation for the correct answer, and explain why the incorrect options are wrong.
 8. **Factual Correction of User Inputs**: If the user provides incorrect facts, wrong districts, or incorrect locations for any place, wildlife sanctuary, national park, or event in Chhattisgarh in their query, prompt, or reference materials, you MUST correct them in your response. Do NOT repeat or propagate the user's factual errors. Explain the correction politely.
-9. **Do NOT Echo Prompt or Guidelines**: Do NOT repeat, reprint, or echo the user's input prompt, instructions, checklists, or guidelines in your response. Begin your response directly with the greeting and actual educational content.
-10. **2D Diagrams & Figures (Mermaid Syntax)**: Whenever the topic benefits from a visual representation (e.g., structure of an atom, flowchart of a government scheme, map layout, circuit diagram, historical timeline, organizational chart, biological cycle, etc.) or when the user explicitly asks for a diagram, you MUST generate a proper 2D diagram using **Mermaid syntax** inside a fenced code block with the language tag \`mermaid\`.
-    - **Choose the Most Appropriate Diagram Type**:
-      - For relationships, mind maps, concepts, or brainstorming: use a **Mindmap** (\`mindmap\`).
-      - For chronological events, historical periods, or timelines: use a **Timeline** (\`timeline\`) or flowchart.
-      - For step-by-step logic, workflows, or processes: use a **Flowchart** (\`flowchart TD\` or \`flowchart LR\`).
-      - For interactions, message passing, or sequential communications: use a **Sequence Diagram** (\`sequenceDiagram\`).
-      - For distributions, percentages, or shares: use a **Pie Chart** (\`pie\`).
-      - For states and transitions: use a **State Diagram** (\`stateDiagram-v2\`).
-      - For classes or entity-relationship models: use a **Class Diagram** (\`classDiagram\`).
-    - Do NOT default to a flowchart if a timeline, mindmap, sequence diagram, or pie chart is more suited to the request.
-    - Do NOT use ASCII art. The diagram must be clear, labelled in the response language, and professional.
-    - **Follow Strict Diagram Syntax to Prevent Rendering Errors**:
-      - **Flowcharts**: Use \`flowchart TD\` or \`flowchart LR\`. Connect nodes using \`-->\`.
-      - **Mindmaps**: Start with \`mindmap\` on its own line. Do NOT use arrows (\`-->\`) or connectors. Use indentation for hierarchy. Example:
-        \`\`\`mermaid
-        mindmap
-          root((Main Topic))
-            Subtopic 1
-              Detail A
-            Subtopic 2
-        \`\`\`
-      - **Timelines**: Start with \`timeline\` on its own line. Use \`section Year/Era\` and event descriptions separated by a colon \`:\`. Do NOT use arrows (\`-->\`) or connectors. Example:
-        \`\`\`mermaid
-        timeline
-          section 1947
-            Independence : Power transferred
-          section 1950
-            Republic Day : Constitution enacted
-        \`\`\`
-      - **Sequence Diagrams**: Start with \`sequenceDiagram\`. Use \`Actor1->>Actor2: Message\`. Do NOT use flowchart connectors.
-      - **Labels & Special Characters**: If a node label contains special characters like parentheses \`()\`, brackets \`[]\`, quotes, colons, commas, or HTML tags, you MUST enclose the text in double quotes. E.g., \`A["Supply (12V)"]\`. Never use raw HTML tags inside node text.
-11. **Plotly Graph Support**: Whenever data can be visualized as a chart (e.g. comparing populations, timelines, statistics, demographic distributions, state revenue, budget expenditures), or when the user asks for a chart/graph/plot, you MUST generate a Plotly chart inside a fenced code block with the language tag \`plotly\`. The content must be a valid JSON object matching the Plotly specifications (containing "data" and "layout" properties). Do NOT output other text inside the code block.
+9. **Do NOT Echo Prompt or Guidelines**: Do NOT repeat, reprint, or echo the user's input prompt, instructions, checklists, or guidelines in your response. Do NOT include any greeting or welcoming phrase (no "नमस्ते", "प्रिय विद्यार्थी", "Hello", etc.). Begin your response directly with the topic heading or actual educational content.
+10. **Plotly Graph Support**: Whenever data can be visualized as a chart (e.g. comparing populations, timelines, statistics, demographic distributions, state revenue, budget expenditures), or when the user asks for a chart/graph/plot, you MUST generate a Plotly chart inside a fenced code block with the language tag \`plotly\`. The content must be a valid JSON object matching the Plotly specifications (containing "data" and "layout" properties). Do NOT output other text inside the code block.
     Example:
     \`\`\`plotly
     {
@@ -122,16 +124,14 @@ ${getLanguageInstruction(language)}
       "layout": { "title": "Chhattisgarh Sector Contribution (%)" }
     }
     \`\`\`
-12. **KaTeX Math Support**: For all mathematical formulas, equations, or scientific notation, you MUST use LaTeX/KaTeX formatting with appropriate delimiters:
+11. **KaTeX Math Support**: For all mathematical formulas, equations, or scientific notation, you MUST use LaTeX/KaTeX formatting with appropriate delimiters:
     - Use single dollar signs \`$...\` for inline math equations, e.g., \`$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$\`.
     - Use double dollar signs \`$$...$$\` for block math equations.
-13. **Image Generation**: If the user requests to generate an image, visualize a scene, or show a custom picture (other than a chart or flowchart), you MUST generate the image by including a markdown image tag targeting the Pollinations AI generator:
+12. **Image Generation**: If the user requests to generate an image, visualize a scene, or show a custom picture (other than a chart or flowchart), you MUST generate the image by including a markdown image tag targeting the Pollinations AI generator:
     \`![Caption Description](https://image.pollinations.ai/prompt/URL_ENCODED_PROMPT?width=800&height=600&nologo=true&seed=RANDOM_NUMBER)\`
     - Replace \`URL_ENCODED_PROMPT\` with a detailed descriptive English prompt (URL-encoded, e.g. \`traditional%20bastar%20art%20chhattisgarh%20high%20detail\`).
     - Replace \`RANDOM_NUMBER\` with a random integer (e.g., between 1 and 1000000) to ensure uniqueness and prevent caching.
-
-Example of correct 2D diagram format:
-${mermaidExample}`;
+`;
 }
 
 async function chat(
@@ -164,14 +164,15 @@ async function chat(
     }
   }
 
+  const allTrainingData = await getTrainingData();
+  const relevantData = getRelevantTrainingData(message, allTrainingData);
+  const systemPrompt = getExamSystemPrompt(examName, language) + relevantData;
+
   const model = genAI.getGenerativeModel({
 
     model: modelName,
 
-    systemInstruction: getExamSystemPrompt(
-      examName,
-      language
-    ),
+    systemInstruction: systemPrompt,
 
     generationConfig: {
       temperature: 0.2,
@@ -225,14 +226,15 @@ async function* chatStream(
     }
   }
 
+  const allTrainingData = await getTrainingData();
+  const relevantData = getRelevantTrainingData(message, allTrainingData);
+  const systemPrompt = getExamSystemPrompt(examName, language) + relevantData;
+
   const model = genAI.getGenerativeModel({
 
     model: modelName,
 
-    systemInstruction: getExamSystemPrompt(
-      examName,
-      language
-    ),
+    systemInstruction: systemPrompt,
 
     generationConfig: {
       temperature: 0.2,
@@ -249,26 +251,47 @@ async function* chatStream(
 
   const result = await chatSession.sendMessageStream(message);
 
-  let fullText = "";
+  // Buffer initial chunks to detect and strip planning content
+  let buffer = "";
+  let planningStripped = false;
+  const BUFFER_THRESHOLD = 800; // Buffer this many chars before deciding
 
   for await (const chunk of result.stream) {
 
     const content = chunk.text();
 
-    fullText += content;
+    if (!planningStripped) {
+      buffer += content;
 
-    yield {
-      choices: [
-        {
-          delta: {
-            content
-          }
+      // Check if buffer is large enough to decide
+      if (buffer.length >= BUFFER_THRESHOLD) {
+        // Clean the buffer to strip planning prefix
+        const cleaned = cleanGemmaResponse(buffer);
+        planningStripped = true;
+
+        if (cleaned.length > 0) {
+          yield {
+            choices: [{ delta: { content: cleaned } }]
+          };
         }
-      ]
-    };
+      }
+    } else {
+      // After planning is stripped, pass through directly
+      yield {
+        choices: [{ delta: { content } }]
+      };
+    }
   }
 
-  fullText = cleanGemmaResponse(fullText);
+  // If stream ended before reaching buffer threshold, clean and yield whatever we have
+  if (!planningStripped && buffer.length > 0) {
+    const cleaned = cleanGemmaResponse(buffer);
+    if (cleaned.length > 0) {
+      yield {
+        choices: [{ delta: { content: cleaned } }]
+      };
+    }
+  }
 }
 
 

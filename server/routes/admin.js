@@ -457,7 +457,7 @@ router.post('/tests/generate', verifyStaffOrAdmin('tests'), async (req, res) => 
     }
 
     const testMode = mode || 'quiz';
-    const questionCount = testMode === 'mock' ? 25 : 5;
+    const questionCount = (testMode === 'mock' || testMode === 'pyq') ? 25 : 5;
     const subjectName = subject || 'all';
     const lang = language || 'english';
     const examSubjects = subjects || [];
@@ -489,8 +489,8 @@ router.post('/tests/generate', verifyStaffOrAdmin('tests'), async (req, res) => 
       pattern: {
         totalQuestions: enrichedQuestions.length,
         totalMarks: enrichedQuestions.length,
-        durationMinutes: parseInt(durationMinutes, 10) || (testMode === 'mock' ? 120 : 10),
-        markingScheme: testMode === 'mock' ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
+        durationMinutes: parseInt(durationMinutes, 10) || ((testMode === 'mock' || testMode === 'pyq') ? 120 : 10),
+        markingScheme: (testMode === 'mock' || testMode === 'pyq') ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
       },
       createdAt: timestamp
     };
@@ -595,8 +595,8 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
     const testPattern = pattern || {
       totalQuestions: enrichedQuestions.length,
       totalMarks: enrichedQuestions.length,
-      durationMinutes: testMode === 'mock' ? 120 : 10,
-      markingScheme: testMode === 'mock' ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
+      durationMinutes: (testMode === 'mock' || testMode === 'pyq') ? 120 : 10,
+      markingScheme: (testMode === 'mock' || testMode === 'pyq') ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
     };
 
     const newTest = {
@@ -951,8 +951,8 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
     const testPattern = {
       totalQuestions: enrichedQuestions.length,
       totalMarks: enrichedQuestions.length,
-      durationMinutes: parseInt(durationMinutes, 10) || (testMode === 'mock' ? 120 : 10),
-      markingScheme: testMode === 'mock' ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
+      durationMinutes: parseInt(durationMinutes, 10) || ((testMode === 'mock' || testMode === 'pyq') ? 120 : 10),
+      markingScheme: (testMode === 'mock' || testMode === 'pyq') ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
     };
 
     const newTest = {
@@ -1134,8 +1134,8 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
     const testPattern = pattern || doc.data().pattern || {
       totalQuestions: enrichedQuestions.length,
       totalMarks: enrichedQuestions.length,
-      durationMinutes: testMode === 'mock' ? 120 : 10,
-      markingScheme: testMode === 'mock' ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
+      durationMinutes: (testMode === 'mock' || testMode === 'pyq') ? 120 : 10,
+      markingScheme: (testMode === 'mock' || testMode === 'pyq') ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
     };
 
     const updatedTest = {
@@ -1805,6 +1805,427 @@ router.delete('/badges/:id', verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error('[Admin Badge Delete Error]:', err.message);
     res.status(500).json({ error: 'Failed to delete badge.' });
+  }
+});
+
+// ======================== TRAINING DATA (Knowledge Base) ========================
+
+const { invalidateTrainingDataCache } = require('../services/trainingData');
+
+// POST /api/admin/training-data/upload - Upload single training data entry
+router.post('/training-data/upload', verifyAdmin, async (req, res) => {
+  try {
+    const { subject, topic, content, source, examTags } = req.body;
+
+    if (!subject || !topic || !content) {
+      return res.status(400).json({ error: 'subject, topic, and content are required.' });
+    }
+
+    const id = `td_${Date.now()}`;
+    const entry = {
+      id,
+      subject: subject.trim(),
+      topic: topic.trim(),
+      content: content.trim(),
+      source: source ? source.trim() : '',
+      examTags: Array.isArray(examTags) ? examTags : [],
+      createdAt: new Date().toISOString(),
+      charCount: content.trim().length
+    };
+
+    await db.collection('training_data').doc(id).set(entry);
+    invalidateTrainingDataCache();
+
+    console.log(`[Admin Training Data] Uploaded entry ${id} — ${subject} / ${topic} (${entry.charCount} chars) ✅`);
+    await logStaffActivity(req, 'upload_training_data', { id, subject, topic, charCount: entry.charCount });
+
+    res.json({ success: true, id, message: 'Training data uploaded successfully.' });
+  } catch (err) {
+    console.error('[Admin Training Data Upload Error]:', err.message);
+    res.status(500).json({ error: 'Failed to upload training data.' });
+  }
+});
+
+// POST /api/admin/training-data/upload-bulk - Bulk upload training data (max 50)
+router.post('/training-data/upload-bulk', verifyAdmin, async (req, res) => {
+  try {
+    const { entries } = req.body;
+
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return res.status(400).json({ error: 'entries array is required and must not be empty.' });
+    }
+    if (entries.length > 50) {
+      return res.status(400).json({ error: 'Maximum 50 entries per bulk upload.' });
+    }
+
+    const batch = db.batch();
+    const ids = [];
+
+    for (let i = 0; i < entries.length; i++) {
+      const { subject, topic, content, source, examTags } = entries[i];
+
+      if (!subject || !topic || !content) {
+        return res.status(400).json({ error: `Entry at index ${i} is missing required fields (subject, topic, content).` });
+      }
+
+      const id = `td_${Date.now()}_${i}`;
+      const entry = {
+        id,
+        subject: subject.trim(),
+        topic: topic.trim(),
+        content: content.trim(),
+        source: source ? source.trim() : '',
+        examTags: Array.isArray(examTags) ? examTags : [],
+        createdAt: new Date().toISOString(),
+        charCount: content.trim().length
+      };
+
+      batch.set(db.collection('training_data').doc(id), entry);
+      ids.push(id);
+    }
+
+    await batch.commit();
+    invalidateTrainingDataCache();
+
+    console.log(`[Admin Training Data] Bulk uploaded ${ids.length} entries ✅`);
+    await logStaffActivity(req, 'bulk_upload_training_data', { count: ids.length, ids });
+
+    res.json({ success: true, count: ids.length, ids, message: `${ids.length} training data entries uploaded successfully.` });
+  } catch (err) {
+    console.error('[Admin Training Data Bulk Upload Error]:', err.message);
+    res.status(500).json({ error: 'Failed to bulk upload training data.' });
+  }
+});
+
+// GET /api/admin/training-data-stats - Training data statistics (placed before :id to avoid conflict)
+router.get('/training-data-stats', verifyAdmin, async (req, res) => {
+  try {
+    const snapshot = await db.collection('training_data').get();
+
+    let totalChars = 0;
+    const subjects = {};
+    const examTagCounts = {};
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      totalChars += data.charCount || 0;
+
+      const subj = data.subject || 'Unknown';
+      subjects[subj] = (subjects[subj] || 0) + 1;
+
+      if (Array.isArray(data.examTags)) {
+        for (const tag of data.examTags) {
+          examTagCounts[tag] = (examTagCounts[tag] || 0) + 1;
+        }
+      }
+    });
+
+    res.json({
+      totalEntries: snapshot.size,
+      totalChars,
+      subjects,
+      examTags: examTagCounts
+    });
+  } catch (err) {
+    console.error('[Admin Training Data Stats Error]:', err.message);
+    res.status(500).json({ error: 'Failed to fetch training data stats.' });
+  }
+});
+
+// GET /api/admin/training-data - List all training data (without full content)
+router.get('/training-data', verifyAdmin, async (req, res) => {
+  try {
+    const snapshot = await db.collection('training_data').orderBy('createdAt', 'desc').get();
+
+    const entries = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: data.id,
+        subject: data.subject,
+        topic: data.topic,
+        source: data.source,
+        examTags: data.examTags,
+        createdAt: data.createdAt,
+        charCount: data.charCount
+      };
+    });
+
+    res.json({ entries, total: entries.length });
+  } catch (err) {
+    console.error('[Admin Training Data List Error]:', err.message);
+    res.status(500).json({ error: 'Failed to fetch training data.' });
+  }
+});
+
+// GET /api/admin/training-data/:id - Get single training data entry (with full content)
+router.get('/training-data/:id', verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await db.collection('training_data').doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Training data entry not found.' });
+    }
+
+    res.json(doc.data());
+  } catch (err) {
+    console.error('[Admin Training Data Get Error]:', err.message);
+    res.status(500).json({ error: 'Failed to fetch training data entry.' });
+  }
+});
+
+// DELETE /api/admin/training-data/:id - Delete a training data entry
+router.delete('/training-data/:id', verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await db.collection('training_data').doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Training data entry not found.' });
+    }
+
+    await db.collection('training_data').doc(id).delete();
+    invalidateTrainingDataCache();
+
+    console.log(`[Admin Training Data] Deleted entry ${id} ✅`);
+    await logStaffActivity(req, 'delete_training_data', { id });
+
+    res.json({ success: true, message: 'Training data entry deleted successfully.' });
+  } catch (err) {
+    console.error('[Admin Training Data Delete Error]:', err.message);
+    res.status(500).json({ error: 'Failed to delete training data entry.' });
+  }
+});
+
+// POST /api/admin/training-data/upload-file - Upload PDF/TXT file and AI-extract training data
+const trainingFileUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    const allowed = ['application/pdf', 'text/plain'];
+    if (allowed.includes(file.mimetype) || file.originalname.endsWith('.txt') || file.originalname.endsWith('.pdf')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF and TXT files are allowed'), false);
+    }
+  },
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+});
+
+router.post('/training-data/upload-file', verifyAdmin, trainingFileUpload.single('trainingFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded. PDF ya TXT file select karo.' });
+    }
+
+    const { subject, source, aiExtract, examTags } = req.body;
+    const parsedExamTags = examTags ? JSON.parse(examTags) : ['cgpsc', 'vyapam'];
+    const fileName = req.file.originalname;
+    const ext = fileName.split('.').pop().toLowerCase();
+
+    console.log(`[Training File Upload] Processing "${fileName}" (${(req.file.size / 1024).toFixed(1)} KB, type: ${ext})`);
+
+    // Step 1: Extract text from file
+    let extractedText = '';
+    
+    if (ext === 'pdf') {
+      const pdfParse = require('pdf-parse');
+      const pdfData = await pdfParse(req.file.buffer);
+      extractedText = pdfData.text;
+      console.log(`[Training File Upload] PDF parsed: ${pdfData.numpages} pages, ${extractedText.length} chars`);
+    } else if (ext === 'txt') {
+      extractedText = req.file.buffer.toString('utf-8');
+      console.log(`[Training File Upload] TXT loaded: ${extractedText.length} chars`);
+    } else {
+      return res.status(400).json({ error: 'Unsupported file type. Only PDF and TXT supported.' });
+    }
+
+    // Clean extracted text
+    extractedText = extractedText.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+
+    if (!extractedText || extractedText.length < 50) {
+      return res.status(400).json({ error: 'File se bahut kam text extract hua. File me readable text hona chahiye.' });
+    }
+
+    // Truncate if too long (max ~100K chars for AI processing)
+    const MAX_TEXT_FOR_AI = 100000;
+    if (extractedText.length > MAX_TEXT_FOR_AI) {
+      extractedText = extractedText.substring(0, MAX_TEXT_FOR_AI);
+      console.log(`[Training File Upload] Text truncated to ${MAX_TEXT_FOR_AI} chars for AI processing`);
+    }
+
+    let entries = [];
+
+    // Step 2: AI Smart Extract or direct save
+    if (aiExtract === 'true') {
+      // Use Gemini AI to structure the text into topic-wise entries
+      const { GoogleGenerativeAI } = require('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+      // For large texts, process in chunks
+      const CHUNK_SIZE = 25000; // chars per chunk
+      const textChunks = [];
+      for (let i = 0; i < extractedText.length; i += CHUNK_SIZE) {
+        textChunks.push(extractedText.substring(i, i + CHUNK_SIZE));
+      }
+
+      console.log(`[Training File Upload] Processing ${textChunks.length} chunk(s) with AI...`);
+
+      for (let chunkIdx = 0; chunkIdx < textChunks.length; chunkIdx++) {
+        const chunk = textChunks[chunkIdx];
+
+        const aiPrompt = `You are a knowledge extraction expert. Analyze the following text extracted from a study book/document and convert it into structured training data entries for an AI educational chatbot.
+
+${subject ? `The admin has indicated the subject is: "${subject}". Use this as the primary subject, but you can create sub-topics.` : 'Detect the subject(s) from the content automatically.'}
+${source ? `Source: "${source}"` : `Source: "${fileName}"`}
+
+RULES:
+1. Break the text into logical topic-wise chunks. Each entry should cover ONE specific topic.
+2. Each entry's content should be comprehensive and factually complete for that topic.
+3. Remove any garbage characters, page numbers, headers/footers, or irrelevant formatting artifacts.
+4. Keep the original language of the content (Hindi/English/Hinglish).
+5. Each entry should have at least 100 characters of meaningful content.
+6. Create as many entries as logically needed - don't merge unrelated topics.
+7. Maximum 20 entries per chunk.
+
+Respond ONLY with a valid JSON array:
+[
+  {
+    "subject": "Subject name in Hindi/English",
+    "topic": "Specific topic name",
+    "content": "Detailed extracted and cleaned content for this topic..."
+  }
+]
+
+TEXT TO PROCESS (chunk ${chunkIdx + 1}/${textChunks.length}):
+---
+${chunk}
+---`;
+
+        try {
+          const model = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+            generationConfig: {
+              responseMimeType: 'application/json',
+              maxOutputTokens: 8192,
+              temperature: 0.1
+            }
+          });
+
+          const result = await model.generateContent(aiPrompt);
+          const responseText = result.response.text().trim();
+          const parsed = JSON.parse(responseText);
+
+          if (Array.isArray(parsed)) {
+            entries.push(...parsed.map(e => ({
+              subject: e.subject || subject || 'सामान्य ज्ञान',
+              topic: e.topic || 'Unknown Topic',
+              content: (e.content || '').trim(),
+              source: source || fileName,
+              examTags: parsedExamTags
+            })).filter(e => e.content.length >= 50));
+          }
+
+          console.log(`[Training File Upload] Chunk ${chunkIdx + 1}: ${parsed.length || 0} entries extracted`);
+        } catch (aiErr) {
+          console.error(`[Training File Upload] AI extraction error for chunk ${chunkIdx + 1}:`, aiErr.message);
+          // Fallback: save the chunk as a single entry
+          entries.push({
+            subject: subject || 'सामान्य ज्ञान',
+            topic: `${fileName} - Part ${chunkIdx + 1}`,
+            content: chunk.trim(),
+            source: source || fileName,
+            examTags: parsedExamTags
+          });
+        }
+      }
+    } else {
+      // No AI extraction - save entire text as single entry (or split by paragraphs if too large)
+      const MAX_ENTRY_SIZE = 10000;
+      if (extractedText.length <= MAX_ENTRY_SIZE) {
+        entries.push({
+          subject: subject || 'सामान्य ज्ञान',
+          topic: fileName.replace(/\.[^.]+$/, ''),
+          content: extractedText,
+          source: source || fileName,
+          examTags: parsedExamTags
+        });
+      } else {
+        // Split by double newlines into manageable chunks
+        const paragraphs = extractedText.split(/\n\n+/);
+        let currentContent = '';
+        let partNum = 1;
+
+        for (const para of paragraphs) {
+          if ((currentContent + '\n\n' + para).length > MAX_ENTRY_SIZE && currentContent.length > 100) {
+            entries.push({
+              subject: subject || 'सामान्य ज्ञान',
+              topic: `${fileName.replace(/\.[^.]+$/, '')} - Part ${partNum}`,
+              content: currentContent.trim(),
+              source: source || fileName,
+              examTags: parsedExamTags
+            });
+            partNum++;
+            currentContent = para;
+          } else {
+            currentContent += (currentContent ? '\n\n' : '') + para;
+          }
+        }
+        if (currentContent.length > 50) {
+          entries.push({
+            subject: subject || 'सामान्य ज्ञान',
+            topic: `${fileName.replace(/\.[^.]+$/, '')} - Part ${partNum}`,
+            content: currentContent.trim(),
+            source: source || fileName,
+            examTags: parsedExamTags
+          });
+        }
+      }
+    }
+
+    if (entries.length === 0) {
+      return res.status(400).json({ error: 'File se koi valid training data extract nahi ho paya.' });
+    }
+
+    // Step 3: Save all entries to Firestore
+    const savedEntries = [];
+    const batch = db.batch();
+    let totalChars = 0;
+
+    for (const entry of entries) {
+      const id = `td_file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const docData = {
+        id,
+        subject: entry.subject.trim(),
+        topic: entry.topic.trim(),
+        content: entry.content.trim(),
+        source: entry.source.trim(),
+        examTags: entry.examTags,
+        createdAt: new Date().toISOString(),
+        charCount: entry.content.trim().length,
+        uploadedFrom: 'file',
+        fileName
+      };
+      batch.set(db.collection('training_data').doc(id), docData);
+      savedEntries.push({ id, subject: docData.subject, topic: docData.topic, charCount: docData.charCount });
+      totalChars += docData.charCount;
+    }
+
+    await batch.commit();
+    invalidateTrainingDataCache();
+
+    console.log(`[Training File Upload] ✅ Saved ${savedEntries.length} entries (${totalChars} total chars) from "${fileName}"`);
+    await logStaffActivity(req, 'upload_training_file', { fileName, entriesCreated: savedEntries.length, totalChars, aiExtract: aiExtract === 'true' });
+
+    res.json({
+      success: true,
+      entriesCreated: savedEntries.length,
+      totalChars,
+      entries: savedEntries,
+      message: `${savedEntries.length} training data entries extracted and saved from "${fileName}".`
+    });
+  } catch (err) {
+    console.error('[Training File Upload Error]:', err.message);
+    res.status(500).json({ error: err.message || 'File upload and extraction failed.' });
   }
 });
 

@@ -128,6 +128,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
   const [language, setLanguage] = useState<'english' | 'krutidev'>('english');
   const [duration, setDuration] = useState<number>(60); // seconds
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+  const [allowBackspace, setAllowBackspace] = useState<boolean>(true);
   
   // Custom Topics State
   const [topics, setTopics] = useState<Topic[]>(TYPING_TOPICS);
@@ -478,6 +479,35 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
                     ))}
                   </div>
                 </div>
+
+                {/* 4. Backspace Setting */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Backspace / बैकस्पेस</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAllowBackspace(true)}
+                      className={`py-1.5 text-[10px] font-black rounded-md border transition-all cursor-pointer ${
+                        allowBackspace
+                          ? 'bg-saffron-dim/20 border-saffron text-saffron'
+                          : 'bg-bg-s3/40 border-border hover:bg-bg-s3/70 text-text-muted'
+                      }`}
+                    >
+                      ON (Allowed)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAllowBackspace(false)}
+                      className={`py-1.5 text-[10px] font-black rounded-md border transition-all cursor-pointer ${
+                        !allowBackspace
+                          ? 'bg-saffron-dim/20 border-saffron text-saffron'
+                          : 'bg-bg-s3/40 border-border hover:bg-bg-s3/70 text-text-muted'
+                      }`}
+                    >
+                      OFF (Blocked)
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Right Column - Topic Selection */}
@@ -512,7 +542,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
                   <span className="text-[9px] font-black uppercase text-text-muted tracking-wider">Preview Text:</span>
                   <p 
                     className="text-xs text-text/80 line-clamp-2 leading-relaxed"
-                    style={language === 'krutidev' ? { fontFamily: 'KrutiDev010' } : undefined}
+                    style={language === 'krutidev' ? { fontFamily: 'KrutiDev010', fontSize: '1.15rem', lineHeight: '1.5' } : undefined}
                   >
                     {language === 'krutidev' ? selectedTopic.hindiKrutidevText : selectedTopic.englishText}
                   </p>
@@ -649,7 +679,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
               <div 
                 ref={textContainerRef}
                 className="text-sm md:text-base leading-relaxed tracking-wide select-none"
-                style={language === 'krutidev' ? { fontFamily: 'KrutiDev010' } : undefined}
+                style={language === 'krutidev' ? { fontFamily: 'KrutiDev010', fontSize: '1.35rem', lineHeight: '1.6', letterSpacing: '0.01em' } : undefined}
               >
                 {targetText.split('').map((char, index) => {
                   let charClass = '';
@@ -680,6 +710,11 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
                 ref={inputRef}
                 value={typedText}
                 onChange={(e) => setTypedText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (!allowBackspace && (e.key === 'Backspace' || e.key === 'Delete')) {
+                    e.preventDefault();
+                  }
+                }}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 className="absolute w-1 h-1 opacity-0 pointer-events-none select-none outline-none"
@@ -818,7 +853,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
                   <span className="text-[8px] font-black uppercase text-text-muted tracking-wider">Target Text (संदर्भ पाठ):</span>
                   <p 
                     className="text-xs md:text-sm text-text/80 leading-relaxed"
-                    style={language === 'krutidev' ? { fontFamily: 'KrutiDev010' } : undefined}
+                    style={language === 'krutidev' ? { fontFamily: 'KrutiDev010', fontSize: '1.15rem', lineHeight: '1.5' } : undefined}
                   >
                     {targetText}
                   </p>
@@ -829,7 +864,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
                   <span className="text-[8px] font-black uppercase text-text-muted tracking-wider">Your Typed Text (आपका टाइप किया गया):</span>
                   <p 
                     className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap"
-                    style={language === 'krutidev' ? { fontFamily: 'KrutiDev010' } : undefined}
+                    style={language === 'krutidev' ? { fontFamily: 'KrutiDev010', fontSize: '1.15rem', lineHeight: '1.5' } : undefined}
                   >
                     {typedText || <span className="italic text-text-muted/65">No text was typed.</span>}
                   </p>

@@ -157,6 +157,205 @@
       <p style="font-size: 0.85em; color: var(--text-muted); margin-top: 5px;" id="news-status-admin">Click to start AI refresh</p>
     </div>
 
+    <!-- ═══════════════════════════════════════ -->
+    <!--   📖 Training Data / Knowledge Base    -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="card" id="training-data-section">
+      <h2>📖 Training Data — Knowledge Base</h2>
+      <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 20px;">
+        Books se data extract karke yahan upload karo. AI Chat is data ko use karega accurate answers dene ke liye.
+      </p>
+
+      <!-- Sub-tabs for training data -->
+      <div class="toggle-container" style="margin-bottom: 20px; flex-wrap: wrap;">
+        <button id="td-tab-single" class="active" onclick="switchTDTab('single')">➕ Single Entry</button>
+        <button id="td-tab-bulk" onclick="switchTDTab('bulk')">📋 Bulk JSON</button>
+        <button id="td-tab-file" onclick="switchTDTab('file')">📄 File Upload</button>
+        <button id="td-tab-stats" onclick="switchTDTab('stats')">📊 Stats</button>
+        <button id="td-tab-template" onclick="switchTDTab('template')">📥 Template</button>
+      </div>
+
+      <!-- Single Entry Form -->
+      <div id="td-panel-single">
+        <select id="td-subject" style="margin-bottom: 10px;">
+          <option value="">-- Subject Choose करें --</option>
+          <option value="भारतीय इतिहास">भारतीय इतिहास</option>
+          <option value="छत्तीसगढ़ इतिहास">छत्तीसगढ़ इतिहास</option>
+          <option value="भूगोल">भूगोल</option>
+          <option value="छत्तीसगढ़ भूगोल">छत्तीसगढ़ भूगोल</option>
+          <option value="भारतीय राजव्यवस्था">भारतीय राजव्यवस्था</option>
+          <option value="अर्थव्यवस्था">अर्थव्यवस्था</option>
+          <option value="विज्ञान">विज्ञान</option>
+          <option value="पर्यावरण">पर्यावरण</option>
+          <option value="सामान्य ज्ञान">सामान्य ज्ञान</option>
+          <option value="छत्तीसगढ़ सामान्य ज्ञान">छत्तीसगढ़ सामान्य ज्ञान</option>
+          <option value="गणित">गणित</option>
+          <option value="हिंदी">हिंदी</option>
+          <option value="English">English</option>
+          <option value="कंप्यूटर">कंप्यूटर</option>
+          <option value="करंट अफेयर्स">करंट अफेयर्स</option>
+        </select>
+        <input type="text" id="td-topic" placeholder="Topic (e.g. मौर्य साम्राज्य, छत्तीसगढ़ की नदियाँ)" style="margin-bottom: 10px;">
+        <textarea id="td-content" placeholder="Book se extract kiya hua data yahan paste करें...&#10;&#10;Example:&#10;चंद्रगुप्त मौर्य (322-298 ई.पू.) ने मौर्य वंश की स्थापना की।&#10;चाणक्य (कौटिल्य) इनके गुरु और मंत्री थे।&#10;अर्थशास्त्र कौटिल्य द्वारा लिखित ग्रंथ है।" 
+          style="width: 100%; min-height: 180px; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: white; font-family: inherit; resize: vertical; box-sizing: border-box; margin-bottom: 10px;"></textarea>
+        <input type="text" id="td-source" placeholder="Source (e.g. Lucent GK Ch.5, NCERT Class 12)" style="margin-bottom: 10px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+          <label style="font-size: 0.85em; color: var(--text-muted); width: 100%; margin-bottom: 4px;">Exam Tags:</label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; cursor: pointer;">
+            <input type="checkbox" class="td-exam-tag" value="cgpsc" checked> CGPSC
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; cursor: pointer;">
+            <input type="checkbox" class="td-exam-tag" value="vyapam" checked> Vyapam
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; cursor: pointer;">
+            <input type="checkbox" class="td-exam-tag" value="ssc"> SSC
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; cursor: pointer;">
+            <input type="checkbox" class="td-exam-tag" value="upsc"> UPSC
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; cursor: pointer;">
+            <input type="checkbox" class="td-exam-tag" value="railway"> Railway
+          </label>
+        </div>
+        <button onclick="uploadSingleTrainingData()" id="btn-td-upload-single">📖 Upload Training Data</button>
+      </div>
+
+      <!-- File Upload Panel -->
+      <div id="td-panel-file" class="hidden">
+        <div style="background: linear-gradient(135deg, #1a1d26, #1e2433); padding: 20px; border-radius: 12px; border: 1px dashed #FF9933; margin-bottom: 15px; text-align: center;" id="file-drop-zone">
+          <div style="font-size: 3em; margin-bottom: 10px;">📄</div>
+          <p style="color: var(--primary); font-weight: bold; font-size: 1.1em; margin: 0 0 5px;">PDF ya TXT File Upload करें</p>
+          <p style="color: var(--text-muted); font-size: 0.85em; margin: 0;">AI automatically text extract karke training data me convert karega</p>
+        </div>
+        <input type="file" id="td-file-upload" accept=".pdf,.txt" style="margin-bottom: 12px;">
+        <select id="td-file-subject" style="margin-bottom: 10px;">
+          <option value="">-- Subject Choose करें (AI auto-detect bhi karega) --</option>
+          <option value="भारतीय इतिहास">भारतीय इतिहास</option>
+          <option value="छत्तीसगढ़ इतिहास">छत्तीसगढ़ इतिहास</option>
+          <option value="भूगोल">भूगोल</option>
+          <option value="छत्तीसगढ़ भूगोल">छत्तीसगढ़ भूगोल</option>
+          <option value="भारतीय राजव्यवस्था">भारतीय राजव्यवस्था</option>
+          <option value="अर्थव्यवस्था">अर्थव्यवस्था</option>
+          <option value="विज्ञान">विज्ञान</option>
+          <option value="पर्यावरण">पर्यावरण</option>
+          <option value="सामान्य ज्ञान">सामान्य ज्ञान</option>
+          <option value="छत्तीसगढ़ सामान्य ज्ञान">छत्तीसगढ़ सामान्य ज्ञान</option>
+          <option value="गणित">गणित</option>
+          <option value="हिंदी">हिंदी</option>
+          <option value="English">English</option>
+          <option value="कंप्यूटर">कंप्यूटर</option>
+          <option value="करंट अफेयर्स">करंट अफेयर्स</option>
+        </select>
+        <input type="text" id="td-file-source" placeholder="Source (e.g. Lucent GK, NCERT Class 12)" style="margin-bottom: 10px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+          <label style="font-size: 0.85em; color: var(--text-muted); width: 100%; margin-bottom: 4px;">Exam Tags:</label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; cursor: pointer;">
+            <input type="checkbox" class="td-file-exam-tag" value="cgpsc" checked> CGPSC
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; cursor: pointer;">
+            <input type="checkbox" class="td-file-exam-tag" value="vyapam" checked> Vyapam
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; cursor: pointer;">
+            <input type="checkbox" class="td-file-exam-tag" value="ssc"> SSC
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; cursor: pointer;">
+            <input type="checkbox" class="td-file-exam-tag" value="upsc"> UPSC
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 0.9em; cursor: pointer;">
+            <input type="checkbox" class="td-file-exam-tag" value="railway"> Railway
+          </label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; background: #1a1d26; padding: 12px; border-radius: 8px; border: 1px solid #333;">
+          <input type="checkbox" id="td-file-ai-extract" checked style="width: auto; margin: 0;">
+          <div>
+            <label for="td-file-ai-extract" style="color: white; font-weight: bold; font-size: 0.9em; cursor: pointer;">🤖 AI Smart Extract</label>
+            <p style="color: var(--text-muted); font-size: 0.8em; margin: 3px 0 0;">AI file ke text ko topics me break karke structured training data banayega</p>
+          </div>
+        </div>
+        <button onclick="uploadFileTrainingData()" id="btn-td-upload-file">📄 Upload & Extract Training Data</button>
+        <div id="td-file-status" style="margin-top: 10px;">
+          <p id="td-file-progress" style="font-size: 0.85em; color: var(--text-muted); margin: 5px 0;"></p>
+          <div style="background: #1a1d26; border-radius: 6px; overflow: hidden; height: 6px; display: none;" id="td-file-progress-bar-container">
+            <div id="td-file-progress-bar" style="height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease; border-radius: 6px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bulk JSON Panel -->
+      <div id="td-panel-bulk" class="hidden">
+        <p style="color: var(--text-muted); font-size: 0.85em; margin-bottom: 10px;">
+          JSON array paste करें या .json file upload करें। Template tab se format dekh sakte ho.
+        </p>
+        <textarea id="td-bulk-json" placeholder='[&#10;  {&#10;    "subject": "भारतीय इतिहास",&#10;    "topic": "मौर्य साम्राज्य",&#10;    "content": "चंद्रगुप्त मौर्य ने 322 ई.पू. में...",&#10;    "source": "Lucent GK",&#10;    "examTags": ["cgpsc", "vyapam"]&#10;  }&#10;]' 
+          style="width: 100%; min-height: 200px; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: white; font-family: 'Courier New', monospace; font-size: 0.85em; resize: vertical; box-sizing: border-box; margin-bottom: 10px;"></textarea>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <input type="file" id="td-bulk-file" accept=".json" style="flex: 1;">
+          <button onclick="loadBulkFile()" style="width: auto; padding: 8px 16px; margin: 0; font-size: 0.85em;">Load File</button>
+        </div>
+        <button onclick="uploadBulkTrainingData()" id="btn-td-upload-bulk">📋 Bulk Upload</button>
+        <p id="td-bulk-status" style="font-size: 0.85em; color: var(--text-muted); margin-top: 5px;"></p>
+      </div>
+
+      <!-- Stats Panel -->
+      <div id="td-panel-stats" class="hidden">
+        <div id="td-stats-content" style="color: var(--text-muted);">Loading stats...</div>
+      </div>
+
+      <!-- Template Panel -->
+      <div id="td-panel-template" class="hidden">
+        <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 15px;">
+          Is template format me data prepare karke bulk upload karo:
+        </p>
+        <pre style="background: #1a1d26; padding: 15px; border-radius: 8px; font-size: 0.8em; overflow-x: auto; border: 1px solid #333; color: #98c379; white-space: pre-wrap;">[
+  {
+    "subject": "भारतीय इतिहास",
+    "topic": "मौर्य साम्राज्य",
+    "content": "चंद्रगुप्त मौर्य (322-298 ई.पू.) ने मौर्य वंश की स्थापना की। चाणक्य (कौटिल्य) इनके गुरु और मंत्री थे। अर्थशास्त्र कौटिल्य द्वारा लिखित ग्रंथ है। बिंदुसार (298-272 ई.पू.) को अमित्रघात कहा जाता था। अशोक (268-232 ई.पू.) सबसे महान मौर्य सम्राट थे। कलिंग युद्ध 261 ई.पू. में हुआ। अशोक ने बौद्ध धर्म अपनाया।",
+    "source": "Lucent GK Chapter 5",
+    "examTags": ["cgpsc", "vyapam", "upsc"]
+  },
+  {
+    "subject": "छत्तीसगढ़ भूगोल",
+    "topic": "छत्तीसगढ़ की नदियाँ",
+    "content": "महानदी - CG की सबसे बड़ी नदी, लंबाई 858 km, उद्गम सिहावा पर्वत (धमतरी)। शिवनाथ - महानदी की सहायक, लंबाई 290 km। इंद्रावती - गोदावरी की सहायक, बस्तर में बहती है, चित्रकोट जलप्रपात इसी पर है। हसदो - महानदी की सहायक, कोरबा में बहती है।",
+    "source": "CG GK Guide 2025",
+    "examTags": ["cgpsc", "vyapam"]
+  },
+  {
+    "subject": "भारतीय राजव्यवस्था",
+    "topic": "मौलिक अधिकार",
+    "content": "भारतीय संविधान के भाग III में अनुच्छेद 12-35 तक मौलिक अधिकार दिए गए हैं। 6 मौलिक अधिकार: 1) समता का अधिकार (अनु. 14-18) 2) स्वतंत्रता का अधिकार (अनु. 19-22) 3) शोषण के विरुद्ध अधिकार (अनु. 23-24) 4) धार्मिक स्वतंत्रता का अधिकार (अनु. 25-28) 5) संस्कृति और शिक्षा संबंधी अधिकार (अनु. 29-30) 6) संवैधानिक उपचारों का अधिकार (अनु. 32)।",
+    "source": "Laxmikant Indian Polity",
+    "examTags": ["cgpsc", "upsc", "ssc"]
+  }
+]</pre>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+          <button onclick="copyTemplate()" style="flex: 1;">📋 Copy Template</button>
+          <button onclick="downloadTemplate()" style="flex: 1;">📥 Download .json</button>
+        </div>
+        <div style="margin-top: 20px; background: #1a1d26; padding: 15px; border-radius: 8px; border: 1px solid #333;">
+          <h4 style="margin-top: 0; color: var(--primary);">📝 Fields Guide:</h4>
+          <ul style="color: var(--text-muted); font-size: 0.85em; line-height: 1.8; padding-left: 20px;">
+            <li><strong style="color: white;">subject</strong> (required) — Subject name, e.g. "भारतीय इतिहास", "भूगोल"</li>
+            <li><strong style="color: white;">topic</strong> (required) — Specific topic, e.g. "मौर्य साम्राज्य"</li>
+            <li><strong style="color: white;">content</strong> (required) — Book se extracted data. Jitna detailed ho utna acha.</li>
+            <li><strong style="color: white;">source</strong> (optional) — Konsi book se liya, e.g. "Lucent GK Ch.5"</li>
+            <li><strong style="color: white;">examTags</strong> (optional) — Array: "cgpsc", "vyapam", "ssc", "upsc", "railway"</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Training Data List -->
+    <div class="card" id="training-data-list-section">
+      <h2>📚 Uploaded Training Data</h2>
+      <input type="text" id="td-search" placeholder="🔍 Search by subject, topic, source..." 
+        style="margin-bottom: 15px;" oninput="filterTrainingData()">
+      <div id="td-list-content">
+        <ul class="materials-list" id="training-data-list"></ul>
+      </div>
+    </div>
+
     <div class="card">
       <h2>🧠 Generate AI Test</h2>
       <p>Generate a structured quiz or mock test with AI and save it to the server.</p>

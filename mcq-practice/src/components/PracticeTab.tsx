@@ -311,29 +311,92 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
         ) : activeMode === 'typing' ? (
           <TypingTest currentUser={currentUser} onSaveResults={onSaveTypingResults} />
         ) : activeMode === 'pyq' ? (
-          /* PYQ start card */
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-6 bg-bg-s2 border border-border rounded-xl text-center flex flex-col gap-4 shadow shadow-saffron-dim/5"
-          >
-            <div className="w-14 h-14 bg-saffron-dim/20 rounded-full flex items-center justify-center mx-auto shadow-inner text-saffron shrink-0">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div className="flex flex-col gap-1 max-w-xs mx-auto">
-              <h4 className="text-sm font-black text-text">CGPSC / Vyapam PYQ Practice</h4>
-              <p className="text-[11px] text-text-muted leading-relaxed">
-                Practice previous year questions from actual Chhattisgarh state government exams in a mixed bilingual format.
-              </p>
-            </div>
-            <button
-              onClick={handleStartPYQPractice}
-              className="px-5 py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-2 max-w-[200px] mx-auto transition-colors cursor-pointer shadow"
+          /* PYQ start card & Uploaded PYQ list */
+          <div className="flex flex-col gap-6">
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-6 bg-bg-s2 border border-border rounded-xl text-center flex flex-col gap-4 shadow shadow-saffron-dim/5"
             >
-              <Play className="w-3.5 h-3.5 fill-bg-s1" />
-              <span>Start Practice</span>
-            </button>
-          </motion.div>
+              <div className="w-14 h-14 bg-saffron-dim/20 rounded-full flex items-center justify-center mx-auto shadow-inner text-saffron shrink-0">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div className="flex flex-col gap-1 max-w-xs mx-auto">
+                <h4 className="text-sm font-black text-text">CGPSC / Vyapam PYQ Practice</h4>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Practice previous year questions from actual Chhattisgarh state government exams in a mixed bilingual format.
+                </p>
+              </div>
+              <button
+                onClick={handleStartPYQPractice}
+                className="px-5 py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-2 max-w-[200px] mx-auto transition-colors cursor-pointer shadow active:scale-95"
+              >
+                <Play className="w-3.5 h-3.5 fill-bg-s1" />
+                <span>Start Practice (Preloaded)</span>
+              </button>
+            </motion.div>
+
+            {/* List of uploaded PYQ Papers */}
+            <div className="flex flex-col gap-3">
+              <div className="border-b border-border pb-1.5 flex items-center justify-between">
+                <h4 className="text-xs font-black text-text uppercase">Available PYQ Papers ({filteredTests.length})</h4>
+              </div>
+
+              {filteredTests.length === 0 ? (
+                <div className="p-6 text-center bg-bg-s2 border border-border rounded-xl text-xs text-text-muted">
+                  No uploaded PYQ papers available yet.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredTests.map(test => {
+                    const progress = getTestProgressInfo(test);
+                    return (
+                      <motion.div
+                        key={test.id}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 bg-bg-s2 border border-border rounded-xl flex items-center justify-between shadow-sm hover:border-saffron-border/30 transition-all duration-200 gap-3"
+                      >
+                        <div className="flex flex-col gap-0.5 truncate pr-2 flex-1">
+                          <h4 className="text-xs font-black text-text truncate leading-tight">{test.subject}</h4>
+                          <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider">
+                            {test.totalQuestions} questions • {test.language} • PYQ Paper
+                          </span>
+
+                          {progress && (
+                            <div className="flex flex-col gap-1 mt-2.5 w-full max-w-[200px]">
+                              <div className="flex justify-between items-center text-[8px] font-bold uppercase tracking-wide">
+                                <span className={progress.completed ? "text-greenL font-black" : "text-saffron font-black"}>
+                                  {progress.completed ? "Completed" : "In Progress"}
+                                </span>
+                                <span className="text-text-muted">
+                                  {progress.attemptedCount}/{progress.totalQuestions} Qs ({Math.round((progress.attemptedCount / progress.totalQuestions) * 100)}%)
+                                </span>
+                              </div>
+                              <div className="w-full h-1 bg-bg-s3 border border-border/40 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full transition-all duration-300 ${progress.completed ? 'bg-greenL' : 'bg-saffron'}`}
+                                  style={{ width: `${Math.min(100, Math.round((progress.attemptedCount / progress.totalQuestions) * 100))}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => handleStartEducatorTest(test.id, 'pyq', test.subject)}
+                          className="px-3 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow active:scale-95 shrink-0"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-bg-s1" />
+                          <span>Start</span>
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         ) : activeMode === 'saved' ? (
           /* Saved questions view */
           <motion.div

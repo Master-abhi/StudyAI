@@ -66,7 +66,7 @@ interface TestMeta {
   examIds?: string[];
   examNames?: string[];
   subject: string;
-  mode: 'quiz' | 'mock';
+  mode: 'quiz' | 'mock' | 'pyq';
   language: 'english' | 'hindi';
   totalQuestions: number;
   pattern?: {
@@ -182,7 +182,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [selectedExamId, setSelectedExamId] = useState<string>(exams[0]?.id || '');
   const [selectedExamIds, setSelectedExamIds] = useState<string[]>([exams[0]?.id || '']);
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
-  const [selectedMode, setSelectedMode] = useState<'quiz' | 'mock'>('quiz');
+  const [selectedMode, setSelectedMode] = useState<'quiz' | 'mock' | 'pyq'>('quiz');
   const [selectedLanguage, setSelectedLanguage] = useState<'english' | 'hindi'>('hindi');
   const [selectedDuration, setSelectedDuration] = useState<number>(10);
   const [filterExamId, setFilterExamId] = useState<string>('all');
@@ -212,7 +212,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   // Pool generation form state
   const [selectedPoolSubjects, setSelectedPoolSubjects] = useState<string[]>([]);
   const [poolGenCount, setPoolGenCount] = useState<number>(10);
-  const [poolGenMode, setPoolGenMode] = useState<'quiz' | 'mock'>('quiz');
+  const [poolGenMode, setPoolGenMode] = useState<'quiz' | 'mock' | 'pyq'>('quiz');
   const [poolGenLanguage, setPoolGenLanguage] = useState<'english' | 'hindi'>('hindi');
   const [poolGenDuration, setPoolGenDuration] = useState<number>(10);
   const [loadingPoolGen, setLoadingPoolGen] = useState<boolean>(false);
@@ -1387,15 +1387,16 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   <select
                     value={selectedMode}
                     onChange={(e) => {
-                      const newMode = e.target.value as 'quiz' | 'mock';
+                      const newMode = e.target.value as 'quiz' | 'mock' | 'pyq';
                       setSelectedMode(newMode);
-                      setSelectedDuration(newMode === 'mock' ? 120 : 10);
+                      setSelectedDuration(newMode === 'mock' || newMode === 'pyq' ? 120 : 10);
                     }}
                     className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
                     disabled={loadingGen}
                   >
                     <option value="quiz">Standard Quiz</option>
                     <option value="mock">Full Length Mock</option>
+                    <option value="pyq">Previous Year Paper (PYQ)</option>
                   </select>
                 </div>
 
@@ -1654,15 +1655,16 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   <select
                     value={poolGenMode}
                     onChange={(e) => {
-                      const newMode = e.target.value as 'quiz' | 'mock';
+                      const newMode = e.target.value as 'quiz' | 'mock' | 'pyq';
                       setPoolGenMode(newMode);
-                      setPoolGenDuration(newMode === 'mock' ? 120 : 10);
+                      setPoolGenDuration(newMode === 'mock' || newMode === 'pyq' ? 120 : 10);
                     }}
                     className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
                     disabled={loadingPoolGen}
                   >
                     <option value="quiz">Standard Quiz</option>
                     <option value="mock">Full Length Mock</option>
+                    <option value="pyq">Previous Year Paper (PYQ)</option>
                   </select>
                 </div>
 
@@ -1888,6 +1890,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                             <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none ${
                               test.mode === 'mock' 
                                 ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' 
+                                : test.mode === 'pyq'
+                                ? 'bg-green-500/10 border border-green-500/20 text-green-400'
                                 : 'bg-saffron-dim/20 border border-saffron-border/30 text-saffron'
                             }`}>
                               {test.mode} ({test.totalQuestions} Qs)
@@ -2179,11 +2183,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   <label className="text-[9px] font-black uppercase text-text-muted">Test Length / Mode</label>
                   <select
                     value={editingTest.mode || 'quiz'}
-                    onChange={(e) => setEditingTest({ ...editingTest, mode: e.target.value })}
+                    onChange={(e) => setEditingTest({ ...editingTest, mode: e.target.value as any })}
                     className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none cursor-pointer"
                   >
                     <option value="quiz">Quiz (5 Qs)</option>
                     <option value="mock">Full Mock (25 Qs)</option>
+                    <option value="pyq">Previous Year Paper (PYQ)</option>
                   </select>
                 </div>
 
