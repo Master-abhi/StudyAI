@@ -34,9 +34,17 @@ if (!admin.apps.length) {
     }
   }
 
+  let storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
+  if (storageBucket) {
+    storageBucket = storageBucket.trim().replace(/^["']|["']$/g, '');
+  }
+  if (!storageBucket) {
+    storageBucket = 'cg-guru.firebasestorage.app';
+  }
+
   admin.initializeApp({
     credential,
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'cg-guru.firebasestorage.app'
+    storageBucket
   });
 
   console.log('[Firebase Admin] Initialized ✅');

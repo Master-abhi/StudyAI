@@ -18,6 +18,7 @@ import { AdminFeedbacks } from './AdminFeedbacks';
 import { AdminBadges } from './AdminBadges';
 import { AdminReports } from './AdminReports';
 import { AdminTraining } from './AdminTraining';
+import { AdminBranding } from './AdminBranding';
 
 import type { Exam } from '../syllabus/syllabusData';
 
@@ -29,7 +30,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'reports' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges' | 'typing' | 'training'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'reports' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges' | 'typing' | 'training' | 'branding'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
@@ -117,6 +118,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     { id: 'training', label: 'AI Training / Facts', icon: Brain },
     { id: 'tabsconfig', label: 'Manage Tabs', icon: Sliders },
     { id: 'examsconfig', label: 'Manage Exams', icon: Eye },
+    { id: 'branding', label: 'Branding & Logos', icon: Sparkles },
     { id: 'logs', label: 'Activity Logs', icon: History },
   ] as const;
 
@@ -149,6 +151,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return <AdminTabsConfig currentUser={currentUser} />;
       case 'examsconfig':
         return <AdminExamsConfig currentUser={currentUser} exams={exams} onRefreshExams={onRefreshExams} />;
+      case 'branding':
+        return <AdminBranding currentUser={currentUser} configApiUrl={getApiUrl} />;
       case 'typing':
         return <AdminTyping currentUser={currentUser} />;
       case 'logs':

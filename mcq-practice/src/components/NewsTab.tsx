@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Newspaper, Search, Calendar, Globe, Sparkles, 
+  Newspaper, Search, Calendar, Globe, 
   ExternalLink, MessageSquare, Info, ShieldAlert,
   Award, CheckCircle, Brain, Clock,
   ChevronRight, Bookmark,
@@ -94,10 +94,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
   
   // Hub states
   const [articles, setArticles] = useState<Article[]>([]);
-  const [recommendedArticles, setRecommendedArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [loadingRecommended, setLoadingRecommended] = useState<boolean>(false);
-  const [feedType, setFeedType] = useState<'recommended' | 'latest'>('latest');
   const [error, setError] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -217,27 +214,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     }
   };
 
-  // Fetch Recommended Feed
-  const fetchRecommendedNews = async () => {
-    if (!currentUser) return;
-    setLoadingRecommended(true);
-    try {
-      const token = await currentUser.getIdToken();
-      const res = await fetch(getApiUrl('/api/news/recommended'), {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data.articles)) {
-          setRecommendedArticles(data.articles);
-        }
-      }
-    } catch (err) {
-      console.warn('[News Recommended Fetch Error]:', err);
-    } finally {
-      setLoadingRecommended(false);
-    }
-  };
+
 
   // Fetch Capsules Data
   const fetchCapsules = async () => {
@@ -448,20 +425,12 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     }
   };
 
-  // Synchronize default feedType based on user authentication
-  useEffect(() => {
-    if (currentUser) {
-      setFeedType('recommended');
-    } else {
-      setFeedType('latest');
-    }
-  }, [currentUser]);
+
 
   // Load Initial Data
   useEffect(() => {
     fetchNews();
     if (currentUser) {
-      fetchRecommendedNews();
       fetchAnalytics();
     }
     const saved = localStorage.getItem('cg_saved_articles');
@@ -563,7 +532,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     });
   };
 
-  const displayFeed = (currentUser && feedType === 'recommended') ? recommendedArticles : articles;
+  const displayFeed = articles;
   const filteredArticles = getFilteredList(displayFeed);
 
   // Trending Section (Top 5 scoring articles or just first 5 articles)
@@ -616,41 +585,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
   return (
     <div className="flex flex-col gap-5 w-full text-text pb-12 font-sans relative">
       
-      {/* 1. Header & Quick Analytics Widget */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-bg-s2 to-bg-s3 border border-border p-5 rounded-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-36 h-36 bg-saffron-dim/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="flex flex-col gap-1">
-          <span className="text-[10px] font-black uppercase text-saffron tracking-widest flex items-center gap-1.5 animate-pulse">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI Current Affairs & GK Engine</span>
-          </span>
-          <h2 className="text-base font-black text-text">News Intelligence Dashboard</h2>
-          <p className="text-[11px] text-text-muted max-w-xl leading-normal">
-            Your live Current Affairs Coach. Raw news is automatically compiled, linked to syllabus topics, fact-checked, and converted into study notes, flashcards, and MCQs.
-          </p>
-        </div>
 
-        {/* Mini Analytics Panel */}
-        {currentUser && analyticsData && (
-          <div className="flex items-center gap-4 bg-bg-s1/65 border border-border/80 p-3 rounded-lg max-w-xs shrink-0 select-none">
-            <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
-              <svg className="w-12 h-12 transform -rotate-90">
-                <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.06)" strokeWidth="3" fill="transparent" />
-                <circle cx="24" cy="24" r="20" stroke="#ff9933" strokeWidth="3.5" fill="transparent"
-                  strokeDasharray={2 * Math.PI * 20}
-                  strokeDashoffset={2 * Math.PI * 20 * (1 - analyticsData.metrics.readinessScore / 100)} />
-              </svg>
-              <span className="absolute text-[10px] font-black text-text">{analyticsData.metrics.readinessScore}%</span>
-            </div>
-            <div className="flex flex-col truncate">
-              <span className="text-[9px] font-black text-text-muted uppercase tracking-wider">CA Readiness</span>
-              <span className="text-xs font-black text-text mt-0.5">Level {Math.ceil(analyticsData.metrics.readinessScore / 10)} Aspirant</span>
-              <span className="text-[9px] text-saffron mt-0.5">XP Boost active</span>
-            </div>
-          </div>
-        )}
-      </div>
 
 
 
@@ -690,33 +625,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
             exit={{ opacity: 0, y: -5 }}
             className="flex flex-col gap-5"
           >
-            {/* Feed Selector for personalized AI vs chronological Latest */}
-            {currentUser && (
-              <div className="flex items-center gap-2 bg-bg-s3/40 border border-border p-1 rounded-xl self-start">
-                <button
-                  onClick={() => setFeedType('recommended')}
-                  className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                    feedType === 'recommended'
-                      ? 'bg-saffron text-bg-s1 shadow-md font-black'
-                      : 'text-text-muted hover:text-text'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>For You (AI)</span>
-                </button>
-                <button
-                  onClick={() => setFeedType('latest')}
-                  className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                    feedType === 'latest'
-                      ? 'bg-saffron text-bg-s1 shadow-md font-black'
-                      : 'text-text-muted hover:text-text'
-                  }`}
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Latest Feed</span>
-                </button>
-              </div>
-            )}
+
 
             {/* Search and Quick filters */}
             <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
@@ -808,10 +717,10 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
             {/* Articles feed list */}
             <div className="flex flex-col gap-3">
               <h4 className="text-[10px] font-black text-text-muted uppercase tracking-widest">
-                {currentUser && feedType === 'recommended' ? 'AI Recommended News for You' : 'Latest Current Affairs Feed'}
+                Latest Current Affairs Feed
               </h4>
 
-              {((feedType === 'recommended' && loadingRecommended) || (feedType === 'latest' && loading)) ? (
+              {loading ? (
                 <div className="flex flex-col gap-3">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="h-28 bg-bg-s2 border border-border rounded-xl animate-pulse" />
@@ -958,19 +867,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                   </div>
                 );
               }
-              return (
-                <div className="bg-[#121620] border border-border/80 px-4 py-3.5 rounded-xl flex items-center justify-between text-center gap-2 select-none relative overflow-hidden">
-                  <div className="text-amber-500 animate-bounce">
-                    <Bell className="w-4 h-4 fill-current" />
-                  </div>
-                  <div className="text-xs font-bold text-text flex-1 tracking-wide">
-                    Naye vacancy aur exam notifications live hain — abhi check karein!
-                  </div>
-                  <div className="text-amber-500 animate-bounce">
-                    <Bell className="w-4 h-4 fill-current" />
-                  </div>
-                </div>
-              );
+              return null;
             })()}
 
             {/* Jobs list */}

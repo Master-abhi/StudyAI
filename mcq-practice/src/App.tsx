@@ -1745,7 +1745,7 @@ export default function App() {
       
       {/* Desktop Left Sidebar Navigation */}
       {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
-        <aside className="hidden md:flex flex-col w-64 bg-bg-s2 border-r border-border/60 shrink-0 sticky top-0 h-screen z-30">
+        <aside className="hidden md:flex flex-col w-64 bg-bg-s2 border-r border-border/60 shrink-0 fixed top-0 left-0 h-screen z-30">
           {/* Logo & Brand */}
           <div className="p-6 border-b border-border/60 flex items-center gap-3">
             <GraduationCap className="w-7 h-7 text-saffron" />
@@ -1846,7 +1846,7 @@ export default function App() {
         activeTab === 'chat' 
           ? 'h-[100dvh] md:h-screen overflow-hidden' 
           : 'min-h-screen'
-      } ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'pb-16 md:pb-0' : 'pb-0'}`}>
+      } ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'pb-16 md:pb-0 md:pl-64' : 'pb-0'}`}>
         
         {/* Mobile Sticky Top Header (Shown if test workspace is NOT active, hidden on desktop) */}
         {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (

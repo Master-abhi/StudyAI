@@ -1,1 +1,0 @@
-import{WebPlugin as e}from"./dist-ijA1qhG9.js";var t=class extends e{async show(e){}async hide(e){}};export{t as SplashScreenWeb};

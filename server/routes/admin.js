@@ -37,6 +37,15 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
+const logoUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files are allowed'), false);
+  },
+  limits: { fileSize: 3 * 1024 * 1024 } // 3MB limit
+});
+
 const MATERIALS_COL = db.collection('materials');
 
 const normalizeQuestion = (q) => {
@@ -173,6 +182,79 @@ router.post('/config/ai', verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error('[Admin Config POST Error]:', err.message);
     res.status(500).json({ error: 'Internal server error while updating configuration' });
+  }
+});
+
+// ── Branding / Logo Config Routes ──
+
+// GET /api/admin/config/branding - Retrieve website and app logo URLs (publicly readable)
+router.get('/config/branding', async (req, res) => {
+  try {
+    const doc = await db.collection('config').doc('branding').get();
+    const defaultBranding = {
+      websiteLogo: '',
+      appLogo: ''
+    };
+    if (doc.exists) {
+      const data = doc.data();
+      return res.json({ success: true, ...defaultBranding, ...data });
+    }
+    return res.json({ success: true, ...defaultBranding });
+  } catch (err) {
+    console.error('[Admin Config Branding GET Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve branding configuration' });
+  }
+});
+
+// POST /api/admin/config/branding - Save branding configuration (admin only)
+router.post('/config/branding', verifyAdmin, async (req, res) => {
+  try {
+    const { websiteLogo, appLogo } = req.body;
+    await db.collection('config').doc('branding').set({
+      websiteLogo: websiteLogo || '',
+      appLogo: appLogo || '',
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.user.uid
+    }, { merge: true });
+
+    await logStaffActivity(req, 'update_branding_config', { websiteLogo, appLogo });
+    res.json({ success: true, message: 'Branding logo configuration updated successfully.' });
+  } catch (err) {
+    console.error('[Admin Config Branding POST Error]:', err.message);
+    res.status(500).json({ error: 'Failed to update branding configuration' });
+  }
+});
+
+// POST /api/admin/config/branding/upload - Upload branding logo image to Firebase Storage (admin only)
+router.post('/config/branding/upload', verifyAdmin, logoUpload.single('logoFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Please upload an image file.' });
+    }
+
+    const fileExtension = req.file.originalname.split('.').pop() || 'png';
+    const storageFileName = `branding/logo-${Date.now()}.${fileExtension}`;
+    const fileRef = bucket.file(storageFileName);
+
+    await fileRef.save(req.file.buffer, {
+      metadata: {
+        contentType: req.file.mimetype,
+        uploadedBy: req.user.uid
+      }
+    });
+
+    const [url] = await fileRef.getSignedUrl({
+      action: 'read',
+      expires: '01-01-2099'
+    });
+
+    res.json({
+      success: true,
+      url
+    });
+  } catch (err) {
+    console.error('[Admin Logo Upload Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to upload logo image.' });
   }
 });
 
