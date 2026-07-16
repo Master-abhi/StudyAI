@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Sliders, Save, Loader2, CheckCircle, ShieldAlert, 
   Home, Trophy, MessageSquare, Newspaper, BookOpen, User, Eye, EyeOff,
-  BrainCircuit, RefreshCw, BarChart3, Lightbulb
+  BrainCircuit, RefreshCw, BarChart3, Lightbulb, Briefcase
 } from 'lucide-react';
 
 interface AdminTabsConfigProps {
@@ -22,6 +22,7 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
     practice: true,
     chat: true,
     news: true,
+    jobs: true,
     syllabus: true,
     profile: true,
     syllabus_ai_planner: true,
@@ -157,7 +158,8 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
     { id: 'home', label: 'Home / मुख्य पृष्ठ', desc: 'Main student dashboard containing streak progress, target exam details, quick action shortcuts, and subject completion list cards.', icon: Home },
     { id: 'practice', label: 'Practice / अभ्यास', desc: 'Interactive practice sessions offering custom mock tests, daily speed quizzes, and previous year papers (PYQs).', icon: Trophy },
     { id: 'chat', label: 'AI Guru / एआई गुरु', desc: 'The AI Tutor Chat Bot interface offering instant doubt clearing, spaced repetition recall questions, and study assistance.', icon: MessageSquare },
-    { id: 'news', label: 'News & Alerts / समाचार और अलर्ट', desc: 'Bilingual news feeds summarizing state notifications, job alerts, and board announcements translated via Gemini AI.', icon: Newspaper },
+    { id: 'news', label: 'News & Alerts / समाचार और करंट अफेयर्स', desc: 'Bilingual news feeds summarizing state notifications and current affairs updates.', icon: Newspaper },
+    { id: 'jobs', label: 'Jobs & Vacancies / सरकारी नौकरियां', desc: 'Dedicated Sarkari Job alerts, recruitment notices, qualification requirements, and direct application links.', icon: Briefcase },
     { id: 'syllabus', label: 'Syllabus / पाठ्यक्रम', desc: 'Detailed syllabus trackers featuring custom exam syllabi parsing, study material PDFs, and learning checklists.', icon: BookOpen },
     { id: 'profile', label: 'Profile / प्रोफाइल', desc: 'User history panel displaying stats, rolling weekly MCQ charts, achievements, global leaderboards, and system settings.', icon: User },
     { id: 'syllabus_ai_planner', label: 'Syllabus: AI Study Planner', desc: 'AI Study Planner tab inside the Syllabus tab. Provides personalized day-by-day study schedules and progress tracking.', icon: BrainCircuit },

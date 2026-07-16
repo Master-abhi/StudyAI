@@ -45,20 +45,20 @@ async function getGeminiConfig() {
     if (doc.exists) {
       const data = doc.data();
       return {
-        test: data.geminiModelTest || 'gemini-3.5-flash',
-        analytics: data.geminiModelAnalytics || 'gemini-3.5-flash',
-        chat: data.geminiModelChat || 'gemini-3.5-flash',
-        news: data.geminiModelNews || 'gemini-3.5-flash'
+        test: data.geminiModelTest || 'gemini-2.5-flash',
+        analytics: data.geminiModelAnalytics || 'gemini-2.5-flash',
+        chat: data.geminiModelChat || 'gemini-2.5-flash',
+        news: data.geminiModelNews || 'gemini-2.5-flash'
       };
     }
   } catch (err) {
     console.error('[aiManager] Failed to read Gemini configuration from Firestore:', err.message);
   }
   return {
-    test: 'gemini-3.5-flash',
-    analytics: 'gemini-3.5-flash',
-    chat: 'gemini-3.5-flash',
-    news: 'gemini-3.5-flash'
+    test: 'gemini-2.5-flash',
+    analytics: 'gemini-2.5-flash',
+    chat: 'gemini-2.5-flash',
+    news: 'gemini-2.5-flash'
   };
 }
 
@@ -75,15 +75,35 @@ async function updateAIConfig(config) {
   }
 }
 
-async function getService() {
-  const active = await getActiveAI();
-  if (active === 'gemini') return geminiService;
-  if (active === 'groq') return groqService;
-  return claudeService;
+async function getService(feature) {
+  try {
+    const doc = await CONFIG_DOC.get();
+    let provider = 'groq';
+    if (doc.exists) {
+      const data = doc.data();
+      if (feature === 'test') {
+        provider = data.providerTest || data.activeAI || 'groq';
+      } else if (feature === 'analytics') {
+        provider = data.providerAnalytics || data.activeAI || 'groq';
+      } else if (feature === 'chat') {
+        provider = data.providerChat || data.activeAI || 'groq';
+      } else if (feature === 'news') {
+        provider = data.providerNews || data.activeAI || 'groq';
+      } else {
+        provider = data.activeAI || 'groq';
+      }
+    }
+    if (provider === 'gemini') return geminiService;
+    if (provider === 'groq') return groqService;
+    return claudeService;
+  } catch (err) {
+    console.error('[aiManager] Failed to get service for feature:', feature, err.message);
+    return groqService;
+  }
 }
 
 async function chat(message, examName, language, history = []) {
-  const service = await getService();
+  const service = await getService('chat');
   if (service === geminiService) {
     const config = await getGeminiConfig();
     return service.chat(message, examName, language, history, config.chat);
@@ -92,7 +112,7 @@ async function chat(message, examName, language, history = []) {
 }
 
 async function chatStream(message, examName, language, history = []) {
-  const service = await getService();
+  const service = await getService('chat');
   if (service === geminiService) {
     const config = await getGeminiConfig();
     return service.chatStream(message, examName, language, history, config.chat);
@@ -101,7 +121,7 @@ async function chatStream(message, examName, language, history = []) {
 }
 
 async function generateTest(examId, examName, subject, mode, questionCount, language, examSubjects = []) {
-  const service = await getService();
+  const service = await getService('test');
   if (service === geminiService) {
     const config = await getGeminiConfig();
     return service.generateTest(examId, examName, subject, mode, questionCount, language, examSubjects, config.test);
@@ -110,7 +130,7 @@ async function generateTest(examId, examName, subject, mode, questionCount, lang
 }
 
 async function parseSyllabus(text) {
-  const service = await getService();
+  const service = await getService('chat');
   if (service === geminiService) {
     const config = await getGeminiConfig();
     return service.parseSyllabus(text, config.chat);
@@ -119,7 +139,7 @@ async function parseSyllabus(text) {
 }
 
 async function summarizeTopicExtracted(topicName, extractedText, language) {
-  const service = await getService();
+  const service = await getService('chat');
   const instruction = language === 'hindi' ? 'Respond in Hindi.' : 'Respond in English.';
   const message = `You are a study assistant. I will provide you with extracted textbook PDF content about the topic "${topicName}". 
 Please create a highly informative and structured study note on this topic based on the text. 
@@ -136,7 +156,7 @@ ${extractedText.substring(0, 15000)}`;
 }
 
 async function summarizeVideoTranscript(topicName, transcription, language) {
-  const service = await getService();
+  const service = await getService('chat');
   const instruction = language === 'hindi' ? 'Respond in Hindi.' : 'Respond in English.';
   const message = `You are a study assistant. I will provide you with a video transcript or description related to the topic "${topicName}". 
 Please extract the most important information, core concepts, and key highlights from this video, structuring it nicely into study notes. ${instruction}
@@ -152,7 +172,7 @@ ${transcription.substring(0, 10000)}
 }
 
 async function summarizeNews(title, category, source, language) {
-  const service = await getService();
+  const service = await getService('news');
   const langInstruction = language === 'hindi' ? 
     'Respond entirely in Hindi (Devanagari script). Use clean Hindi characters. Avoid spelling mistakes.' : 
     'Respond entirely in English.';
@@ -173,13 +193,13 @@ Provide a detailed summary (60-120 words) explaining this notification.
 
   if (service === geminiService) {
     const config = await getGeminiConfig();
-    return service.chat(prompt, 'News Analyzer', language, [], config.chat);
+    return service.chat(prompt, 'News Analyzer', language, [], config.news);
   }
   return service.chat(prompt, 'News Analyzer', language, []);
 }
 
 async function generateImprovementPlan(subjectScores, studyTime, accuracy, streak, language) {
-  const service = await getService();
+  const service = await getService('analytics');
   const langInstruction = language === 'hindi' ? 
     'Respond entirely in Hindi (Devanagari script). Use clean Hindi characters.' : 
     'Respond entirely in English.';
@@ -214,7 +234,7 @@ ${langInstruction}`;
 }
 
 async function translateAndSummarizeNews(title, category, source) {
-  const service = await getService();
+  const service = await getService('news');
   let responseText;
   
   try {
@@ -244,7 +264,7 @@ async function translateAndSummarizeNews(title, category, source) {
 }
 
 async function generateNewsIntelligence(title, description, category, source) {
-  const service = await getService();
+  const service = await getService('news');
   let responseText;
   
   try {

@@ -5,9 +5,8 @@ import {
   ExternalLink, MessageSquare, Info, ShieldAlert,
   Award, CheckCircle, Brain, Clock,
   ChevronRight, Bookmark,
-  Trophy, Activity, FileText,
-  RotateCcw, Flame, BookOpen, Sparkle,
-  Briefcase, Users, GraduationCap, Coins, Bell
+  Trophy, FileText,
+  RotateCcw, Flame, BookOpen, Sparkle
 } from 'lucide-react';
 
 interface Article {
@@ -27,9 +26,12 @@ interface Article {
 
 interface MCQ {
   question: string;
+  question_hi?: string;
   options: string[];
+  options_hi?: string[];
   correctIndex: number;
   explanation: string;
+  explanation_hi?: string;
   difficulty: 'easy' | 'medium' | 'hard';
   probability: 'high' | 'medium' | 'low';
 }
@@ -54,6 +56,8 @@ interface ArticleIntelligence {
   summary_en: string;
   summary_hi: string;
   keyFacts: string[];
+  keyFacts_en?: string[];
+  keyFacts_hi?: string[];
   importantDates?: string[];
   importantPersonalities?: string[];
   organizations?: string[];
@@ -90,7 +94,7 @@ interface NewsTabProps {
 }
 
 export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialArticle, onClearInitialArticle }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'hub' | 'jobs' | 'capsules' | 'analytics' | 'saved'>('hub');
+  const [activeSubTab, setActiveSubTab] = useState<'hub' | 'capsules' | 'analytics' | 'saved'>('hub');
   
   // Hub states
   const [articles, setArticles] = useState<Article[]>([]);
@@ -98,13 +102,6 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
   const [error, setError] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
-
-  // Jobs states
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [loadingJobs, setLoadingJobs] = useState<boolean>(true);
-  const [jobsError, setJobsError] = useState<string>('');
-  const [jobSearchQuery, setJobSearchQuery] = useState<string>('');
-  const [activeJobCategory, setActiveJobCategory] = useState<string>('all');
 
   // Capsules states
   const [capsuleData, setCapsuleData] = useState<{ daily: Article[]; weekly: Article[]; monthly: Article[]; yearly: Article[] } | null>(null);
@@ -132,9 +129,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
   const [quizScore, setQuizScore] = useState<{ correct: number; total: number } | null>(null);
 
-  // Flashcards state inside modal
-  const [currentCardIdx, setCurrentCardIdx] = useState<number>(0);
-  const [cardFlipped, setCardFlipped] = useState<boolean>(false);
+
 
   const [openTime, setOpenTime] = useState<number | null>(null);
 
@@ -268,162 +263,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     }
   };
 
-  // Fetch Jobs list
-  const fetchJobs = async () => {
-    setLoadingJobs(true);
-    setJobsError('');
-    try {
-      const res = await fetch(getApiUrl('/api/jobs'));
-      if (res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data.jobs)) {
-          setJobs(data.jobs);
-        }
-      } else {
-        throw new Error('Failed to fetch jobs.');
-      }
-    } catch (e: any) {
-      console.error('[Jobs Fetch Error]:', e);
-      setJobsError('Could not retrieve job notifications.');
-    } finally {
-      setLoadingJobs(false);
-    }
-  };
-
-  const getJobIcon = (title: string) => {
-    const text = title.toLowerCase();
-    if (text.includes('police') || text.includes('sub-inspector') || text.includes('inspector') || text.includes('constable') || text.includes('si ')) return '👮';
-    if (text.includes('mandi') || text.includes('krishi') || text.includes('agriculture')) return '🌾';
-    if (text.includes('patwari') || text.includes('revenue') || text.includes('tehsildar')) return '🗺️';
-    if (text.includes('teacher') || text.includes('shikshak') || text.includes('tet') || text.includes('lecturer')) return '👩‍🏫';
-    if (text.includes('bank') || text.includes('clerk') || text.includes('po ') || text.includes('rbi') || text.includes('sbi')) return '🏦';
-    if (text.includes('engineer') || text.includes('je ') || text.includes('ae ') || text.includes('technical')) return '👷';
-    if (text.includes('forest') || text.includes('ranger') || text.includes('guard')) return '🌲';
-    if (text.includes('medical') || text.includes('health') || text.includes('nurse') || text.includes('doctor')) return '🏥';
-    return '💼';
-  };
-
-  const parseJobTitleAndSubtitle = (job: any) => {
-    const title = job.title;
-    const source = job.source || '';
-    
-    let displayTitle = title;
-    let subtitle = 'Government Department';
-    
-    // Handle CG Police SI / Mandi Nirikshak
-    if (title.toLowerCase().includes('police') && (title.toLowerCase().includes('sub-inspector') || title.toLowerCase().includes('constable') || title.toLowerCase().includes('inspector'))) {
-      subtitle = 'Home Department';
-    } else if (title.toLowerCase().includes('mandi') || title.toLowerCase().includes('nirikhshak') || title.toLowerCase().includes('nirishak')) {
-      subtitle = 'CG Agriculture Marketing Board';
-    } else if (title.toLowerCase().includes('patwari')) {
-      subtitle = 'Revenue Department';
-    } else if (title.toLowerCase().includes('teacher') || title.toLowerCase().includes('shikshak')) {
-      subtitle = 'School Education Department';
-    } else if (title.toLowerCase().includes('civil judge') || title.toLowerCase().includes('court')) {
-      subtitle = 'Law & Legislative Affairs Department';
-    } else if (title.toLowerCase().includes('bank') || title.toLowerCase().includes('po') || title.toLowerCase().includes('clerk')) {
-      subtitle = 'Banking Sector';
-    } else if (source.includes('CGPSC')) {
-      subtitle = 'Chhattisgarh Public Service Commission';
-    } else if (source.includes('Vyapam')) {
-      subtitle = 'CG Professional Examination Board';
-    }
-    
-    if (source.includes('Vyapam') && !subtitle.includes('Vyapam')) {
-      subtitle += ' — CG Vyapam';
-    } else if (source.includes('CGPSC') && !subtitle.includes('CGPSC')) {
-      subtitle += ' — CGPSC';
-    } else if (job.state === 'CG' && !subtitle.includes('CG')) {
-      subtitle += ' — Chhattisgarh Govt';
-    }
-    
-    displayTitle = displayTitle.replace(/recruitment|recruitment\s*2026|vacancy|bharti|apply\s*online|notification/gi, '').trim();
-    displayTitle = displayTitle.replace(/[-,\(]\s*$/g, '').trim();
-    displayTitle = displayTitle.charAt(0).toUpperCase() + displayTitle.slice(1);
-
-    return { displayTitle, subtitle };
-  };
-
-  const getJobStatusBadge = (job: any) => {
-    if (!job.lastDate) return { label: 'New', color: 'bg-greenL/15 text-greenL border-greenL/25' };
-    
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const lastDate = new Date(job.lastDate);
-    lastDate.setHours(0,0,0,0);
-    
-    const diffTime = lastDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays >= 0 && diffDays <= 5) {
-      return { label: 'Urgent', color: 'bg-red-500/10 text-redL border-red-500/20' };
-    } else if (diffDays < 0) {
-      return { label: 'Expired', color: 'bg-bg-s3 text-text-muted border-border' };
-    } else {
-      const scrapDate = new Date(job.scrapedAt || today);
-      const scrapDiff = today.getTime() - scrapDate.getTime();
-      const scrapDays = Math.ceil(scrapDiff / (1000 * 60 * 60 * 24));
-      if (scrapDays <= 3) {
-        return { label: 'New', color: 'bg-greenL/10 text-greenL border-greenL/20' };
-      }
-      return { label: 'Active', color: 'bg-saffron-dim/10 text-saffron border-saffron-border/20' };
-    }
-  };
-
-  const getJobQualification = (title: string) => {
-    const text = title.toLowerCase();
-    if (text.includes('peon') || text.includes('driver') || text.includes('helper') || text.includes('10th') || text.includes('10 pass')) return '10th Pass';
-    if (text.includes('constable') || text.includes('12th') || text.includes('12 pass') || text.includes('clerk') || text.includes('data entry')) return '12th Pass';
-    if (text.includes('graduate') || text.includes('si ') || text.includes('sub-inspector') || text.includes('officer') || text.includes('assistant') || text.includes('po ') || text.includes('patwari') || text.includes('mandi') || text.includes('nirikhshak')) return 'Graduation';
-    if (text.includes('post graduate') || text.includes('pg ') || text.includes('lecturer') || text.includes('professor')) return 'Post Graduation';
-    if (text.includes('engineer') || text.includes('technical') || text.includes('b.e') || text.includes('b.tech') || text.includes('polytechnic')) return 'Degree/Diploma';
-    return 'Graduation';
-  };
-
-  const getJobSalaryOrExam = (title: string) => {
-    const text = title.toLowerCase();
-    const examDateMatch = title.match(/exam(?:\s+date)?(?:\s+on)?\s*:?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})/i);
-    if (examDateMatch) {
-      return { label: `Exam: ${examDateMatch[1]}`, type: 'exam' };
-    }
-    
-    if (text.includes('officer') || text.includes('judge') || text.includes('manager') || text.includes('dy ') || text.includes('sdm')) {
-      return { label: '₹56,100–₹1,77,500', type: 'salary' };
-    }
-    if (text.includes('sub-inspector') || text.includes('inspector') || text.includes('si ') || text.includes('lecturer')) {
-      return { label: '₹35,400–₹1,12,400', type: 'salary' };
-    }
-    if (text.includes('patwari') || text.includes('teacher') || text.includes('assistant') || text.includes('clerk') || text.includes('constable') || text.includes('mandi') || text.includes('nirikhshak')) {
-      return { label: '₹25,300–₹80,500', type: 'salary' };
-    }
-    return { label: '₹19,500–₹62,000', type: 'salary' };
-  };
-
-  const getJobLastDateText = (lastDateStr: string | null) => {
-    if (!lastDateStr) {
-      return { text: 'Check Notification', isUrgent: false, icon: '📋' };
-    }
-    
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const lastDate = new Date(lastDateStr);
-    lastDate.setHours(0,0,0,0);
-    
-    const diffTime = lastDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
-    const formattedDate = lastDate.toLocaleDateString('en-IN', options);
-    
-    if (diffDays >= 0 && diffDays <= 5) {
-      const daysText = diffDays === 0 ? 'aaj aakhri din hai!' : `${diffDays} din baaki!`;
-      return { text: `${formattedDate} — ${daysText}`, isUrgent: true, icon: '⚠️' };
-    } else if (diffDays < 0) {
-      return { text: `${formattedDate} — Expired`, isUrgent: false, icon: '❌' };
-    } else {
-      return { text: formattedDate, isUrgent: false, icon: '✅' };
-    }
-  };
+  // Load Initial Data
 
 
 
@@ -456,9 +296,6 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     if (activeSubTab === 'analytics' && !analyticsData) {
       fetchAnalytics();
     }
-    if (activeSubTab === 'jobs' && jobs.length === 0) {
-      fetchJobs();
-    }
   }, [activeSubTab]);
 
   // Fetch Intelligence Packet
@@ -471,9 +308,26 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     setQuizSubmitted(false);
     setQuizScore(null);
     setCurrentQuizIdx(0);
-    setCurrentCardIdx(0);
-    setCardFlipped(false);
     setOpenTime(Date.now());
+
+    // Track article read for daily tasks
+    try {
+      const todayKey = new Date().toISOString().split('T')[0];
+      const readStored = JSON.parse(localStorage.getItem(`cg_read_articles_${todayKey}`) || '[]');
+      if (!readStored.includes(article.title)) {
+        const updated = [...readStored, article.title];
+        localStorage.setItem(`cg_read_articles_${todayKey}`, JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+
+    // Instant Optimization: Check if pre-generated intelligence is attached directly to the article
+    if ((article as any).intelligence) {
+      setIntel((article as any).intelligence);
+      setLoadingIntel(false);
+      return;
+    }
 
     try {
       const query = `?title=${encodeURIComponent(article.title)}&description=${encodeURIComponent(article.description || '')}&category=${encodeURIComponent(article.category)}&source=${encodeURIComponent(article.source)}`;
@@ -567,20 +421,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     }
   };
 
-  // Mark Flashcard as revised
-  const handleMarkFlashcardRevised = () => {
-    if (selectedArticle) {
-      logInteraction(selectedArticle.title, 'flashcard_revise', 15);
-      setCardFlipped(false);
-      if (intel?.flashcards && currentCardIdx < intel.flashcards.length - 1) {
-        setTimeout(() => {
-          setCurrentCardIdx(prev => prev + 1);
-        }, 150);
-      } else {
-        alert('All flashcards in this article revised! Mastery updated.');
-      }
-    }
-  };
+
 
   return (
     <div className="flex flex-col gap-5 w-full text-text pb-12 font-sans relative">
@@ -593,7 +434,6 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
       <div className="flex items-center gap-2 border-b border-border/80 pb-0.5 shrink-0 overflow-x-auto no-scrollbar font-bold">
         {[
           { id: 'hub', label: 'News Intelligence', icon: Newspaper },
-          { id: 'jobs', label: 'Jobs & Alerts', icon: Briefcase },
           { id: 'capsules', label: 'Revision Capsules', icon: BookOpen },
           { id: 'analytics', label: 'Mastery Analytics', icon: Trophy },
           { id: 'saved', label: `Saved Notes (${savedArticles.length})`, icon: Bookmark }
@@ -694,10 +534,10 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                         )}
                       </div>
                       <div className="flex flex-col gap-1 flex-1">
-                        <h5 className="text-xs font-bold leading-relaxed line-clamp-2 text-text animate-fade-in" title={art.title_hi || art.title}>
+                        <h5 className="text-sm font-bold leading-relaxed line-clamp-2 text-text animate-fade-in" title={art.title_hi || art.title}>
                           {art.title_hi || art.title}
                         </h5>
-                        <p className="text-[10px] text-text-muted line-clamp-2 leading-normal">
+                        <p className="text-xs text-text-muted leading-normal">
                           {art.description_hi || art.summary_hi || art.description || art.title}
                         </p>
                       </div>
@@ -764,11 +604,11 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                         </span>
                       </div>
 
-                      <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2 animate-fade-in" title={art.title_hi || art.title}>
+                      <h4 className="text-sm font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2 animate-fade-in" title={art.title_hi || art.title}>
                         {art.title_hi || art.title}
                       </h4>
 
-                      <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-text-muted leading-relaxed">
                         {art.description_hi || art.summary_hi || art.description || art.title}
                       </p>
 
@@ -792,210 +632,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
           </motion.div>
         )}
 
-        {/* TAB 1.5: JOBS & ALERTS */}
-        {activeSubTab === 'jobs' && (
-          <motion.div
-            key="jobs-panel"
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            className="flex flex-col gap-5"
-          >
-            {/* Search and Quick filters for jobs */}
-            <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  placeholder="Search jobs, exams, posts, qualifications..."
-                  value={jobSearchQuery}
-                  onChange={(e) => setJobSearchQuery(e.target.value)}
-                  className="w-full bg-bg-s2 text-xs text-text border border-border focus:border-saffron pl-9 pr-4 py-2.5 rounded-lg outline-none transition-colors"
-                />
-                <Search className="w-4 h-4 text-text-muted absolute left-3 top-3.5" />
-              </div>
-              
-              {/* Category selector for jobs */}
-              <div className="flex gap-2 overflow-x-auto no-scrollbar py-0.5 max-w-full md:max-w-md shrink-0">
-                {[
-                  { id: 'all', label: 'All Jobs', icon: '📋' },
-                  { id: 'cg', label: 'CG Jobs', icon: '🏔️' },
-                  { id: 'banking', label: 'Banking', icon: '🏦' },
-                  { id: 'railway', label: 'Railways', icon: '🚂' },
-                  { id: 'ssc', label: 'SSC / UPSC', icon: '🏛️' },
-                  { id: 'other', label: 'Others', icon: '💼' }
-                ].map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setActiveJobCategory(cat.id)}
-                    className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg border transition-all cursor-pointer whitespace-nowrap ${
-                      activeJobCategory === cat.id
-                        ? 'bg-saffron text-bg-s1 border-saffron font-black shadow-sm'
-                        : 'bg-bg-s2 border-border text-text-muted hover:text-text'
-                    }`}
-                  >
-                    <span>{cat.icon}</span> <span className="ml-1">{cat.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            {/* Banner alert for urgent jobs */}
-            {(() => {
-              const today = new Date();
-              today.setHours(0,0,0,0);
-              const urgentJobs = jobs.filter(job => {
-                if (!job.lastDate) return false;
-                const lastDate = new Date(job.lastDate);
-                lastDate.setHours(0,0,0,0);
-                const diffTime = lastDate.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays >= 0 && diffDays <= 7;
-              });
-
-              if (urgentJobs.length > 0) {
-                return (
-                  <div className="bg-[#121620] border border-border/80 px-4 py-3.5 rounded-xl flex items-center justify-between text-center gap-2 select-none relative overflow-hidden">
-                    <div className="text-amber-500 animate-bounce">
-                      <Bell className="w-4 h-4 fill-current" />
-                    </div>
-                    <div className="text-xs font-bold text-text flex-1 tracking-wide">
-                      <span className="text-amber-400 font-black">{urgentJobs.length} exams</span> ki last date is hafte — abhi apply karo!
-                    </div>
-                    <div className="text-amber-500 animate-bounce">
-                      <Bell className="w-4 h-4 fill-current" />
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-            {/* Jobs list */}
-            {loadingJobs ? (
-              <div className="flex flex-col gap-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-44 bg-bg-s2 border border-border rounded-xl animate-pulse" />
-                ))}
-              </div>
-            ) : jobsError ? (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 text-redL rounded-xl flex items-start gap-2.5 text-xs">
-                <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{jobsError}</span>
-              </div>
-            ) : (() => {
-              const filteredJobs = jobs.filter(job => {
-                const titleText = (job.title || '').toLowerCase() + ' ' + (job.source || '').toLowerCase();
-                const query = jobSearchQuery.toLowerCase();
-                const matchesSearch = titleText.includes(query);
-                
-                if (activeJobCategory === 'all') return matchesSearch;
-                if (activeJobCategory === 'cg') return matchesSearch && (job.category === 'cgpsc' || job.category === 'cgvyapam' || job.state === 'CG');
-                if (activeJobCategory === 'banking') return matchesSearch && job.category === 'banking';
-                if (activeJobCategory === 'railway') return matchesSearch && job.category === 'railway';
-                if (activeJobCategory === 'ssc') return matchesSearch && (job.category === 'ssc' || job.category === 'upsc');
-                return matchesSearch && (job.category !== 'cgpsc' && job.category !== 'cgvyapam' && job.category !== 'banking' && job.category !== 'railway' && job.category !== 'ssc' && job.category !== 'upsc');
-              });
-
-              if (filteredJobs.length === 0) {
-                return (
-                  <div className="p-10 text-center bg-bg-s2 border border-border rounded-xl text-text-muted text-xs uppercase font-bold tracking-wider font-mono">
-                    No active job vacancies matching criteria found.
-                  </div>
-                );
-              }
-
-              return (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {filteredJobs.map((job, idx) => {
-                    const { displayTitle, subtitle } = parseJobTitleAndSubtitle(job);
-                    const badge = getJobStatusBadge(job);
-                    const lastDateInfo = getJobLastDateText(job.lastDate);
-                    const salaryOrExam = getJobSalaryOrExam(job.title);
-                    const qualification = getJobQualification(job.title);
-                    const icon = getJobIcon(job.title);
-                    
-                    return (
-                      <div
-                        key={job.id || idx}
-                        className="p-5 bg-[#161d2d] border border-border/80 rounded-xl flex flex-col gap-4 shadow-sm hover:border-saffron-border/30 transition-colors relative overflow-hidden group"
-                      >
-                        {/* Left side accent border */}
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-saffron animate-fade-in" />
-
-                        {/* Top Row: Icon, Title, Subtitle, and Badge */}
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-bg-s3/80 border border-border/50 rounded-xl flex items-center justify-center text-xl shrink-0 select-none">
-                              {icon}
-                            </div>
-                            <div className="flex flex-col">
-                              <h4 className="text-sm font-black text-text leading-snug tracking-wide line-clamp-2">
-                                {displayTitle}
-                              </h4>
-                              <span className="text-[10px] text-text-muted font-black mt-0.5 leading-none">
-                                {subtitle}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <span className={`px-2 py-0.8 rounded-lg text-[9px] font-black uppercase border leading-none flex items-center gap-1 shrink-0 ${badge.color}`}>
-                            <span className="w-1 h-1 rounded-full bg-current" />
-                            {badge.label}
-                          </span>
-                        </div>
-
-                        {/* Metadata row */}
-                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 text-[11px] text-text/90 font-bold border-t border-b border-border/40 py-2.5 my-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <Users className="w-3.5 h-3.5 text-purple-400" />
-                            <span>{job.vacancies ? `${job.vacancies} Posts` : 'Multiple Posts'}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <GraduationCap className="w-3.5 h-3.5 text-purple-400" />
-                            <span>{qualification}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {salaryOrExam.type === 'salary' ? (
-                              <>
-                                <Coins className="w-3.5 h-3.5 text-amber-400" />
-                                <span>{salaryOrExam.label}</span>
-                              </>
-                            ) : (
-                              <>
-                                <FileText className="w-3.5 h-3.5 text-amber-400" />
-                                <span>{salaryOrExam.label}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Bottom Row */}
-                        <div className="flex items-center justify-between gap-3 mt-auto pt-1">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[10px] text-text-muted font-black uppercase tracking-wide">Apply last date</span>
-                            <span className={`text-[11px] font-extrabold flex items-center gap-1 ${lastDateInfo.isUrgent ? 'text-[#F5A623]' : 'text-greenL'}`}>
-                              <span>{lastDateInfo.icon === '⚠️' ? '⚠️' : lastDateInfo.icon === '❌' ? '❌' : '✅'}</span>
-                              <span>{lastDateInfo.text}</span>
-                            </span>
-                          </div>
-
-                          <a
-                            href={job.link || '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-5 py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg shadow-md transition-all active:scale-[0.98] cursor-pointer"
-                          >
-                            Apply Now
-                          </a>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </motion.div>
-        )}
 
         {/* TAB 2: REVISION CAPSULES */}
         {activeSubTab === 'capsules' && (
@@ -1054,7 +691,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                       <span className="text-[9px] text-text-muted font-bold">{capsuleData[activeCapsuleFilter].length} Articles included</span>
                     </div>
                   </div>
-                  <p className="text-xs text-text leading-relaxed tracking-wide pt-1">
+                  <p className="text-sm text-text leading-relaxed tracking-wide pt-1">
                     {activeCapsuleFilter === 'daily' && 'Here is your daily revision digest. Focus on State Government Schemes launched today, local appointments in CG Secretariat, and the new wildlife census reports.'}
                     {activeCapsuleFilter === 'weekly' && 'Weekly Digest: Key developments include discussions on GST collections, state boundary disputes, central scheme extensions, and sports awards received by Chhattisgarh players.'}
                     {activeCapsuleFilter === 'monthly' && 'Monthly Digest: Main focus is on budget sessions, financial allocations across core areas, environment policies, and agriculture yield patterns in Chhattisgarh plains.'}
@@ -1113,10 +750,10 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                         </span>
                       </div>
 
-                      <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2 animate-fade-in" title={art.title_hi || art.title}>
+                      <h4 className="text-sm font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2 animate-fade-in" title={art.title_hi || art.title}>
                         {art.title_hi || art.title}
                       </h4>
-                      <p className="text-[10px] text-text-muted line-clamp-2 leading-normal">
+                      <p className="text-xs text-text-muted leading-normal">
                         {art.description_hi || art.summary_hi || art.description || art.title}
                       </p>
 
@@ -1264,11 +901,11 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                       </div>
                     </div>
 
-                    <h4 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2 animate-fade-in" title={art.title_hi || art.title}>
+                    <h4 className="text-sm font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2 animate-fade-in" title={art.title_hi || art.title}>
                       {art.title_hi || art.title}
                     </h4>
 
-                    <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-text-muted leading-relaxed">
                       {art.description_hi || art.summary_hi || art.description || art.title}
                     </p>
 
@@ -1341,7 +978,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
 
               {/* Title & metadata */}
               <div className="flex flex-col gap-1 shrink-0">
-                <h2 className="text-sm font-black text-text leading-relaxed">
+                <h2 className="text-base font-black text-text leading-relaxed">
                   {summaryLang === 'hi' ? (selectedArticle.title_hi || intel?.title_hi || selectedArticle.title) : (selectedArticle.title)}
                 </h2>
                 <div className="flex flex-wrap items-center gap-3 text-[9px] text-text-muted font-bold uppercase tracking-wider mt-1">
@@ -1374,8 +1011,6 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                   <div className="flex items-center bg-bg-s3 border border-border p-1 rounded-lg shrink-0 overflow-x-auto no-scrollbar">
                     {[
                       { id: 'notes', label: 'Study Notes' },
-                      { id: 'insights', label: 'Exam Insight' },
-                      { id: 'flashcards', label: `Flashcards (${intel.flashcards?.length || 0})` },
                       { id: 'quiz', label: 'Practice Quiz' }
                     ].map(mtab => (
                       <button
@@ -1395,84 +1030,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                   {/* MODAL PANEL CONTENT SCROLLER */}
                   <div className="max-h-[50vh] overflow-y-auto flex flex-col gap-4 pr-1">
                     
-                    {/* PANEL 1: INSIGHTS & MATTERS */}
-                    {modalTab === 'insights' && (
-                      <div className="flex flex-col gap-4">
-                        {/* Relevance score and targeted exams badge */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="p-4 bg-bg-s3 border border-border rounded-lg flex items-center gap-3.5">
-                            <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
-                              <svg className="w-14 h-14 transform -rotate-90">
-                                <circle cx="28" cy="28" r="24" stroke="rgba(255,255,255,0.06)" strokeWidth="3.5" fill="transparent" />
-                                <circle cx="28" cy="28" r="24" stroke="#ff9933" strokeWidth="4.5" fill="transparent"
-                                  strokeDasharray={2 * Math.PI * 24}
-                                  strokeDashoffset={2 * Math.PI * 24 * (1 - (intel.relevanceScore || 70) / 100)} />
-                              </svg>
-                              <span className="absolute text-xs font-black text-text">{intel.relevanceScore}/100</span>
-                            </div>
-                            <div className="flex flex-col truncate">
-                              <span className="text-[8px] font-black text-text-muted uppercase tracking-wider">Relevance Score</span>
-                              <span className="text-xs font-black text-text mt-0.5">High Probability</span>
-                              <span className="text-[9px] text-text-muted mt-0.5">Likely to appear in upcoming tests</span>
-                            </div>
-                          </div>
 
-                          <div className="p-4 bg-bg-s3 border border-border rounded-lg flex flex-col gap-1 justify-center">
-                            <span className="text-[8px] font-black text-text-muted uppercase tracking-wider">Target Exams</span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {(intel.targetExams || ['CGPSC', 'CG Vyapam']).map((ex, k) => (
-                                <span key={k} className="text-[8px] font-black bg-bg-s1 border border-border text-saffron px-1.5 py-0.5 rounded uppercase">
-                                  {ex}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Why this matters */}
-                        <div className="p-4 bg-[#ff9933]/5 border border-[#ff9933]/15 rounded-lg flex flex-col gap-1.5">
-                          <h5 className="text-[9px] font-black uppercase text-saffron tracking-wider flex items-center gap-1">
-                            <Info className="w-3.5 h-3.5" /> Why this matters for exam / परीक्षा के लिए महत्व
-                          </h5>
-                          <p className="text-xs text-text leading-relaxed tracking-wide whitespace-pre-line">
-                            {intel.whyItMatters}
-                          </p>
-                        </div>
-
-                        {/* Static GK Connection Linkage */}
-                        {intel.staticGkLinks && intel.staticGkLinks.length > 0 && (
-                          <div className="p-4 bg-bg-s3 border border-border rounded-lg flex flex-col gap-2">
-                            <h5 className="text-[9px] font-black uppercase text-gold tracking-wider flex items-center gap-1.5">
-                              <Brain className="w-4 h-4 text-gold" /> Static GK Link / स्टेटिक सामान्य ज्ञान सम्बन्ध
-                            </h5>
-                            <div className="flex flex-col gap-2.5 mt-1">
-                              {intel.staticGkLinks.map((gk, idx) => (
-                                <div key={idx} className="border-l-2 border-gold/45 pl-3 py-0.5 flex flex-col gap-1">
-                                  <span className="text-[10px] font-black text-text flex items-center gap-1">
-                                    <span>{gk.subject}</span> • <span className="text-gold">{gk.topic}</span>
-                                  </span>
-                                  <p className="text-[11px] text-text-muted leading-relaxed">
-                                    {gk.connection}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* PYQ Connection */}
-                        {intel.pyqConnection && (
-                          <div className="p-4 bg-purple-500/5 border border-purple-500/15 rounded-lg flex flex-col gap-1.5">
-                            <h5 className="text-[9px] font-black uppercase text-purple-400 tracking-wider flex items-center gap-1">
-                              <Activity className="w-3.5 h-3.5" /> PYQ Connection / पुराना पेपर कनेक्शन
-                            </h5>
-                            <p className="text-xs text-text-muted leading-relaxed">
-                              {intel.pyqConnection}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {/* PANEL 2: DETAILED STUDY NOTES */}
                     {modalTab === 'notes' && (
@@ -1495,7 +1053,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                             Exam Summary / परीक्षा सारांश
                           </h5>
                           
-                          <p className="text-xs text-text leading-relaxed tracking-wide pt-2 whitespace-pre-line">
+                          <p className="text-sm text-text leading-relaxed tracking-wide pt-2 whitespace-pre-line">
                             {summaryLang === 'hi' ? intel.summary_hi : intel.summary_en}
                           </p>
                         </div>
@@ -1504,8 +1062,8 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                         <div className="flex flex-col gap-2">
                           <h5 className="text-[10px] font-black text-text-muted uppercase tracking-widest">Key Facts Sheet</h5>
                           <ul className="flex flex-col gap-2">
-                            {intel.keyFacts.map((fact, idx) => (
-                              <li key={idx} className="p-3 bg-bg-s3/55 border border-border rounded-lg flex items-start gap-2.5 text-xs text-text">
+                            {((summaryLang === 'hi' ? intel.keyFacts_hi : null) || intel.keyFacts_en || intel.keyFacts || []).map((fact: string, idx: number) => (
+                              <li key={idx} className="p-3 bg-bg-s3/55 border border-border rounded-lg flex items-start gap-2.5 text-sm text-text">
                                 <CheckCircle className="w-4 h-4 text-greenL shrink-0 mt-0.5" />
                                 <span className="leading-relaxed">{fact}</span>
                               </li>
@@ -1531,7 +1089,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                                   <span>{sec.icon}</span>
                                   <span>{sec.label}</span>
                                 </span>
-                                <ul className="flex flex-col gap-1.5 list-disc pl-3 text-[11px] text-text-muted leading-relaxed font-bold">
+                                <ul className="flex flex-col gap-1.5 list-disc pl-3 text-xs text-text-muted leading-relaxed font-bold">
                                   {sec.data.map((item, key) => (
                                     <li key={key}>{item}</li>
                                   ))}
@@ -1543,111 +1101,6 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                       </div>
                     )}
 
-                    {/* PANEL 3: FLASHCARDS & revision mnemonics */}
-                    {modalTab === 'flashcards' && (
-                      <div className="flex flex-col gap-4 items-center w-full">
-                        
-                        {intel.flashcards && intel.flashcards.length > 0 ? (
-                          <div className="flex flex-col items-center gap-4 w-full">
-                            {/* Flashcard Box */}
-                            <motion.button
-                              onClick={() => setCardFlipped(prev => !prev)}
-                              className="w-full h-44 bg-bg-s3 border border-border hover:border-saffron-border/50 rounded-xl p-6 text-center flex flex-col justify-center items-center shadow relative overflow-hidden cursor-pointer"
-                              whileTap={{ scale: 0.99 }}
-                            >
-                              <div className="absolute top-2 right-2 flex items-center gap-1">
-                                <span className="text-[8px] font-black uppercase text-text-muted bg-bg-s1 px-2 py-0.5 rounded">
-                                  Card {currentCardIdx + 1} of {intel.flashcards.length}
-                                </span>
-                              </div>
-
-                              <AnimatePresence mode="wait">
-                                {!cardFlipped ? (
-                                  <motion.div
-                                    key="front"
-                                    initial={{ opacity: 0, y: 5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -5 }}
-                                    className="flex flex-col gap-2"
-                                  >
-                                    <span className="text-[9px] font-black uppercase text-saffron tracking-wider">Question / Prompt</span>
-                                    <h4 className="text-xs font-black text-text leading-relaxed tracking-wide">
-                                      {intel.flashcards[currentCardIdx].front}
-                                    </h4>
-                                    <span className="text-[9px] text-text-muted mt-3 uppercase tracking-widest font-black">Tap to Flip / उत्तर देखें</span>
-                                  </motion.div>
-                                ) : (
-                                  <motion.div
-                                    key="back"
-                                    initial={{ opacity: 0, y: 5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -5 }}
-                                    className="flex flex-col gap-2"
-                                  >
-                                    <span className="text-[9px] font-black uppercase text-greenL tracking-wider">Answer / Fact Explanation</span>
-                                    <p className="text-[11px] font-bold text-text leading-relaxed tracking-wide">
-                                      {intel.flashcards[currentCardIdx].back}
-                                    </p>
-                                    <span className="text-[9px] text-text-muted mt-3 uppercase tracking-widest font-black">Tap to Flip back</span>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </motion.button>
-
-                            {/* Controls */}
-                            <div className="flex gap-3 justify-center w-full">
-                              <button
-                                disabled={currentCardIdx === 0}
-                                onClick={() => {
-                                  setCurrentCardIdx(prev => prev - 1);
-                                  setCardFlipped(false);
-                                }}
-                                className="px-4 py-2 bg-bg-s3 hover:bg-bg-s1 border border-border text-xs font-black uppercase text-text rounded-lg disabled:opacity-40 cursor-pointer"
-                              >
-                                Prev
-                              </button>
-                              
-                              <button
-                                onClick={handleMarkFlashcardRevised}
-                                className="px-4 py-2 bg-greenL hover:bg-green-600 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer flex items-center gap-1"
-                              >
-                                <CheckCircle className="w-3.5 h-3.5" />
-                                <span>Mark Revised</span>
-                              </button>
-
-                              <button
-                                disabled={currentCardIdx === intel.flashcards.length - 1}
-                                onClick={() => {
-                                  setCurrentCardIdx(prev => prev + 1);
-                                  setCardFlipped(false);
-                                }}
-                                className="px-4 py-2 bg-bg-s3 hover:bg-bg-s1 border border-border text-xs font-black uppercase text-text rounded-lg disabled:opacity-40 cursor-pointer"
-                              >
-                                Skip
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-center text-text-muted text-xs p-5 uppercase font-bold tracking-wide">
-                            No flashcards available for this news item.
-                          </div>
-                        )}
-
-                        {/* Memory trick note */}
-                        {intel.memoryTricks && (
-                          <div className="p-4 bg-gold-dim/15 border border-gold-border/25 rounded-lg flex items-start gap-2.5 text-xs text-text w-full mt-2">
-                            <Sparkle className="w-5 h-5 text-gold shrink-0 mt-0.5 animate-pulse" />
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-[9px] font-black uppercase text-gold tracking-wider">AI Memory Mnemonic / याद करने की ट्रिक</span>
-                              <p className="text-[11px] text-text-muted leading-relaxed font-bold">
-                                {intel.memoryTricks}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                      </div>
-                    )}
 
                     {/* PANEL 4: PRACTICE MCQ TEST QUIZ */}
                     {modalTab === 'quiz' && (
@@ -1669,20 +1122,20 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                               </div>
 
                               <div className="p-4.5 bg-bg-s3 border border-border rounded-xl">
-                                <h4 className="text-xs font-black text-text leading-relaxed tracking-wide">
-                                  {intel.mcqs[currentQuizIdx].question}
+                                <h4 className="text-sm font-black text-text leading-relaxed tracking-wide">
+                                  {summaryLang === 'hi' && intel.mcqs[currentQuizIdx].question_hi ? intel.mcqs[currentQuizIdx].question_hi : intel.mcqs[currentQuizIdx].question}
                                 </h4>
                               </div>
 
                               {/* Options */}
                               <div className="flex flex-col gap-2.5 mt-1.5">
-                                {intel.mcqs[currentQuizIdx].options.map((opt, oIdx) => {
+                                {((summaryLang === 'hi' && intel.mcqs[currentQuizIdx].options_hi) ? intel.mcqs[currentQuizIdx].options_hi : intel.mcqs[currentQuizIdx].options).map((opt, oIdx) => {
                                   const isSelected = selectedOptions[currentQuizIdx] === oIdx;
                                   return (
                                     <button
                                       key={oIdx}
                                       onClick={() => handleSelectQuizOption(oIdx)}
-                                      className={`p-3.5 rounded-lg border text-left text-xs font-bold transition-all cursor-pointer flex items-center justify-between ${
+                                      className={`p-3.5 rounded-lg border text-left text-sm font-bold transition-all cursor-pointer flex items-center justify-between ${
                                         isSelected 
                                           ? 'bg-saffron-dim/30 border-saffron text-saffron'
                                           : 'bg-bg-s3 border-border hover:bg-bg-s3/80 text-text-muted hover:text-text'
@@ -1747,18 +1200,18 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                                   const chosen = selectedOptions[idx];
                                   const correct = chosen === mcq.correctIndex;
                                   return (
-                                    <div key={idx} className="p-4 bg-bg-s3 border border-border rounded-lg flex flex-col gap-2 text-xs">
-                                      <span className="font-bold text-text">Q{idx + 1}: {mcq.question}</span>
+                                    <div key={idx} className="p-4 bg-bg-s3 border border-border rounded-xl flex flex-col gap-2 text-sm">
+                                      <span className="font-bold text-text">Q{idx + 1}: {summaryLang === 'hi' && mcq.question_hi ? mcq.question_hi : mcq.question}</span>
                                       <div className="flex gap-4 text-[10px] font-black uppercase mt-1">
                                         <span className={correct ? 'text-greenL' : 'text-redL'}>
-                                          Your Choice: {chosen !== undefined ? mcq.options[chosen] : 'Skipped'}
+                                          Your Choice: {chosen !== undefined ? ((summaryLang === 'hi' && mcq.options_hi) ? mcq.options_hi[chosen] : mcq.options[chosen]) : (summaryLang === 'hi' ? 'छोड़ दिया' : 'Skipped')}
                                         </span>
                                         {!correct && (
-                                          <span className="text-greenL">Correct: {mcq.options[mcq.correctIndex]}</span>
+                                          <span className="text-greenL">Correct: {(summaryLang === 'hi' && mcq.options_hi) ? mcq.options_hi[mcq.correctIndex] : mcq.options[mcq.correctIndex]}</span>
                                         )}
                                       </div>
-                                      <p className="text-[11px] text-text-muted leading-relaxed border-t border-border/40 pt-2 mt-1">
-                                        {mcq.explanation}
+                                      <p className="text-xs text-text-muted leading-relaxed border-t border-border/40 pt-2 mt-1">
+                                        {summaryLang === 'hi' && mcq.explanation_hi ? mcq.explanation_hi : mcq.explanation}
                                       </p>
                                     </div>
                                   );

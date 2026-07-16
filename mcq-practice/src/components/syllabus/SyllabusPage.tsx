@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 
 import { SyllabusHeader } from './SyllabusHeader';
-import { OverallProgressCard } from './OverallProgressCard';
 import { SubjectCard } from './SubjectCard';
 import { AIStudyPlanner } from './AIStudyPlanner';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
@@ -158,13 +157,6 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
         onBack={onGoBack}
         targetExamDate={targetExamDate}
         onTargetDateChange={onTargetDateChange}
-      />
-
-      {/* 2. Overall Hero progress card */}
-      <OverallProgressCard 
-        completedTopics={completedTopicsCount}
-        totalTopics={totalTopicsCount}
-        streak={streak}
       />
 
       {/* 3. Modern Premium Sub-Tabs */}

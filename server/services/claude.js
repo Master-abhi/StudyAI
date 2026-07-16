@@ -315,45 +315,43 @@ JSON Schema:
   "whyItMatters": "A concise paragraph (40-80 words) in bilingual Hinglish/Hindi explaining exactly why this article is critical for exams, what syllabus topic it links to, and how questions might be framed.",
   "summary_en": "A highly detailed exam-focused summary of the news in English (60-120 words). Focus on figures, facts, dates, and provisions.",
   "summary_hi": "A highly detailed exam-focused summary of the news in Hindi (60-120 words). Focus on figures, facts, dates, and provisions. Write in clean Devanagari script.",
-  "keyFacts": [
-    "Fact 1 (e.g., The scheme was launched on date X by ministry Y)",
-    "Fact 2",
-    "Fact 3"
+  "keyFacts_en": [
+    "Fact 1 in English",
+    "Fact 2 in English"
+  ],
+  "keyFacts_hi": [
+    "Fact 1 in Hindi (Devanagari script)",
+    "Fact 2 in Hindi (Devanagari script)"
   ],
   "importantDates": [
-    "Date 1: Explanation",
-    "Date 2: Explanation"
+    "Date 1: Explanation"
   ],
   "importantPersonalities": [
-    "Name 1: Brief context/role",
-    "Name 2: Brief context/role"
+    "Name 1: Brief context/role"
   ],
   "organizations": [
-    "Org 1: Role or connection to news",
-    "Org 2: Role or connection to news"
+    "Org 1: Role or connection to news"
   ],
   "locations": [
     "Location 1: Geographical context or importance to the news"
   ],
   "schemes": [
-    "Scheme 1: Core details/provisions",
-    "Scheme 2: Core details/provisions"
+    "Scheme 1: Core details/provisions"
   ],
   "acts": [
-    "Act 1: Core details/provisions",
-    "Act 2: Core details/provisions"
+    "Act 1: Core details/provisions"
   ],
   "constitutionalArticles": [
     "Article X: Brief connection to the news"
   ],
   "staticGkLinks": [
     {
-      "subject": "Name of static GK subject (e.g. Chhattisgarh Geography, Indian Polity, Economy, Ancient History, Environment & Ecology)",
+      "subject": "Name of static GK subject (e.g. Chhattisgarh Geography, Indian Polity)",
       "topic": "Syllabus topic name",
-      "connection": "Detailed explanation of how this current news connects to this static GK topic. E.g. linking a tiger census to Wildlife Protection Act 1972 and tiger reserves of Chhattisgarh."
+      "connection": "Detailed connection explanation"
     }
   ],
-  "pyqConnection": "Explain how this article relates to past year questions (PYQs). E.g., 'Similar questions about state boundary disputes were asked in CGPSC SSE 2021.'",
+  "pyqConnection": "Explain how this article relates to past year questions (PYQs).",
   "memoryTricks": "A mnemonic, memory trick, or acronym to help students easily remember key facts, dates, or names from this article.",
   "flashcards": [
     {
@@ -363,10 +361,13 @@ JSON Schema:
   ],
   "mcqs": [
     {
-      "question": "High-quality exam-style multiple choice question based on the article (can be Hindi or English or bilingual). Include 5 questions in total.",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "question_en": "High-quality exam-style multiple choice question based on the article in English. Include 5 questions in total.",
+      "question_hi": "High-quality exam-style multiple choice question in Hindi (Devanagari script).",
+      "options_en": ["Option A", "Option B", "Option C", "Option D"],
+      "options_hi": ["विकल्प A", "विकल्प B", "विकल्प C", "विकल्प D"],
       "correctIndex": 0,
-      "explanation": "Detailed explanation of why this option is correct, and why others are incorrect, including relevant background facts.",
+      "explanation_en": "Detailed explanation in English of why this option is correct, and why others are incorrect.",
+      "explanation_hi": "Detailed explanation in Hindi (Devanagari script) of why this option is correct, and why others are incorrect.",
       "difficulty": "easy",
       "probability": "high"
     }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Trophy, Plus, Trash2, Calendar, Globe, 
   Settings, Loader2, X, Eye, ShieldAlert, CheckCircle, Pencil,
-  AlertTriangle, AlertCircle, Save, Sparkles, Upload, Database, FolderUp
+  AlertTriangle, AlertCircle, Save, Sparkles, Upload, Database, FolderUp, RefreshCw
 } from 'lucide-react';
 import type { Exam } from '../syllabus/syllabusData';
 import { MarkdownRenderer } from '../MarkdownRenderer';
@@ -188,7 +188,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [filterExamId, setFilterExamId] = useState<string>('all');
 
   // Creator state
-  const [creatorTab, setCreatorTab] = useState<'generate' | 'upload' | 'pool_upload' | 'pool_generate'>('generate');
+  const [creatorTab, setCreatorTab] = useState<'generate' | 'upload' | 'pool_upload' | 'pool_generate' | 'pool_monitor'>('generate');
   const [uploadJsonText, setUploadJsonText] = useState<string>('');
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
 
@@ -216,6 +216,105 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [poolGenLanguage, setPoolGenLanguage] = useState<'english' | 'hindi'>('hindi');
   const [poolGenDuration, setPoolGenDuration] = useState<number>(10);
   const [loadingPoolGen, setLoadingPoolGen] = useState<boolean>(false);
+
+  // Pool Monitor State
+  const [poolQuestions, setPoolQuestions] = useState<any[]>([]);
+  const [loadingPoolQuestions, setLoadingPoolQuestions] = useState<boolean>(false);
+  const [poolFilterSubject, setPoolFilterSubject] = useState<string>('all');
+  const [poolFilterExam, setPoolFilterExam] = useState<string>('all');
+  const [poolSearchQuery, setPoolSearchQuery] = useState<string>('');
+  const [editingPoolQ, setEditingPoolQ] = useState<any | null>(null);
+  const [editingPoolLoading, setEditingPoolLoading] = useState<boolean>(false);
+  const [deletingPoolId, setDeletingPoolId] = useState<string | null>(null);
+
+  // Fetch Questions in Question Bank Pool
+  const fetchPoolQuestions = async (sub?: any, ex?: any, q?: any) => {
+    setLoadingPoolQuestions(true);
+    const targetSub = typeof sub === 'string' ? sub : poolFilterSubject;
+    const targetEx = typeof ex === 'string' ? ex : poolFilterExam;
+    const targetQ = typeof q === 'string' ? q : poolSearchQuery;
+
+    try {
+      const token = currentUser ? await currentUser.getIdToken() : '';
+      const params = new URLSearchParams();
+      if (targetSub && targetSub !== 'all') params.append('subject', targetSub);
+      if (targetEx && targetEx !== 'all') params.append('examTag', targetEx);
+      if (targetQ && targetQ.trim()) params.append('search', targetQ.trim());
+      params.append('limit', '500');
+
+      const res = await fetch(getApiUrl(`/api/admin/questions/pool?${params.toString()}`), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPoolQuestions(data.questions || []);
+      }
+    } catch (err) {
+      console.error('[Fetch Pool Questions Error]:', err);
+    } finally {
+      setLoadingPoolQuestions(false);
+    }
+  };
+
+  // Auto-fetch pool questions when pool_monitor tab is opened
+  useEffect(() => {
+    if (creatorTab === 'pool_monitor') {
+      fetchPoolQuestions();
+    }
+  }, [creatorTab]);
+
+  // Update a Question in Pool
+  const handleSavePoolQuestion = async () => {
+    if (!editingPoolQ || !editingPoolQ.id) return;
+    setEditingPoolLoading(true);
+    try {
+      const token = currentUser ? await currentUser.getIdToken() : '';
+      const res = await fetch(getApiUrl(`/api/admin/questions/pool/${editingPoolQ.id}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(editingPoolQ)
+      });
+      if (res.ok) {
+        setPoolQuestions(prev => prev.map(q => q.id === editingPoolQ.id ? editingPoolQ : q));
+        setEditingPoolQ(null);
+        setSuccessMessage('Question in pool updated successfully! ✅');
+      } else {
+        const errData = await res.json();
+        setErrorMessage(errData.error || 'Failed to update question in pool');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Error saving question');
+    } finally {
+      setEditingPoolLoading(false);
+    }
+  };
+
+  // Delete Question from Pool
+  const handleDeletePoolQuestion = async (id: string) => {
+    if (!id || !window.confirm('Are you sure you want to delete this question from the Question Pool?')) return;
+    setDeletingPoolId(id);
+    try {
+      const token = currentUser ? await currentUser.getIdToken() : '';
+      const res = await fetch(getApiUrl(`/api/admin/questions/pool/${id}`), {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setPoolQuestions(prev => prev.filter(q => q.id !== id));
+        setSuccessMessage('Question removed from pool successfully! 🗑️');
+      } else {
+        const errData = await res.json();
+        setErrorMessage(errData.error || 'Failed to delete question');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Error deleting question');
+    } finally {
+      setDeletingPoolId(null);
+    }
+  };
 
   // Preview State
   const [previewTest, setPreviewTest] = useState<any | null>(null);
@@ -1282,7 +1381,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         
         {/* Generate & Upload Creator Panel */}
         <div className="w-full bg-bg-s2 border border-border p-5 rounded-xl shadow-md flex flex-col gap-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-bg-s3 border border-border p-1.5 rounded-xl w-full mb-2 select-none">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-bg-s3 border border-border p-1.5 rounded-xl w-full mb-2 select-none">
             <button
               type="button"
               onClick={() => { setCreatorTab('generate'); setErrorMessage(''); setSuccessMessage(''); }}
@@ -1322,6 +1421,21 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
             >
               <FolderUp className="w-3.5 h-3.5" />
               <span>Pool Upload</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { 
+                setCreatorTab('pool_monitor'); 
+                setErrorMessage(''); 
+                setSuccessMessage('');
+                fetchPoolQuestions();
+              }}
+              className={`py-2 px-3 text-[10px] md:text-xs font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-2 ${
+                creatorTab === 'pool_monitor' ? 'bg-saffron text-bg-s1 font-black shadow-md' : 'text-text-muted hover:text-text hover:bg-bg-s2/40'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Pool Monitor</span>
             </button>
           </div>
 
@@ -1814,6 +1928,179 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                 )}
               </button>
             </form>
+          )}
+
+          {creatorTab === 'pool_monitor' && (
+            <div className="flex flex-col gap-5 font-sans">
+              {/* Header Search & Filter Bar */}
+              <div className="p-4 bg-bg-s3 border border-border/80 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3.5 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+                  {/* Search Query Input */}
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={poolSearchQuery}
+                      onChange={(e) => setPoolSearchQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') fetchPoolQuestions(); }}
+                      placeholder="Search questions by text, option, explanation..."
+                      className="w-full bg-bg-s2 text-xs text-text border border-border focus:border-saffron pl-3 pr-8 py-2 rounded-lg outline-none"
+                    />
+                    {poolSearchQuery && (
+                      <button
+                        onClick={() => { setPoolSearchQuery(''); fetchPoolQuestions(poolFilterSubject, poolFilterExam, ''); }}
+                        className="absolute right-2.5 top-2 text-text-muted hover:text-text text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter Subject */}
+                  <select
+                    value={poolFilterSubject}
+                    onChange={(e) => {
+                      setPoolFilterSubject(e.target.value);
+                      fetchPoolQuestions(e.target.value, poolFilterExam, poolSearchQuery);
+                    }}
+                    className="bg-bg-s2 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none cursor-pointer"
+                  >
+                    <option value="all">All Subjects</option>
+                    {poolStats?.subjects && Object.keys(poolStats.subjects).map(sub => (
+                      <option key={sub} value={sub}>{sub} ({poolStats.subjects[sub]})</option>
+                    ))}
+                  </select>
+
+                  {/* Filter Exam Tag */}
+                  <select
+                    value={poolFilterExam}
+                    onChange={(e) => {
+                      setPoolFilterExam(e.target.value);
+                      fetchPoolQuestions(poolFilterSubject, e.target.value, poolSearchQuery);
+                    }}
+                    className="bg-bg-s2 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none cursor-pointer"
+                  >
+                    <option value="all">All Exam Tags</option>
+                    {exams.map(ex => (
+                      <option key={ex.id} value={ex.id}>{ex.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2.5 justify-end">
+                  <span className="text-[10px] font-black uppercase text-saffron bg-saffron-dim/30 border border-saffron-border/30 px-2.5 py-1 rounded-md shrink-0">
+                    {poolQuestions.length} Questions Found
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => fetchPoolQuestions()}
+                    disabled={loadingPoolQuestions}
+                    className="p-2 bg-saffron/10 hover:bg-saffron text-saffron hover:text-bg-s1 border border-saffron-border/30 rounded-lg text-xs font-black uppercase flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
+                    title="Refresh Pool Questions"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingPoolQuestions ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Pool Questions List */}
+              {loadingPoolQuestions ? (
+                <div className="flex items-center justify-center p-12 text-xs text-text-muted gap-2 bg-bg-s3/40 border border-border rounded-xl">
+                  <Loader2 className="w-5 h-5 animate-spin text-saffron" />
+                  <span>Loading Question Pool database...</span>
+                </div>
+              ) : poolQuestions.length === 0 ? (
+                <div className="p-12 text-center text-xs text-text-muted border border-border/60 rounded-xl bg-bg-s3/40 flex flex-col items-center gap-2">
+                  <Database className="w-8 h-8 text-text-muted/40" />
+                  <span>No questions found matching the selected filters in Question Bank Pool.</span>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto pr-1">
+                  {poolQuestions.map((q, idx) => (
+                    <div key={q.id || idx} className="p-4 bg-bg-s3 border border-border/80 rounded-xl flex flex-col gap-3 shadow-sm hover:border-saffron-border/40 transition-all">
+                      {/* Top bar */}
+                      <div className="flex justify-between items-start gap-2 border-b border-border/40 pb-2.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-mono font-black text-saffron bg-saffron-dim/30 border border-saffron-border/30 px-2 py-0.5 rounded">
+                            {q.id || `Q_${idx+1}`}
+                          </span>
+                          <span className="text-[9px] font-black uppercase text-text-muted bg-bg-s2 border border-border px-2 py-0.5 rounded">
+                            {q.subject || 'General'}
+                          </span>
+                          {Array.isArray(q.examTags) && q.examTags.map((tag: string) => (
+                            <span key={tag} className="text-[8.5px] font-bold text-text-muted bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded uppercase">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setEditingPoolQ({ ...q })}
+                            className="px-2.5 py-1 bg-saffron/10 hover:bg-saffron text-saffron hover:text-bg-s1 border border-saffron-border/30 rounded text-[10px] font-black uppercase flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePoolQuestion(q.id)}
+                            disabled={deletingPoolId === q.id}
+                            className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500 text-redL hover:text-white border border-red-500/20 rounded text-[10px] font-black uppercase flex items-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+                          >
+                            {deletingPoolId === q.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Question Text */}
+                      <div className="text-xs font-bold text-text leading-relaxed">
+                        <MarkdownRenderer content={q.question || ''} />
+                      </div>
+
+                      {/* Options Grid */}
+                      {Array.isArray(q.options) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium">
+                          {q.options.map((opt: any, optIdx: number) => {
+                            const isCorrect = optIdx === q.correctIndex;
+                            return (
+                              <div
+                                key={optIdx}
+                                className={`p-2.5 rounded-lg border flex items-start gap-2 ${
+                                  isCorrect
+                                    ? 'bg-greenL/10 border-greenL/40 text-greenL font-bold'
+                                    : 'bg-bg-s2 border-border text-text-muted'
+                                }`}
+                              >
+                                <span className={`font-mono text-[10px] font-black shrink-0 ${isCorrect ? 'text-greenL' : 'text-text-muted'}`}>
+                                  {String.fromCharCode(65 + optIdx)}.
+                                </span>
+                                <span className="flex-1 leading-snug">{String(opt)}</span>
+                                {isCorrect && <CheckCircle className="w-3.5 h-3.5 text-greenL shrink-0 mt-0.5" />}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Explanation */}
+                      {q.explanation && (
+                        <div className="p-2.5 bg-bg-s2 border border-border/60 rounded-lg text-[11px] text-text-muted flex flex-col gap-1">
+                          <span className="text-[9px] font-black uppercase text-saffron">Explanation / स्पष्टीकरण:</span>
+                          <MarkdownRenderer content={q.explanation} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
 
@@ -2659,6 +2946,130 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Question Pool Inline Edit Modal */}
+      {editingPoolQ && (
+        <div className="fixed inset-0 bg-[#0B0E14]/80 backdrop-blur-md z-[1000] flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-bg-s2 border border-border rounded-xl shadow-2xl p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-border/60 pb-3">
+              <h3 className="text-xs font-black uppercase text-saffron flex items-center gap-2 tracking-wider">
+                <Pencil className="w-4 h-4" />
+                <span>Edit Question in Pool ({editingPoolQ.id})</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingPoolQ(null)}
+                className="text-xs text-text-muted hover:text-text cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-4 text-xs">
+              {/* Question Text */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-black uppercase text-text-muted">Question Text</label>
+                <textarea
+                  value={editingPoolQ.question || ''}
+                  onChange={(e) => setEditingPoolQ({ ...editingPoolQ, question: e.target.value })}
+                  rows={4}
+                  className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none font-sans"
+                />
+              </div>
+
+              {/* Options A-D */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase text-text-muted">Options (A-D)</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {Array.from({ length: 4 }).map((_, optIdx) => (
+                    <div key={optIdx} className="flex flex-col gap-1">
+                      <span className="text-[9px] font-bold text-text-muted">Option {String.fromCharCode(65 + optIdx)}</span>
+                      <input
+                        type="text"
+                        value={Array.isArray(editingPoolQ.options) ? (editingPoolQ.options[optIdx] || '') : ''}
+                        onChange={(e) => {
+                          const opts = Array.isArray(editingPoolQ.options) ? [...editingPoolQ.options] : ['', '', '', ''];
+                          opts[optIdx] = e.target.value;
+                          setEditingPoolQ({ ...editingPoolQ, options: opts });
+                        }}
+                        className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none font-sans"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Correct Option & Subject */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Correct Option Key</label>
+                  <select
+                    value={editingPoolQ.correctIndex !== undefined ? editingPoolQ.correctIndex : 0}
+                    onChange={(e) => setEditingPoolQ({ ...editingPoolQ, correctIndex: parseInt(e.target.value, 10) })}
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none cursor-pointer"
+                  >
+                    <option value={0}>Option A</option>
+                    <option value={1}>Option B</option>
+                    <option value={2}>Option C</option>
+                    <option value={3}>Option D</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Subject</label>
+                  <input
+                    type="text"
+                    value={editingPoolQ.subject || ''}
+                    onChange={(e) => setEditingPoolQ({ ...editingPoolQ, subject: e.target.value })}
+                    placeholder="e.g. CG GK"
+                    className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none font-sans"
+                  />
+                </div>
+              </div>
+
+              {/* Explanation */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-black uppercase text-text-muted">Explanation / Solution Details</label>
+                <textarea
+                  value={editingPoolQ.explanation || ''}
+                  onChange={(e) => setEditingPoolQ({ ...editingPoolQ, explanation: e.target.value })}
+                  rows={3}
+                  className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none font-sans"
+                />
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end gap-2.5 border-t border-border/60 pt-3 mt-2">
+              <button
+                type="button"
+                onClick={() => setEditingPoolQ(null)}
+                className="px-4 py-2 bg-bg-s3 border border-border hover:bg-bg-s3/80 text-xs font-black uppercase text-text rounded-lg cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePoolQuestion}
+                disabled={editingPoolLoading}
+                className="px-5 py-2 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {editingPoolLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save Changes</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

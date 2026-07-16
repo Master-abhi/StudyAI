@@ -164,53 +164,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     }
   };
 
-  // Preloaded PYQs backup
-  const handleStartPYQPractice = () => {
-    // Import the backup data dynamically or construct mock PYQ list
-    const MOCK_PYQS: Question[] = [
-      {
-        question: "छत्तीसगढ़ राज्य का गठन किस वर्ष में और किस तिथि को हुआ था?",
-        options: ["1 नवंबर 1999", "1 नवंबर 2000", "9 नवंबर 2000", "15 नवंबर 2000"],
-        correctIndex: 1,
-        explanation: "छत्तीसगढ़ राज्य का गठन 1 नवंबर 2000 को मध्य प्रदेश पुनर्गठन अधिनियम, 2000 के तहत हुआ था।",
-        subject: "छत्तीसगढ़ सामान्य ज्ञान (CG GK)",
-        difficulty: "easy"
-      },
-      {
-        question: "छत्तीसगढ़ के किस मंदिर को 'छत्तीसगढ़ का खजुराहो' भी कहा जाता है?",
-        options: ["राजीव लोचन मंदिर", "भोरमदेव मंदिर", "दन्तेश्वरी मंदिर", "महामाया मंदिर"],
-        correctIndex: 1,
-        explanation: "कबीरधाम (कवर्धा) जिले में स्थित भोरमदेव मंदिर को 'छत्तीसगढ़ का खजुराहो' कहा जाता है। नागर शैली का यह मंदिर 11वीं सदी का है।",
-        subject: "छत्तीसगढ़ पर्यटन एवं कला-संस्कृति",
-        difficulty: "medium"
-      },
-      {
-        question: "छत्तीसगढ़ की सबसे प्रमुख और सबसे बड़ी नदी कौन सी है जिसे जीवन रेखा कहा जाता है?",
-        options: ["शिवनाथ नदी", "महानदी", "इन्द्रावती नदी", "हसदेव नदी"],
-        correctIndex: 1,
-        explanation: "महानदी छत्तीसगढ़ की जीवन रेखा कहलाती है। इसका उद्गम सिहावा पर्वत धमतरी से होता है।",
-        subject: "छत्तीसगढ़ का भूगोल",
-        difficulty: "easy"
-      },
-      {
-        question: "सरहुल त्योहार मुख्य रूप से छत्तीसगढ़ की किस आदिवासी जनजाति द्वारा मनाया जाता है?",
-        options: ["गोंड जनजाति", "बैगा जनजाति", "उraंव जनजाति", "हलबा जनजाति"],
-        correctIndex: 2,
-        explanation: "सरहुल उरांव जनजाति का लोक त्योहार है, जो साल के वृक्षों पर फूल आने के समय मनाया जाता है।",
-        subject: "छत्तीसगढ़ की जनजातियाँ",
-        difficulty: "hard"
-      },
-      {
-        question: "छत्तीसगढ़ राज्य विधानसभा के प्रथम अध्यक्ष (Speaker) कौन थे?",
-        options: ["श्री बनवारी लाल अग्रवाल", "श्री राजेन्द्र प्रसाद शुक्ल", "श्री धरमलाल कौशिक", "श्री चरणदास महंत"],
-        correctIndex: 1,
-        explanation: "राजेन्द्र प्रसाद शुक्ल छत्तीसगढ़ विधानसभा के प्रथम अध्यक्ष थे। प्रथम उपाध्यक्ष श्री बनवारी लाल अग्रवाल थे।",
-        subject: "छत्तीसगढ़ की प्रशासनिक व्यवस्था",
-        difficulty: "medium"
-      }
-    ];
-    onStartPracticeSession(MOCK_PYQS, 'pyq', 'CGPSC Previous Year Questions');
-  };
+
 
   // 1. Filter by mode and exam first (Base list matching the active mode and exam context)
   console.log('[PracticeTab] activeExamId:', activeExam?.id, 'activeMode:', activeMode);
@@ -311,30 +265,8 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
         ) : activeMode === 'typing' ? (
           <TypingTest currentUser={currentUser} onSaveResults={onSaveTypingResults} />
         ) : activeMode === 'pyq' ? (
-          /* PYQ start card & Uploaded PYQ list */
+          /* Uploaded PYQ list */
           <div className="flex flex-col gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-6 bg-bg-s2 border border-border rounded-xl text-center flex flex-col gap-4 shadow shadow-saffron-dim/5"
-            >
-              <div className="w-14 h-14 bg-saffron-dim/20 rounded-full flex items-center justify-center mx-auto shadow-inner text-saffron shrink-0">
-                <BookOpen className="w-6 h-6" />
-              </div>
-              <div className="flex flex-col gap-1 max-w-xs mx-auto">
-                <h4 className="text-sm font-black text-text">CGPSC / Vyapam PYQ Practice</h4>
-                <p className="text-[11px] text-text-muted leading-relaxed">
-                  Practice previous year questions from actual Chhattisgarh state government exams in a mixed bilingual format.
-                </p>
-              </div>
-              <button
-                onClick={handleStartPYQPractice}
-                className="px-5 py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-2 max-w-[200px] mx-auto transition-colors cursor-pointer shadow active:scale-95"
-              >
-                <Play className="w-3.5 h-3.5 fill-bg-s1" />
-                <span>Start Practice (Preloaded)</span>
-              </button>
-            </motion.div>
 
             {/* List of uploaded PYQ Papers */}
             <div className="flex flex-col gap-3">

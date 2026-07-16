@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Trash2, Calendar, User, Mail, Search, AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Trash2, Calendar, User, Mail, Search, AlertCircle, RefreshCw, Edit3, Save, X, CheckCircle } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 
 interface ReportedQuestion {
@@ -11,11 +11,13 @@ interface ReportedQuestion {
     question: string;
     options: string[];
     correctIndex: number;
+    explanation?: string;
     difficulty?: string;
     topic?: string;
   };
   reason: string;
   createdAt: string;
+  status?: string;
 }
 
 interface AdminReportsProps {
@@ -28,6 +30,14 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ currentUser }) => {
   const [error, setError] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Question Inline Editing state
+  const [editingReportId, setEditingReportId] = useState<string | null>(null);
+  const [editQuestionText, setEditQuestionText] = useState<string>('');
+  const [editOptions, setEditOptions] = useState<string[]>(['', '', '', '']);
+  const [editCorrectIndex, setEditCorrectIndex] = useState<number>(0);
+  const [editExplanation, setEditExplanation] = useState<string>('');
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const getApiUrl = (path: string) => {
     const hostname = window.location.hostname;
@@ -94,6 +104,85 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ currentUser }) => {
     }
   };
 
+  const handleStartEdit = (report: ReportedQuestion) => {
+    setEditingReportId(report.id);
+    setEditQuestionText(report.question?.question || '');
+    const opts = report.question?.options || [];
+    setEditOptions(opts.length >= 4 ? [...opts] : [...opts, '', '', '', ''].slice(0, 4));
+    setEditCorrectIndex(typeof report.question?.correctIndex === 'number' ? report.question.correctIndex : 0);
+    setEditExplanation(report.question?.explanation || '');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingReportId(null);
+    setEditQuestionText('');
+    setEditOptions(['', '', '', '']);
+    setEditCorrectIndex(0);
+    setEditExplanation('');
+  };
+
+  const handleSaveQuestionEdit = async (reportId: string) => {
+    if (!editQuestionText.trim()) {
+      alert('Question text cannot be empty');
+      return;
+    }
+    if (editOptions.some(o => !o.trim())) {
+      alert('All 4 option fields must be filled out');
+      return;
+    }
+
+    setSavingId(reportId);
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(getApiUrl(`/api/admin/reports/${reportId}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          question: editQuestionText.trim(),
+          options: editOptions.map(o => o.trim()),
+          correctIndex: editCorrectIndex,
+          explanation: editExplanation.trim()
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to save updated question.');
+      }
+
+      await res.json();
+      
+      // Update state optimistically
+      setReports(prev => prev.map(item => {
+        if (item.id === reportId) {
+          return {
+            ...item,
+            status: 'resolved_and_edited',
+            question: {
+              ...item.question,
+              question: editQuestionText.trim(),
+              options: editOptions.map(o => o.trim()),
+              correctIndex: editCorrectIndex,
+              explanation: editExplanation.trim()
+            }
+          };
+        }
+        return item;
+      }));
+
+      handleCancelEdit();
+      alert('✅ Reported question updated successfully!');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Error updating question.');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const filteredReports = reports.filter(item => {
     const query = searchQuery.toLowerCase();
     const qText = item.question?.question || '';
@@ -117,7 +206,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ currentUser }) => {
           </div>
           <div>
             <h3 className="text-sm font-black uppercase tracking-wider text-text">Reported Questions</h3>
-            <p className="text-[10px] text-text-muted font-bold tracking-wide mt-0.5">Review question errors and corrections flagged by users during practice</p>
+            <p className="text-[10px] text-text-muted font-bold tracking-wide mt-0.5">Review and directly edit question errors or incorrect keys flagged by users</p>
           </div>
         </div>
         <button
@@ -165,108 +254,249 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ currentUser }) => {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {filteredReports.map((item) => (
-            <div
-              key={item.id}
-              className="p-5 bg-bg-s2 border border-border hover:border-saffron-border/30 rounded-xl shadow-md flex flex-col gap-4 relative overflow-hidden transition-all group"
-            >
-              {/* Background glow decoration */}
-              <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl pointer-events-none" />
+          {filteredReports.map((item) => {
+            const isEditing = editingReportId === item.id;
 
-              {/* Submitter header row */}
-              <div className="flex justify-between items-start gap-3 border-b border-border/40 pb-3">
-                <div className="flex flex-col min-w-0 gap-1.5">
-                  <div className="flex items-center gap-1.5 text-text font-black text-xs truncate">
-                    <User className="w-3.5 h-3.5 text-saffron shrink-0" />
-                    <span>{item.displayName}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-text-muted font-semibold text-[10px] truncate">
-                    <Mail className="w-3.5 h-3.5 text-saffron shrink-0" />
-                    <span>{item.email}</span>
-                  </div>
-                </div>
+            return (
+              <div
+                key={item.id}
+                className="p-5 bg-bg-s2 border border-border hover:border-saffron-border/30 rounded-xl shadow-md flex flex-col gap-4 relative overflow-hidden transition-all group"
+              >
+                {/* Background glow decoration */}
+                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl pointer-events-none" />
 
-                <button
-                  onClick={() => handleDeleteReport(item.id)}
-                  disabled={deletingId === item.id}
-                  className="p-2 bg-bg-s3 hover:bg-red-500/10 border border-border/60 hover:border-red-500/20 text-text-muted hover:text-redL rounded-lg cursor-pointer transition-all shrink-0 hover:scale-[1.05]"
-                  title="Delete/Resolve Report"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
+                {/* Submitter header row */}
+                <div className="flex justify-between items-start gap-3 border-b border-border/40 pb-3">
+                  <div className="flex flex-col min-w-0 gap-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-text font-black text-xs truncate">
+                        <User className="w-3.5 h-3.5 text-saffron shrink-0" />
+                        <span>{item.displayName}</span>
+                      </div>
 
-              {/* Reported Issue / Reason */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] font-black uppercase text-redL tracking-wider select-none">
-                  Flagged Issue / समस्या विवरण
-                </span>
-                <p className="text-xs text-text leading-relaxed font-bold bg-red-500/5 border border-red-500/10 p-3.5 rounded-lg whitespace-pre-wrap">
-                  {item.reason}
-                </p>
-              </div>
-
-              {/* Question Details */}
-              {item.question && (
-                <div className="flex flex-col gap-2.5 bg-bg-s3/45 border border-border/40 p-4 rounded-lg">
-                  <div className="flex justify-between items-center text-[9px] font-black uppercase text-saffron tracking-wider select-none">
-                    <span>Question Details / प्रश्न विवरण</span>
-                    {item.question.difficulty && (
-                      <span className="bg-bg-s3 px-2 py-0.5 border border-border rounded text-text-muted">
-                        Diff: {item.question.difficulty}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs font-bold text-text mt-1 leading-relaxed select-text">
-                    <MarkdownRenderer content={item.question.question} />
-                  </div>
-                  {item.question.options && item.question.options.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                      {item.question.options.map((opt, oIdx) => {
-                        const isCorrect = oIdx === item.question.correctIndex;
-                        return (
-                          <div
-                            key={oIdx}
-                            className={`p-2.5 rounded border text-[11px] font-semibold flex items-center gap-2 ${
-                              isCorrect
-                                ? 'bg-greenL/10 border-greenL/25 text-greenL font-black'
-                                : 'bg-bg-s2 border-border/60 text-text-muted'
-                            }`}
-                          >
-                            <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                              isCorrect ? 'bg-greenL text-bg-s1' : 'bg-bg-s3 border border-border'
-                            }`}>
-                              {String.fromCharCode(65 + oIdx)}
-                            </span>
-                            <span className="truncate select-text">{opt}</span>
-                          </div>
-                        );
-                      })}
+                      {item.status === 'resolved_and_edited' && (
+                        <span className="text-[9px] font-black uppercase text-greenL bg-greenL/10 border border-greenL/30 px-2 py-0.5 rounded flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          <span>Updated</span>
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+                    <div className="flex items-center gap-1.5 text-text-muted font-semibold text-[10px] truncate">
+                      <Mail className="w-3.5 h-3.5 text-saffron shrink-0" />
+                      <span>{item.email}</span>
+                    </div>
+                  </div>
 
-              {/* Footer Timestamp */}
-              <div className="flex justify-between items-center text-[9px] font-bold text-text-muted uppercase tracking-wider shrink-0 mt-1">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-saffron" />
+                  <div className="flex items-center gap-2 shrink-0">
+                    {!isEditing ? (
+                      <button
+                        onClick={() => handleStartEdit(item)}
+                        className="px-3 py-1.5 bg-saffron/10 hover:bg-saffron/20 border border-saffron-border/30 text-saffron rounded-lg text-xs font-black uppercase flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                        title="Edit Question directly"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Edit Question</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-3 py-1.5 bg-bg-s3 hover:bg-bg-s2 border border-border text-text-muted rounded-lg text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Cancel</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleDeleteReport(item.id)}
+                      disabled={deletingId === item.id}
+                      className="p-2 bg-bg-s3 hover:bg-red-500/10 border border-border/60 hover:border-red-500/20 text-text-muted hover:text-redL rounded-lg cursor-pointer transition-all shrink-0 hover:scale-[1.05]"
+                      title="Delete/Resolve Report"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Reported Issue / Reason */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[9px] font-black uppercase text-redL tracking-wider select-none">
+                    Flagged Issue / समस्या विवरण
+                  </span>
+                  <p className="text-xs text-text leading-relaxed font-bold bg-red-500/5 border border-red-500/10 p-3.5 rounded-lg whitespace-pre-wrap">
+                    {item.reason}
+                  </p>
+                </div>
+
+                {/* Question Details OR Question Inline Editor Form */}
+                {isEditing ? (
+                  <div className="flex flex-col gap-4 bg-bg-s3/90 border border-saffron-border/40 p-4 rounded-xl shadow-inner animate-fade-in">
+                    <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                      <span className="text-xs font-black uppercase text-saffron tracking-wider flex items-center gap-1.5">
+                        <Edit3 className="w-4 h-4" />
+                        <span>Edit Question Details</span>
+                      </span>
+                      <span className="text-[10px] text-text-muted font-bold uppercase">Live Correction Mode</span>
+                    </div>
+
+                    {/* Question Input */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Question Text / प्रश्न विवरण</label>
+                      <textarea
+                        rows={3}
+                        value={editQuestionText}
+                        onChange={(e) => setEditQuestionText(e.target.value)}
+                        className="w-full bg-bg-s2 border border-border focus:border-saffron p-3 rounded-lg text-xs font-bold text-text outline-none transition-colors"
+                        placeholder="Enter modified question..."
+                      />
+                    </div>
+
+                    {/* Options Editor */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Options & Correct Answer Selection</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {editOptions.map((optVal, oIdx) => {
+                          const isCorrect = editCorrectIndex === oIdx;
+                          return (
+                            <div
+                              key={oIdx}
+                              className={`p-2.5 rounded-lg border flex items-center gap-2 transition-all ${
+                                isCorrect
+                                  ? 'bg-greenL/10 border-greenL/40 text-text'
+                                  : 'bg-bg-s2 border-border text-text'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => setEditCorrectIndex(oIdx)}
+                                className={`w-6 h-6 rounded-md font-black text-xs shrink-0 flex items-center justify-center cursor-pointer transition-all ${
+                                  isCorrect
+                                    ? 'bg-greenL text-bg-s1 shadow-sm scale-105'
+                                    : 'bg-bg-s3 border border-border text-text-muted hover:border-saffron'
+                                }`}
+                                title={isCorrect ? 'Correct Answer' : 'Click to set as Correct Option'}
+                              >
+                                {String.fromCharCode(65 + oIdx)}
+                              </button>
+
+                              <input
+                                type="text"
+                                value={optVal}
+                                onChange={(e) => {
+                                  const updated = [...editOptions];
+                                  updated[oIdx] = e.target.value;
+                                  setEditOptions(updated);
+                                }}
+                                className="w-full bg-transparent text-xs font-semibold text-text outline-none"
+                                placeholder={`Option ${String.fromCharCode(65 + oIdx)}`}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Explanation Input */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Explanation / उत्तर का विवरण</label>
+                      <textarea
+                        rows={2}
+                        value={editExplanation}
+                        onChange={(e) => setEditExplanation(e.target.value)}
+                        className="w-full bg-bg-s2 border border-border focus:border-saffron p-3 rounded-lg text-xs font-medium text-text outline-none transition-colors"
+                        placeholder="Optional step-by-step solution / explanation..."
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex justify-end gap-2 border-t border-border/60 pt-3">
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-4 py-2 bg-bg-s3 hover:bg-bg-s2 border border-border text-text-muted hover:text-text rounded-lg text-xs font-bold uppercase transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleSaveQuestionEdit(item.id)}
+                        disabled={savingId === item.id}
+                        className="px-5 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 rounded-lg text-xs font-black uppercase flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>{savingId === item.id ? 'Saving...' : 'Save & Update Question'}</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  item.question && (
+                    <div className="flex flex-col gap-2.5 bg-bg-s3/45 border border-border/40 p-4 rounded-lg">
+                      <div className="flex justify-between items-center text-[9px] font-black uppercase text-saffron tracking-wider select-none">
+                        <span>Question Details / प्रश्न विवरण</span>
+                        {item.question.difficulty && (
+                          <span className="bg-bg-s3 px-2 py-0.5 border border-border rounded text-text-muted">
+                            Diff: {item.question.difficulty}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs font-bold text-text mt-1 leading-relaxed select-text">
+                        <MarkdownRenderer content={item.question.question} />
+                      </div>
+                      {item.question.options && item.question.options.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                          {item.question.options.map((opt, oIdx) => {
+                            const isCorrect = oIdx === item.question.correctIndex;
+                            return (
+                              <div
+                                key={oIdx}
+                                className={`p-2.5 rounded border text-[11px] font-semibold flex items-center gap-2 ${
+                                  isCorrect
+                                    ? 'bg-greenL/10 border-greenL/25 text-greenL font-black'
+                                    : 'bg-bg-s2 border-border/60 text-text-muted'
+                                }`}
+                              >
+                                <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                  isCorrect ? 'bg-greenL text-bg-s1' : 'bg-bg-s3 border border-border'
+                                }`}>
+                                  {String.fromCharCode(65 + oIdx)}
+                                </span>
+                                <span className="truncate select-text">{opt}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {item.question.explanation && (
+                        <div className="mt-2 p-2.5 bg-saffron-dim/10 border border-saffron-border/20 rounded text-[11px] text-text-muted font-medium">
+                          <strong className="text-saffron font-bold">Explanation: </strong>
+                          {item.question.explanation}
+                        </div>
+                      )}
+                    </div>
+                  )
+                )}
+
+                {/* Footer Timestamp */}
+                <div className="flex justify-between items-center text-[9px] font-bold text-text-muted uppercase tracking-wider shrink-0 mt-1">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-saffron" />
+                    <span>
+                      {new Date(item.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric', month: 'short', year: 'numeric'
+                      })}
+                    </span>
+                  </span>
                   <span>
-                    {new Date(item.createdAt).toLocaleDateString('en-IN', {
-                      day: 'numeric', month: 'short', year: 'numeric'
+                    {new Date(item.createdAt).toLocaleTimeString('en-IN', {
+                      hour: '2-digit', minute: '2-digit'
                     })}
                   </span>
-                </span>
-                <span>
-                  {new Date(item.createdAt).toLocaleTimeString('en-IN', {
-                    hour: '2-digit', minute: '2-digit'
-                  })}
-                </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
   );
 };
+

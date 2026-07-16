@@ -4,7 +4,7 @@ const multer = require('multer');
 const { admin, db, bucket, authAdmin } = require('../firebase-admin');
 const { verifyAdmin, verifyStaffOrAdmin } = require('../middleware/verifyFirebaseToken');
 const { extractTextFromPDF } = require('../services/syllabusParser');
-const { getActiveAI, setActiveAI, getGeminiConfig, updateAIConfig, generateTest, summarizeNews, translateAndSummarizeNews } = require('../services/aiManager');
+const { getActiveAI, setActiveAI, getGeminiConfig, updateAIConfig, generateTest, summarizeNews, translateAndSummarizeNews, generateNewsIntelligence } = require('../services/aiManager');
 
 const logStaffActivity = async (req, action, details) => {
   try {
@@ -110,8 +110,24 @@ router.get('/config/ai', verifyAdmin, async (req, res) => {
   try {
     const activeAI = await getActiveAI();
     const geminiConfig = await getGeminiConfig();
+    const doc = await db.collection('config').doc('app').get();
+    let providerTest = 'gemini';
+    let providerAnalytics = 'gemini';
+    let providerChat = 'gemini';
+    let providerNews = 'gemini';
+    if (doc.exists) {
+      const data = doc.data();
+      providerTest = data.providerTest || data.activeAI || 'gemini';
+      providerAnalytics = data.providerAnalytics || data.activeAI || 'gemini';
+      providerChat = data.providerChat || data.activeAI || 'gemini';
+      providerNews = data.providerNews || data.activeAI || 'gemini';
+    }
     res.json({
       activeAI,
+      providerTest,
+      providerAnalytics,
+      providerChat,
+      providerNews,
       geminiModelTest: geminiConfig.test,
       geminiModelAnalytics: geminiConfig.analytics,
       geminiModelChat: geminiConfig.chat,
@@ -125,15 +141,55 @@ router.get('/config/ai', verifyAdmin, async (req, res) => {
 
 router.post('/config/ai', verifyAdmin, async (req, res) => {
   try {
-    const { model, geminiModelTest, geminiModelAnalytics, geminiModelChat, geminiModelNews } = req.body;
+    const { 
+      model, 
+      providerTest, 
+      providerAnalytics, 
+      providerChat, 
+      providerNews, 
+      geminiModelTest, 
+      geminiModelAnalytics, 
+      geminiModelChat, 
+      geminiModelNews 
+    } = req.body;
     
     const updates = {};
+    const validProviders = ['gemini', 'groq', 'claude'];
+    
     if (model) {
-      if (model === 'claude' || model === 'groq' || model === 'gemini') {
+      if (validProviders.includes(model)) {
         updates.activeAI = model;
       } else {
         return res.status(400).json({ error: 'Invalid active AI model provider' });
       }
+    }
+
+    if (providerTest) {
+      if (!validProviders.includes(providerTest)) {
+        return res.status(400).json({ error: `Invalid Test Provider: ${providerTest}` });
+      }
+      updates.providerTest = providerTest;
+    }
+
+    if (providerAnalytics) {
+      if (!validProviders.includes(providerAnalytics)) {
+        return res.status(400).json({ error: `Invalid Analytics Provider: ${providerAnalytics}` });
+      }
+      updates.providerAnalytics = providerAnalytics;
+    }
+
+    if (providerChat) {
+      if (!validProviders.includes(providerChat)) {
+        return res.status(400).json({ error: `Invalid Chat Provider: ${providerChat}` });
+      }
+      updates.providerChat = providerChat;
+    }
+
+    if (providerNews) {
+      if (!validProviders.includes(providerNews)) {
+        return res.status(400).json({ error: `Invalid News Provider: ${providerNews}` });
+      }
+      updates.providerNews = providerNews;
     }
 
     const validModels = [
@@ -457,10 +513,45 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
     const timestamp = new Date().toISOString();
     const batch = db.batch();
 
-    const cleanedArticles = articles.map((art, index) => {
+    const cleanedArticles = [];
+    for (let index = 0; index < articles.length; index++) {
+      const art = articles[index];
       const category = art.category || 'general';
       const cleanTitle = art.title || `News Article ${index + 1}`;
       const docId = crypto.createHash('md5').update(art.url || cleanTitle).digest('hex');
+      const intelDocId = crypto.createHash('md5').update(cleanTitle).digest('hex');
+
+      let intelObj = art.intelligence || null;
+
+      // Pre-generate AI news analysis & quiz questions during upload if not provided
+      if (!intelObj) {
+        try {
+          console.log(`[Admin News Upload] Pre-generating AI news analysis & quiz for: ${cleanTitle}`);
+          const intel = await generateNewsIntelligence(
+            cleanTitle, 
+            art.description || art.summary || '', 
+            category, 
+            art.source || 'Manual Upload'
+          );
+
+          if (intel) {
+            intelObj = {
+              ...intel,
+              title: cleanTitle,
+              description: art.description || art.summary || '',
+              source: art.source || 'Manual Upload',
+              category: category,
+              createdAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Save directly to news_intelligence collection so users get instant response without extra AI calls
+            await db.collection('news_intelligence').doc(intelDocId).set(intelObj);
+            console.log(`[Admin News Upload] Saved pre-generated news_intelligence for: ${cleanTitle} ✅`);
+          }
+        } catch (intelErr) {
+          console.error(`[Admin News Upload] Intelligence pre-generation failed for "${cleanTitle}":`, intelErr.message);
+        }
+      }
 
       const cleanArt = {
         title: cleanTitle,
@@ -477,14 +568,14 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
         examRelevance: true,
         icon: art.icon || (category === 'chhattisgarh' ? '🏔️' : '📰'),
         lang: art.lang || 'hi',
+        intelligence: intelObj || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       };
 
       const docRef = db.collection('news_articles').doc(docId);
       batch.set(docRef, cleanArt, { merge: true });
-
-      return cleanArt;
-    });
+      cleanedArticles.push(cleanArt);
+    }
 
     await batch.commit();
     console.log(`[Admin News Upload] Saved ${cleanedArticles.length} articles to firestore collection 'news_articles'`);
@@ -841,16 +932,18 @@ router.post('/questions/pool/upload', verifyStaffOrAdmin('tests'), async (req, r
   }
 });
 
-// Get stats from the Question Bank
+// Get stats from the Question Bank & Test Questions
 router.get('/questions/pool/stats', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
-    const snapshot = await db.collection('question_bank').get();
-    let totalCount = snapshot.size;
+    const poolSnap = await db.collection('question_bank').get();
+    const questionsSnap = await db.collection('questions').get();
+
+    let totalCount = poolSnap.size + questionsSnap.size;
 
     const subjects = {};
     const exams = {};
 
-    snapshot.docs.forEach(doc => {
+    const processDoc = (doc) => {
       const q = doc.data();
       const sub = q.subject || 'General Knowledge';
       subjects[sub] = (subjects[sub] || 0) + 1;
@@ -859,8 +952,13 @@ router.get('/questions/pool/stats', verifyStaffOrAdmin('tests'), async (req, res
         q.examTags.forEach(tag => {
           exams[tag] = (exams[tag] || 0) + 1;
         });
+      } else if (q.examId) {
+        exams[q.examId] = (exams[q.examId] || 0) + 1;
       }
-    });
+    };
+
+    poolSnap.docs.forEach(processDoc);
+    questionsSnap.docs.forEach(processDoc);
 
     res.json({
       totalCount,
@@ -870,6 +968,139 @@ router.get('/questions/pool/stats', verifyStaffOrAdmin('tests'), async (req, res
   } catch (err) {
     console.error('[Admin Pool Stats Error]:', err.message);
     res.status(500).json({ error: 'Failed to retrieve question bank stats.' });
+  }
+});
+
+// GET list of all questions in Question Bank pool & test questions with filtering & search
+router.get('/questions/pool', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { subject, examTag, search, limit } = req.query;
+    const maxLimit = parseInt(limit, 10) || 500;
+
+    const poolSnap = await db.collection('question_bank').get();
+    const questionsSnap = await db.collection('questions').get();
+
+    const poolQuestions = poolSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const testQuestions = questionsSnap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        examTags: Array.isArray(data.examTags) ? data.examTags : (data.examId ? [data.examId] : [])
+      };
+    });
+
+    // Merge both sources and deduplicate by id
+    const map = new Map();
+    poolQuestions.forEach(q => map.set(q.id, q));
+    testQuestions.forEach(q => {
+      if (!map.has(q.id)) {
+        map.set(q.id, q);
+      }
+    });
+
+    let questions = Array.from(map.values());
+
+    // Apply subject filter
+    if (subject && subject !== 'all') {
+      const targetSub = subject.toLowerCase().trim();
+      questions = questions.filter(q => (q.subject || '').toLowerCase().trim().includes(targetSub));
+    }
+
+    // Apply examTag filter
+    if (examTag && examTag !== 'all') {
+      const targetExam = examTag.toLowerCase().trim();
+      questions = questions.filter(q => 
+        Array.isArray(q.examTags) && q.examTags.some(tag => tag.toLowerCase().trim() === targetExam)
+      );
+    }
+
+    // Apply search query filter
+    if (search && search.trim() !== '') {
+      const qLower = search.toLowerCase().trim();
+      questions = questions.filter(q => 
+        (q.question && q.question.toLowerCase().includes(qLower)) ||
+        (q.explanation && q.explanation.toLowerCase().includes(qLower)) ||
+        (Array.isArray(q.options) && q.options.some(opt => String(opt).toLowerCase().includes(qLower)))
+      );
+    }
+
+    const totalMatches = questions.length;
+    const paginated = questions.slice(0, maxLimit);
+
+    res.json({
+      success: true,
+      totalCount: totalMatches,
+      questions: paginated
+    });
+  } catch (err) {
+    console.error('[Admin Pool Fetch Error]:', err.message);
+    res.status(500).json({ error: 'Failed to fetch questions from pool' });
+  }
+});
+
+// PUT update an individual question in Question Bank pool or test questions
+router.put('/questions/pool/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { question, options, correctIndex, explanation, subject, examTags, category } = req.body;
+
+    if (!id) return res.status(400).json({ error: 'Question ID is required' });
+
+    let qRef = db.collection('question_bank').doc(id);
+    let doc = await qRef.get();
+
+    if (!doc.exists) {
+      qRef = db.collection('questions').doc(id);
+      doc = await qRef.get();
+    }
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Question not found in pool or test questions' });
+    }
+
+    const existing = doc.data();
+    const updatedData = {
+      ...existing,
+      question: question !== undefined ? question : existing.question,
+      options: Array.isArray(options) ? options : existing.options,
+      correctIndex: typeof correctIndex === 'number' ? correctIndex : (parseInt(correctIndex, 10) || existing.correctIndex || 0),
+      explanation: explanation !== undefined ? explanation : existing.explanation,
+      subject: subject || existing.subject || 'General Knowledge',
+      examTags: Array.isArray(examTags) ? examTags : (existing.examTags || []),
+      category: category || existing.category || 'general',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await qRef.set(updatedData, { merge: true });
+    await logStaffActivity(req, 'update_pool_question', { questionId: id, subject: updatedData.subject });
+
+    res.json({ success: true, question: updatedData });
+  } catch (err) {
+    console.error('[Admin Pool Edit Error]:', err.message);
+    res.status(500).json({ error: 'Failed to update question in pool' });
+  }
+});
+
+// DELETE remove a question from Question Bank pool or test questions
+router.delete('/questions/pool/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'Question ID is required' });
+
+    let qRef = db.collection('question_bank').doc(id);
+    let doc = await qRef.get();
+    if (!doc.exists) {
+      qRef = db.collection('questions').doc(id);
+    }
+
+    await qRef.delete();
+
+    await logStaffActivity(req, 'delete_pool_question', { questionId: id });
+    res.json({ success: true, message: `Question ${id} deleted successfully.` });
+  } catch (err) {
+    console.error('[Admin Pool Delete Error]:', err.message);
+    res.status(500).json({ error: 'Failed to delete question from pool' });
   }
 });
 
@@ -1827,6 +2058,44 @@ router.delete('/reports/:id', verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error('[Admin Report Delete] Error:', err.message);
     res.status(500).json({ error: 'Failed to delete report.' });
+  }
+});
+
+// PUT /api/admin/reports/:id - Edit question details in a reported entry (admin only)
+router.put('/reports/:id', verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { question, options, correctIndex, explanation } = req.body;
+
+    const reportRef = db.collection('reported_questions').doc(id);
+    const reportDoc = await reportRef.get();
+
+    if (!reportDoc.exists) {
+      return res.status(404).json({ error: 'Reported question entry not found.' });
+    }
+
+    const existingData = reportDoc.data();
+    const updatedQuestionObj = {
+      ...(existingData.question || {}),
+      question: question !== undefined ? question : existingData.question?.question,
+      options: Array.isArray(options) ? options : (existingData.question?.options || []),
+      correctIndex: typeof correctIndex === 'number' ? correctIndex : (existingData.question?.correctIndex || 0),
+      explanation: explanation !== undefined ? explanation : (existingData.question?.explanation || ''),
+      updatedAt: new Date().toISOString()
+    };
+
+    await reportRef.set({
+      question: updatedQuestionObj,
+      status: 'resolved_and_edited',
+      editedAt: new Date().toISOString()
+    }, { merge: true });
+
+    await logStaffActivity(req, 'edit_reported_question', { reportId: id, question: updatedQuestionObj.question });
+
+    res.json({ success: true, message: 'Question updated successfully.', question: updatedQuestionObj });
+  } catch (err) {
+    console.error('[Admin Report Edit] Error:', err.message);
+    res.status(500).json({ error: 'Failed to update reported question.' });
   }
 });
 

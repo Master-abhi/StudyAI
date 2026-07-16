@@ -20,7 +20,8 @@ import {
   Flame,
   FileText,
   Landmark,
-  HelpCircle
+  HelpCircle,
+  Briefcase
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -38,6 +39,7 @@ import { DashboardTab } from './components/DashboardTab';
 import { PracticeTab } from './components/PracticeTab';
 import { AiTutorTab } from './components/AiTutorTab';
 import { NewsTab } from './components/NewsTab';
+import { JobsTab } from './components/JobsTab';
 import { ProfileTab } from './components/ProfileTab';
 import { SyllabusPage } from './components/syllabus/SyllabusPage';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -163,7 +165,7 @@ const MOCK_QUESTIONS: Question[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'chat' | 'news' | 'profile' | 'syllabus' | 'admin' | 'staff'>(() => {
+  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'chat' | 'news' | 'jobs' | 'profile' | 'syllabus' | 'admin' | 'staff'>(() => {
     return (localStorage.getItem('cg_active_tab') as any) || 'home';
   });
   const [tabVisibility, setTabVisibility] = useState<Record<string, boolean>>({
@@ -171,6 +173,7 @@ export default function App() {
     practice: true,
     chat: true,
     news: true,
+    jobs: true,
     syllabus: true,
     profile: true,
     syllabus_ai_planner: true,
@@ -1355,6 +1358,15 @@ export default function App() {
     const newMcqsSolved = solvedMcqsCount + questions.length;
     setSolvedMcqsCount(newMcqsSolved);
 
+    try {
+      const todayKey = new Date().toISOString().split('T')[0];
+      const attempted = correctCount + wrongCount;
+      const prevSolved = Number(localStorage.getItem(`cg_qs_solved_${todayKey}`) || 0);
+      localStorage.setItem(`cg_qs_solved_${todayKey}`, (prevSolved + attempted).toString());
+    } catch (e) {
+      console.warn(e);
+    }
+
     const newRecord = {
       testId: activeTestId,
       subject: subjectName,
@@ -1563,6 +1575,7 @@ export default function App() {
             completedTopicsCount={completedCount}
             totalTopicsCount={totalTopics}
             testsGivenCount={testHistory.length}
+            testHistory={testHistory}
             activeExam={activeExam}
             exams={visibleExams}
             onSelectExam={handleSelectExam}
@@ -1621,6 +1634,8 @@ export default function App() {
             }}
           />
         );
+      case 'jobs':
+        return <JobsTab currentUser={currentUser} />;
       case 'profile':
         return (
           <ProfileTab
@@ -1761,6 +1776,7 @@ export default function App() {
               { id: 'practice', label: 'Practice', icon: Trophy },
               { id: 'chat', label: 'AI Guru', icon: MessageSquare },
               { id: 'news', label: 'News', icon: Newspaper },
+              { id: 'jobs', label: 'Jobs', icon: Briefcase },
               { id: 'syllabus', label: 'Syllabus', icon: BookOpen },
               { id: 'profile', label: 'Profile', icon: User }
             ].filter(item => tabVisibility[item.id] !== false).map(item => {
@@ -2164,6 +2180,7 @@ export default function App() {
               { id: 'practice', label: 'Practice', icon: Trophy },
               { id: 'chat', label: 'AI Guru', icon: MessageSquare },
               { id: 'news', label: 'News', icon: Newspaper },
+              { id: 'jobs', label: 'Jobs', icon: Briefcase },
               { id: 'profile', label: 'Profile', icon: User }
             ].filter(tab => tabVisibility[tab.id] !== false).map(tab => {
               const Icon = tab.icon;
