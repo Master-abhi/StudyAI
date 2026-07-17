@@ -70,15 +70,15 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
 
     switch (type) {
       case 'beginner':
-        userText = '👶 Explain Like a Beginner / बिल्कुल आसान भाषा में समझाएं';
+        userText = '👶 Explain Like a Beginner';
         responseText = `यहाँ इस विषय की बिल्कुल सरल शब्दों में व्याख्या दी गई है:\n\n1. **मूल बात क्या है?**\nयह प्रश्न **"${question.subject || 'सामान्य अध्ययन'}"** से संबंधित है। इसमें पूछा गया है कि सही विकल्प क्या है और क्यों।\n\n2. **सरल समझ**:\nविकल्प **${String.fromCharCode(65 + question.correctIndex)}** सही उत्तर है। इसका कारण यह है कि ${question.explanation.replace(/<[^>]*>/g, '').split('।')[0]}।\n\n3. **महत्वपूर्ण बिंदु**:\n• हमेशा याद रखें कि छत्तीसगढ़ की परीक्षाओं (CGPSC/CG Vyapam) में इस टॉपिक से सीधे तथ्य पूछे जाते हैं।\n• इस प्रकार के प्रश्नों में उलझाने के लिए गलत तारीखें या आंकड़े दिए जाते हैं, इसलिए आंकड़ों को ध्यान से पढ़ें।`;
         break;
       case 'mnemonic':
-        userText = '🧠 Generate Memory Trick / याद रखने की शॉर्टकट ट्रिक बताएं';
+        userText = '🧠 Generate Memory Trick';
         responseText = `इस तथ्य को लंबे समय तक याद रखने के लिए एक बेहतरीन शॉर्टकट ट्रिक:\n\n💡 **ट्रिक (Trick)**:\n👉 **"${question.subject ? question.subject.substring(0,4) : 'CG'} का मुख्य सूत्र"** - हमेशा याद रखें कि **"${question.options[question.correctIndex].substring(0, 15)}"** ही सबसे सटीक है।\n\n📖 **कविता / याद करने का सूत्र**:\n*"छत्तीसगढ़ में जब भी आए ये सवाल,* \n*उत्तर '${question.options[question.correctIndex].substring(0, 12)}' देना, करके कमाल!"*\n\nइससे आपको परीक्षा में भ्रम (confusion) नहीं होगा और आप तुरंत सही उत्तर चुन सकेंगे!`;
         break;
       case 'similar':
-        userText = '📝 Create Similar Questions / इसी तरह के अन्य प्रश्न बनाएं';
+        userText = '📝 Create Similar Questions';
         responseText = `यहाँ आपके अभ्यास के लिए एक और समान स्तर का प्रश्न है। इसे हल करने का प्रयास करें:`;
         
         // Generate a synthetic similar question based on correct answer

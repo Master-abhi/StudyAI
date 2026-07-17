@@ -281,7 +281,7 @@ export const AdminTyping: React.FC<AdminTypingProps> = ({ currentUser: _currentU
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Title field */}
             <div className="md:col-span-2 flex flex-col gap-1.5">
-              <label className="text-[10px] font-black uppercase text-text-muted">Topic Title / शीर्षक</label>
+              <label className="text-[10px] font-black uppercase text-text-muted">Topic Title</label>
               <input
                 type="text"
                 value={formTitle}

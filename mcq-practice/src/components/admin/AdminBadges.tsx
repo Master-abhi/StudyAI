@@ -241,7 +241,7 @@ export const AdminBadges: React.FC<AdminBadgesProps> = ({ currentUser }) => {
             
             {/* Badge Name */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-black uppercase text-text-muted">Badge Name / मेडल का नाम</label>
+              <label className="text-[10px] font-black uppercase text-text-muted">Badge Name</label>
               <input
                 type="text"
                 value={name}
@@ -256,7 +256,7 @@ export const AdminBadges: React.FC<AdminBadgesProps> = ({ currentUser }) => {
 
             {/* Badge Description */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-black uppercase text-text-muted">Description / वर्णन</label>
+              <label className="text-[10px] font-black uppercase text-text-muted">Description</label>
               <input
                 type="text"
                 value={desc}
@@ -342,7 +342,7 @@ export const AdminBadges: React.FC<AdminBadgesProps> = ({ currentUser }) => {
 
             {/* LIVE PREVIEW BLOCK */}
             <div className="flex flex-col gap-1.5 border border-border/60 p-3 rounded-lg bg-bg-s3/40 mt-1 select-none">
-              <span className="text-[9px] font-black uppercase text-text-muted">Live Preview / मेडल का पूर्वावलोकन</span>
+              <span className="text-[9px] font-black uppercase text-text-muted">Live Preview</span>
               <div className="flex justify-center py-4">
                 <div className={`p-4 border rounded-xl flex items-center gap-3 w-64 bg-gradient-to-br ${colorSelection} shadow border-saffron-border/30`}>
                   <div className="absolute top-0 right-0 w-8 h-8 bg-white/5 rounded-full blur-md" />

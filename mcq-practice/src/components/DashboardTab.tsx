@@ -221,7 +221,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 <Zap className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
-                <h3 className="text-xs font-black uppercase text-text tracking-wider">Daily Tasks / दैनिक लक्ष्य</h3>
+                <h3 className="text-xs font-black uppercase text-text tracking-wider">Daily Tasks</h3>
                 <span className="text-[10px] text-text-muted font-bold">Complete all 5 daily goals to claim bonus XP</span>
               </div>
             </div>
@@ -398,7 +398,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         {tabVisibility?.news !== false && (
           <div className="flex flex-col gap-3 mt-2">
             <div className="flex justify-between items-center">
-              <h4 className="text-xs font-black uppercase text-text-muted tracking-wider">Current Affairs / समसामयिकी</h4>
+              <h4 className="text-xs font-black uppercase text-text-muted tracking-wider">Current Affairs</h4>
               <button 
                 onClick={() => onNavigateToTab('news')}
                 className="text-[9px] font-black uppercase text-saffron hover:text-orange-500 cursor-pointer transition-all border border-border bg-bg-s3/80 hover:bg-bg-s3 px-2.5 py-0.5 rounded shadow-sm"

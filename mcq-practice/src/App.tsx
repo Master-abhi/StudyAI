@@ -907,6 +907,25 @@ export default function App() {
     } else if (testId) {
       const fetchAndStartTest = async () => {
         try {
+          // Check internal app offline storage first
+          try {
+            const rawOffline = localStorage.getItem('examprep_offline_tests_v1');
+            if (rawOffline) {
+              const offlineMap = JSON.parse(rawOffline);
+              if (offlineMap[testId] && Array.isArray(offlineMap[testId].questions) && offlineMap[testId].questions.length > 0) {
+                const offItem = offlineMap[testId];
+                startTestPractice(
+                  offItem.questions,
+                  offItem.mode || 'quiz',
+                  offItem.subject || 'Practice Test',
+                  offItem.pattern?.durationMinutes || offItem.durationMinutes,
+                  testId
+                );
+                return;
+              }
+            }
+          } catch (_) {}
+
           const res = await fetch(getApiUrl(`/api/tests/${testId}`));
           if (res.ok) {
             const data = await res.json();
@@ -915,7 +934,8 @@ export default function App() {
                 data.questions, 
                 data.mode || 'quiz', 
                 data.subject || 'Practice Test',
-                data.pattern?.durationMinutes || data.durationMinutes
+                data.pattern?.durationMinutes || data.durationMinutes,
+                testId
               );
             }
           }

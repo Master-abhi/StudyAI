@@ -56,6 +56,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+const { fetchExamSyllabusContext } = require('../services/syllabusHelper');
+
 // POST /api/tests/generate - generate a test for a user on-demand
 router.post('/generate', async (req, res) => {
   try {
@@ -73,7 +75,8 @@ router.post('/generate', async (req, res) => {
 
     console.log(`[User Test Gen] Generating ${testMode} (${questionCount} Qs) for ${examName} - ${subjectName}`);
 
-    const result = await ai.generateTest(examId, examName, subjectName, testMode, questionCount, lang, examSubjects);
+    const syllabusContext = await fetchExamSyllabusContext(examId, subjectName);
+    const result = await ai.generateTest(examId, examName, subjectName, testMode, questionCount, lang, examSubjects, syllabusContext);
 
     const timestamp = new Date().toISOString();
     const enrichedQuestions = result.questions.map((q, index) => {

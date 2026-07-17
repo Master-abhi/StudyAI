@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, Zap, BookOpen, Search, SlidersHorizontal, X, Keyboard } from 'lucide-react';
+import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, Zap, BookOpen, Search, SlidersHorizontal, X, Keyboard, Download, CheckCircle2, HardDriveDownload, Loader2 } from 'lucide-react';
 import type { Question } from '../types';
 import { TypingTest } from './TypingTest';
 
@@ -8,7 +8,7 @@ interface ServerTest {
   id: string;
   examId: string;
   examIds?: string[];
-  examName: string;
+  examName?: string;
   examNames?: string[];
   subject: string;
   mode: 'quiz' | 'mock' | 'pyq';
@@ -36,12 +36,22 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   currentUser,
   onSaveTypingResults
 }) => {
-  const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'typing' | 'saved'>('quiz');
+  const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'offline' | 'typing' | 'saved'>('quiz');
   const [tests, setTests] = useState<ServerTest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedSavedQuestion, setSelectedSavedQuestion] = useState<Question | null>(null);
 
   const [testProgress, setTestProgress] = useState<{ [testId: string]: { answers: (number | null)[]; completed: boolean } }>({});
+
+  // Internal App Offline Tests Storage
+  const [offlineTests, setOfflineTests] = useState<{ [testId: string]: any }>({});
+  const [downloadingTestId, setDownloadingTestId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string>('');
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3500);
+  };
 
   useEffect(() => {
     try {
@@ -49,10 +59,53 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       if (stored) {
         setTestProgress(JSON.parse(stored));
       }
+      const storedOffline = localStorage.getItem('examprep_offline_tests_v1');
+      if (storedOffline) {
+        setOfflineTests(JSON.parse(storedOffline));
+      }
     } catch (e) {
-      console.error('[PracticeTab] Error loading test progress:', e);
+      console.error('[PracticeTab] Error loading initial storage:', e);
     }
   }, []);
+
+  const handleSaveTestOffline = async (testSummary: ServerTest, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDownloadingTestId(testSummary.id);
+    try {
+      const res = await fetch(getApiUrl(`/api/tests/${testSummary.id}`));
+      if (!res.ok) throw new Error('Could not download test content from server.');
+      const fullData = await res.json();
+      if (!fullData || !Array.isArray(fullData.questions) || fullData.questions.length === 0) {
+        throw new Error('Test has no questions available to download.');
+      }
+
+      const offlineRecord = {
+        ...testSummary,
+        ...fullData,
+        downloadedAt: new Date().toISOString()
+      };
+
+      const updated = { ...offlineTests, [testSummary.id]: offlineRecord };
+      setOfflineTests(updated);
+      localStorage.setItem('examprep_offline_tests_v1', JSON.stringify(updated));
+      showToast(`"${testSummary.subject}" saved offline inside app! 💾`);
+    } catch (err: any) {
+      console.error('[Save Test Offline Error]:', err);
+      alert(err.message || 'Failed to download test for offline practice.');
+    } finally {
+      setDownloadingTestId(null);
+    }
+  };
+
+  const handleRemoveOfflineTest = (testId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const updated = { ...offlineTests };
+    const deletedSubject = updated[testId]?.subject || 'Test';
+    delete updated[testId];
+    setOfflineTests(updated);
+    localStorage.setItem('examprep_offline_tests_v1', JSON.stringify(updated));
+    showToast(`"${deletedSubject}" removed from offline storage. 🗑️`);
+  };
 
   const getTestProgressInfo = (test: ServerTest) => {
     // 1. Check in-progress map in localStorage
@@ -109,7 +162,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     setSortBy('newest');
   }, [activeMode]);
 
-    const getApiUrl = (path: string) => {
+  const getApiUrl = (path: string) => {
     const hostname = window.location.hostname;
     const isLocal = hostname === 'localhost' || 
                     hostname === '127.0.0.1' || 
@@ -137,7 +190,27 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       }
     } catch (err) {
       console.warn('Failed to load educator tests from server:', err);
-      // Fail silently and let fallback tests handle it
+      // Fallback: populate tests from offline storage if server is unreachable
+      try {
+        const storedOffline = localStorage.getItem('examprep_offline_tests_v1');
+        if (storedOffline) {
+          const offlineMap = JSON.parse(storedOffline);
+          const offlineList: ServerTest[] = Object.values(offlineMap).map((t: any) => ({
+            id: t.id,
+            examId: t.examId || '',
+            examIds: t.examIds || [],
+            examName: t.examName || '',
+            subject: t.subject || 'Offline Test',
+            mode: t.mode || 'quiz',
+            language: t.language || 'hindi',
+            totalQuestions: t.totalQuestions || t.questions?.length || 0,
+            createdAt: t.createdAt || new Date().toISOString()
+          }));
+          if (offlineList.length > 0) {
+            setTests(offlineList);
+          }
+        }
+      } catch (_) {}
     } finally {
       setLoading(false);
     }
@@ -148,6 +221,19 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   }, []);
 
   const handleStartEducatorTest = async (testId: string, testMode: 'quiz' | 'mock' | 'pyq', subject: string) => {
+    // Check internal app offline storage first
+    if (offlineTests[testId] && Array.isArray(offlineTests[testId].questions) && offlineTests[testId].questions.length > 0) {
+      const offlineItem = offlineTests[testId];
+      onStartPracticeSession(
+        offlineItem.questions,
+        testMode,
+        subject,
+        offlineItem.pattern?.durationMinutes || offlineItem.durationMinutes,
+        testId
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await fetch(getApiUrl(`/api/tests/${testId}`));
@@ -158,7 +244,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       }
     } catch (err) {
       console.error(err);
-      alert('Could not start this test. Please try again.');
+      alert('Could not start this test. Please check your internet connection or download tests for offline practice.');
     } finally {
       setLoading(false);
     }
@@ -230,11 +316,12 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       </div>
 
       {/* 2. Unified Mode selectors */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 shrink-0">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 shrink-0">
         {[
           { id: 'quiz', label: 'Quizzes', icon: <Zap className="w-5 h-5 text-saffron" />, desc: 'Educator tests' },
           { id: 'mock', label: 'Mock Exams', icon: <Trophy className="w-5 h-5 text-saffron" />, desc: 'Full length tests' },
           { id: 'pyq', label: 'PYQ Papers', icon: <BookOpen className="w-5 h-5 text-saffron" />, desc: 'Previous papers' },
+          { id: 'offline', label: 'Offline Tests', icon: <HardDriveDownload className="w-5 h-5 text-saffron" />, desc: `Downloaded (${Object.keys(offlineTests).length})` },
           { id: 'typing', label: 'Typing Test', icon: <Keyboard className="w-5 h-5 text-saffron" />, desc: 'Speed & Accuracy' },
           { id: 'saved', label: 'Saved MCQs', icon: <Bookmark className="w-5 h-5 text-saffron" />, desc: `Saved (${bookmarkedQuestions.length})` }
         ].map(m => (
@@ -315,13 +402,45 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                           )}
                         </div>
 
-                        <button
-                          onClick={() => handleStartEducatorTest(test.id, 'pyq', test.subject)}
-                          className="px-3 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow active:scale-95 shrink-0"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-bg-s1" />
-                          <span>Start</span>
-                        </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {offlineTests[test.id] ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-[8.5px] font-bold text-greenL bg-greenL/10 border border-greenL/25 px-2 py-1 rounded-lg flex items-center gap-1 select-none">
+                                <CheckCircle2 className="w-3 h-3 text-greenL" />
+                                <span className="hidden sm:inline">Offline Ready</span>
+                              </span>
+                              <button
+                                onClick={(e) => handleRemoveOfflineTest(test.id, e)}
+                                className="p-2 bg-bg-s3 hover:bg-red-500/10 text-text-muted hover:text-redL border border-border rounded-lg text-[10px] font-black transition-all cursor-pointer"
+                                title="Remove from offline storage"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => handleSaveTestOffline(test, e)}
+                              disabled={downloadingTestId === test.id}
+                              className="px-2.5 py-2 bg-bg-s3 hover:bg-bg-s3/80 text-text-muted hover:text-saffron border border-border rounded-lg text-[10px] font-black uppercase flex items-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                              title="Save test for offline practice inside app"
+                            >
+                              {downloadingTestId === test.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-saffron" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5" />
+                              )}
+                              <span className="hidden sm:inline">Offline</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleStartEducatorTest(test.id, 'pyq', test.subject)}
+                            className="px-3 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow active:scale-95 shrink-0"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-bg-s1" />
+                            <span>Start</span>
+                          </button>
+                        </div>
                       </motion.div>
                     );
                   })}
@@ -329,6 +448,97 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
               )}
             </div>
           </div>
+        ) : activeMode === 'offline' ? (
+          /* Downloaded Offline Tests view */
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-4"
+          >
+            <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-xs font-black text-text uppercase flex items-center gap-1.5">
+                  <HardDriveDownload className="w-4 h-4 text-saffron" />
+                  <span>Downloaded Offline Tests ({Object.keys(offlineTests).length})</span>
+                </h4>
+                <p className="text-[10px] text-text-muted leading-relaxed">
+                  Tests stored inside this app for offline practice without internet connection.
+                </p>
+              </div>
+            </div>
+
+            {Object.keys(offlineTests).length === 0 ? (
+              <div className="p-8 text-center bg-bg-s2 border border-border rounded-xl text-xs text-text-muted flex flex-col items-center gap-2">
+                <AlertCircle className="w-6 h-6 text-saffron-border/60 mb-0.5" />
+                <span>No offline tests saved inside app yet.</span>
+                <span className="text-[10px]">
+                  Click the "Offline" download button on any Quiz, Mock Exam, or PYQ paper to save it for offline practice!
+                </span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.values(offlineTests).map((offTest: any) => {
+                  const progress = getTestProgressInfo(offTest);
+                  return (
+                    <motion.div
+                      key={offTest.id}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-bg-s2 border border-border rounded-xl flex items-center justify-between shadow-sm hover:border-saffron-border/30 transition-all duration-200 gap-3"
+                    >
+                      <div className="flex flex-col gap-0.5 truncate pr-2 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="text-xs font-black text-text truncate leading-tight">{offTest.subject}</h4>
+                          <span className="text-[8px] font-bold text-greenL bg-greenL/10 border border-greenL/25 px-1.5 py-0.5 rounded uppercase">
+                            Offline Ready
+                          </span>
+                        </div>
+                        <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider">
+                          {offTest.questions?.length || offTest.totalQuestions} questions • {offTest.language || 'Hindi'} • {offTest.mode?.toUpperCase() || 'TEST'}
+                        </span>
+
+                        {progress && (
+                          <div className="flex flex-col gap-1 mt-2.5 w-full max-w-[200px]">
+                            <div className="flex justify-between items-center text-[8px] font-bold uppercase tracking-wide">
+                              <span className={progress.completed ? "text-greenL font-black" : "text-saffron font-black"}>
+                                {progress.completed ? "Completed" : "In Progress"}
+                              </span>
+                              <span className="text-text-muted">
+                                {progress.attemptedCount}/{progress.totalQuestions} Qs ({Math.round((progress.attemptedCount / progress.totalQuestions) * 100)}%)
+                              </span>
+                            </div>
+                            <div className="w-full h-1 bg-bg-s3 border border-border/40 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-300 ${progress.completed ? 'bg-greenL' : 'bg-saffron'}`}
+                                style={{ width: `${Math.min(100, Math.round((progress.attemptedCount / progress.totalQuestions) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleStartEducatorTest(offTest.id, offTest.mode || 'quiz', offTest.subject)}
+                          className="px-3 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow active:scale-95 shrink-0"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-bg-s1" />
+                          <span>Start</span>
+                        </button>
+                        <button
+                          onClick={(e) => handleRemoveOfflineTest(offTest.id, e)}
+                          className="p-2 bg-bg-s3 hover:bg-red-500/10 text-text-muted hover:text-redL border border-border rounded-lg text-[10px] font-black transition-all cursor-pointer"
+                          title="Remove from offline storage"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
         ) : activeMode === 'saved' ? (
           /* Saved questions view */
           <motion.div
@@ -338,7 +548,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
           >
             <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex flex-col gap-0.5">
-                <h4 className="text-xs font-black text-text uppercase">Saved Questions / बुकमार्क किए गए प्रश्न</h4>
+                <h4 className="text-xs font-black text-text uppercase">Saved Questions</h4>
                 <p className="text-[10px] text-text-muted leading-relaxed">
                   Practice questions you saved during mock tests and daily quizzes.
                 </p>
@@ -448,13 +658,13 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                   >
                     {/* Language Filter */}
                     <div className="flex-1 flex flex-col gap-1.5">
-                      <label className="text-[9px] font-black uppercase text-text-muted">Language / भाषा</label>
+                      <label className="text-[9px] font-black uppercase text-text-muted">Language</label>
                       <select
                         value={selectedLanguage}
                         onChange={(e) => setSelectedLanguage(e.target.value)}
                         className="w-full bg-bg-s3 border border-border focus:border-saffron/50 rounded-lg px-2.5 py-2 text-xs font-semibold text-text outline-none cursor-pointer"
                       >
-                        <option value="All">All Languages / सभी भाषाएँ</option>
+                        <option value="All">All Languages</option>
                         {availableLanguages.map(lang => (
                           <option key={lang} value={lang}>{lang}</option>
                         ))}
@@ -463,31 +673,31 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
 
                     {/* Test Length Filter */}
                     <div className="flex-1 flex flex-col gap-1.5">
-                      <label className="text-[9px] font-black uppercase text-text-muted">Questions / प्रश्न संख्या</label>
+                      <label className="text-[9px] font-black uppercase text-text-muted">Questions Count</label>
                       <select
                         value={selectedLength}
                         onChange={(e) => setSelectedLength(e.target.value)}
                         className="w-full bg-bg-s3 border border-border focus:border-saffron/50 rounded-lg px-2.5 py-2 text-xs font-semibold text-text outline-none cursor-pointer"
                       >
-                        <option value="All">Any Length / सभी</option>
-                        <option value="short">Short (&lt; 20 Qs) / लघु</option>
-                        <option value="medium">Medium (20-50 Qs) / मध्यम</option>
-                        <option value="long">Long (&gt; 50 Qs) / दीर्घ</option>
+                        <option value="All">Any Length</option>
+                        <option value="short">Short (&lt; 20 Qs)</option>
+                        <option value="medium">Medium (20-50 Qs)</option>
+                        <option value="long">Long (&gt; 50 Qs)</option>
                       </select>
                     </div>
 
                     {/* Sort By */}
                     <div className="flex-1 flex flex-col gap-1.5">
-                      <label className="text-[9px] font-black uppercase text-text-muted">Sort By / क्रमबद्ध करें</label>
+                      <label className="text-[9px] font-black uppercase text-text-muted">Sort By</label>
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
                         className="w-full bg-bg-s3 border border-border focus:border-saffron/50 rounded-lg px-2.5 py-2 text-xs font-semibold text-text outline-none cursor-pointer"
                       >
-                        <option value="newest">Newest First / नवीन</option>
-                        <option value="oldest">Oldest First / प्राचीन</option>
-                        <option value="questions-desc">Most Questions / अधिक प्रश्न</option>
-                        <option value="questions-asc">Fewest Questions / कम प्रश्न</option>
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="questions-desc">Most Questions</option>
+                        <option value="questions-asc">Fewest Questions</option>
                       </select>
                     </div>
                   </motion.div>
@@ -515,7 +725,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                     }}
                     className="mt-2 px-3 py-1.5 bg-saffron-dim border border-saffron-border text-saffron hover:bg-saffron/20 rounded-lg text-[10px] font-black cursor-pointer transition-all active:scale-95"
                   >
-                    Clear Filters / फ़िल्टर साफ़ करें
+                    Clear Filters
                   </button>
                 )}
               </div>
@@ -556,13 +766,45 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                         )}
                       </div>
                       
-                      <button
-                        onClick={() => handleStartEducatorTest(test.id, test.mode, test.subject)}
-                        className="px-3.5 py-2 bg-saffron hover:bg-orange-500 text-[10px] font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1 shrink-0 transition-all active:scale-95 cursor-pointer shadow hover:shadow-saffron-dim"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-bg-s1" />
-                        <span>{progress ? (progress.completed ? 'Retake' : 'Resume') : 'Start'}</span>
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {offlineTests[test.id] ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[8.5px] font-bold text-greenL bg-greenL/10 border border-greenL/25 px-2 py-1 rounded-lg flex items-center gap-1 select-none">
+                              <CheckCircle2 className="w-3 h-3 text-greenL" />
+                              <span className="hidden sm:inline">Offline Ready</span>
+                            </span>
+                            <button
+                              onClick={(e) => handleRemoveOfflineTest(test.id, e)}
+                              className="p-2 bg-bg-s3 hover:bg-red-500/10 text-text-muted hover:text-redL border border-border rounded-lg text-[10px] font-black transition-all cursor-pointer"
+                              title="Remove from offline storage"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => handleSaveTestOffline(test, e)}
+                            disabled={downloadingTestId === test.id}
+                            className="px-2.5 py-2 bg-bg-s3 hover:bg-bg-s3/80 text-text-muted hover:text-saffron border border-border rounded-lg text-[10px] font-black uppercase flex items-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            title="Save test for offline practice inside app"
+                          >
+                            {downloadingTestId === test.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-saffron" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
+                            <span className="hidden sm:inline">Offline</span>
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => handleStartEducatorTest(test.id, test.mode, test.subject)}
+                          className="px-3.5 py-2 bg-saffron hover:bg-orange-500 text-[10px] font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1 shrink-0 transition-all active:scale-95 cursor-pointer shadow hover:shadow-saffron-dim"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-bg-s1" />
+                          <span>{progress ? (progress.completed ? 'Retake' : 'Resume') : 'Start'}</span>
+                        </button>
+                      </div>
                     </motion.div>
                   );
                 })}
@@ -634,7 +876,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                 {/* Explanation */}
                 {selectedSavedQuestion.explanation && (
                   <div className="p-4 bg-saffron-dim/10 border border-saffron-border/10 rounded-lg flex flex-col gap-1.5 mt-2">
-                    <span className="text-[9px] font-black uppercase text-saffron tracking-wider">Explanation / व्याख्या:</span>
+                    <span className="text-[9px] font-black uppercase text-saffron tracking-wider">Explanation:</span>
                     <p className="text-[11px] text-text-muted leading-relaxed whitespace-pre-line">
                       {selectedSavedQuestion.explanation}
                     </p>
@@ -665,6 +907,21 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-6 right-6 z-[1000] bg-bg-s2 border border-saffron/40 text-saffron px-4 py-2.5 rounded-xl shadow-2xl text-xs font-black flex items-center gap-2"
+          >
+            <CheckCircle2 className="w-4 h-4 text-saffron" />
+            <span>{toastMessage}</span>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

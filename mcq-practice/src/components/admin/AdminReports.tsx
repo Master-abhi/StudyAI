@@ -321,7 +321,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ currentUser }) => {
                 {/* Reported Issue / Reason */}
                 <div className="flex flex-col gap-1.5">
                   <span className="text-[9px] font-black uppercase text-redL tracking-wider select-none">
-                    Flagged Issue / समस्या विवरण
+                    Flagged Issue
                   </span>
                   <p className="text-xs text-text leading-relaxed font-bold bg-red-500/5 border border-red-500/10 p-3.5 rounded-lg whitespace-pre-wrap">
                     {item.reason}
@@ -341,7 +341,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ currentUser }) => {
 
                     {/* Question Input */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-black uppercase text-text-muted">Question Text / प्रश्न विवरण</label>
+                      <label className="text-[10px] font-black uppercase text-text-muted">Question Text</label>
                       <textarea
                         rows={3}
                         value={editQuestionText}
@@ -398,7 +398,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ currentUser }) => {
 
                     {/* Explanation Input */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-black uppercase text-text-muted">Explanation / उत्तर का विवरण</label>
+                      <label className="text-[10px] font-black uppercase text-text-muted">Explanation</label>
                       <textarea
                         rows={2}
                         value={editExplanation}
@@ -430,7 +430,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ currentUser }) => {
                   item.question && (
                     <div className="flex flex-col gap-2.5 bg-bg-s3/45 border border-border/40 p-4 rounded-lg">
                       <div className="flex justify-between items-center text-[9px] font-black uppercase text-saffron tracking-wider select-none">
-                        <span>Question Details / प्रश्न विवरण</span>
+                        <span>Question Details</span>
                         {item.question.difficulty && (
                           <span className="bg-bg-s3 px-2 py-0.5 border border-border rounded text-text-muted">
                             Diff: {item.question.difficulty}

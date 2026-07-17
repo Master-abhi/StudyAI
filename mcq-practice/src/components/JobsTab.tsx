@@ -96,12 +96,12 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
   };
 
   const sectors = [
-    { id: 'all', label: 'All Jobs / सभी भर्तियां', icon: '💼' },
+    { id: 'all', label: 'All Jobs', icon: '💼' },
     { id: 'cgpsc', label: 'CGPSC / PSC', icon: '🏛️' },
     { id: 'vyapam', label: 'CG Vyapam', icon: '📝' },
     { id: 'police', label: 'Police & Defense', icon: '🛡️' },
     { id: 'health', label: 'Medical & Nursing', icon: '🏥' },
-    { id: 'teaching', label: 'Shikshak / Teaching', icon: '🎓' },
+    { id: 'teaching', label: 'Teaching Jobs', icon: '🎓' },
     { id: 'ssc_railway', label: 'SSC / Railway / Banking', icon: '🚆' }
   ];
 

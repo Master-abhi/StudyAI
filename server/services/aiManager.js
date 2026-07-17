@@ -120,13 +120,13 @@ async function chatStream(message, examName, language, history = []) {
   return service.chatStream(message, examName, language, history);
 }
 
-async function generateTest(examId, examName, subject, mode, questionCount, language, examSubjects = []) {
+async function generateTest(examId, examName, subject, mode, questionCount, language, examSubjects = [], syllabusContext = null) {
   const service = await getService('test');
   if (service === geminiService) {
     const config = await getGeminiConfig();
-    return service.generateTest(examId, examName, subject, mode, questionCount, language, examSubjects, config.test);
+    return service.generateTest(examId, examName, subject, mode, questionCount, language, examSubjects, syllabusContext, config.test);
   }
-  return service.generateTest(examId, examName, subject, mode, questionCount, language, examSubjects);
+  return service.generateTest(examId, examName, subject, mode, questionCount, language, examSubjects, syllabusContext);
 }
 
 async function parseSyllabus(text) {

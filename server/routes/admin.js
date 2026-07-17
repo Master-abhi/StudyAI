@@ -5,6 +5,7 @@ const { admin, db, bucket, authAdmin } = require('../firebase-admin');
 const { verifyAdmin, verifyStaffOrAdmin } = require('../middleware/verifyFirebaseToken');
 const { extractTextFromPDF } = require('../services/syllabusParser');
 const { getActiveAI, setActiveAI, getGeminiConfig, updateAIConfig, generateTest, summarizeNews, translateAndSummarizeNews, generateNewsIntelligence } = require('../services/aiManager');
+const { fetchExamSyllabusContext } = require('../services/syllabusHelper');
 
 const logStaffActivity = async (req, action, details) => {
   try {
@@ -24,6 +25,23 @@ const logStaffActivity = async (req, action, details) => {
     });
   } catch (err) {
     console.error('[Log Staff Activity Error]:', err.message);
+  }
+};
+
+const verifyAdminPassword = async (email, password) => {
+  if (!email || !password) return false;
+  const apiKey = process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY || 'AIzaSyC1zPetkyHD_07pr_ZIqLBE942NxIOJMxw';
+  try {
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, returnSecureToken: true })
+    });
+    const data = await response.json();
+    return response.ok && Boolean(data.idToken);
+  } catch (err) {
+    console.error('[Verify Admin Password Error]:', err.message);
+    return false;
   }
 };
 
@@ -637,7 +655,8 @@ router.post('/tests/generate', verifyStaffOrAdmin('tests'), async (req, res) => 
 
     console.log(`[Admin Test Gen] Generating ${testMode} (${questionCount} Qs) for ${examName} - ${subjectName}`);
 
-    const result = await generateTest(examId, examName, subjectName, testMode, questionCount, lang, examSubjects);
+    const syllabusContext = await fetchExamSyllabusContext(examId, subjectName);
+    const result = await generateTest(examId, examName, subjectName, testMode, questionCount, lang, examSubjects, syllabusContext);
 
     const timestamp = new Date().toISOString();
     const enrichedQuestions = result.questions.map((q, index) => {
@@ -1043,7 +1062,10 @@ router.get('/questions/pool', verifyStaffOrAdmin('tests'), async (req, res) => {
 router.put('/questions/pool/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { question, options, correctIndex, explanation, subject, examTags, category } = req.body;
+    const { 
+      question, options, correctIndex, explanation, subject, examTags, category,
+      qType, assertion, reason, columnI, columnII, statements, statementLabels, topic, subtopic 
+    } = req.body;
 
     if (!id) return res.status(400).json({ error: 'Question ID is required' });
 
@@ -1069,6 +1091,15 @@ router.put('/questions/pool/:id', verifyStaffOrAdmin('tests'), async (req, res) 
       subject: subject || existing.subject || 'General Knowledge',
       examTags: Array.isArray(examTags) ? examTags : (existing.examTags || []),
       category: category || existing.category || 'general',
+      qType: qType !== undefined ? qType : (existing.qType || 'standard'),
+      assertion: assertion !== undefined ? assertion : (existing.assertion || ''),
+      reason: reason !== undefined ? reason : (existing.reason || ''),
+      columnI: Array.isArray(columnI) ? columnI : (existing.columnI || []),
+      columnII: Array.isArray(columnII) ? columnII : (existing.columnII || []),
+      statements: Array.isArray(statements) ? statements : (existing.statements || []),
+      statementLabels: Array.isArray(statementLabels) ? statementLabels : (existing.statementLabels || []),
+      topic: topic !== undefined ? topic : (existing.topic || ''),
+      subtopic: subtopic !== undefined ? subtopic : (existing.subtopic || ''),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
@@ -1104,7 +1135,61 @@ router.delete('/questions/pool/:id', verifyStaffOrAdmin('tests'), async (req, re
   }
 });
 
-// Generate a test from the global Question Bank pool
+// BULK DELETE all questions in Question Bank pool & test questions (Requires Admin Password)
+const handleBulkDeletePoolQuestions = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ error: 'Admin password is required to perform bulk deletion.' });
+    }
+
+    const email = req.user.email;
+    const isPasswordValid = await verifyAdminPassword(email, password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Incorrect admin password. Action denied.' });
+    }
+
+    const poolSnap = await db.collection('question_bank').get();
+    const questionsSnap = await db.collection('questions').get();
+
+    let totalDeleted = 0;
+
+    if (!poolSnap.empty) {
+      const docs = poolSnap.docs;
+      for (let i = 0; i < docs.length; i += 500) {
+        const chunk = docs.slice(i, i + 500);
+        const batch = db.batch();
+        chunk.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        totalDeleted += chunk.length;
+      }
+    }
+
+    if (!questionsSnap.empty) {
+      const docs = questionsSnap.docs;
+      for (let i = 0; i < docs.length; i += 500) {
+        const chunk = docs.slice(i, i + 500);
+        const batch = db.batch();
+        chunk.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        totalDeleted += chunk.length;
+      }
+    }
+
+    await logStaffActivity(req, 'delete_all_pool_questions', { totalDeleted });
+    console.log(`[Admin Bulk Pool Delete] Deleted ${totalDeleted} questions ✅`);
+
+    res.json({ success: true, count: totalDeleted, message: `Successfully deleted ${totalDeleted} questions from the pool.` });
+  } catch (err) {
+    console.error('[Admin Bulk Pool Delete Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to bulk delete question pool.' });
+  }
+};
+
+router.post('/questions/pool/bulk-delete', verifyStaffOrAdmin('tests'), handleBulkDeletePoolQuestions);
+router.delete('/questions/pool/bulk-delete', verifyStaffOrAdmin('tests'), handleBulkDeletePoolQuestions);
+
+// Generate a test from the global Question Bank pool (Strict Syllabus & AI Augmentation)
 router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
     const { examId, examName, examIds, examNames, subject, mode, language, questionCount, durationMinutes } = req.body;
@@ -1119,6 +1204,9 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
 
     const targetExamIds = Array.isArray(examIds) && examIds.length > 0 ? examIds : [examId];
     const limitedExamIds = targetExamIds.slice(0, 10);
+
+    // Fetch official syllabus context & verified textbook facts for this exam
+    const syllabusContext = await fetchExamSyllabusContext(examId, selectedSubject);
 
     // 1. Fetch questions matching target exams
     let examQuestions = [];
@@ -1146,7 +1234,7 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
     const targetSubjects = getSubjectList(selectedSubject);
     const hasSubjectFilter = targetSubjects.length > 0 && !targetSubjects.includes('all') && !targetSubjects.includes('mixed');
 
-    // 2. Filter matching exams by target subject
+    // 2. Filter matching questions strictly by target subject
     let primaryMatches = examQuestions;
     if (hasSubjectFilter) {
       primaryMatches = examQuestions.filter(q => targetSubjects.includes((q.subject || '').toLowerCase().trim()));
@@ -1166,23 +1254,8 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
     // Shuffle primary matches
     shuffle(finalQuestions);
 
-    // 3. Fallback level 1: Same subject across other exams (if subject is not all/mixed)
-    if (finalQuestions.length < count && hasSubjectFilter) {
-      const globalSnapshot = await db.collection('question_bank').limit(1000).get();
-      const globalQuestions = globalSnapshot.docs.map(doc => doc.data());
-
-      let otherExamsSubjectMatches = globalQuestions.filter(q => 
-        targetSubjects.includes((q.subject || '').toLowerCase().trim()) &&
-        !finalQuestions.some(fq => fq.id === q.id)
-      );
-
-      shuffle(otherExamsSubjectMatches);
-      const toAdd = otherExamsSubjectMatches.slice(0, count - finalQuestions.length);
-      finalQuestions = [...finalQuestions, ...toAdd];
-    }
-
-    // 4. Fallback level 2: Other subjects within the target exams
-    if (finalQuestions.length < count) {
+    // 3. Fallback: Other subjects within the SAME exam if no subject filter or pool count is low
+    if (finalQuestions.length < count && !hasSubjectFilter) {
       let otherSubjectsInExams = examQuestions.filter(q => 
         !finalQuestions.some(fq => fq.id === q.id)
       );
@@ -1192,23 +1265,60 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
       finalQuestions = [...finalQuestions, ...toAdd];
     }
 
-    // 5. Fallback level 3: Any other questions in the global pool
+    // 4. SMART SYLLABUS AI AUGMENTATION:
+    // If pool has fewer questions than requested, NEVER pull out-of-syllabus questions from random exams!
+    // Dynamically generate remaining count via AI using official syllabus boundaries & verified sources!
     if (finalQuestions.length < count) {
-      const globalSnapshot = await db.collection('question_bank').limit(1000).get();
-      const globalQuestions = globalSnapshot.docs.map(doc => doc.data());
+      const remainingNeeded = count - finalQuestions.length;
+      console.log(`[Smart Pool Gen] Pool has ${finalQuestions.length}/${count} questions for ${examName}. Generating remaining ${remainingNeeded} verified syllabus questions via AI...`);
 
-      let globalOthers = globalQuestions.filter(q => 
-        !finalQuestions.some(fq => fq.id === q.id)
-      );
+      try {
+        const aiResult = await generateTest(
+          examId,
+          examName,
+          selectedSubject,
+          testMode,
+          remainingNeeded,
+          language || 'english',
+          [],
+          syllabusContext
+        );
 
-      shuffle(globalOthers);
-      const toAdd = globalOthers.slice(0, count - finalQuestions.length);
-      finalQuestions = [...finalQuestions, ...toAdd];
+        if (aiResult && Array.isArray(aiResult.questions) && aiResult.questions.length > 0) {
+          const batch = db.batch();
+          const timestamp = new Date().toISOString();
+
+          aiResult.questions.forEach((q, idx) => {
+            const poolQId = `q_pool_gen_${Date.now()}_${idx}`;
+            const poolItem = {
+              id: poolQId,
+              question: q.question,
+              options: q.options,
+              correctIndex: q.correctIndex,
+              explanation: q.explanation,
+              subject: q.subject || selectedSubject,
+              examTags: limitedExamIds,
+              language: language || 'english',
+              qType: q.qType || 'standard',
+              verifiedSyllabus: true,
+              createdAt: timestamp
+            };
+            const ref = db.collection('question_bank').doc(poolQId);
+            batch.set(ref, poolItem);
+            finalQuestions.push(poolItem);
+          });
+
+          await batch.commit();
+          console.log(`[Smart Pool Gen] Saved ${aiResult.questions.length} new syllabus-verified questions to question_bank ✅`);
+        }
+      } catch (aiErr) {
+        console.error('[Smart Pool Gen AI Augment Error]:', aiErr.message);
+      }
     }
 
     if (finalQuestions.length === 0) {
       return res.status(400).json({ 
-        error: `No questions found in the Question Bank matching Exam: "${examName}" and Subject: "${selectedSubject}".` 
+        error: `Could not find or generate questions matching Exam: "${examName}" and Subject: "${selectedSubject}".` 
       });
     }
 
@@ -1390,6 +1500,49 @@ router.delete('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
     res.status(500).json({ error: 'Failed to delete test.' });
   }
 });
+
+// BULK DELETE all generated tests (Requires Admin Password)
+const handleBulkDeleteTests = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ error: 'Admin password is required to perform bulk deletion.' });
+    }
+
+    const email = req.user.email;
+    const isPasswordValid = await verifyAdminPassword(email, password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Incorrect admin password. Action denied.' });
+    }
+
+    const snapshot = await db.collection('tests').get();
+    if (snapshot.empty) {
+      return res.json({ success: true, count: 0, message: 'No tests found to delete.' });
+    }
+
+    let deletedCount = 0;
+    const docs = snapshot.docs;
+
+    for (let i = 0; i < docs.length; i += 500) {
+      const chunk = docs.slice(i, i + 500);
+      const batch = db.batch();
+      chunk.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      deletedCount += chunk.length;
+    }
+
+    await logStaffActivity(req, 'delete_all_tests', { deletedCount });
+    console.log(`[Admin Bulk Test Delete] Deleted ${deletedCount} tests ✅`);
+
+    res.json({ success: true, count: deletedCount, message: `Successfully deleted ${deletedCount} tests.` });
+  } catch (err) {
+    console.error('[Admin Bulk Test Delete Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to bulk delete tests.' });
+  }
+};
+
+router.post('/tests/bulk-delete', verifyStaffOrAdmin('tests'), handleBulkDeleteTests);
+router.delete('/tests/bulk-delete', verifyStaffOrAdmin('tests'), handleBulkDeleteTests);
 
 // Edit a generated test (questions, metadata, options, explanation)
 router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {

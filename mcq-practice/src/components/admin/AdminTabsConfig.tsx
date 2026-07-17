@@ -155,13 +155,13 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
   };
 
   const tabDefs: TabDef[] = [
-    { id: 'home', label: 'Home / मुख्य पृष्ठ', desc: 'Main student dashboard containing streak progress, target exam details, quick action shortcuts, and subject completion list cards.', icon: Home },
-    { id: 'practice', label: 'Practice / अभ्यास', desc: 'Interactive practice sessions offering custom mock tests, daily speed quizzes, and previous year papers (PYQs).', icon: Trophy },
-    { id: 'chat', label: 'AI Guru / एआई गुरु', desc: 'The AI Tutor Chat Bot interface offering instant doubt clearing, spaced repetition recall questions, and study assistance.', icon: MessageSquare },
-    { id: 'news', label: 'News & Alerts / समाचार और करंट अफेयर्स', desc: 'Bilingual news feeds summarizing state notifications and current affairs updates.', icon: Newspaper },
-    { id: 'jobs', label: 'Jobs & Vacancies / सरकारी नौकरियां', desc: 'Dedicated Sarkari Job alerts, recruitment notices, qualification requirements, and direct application links.', icon: Briefcase },
-    { id: 'syllabus', label: 'Syllabus / पाठ्यक्रम', desc: 'Detailed syllabus trackers featuring custom exam syllabi parsing, study material PDFs, and learning checklists.', icon: BookOpen },
-    { id: 'profile', label: 'Profile / प्रोफाइल', desc: 'User history panel displaying stats, rolling weekly MCQ charts, achievements, global leaderboards, and system settings.', icon: User },
+    { id: 'home', label: 'Home', desc: 'Main student dashboard containing streak progress, target exam details, quick action shortcuts, and subject completion list cards.', icon: Home },
+    { id: 'practice', label: 'Practice', desc: 'Interactive practice sessions offering custom mock tests, daily speed quizzes, and previous year papers (PYQs).', icon: Trophy },
+    { id: 'chat', label: 'AI Guru', desc: 'The AI Tutor Chat Bot interface offering instant doubt clearing, spaced repetition recall questions, and study assistance.', icon: MessageSquare },
+    { id: 'news', label: 'News & Alerts', desc: 'Bilingual news feeds summarizing state notifications and current affairs updates.', icon: Newspaper },
+    { id: 'jobs', label: 'Jobs & Vacancies', desc: 'Dedicated Sarkari Job alerts, recruitment notices, qualification requirements, and direct application links.', icon: Briefcase },
+    { id: 'syllabus', label: 'Syllabus', desc: 'Detailed syllabus trackers featuring custom exam syllabi parsing, study material PDFs, and learning checklists.', icon: BookOpen },
+    { id: 'profile', label: 'Profile', desc: 'User history panel displaying stats, rolling weekly MCQ charts, achievements, global leaderboards, and system settings.', icon: User },
     { id: 'syllabus_ai_planner', label: 'Syllabus: AI Study Planner', desc: 'AI Study Planner tab inside the Syllabus tab. Provides personalized day-by-day study schedules and progress tracking.', icon: BrainCircuit },
     { id: 'syllabus_revision', label: 'Syllabus: Spaced Revision', desc: 'Spaced Revision sub-tab inside the Syllabus tab. Helps track when to revise topics based on memory curves.', icon: RefreshCw },
     { id: 'syllabus_analytics', label: 'Syllabus: Analytics Dashboard', desc: 'Analytics Dashboard sub-tab inside the Syllabus tab. Displays progress charts and topic accuracy data.', icon: BarChart3 },

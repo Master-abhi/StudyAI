@@ -171,6 +171,120 @@ const getFormattedQuestionString = (q: any): string => {
   return q.question || '';
 };
 
+export const QuestionBodyRenderer: React.FC<{ q: any; textClassName?: string }> = ({ q, textClassName = "text-xs font-bold text-text leading-relaxed font-hindi" }) => {
+  const normQ = normalizeQuestion(q);
+  const qType = normQ.qType || 'standard';
+
+  const isAssertionReason = qType === 'assertion_reason' || (Boolean(normQ.assertion?.trim()) && Boolean(normQ.reason?.trim()));
+  const isMatchColumn = qType === 'match_column' || (Array.isArray(normQ.columnI) && normQ.columnI.length > 0 && Array.isArray(normQ.columnII) && normQ.columnII.length > 0);
+  const isMultiStatement = qType === 'ordering' || qType === 'multi_statement' || (Array.isArray(normQ.statements) && normQ.statements.length > 0);
+
+  if (isAssertionReason) {
+    const directive = stripAssertionReason(normQ.question || '');
+    return (
+      <div className="flex flex-col gap-3">
+        <MarkdownRenderer 
+          content={directive.trim() ? directive : 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए:'} 
+          className={textClassName}
+        />
+        <div className="grid grid-cols-1 gap-2.5">
+          {normQ.assertion && (
+            <div className="bg-bg-s2 border-l-4 border-saffron rounded-r-lg p-3 flex flex-col gap-1">
+              <span className="text-[9px] font-black uppercase text-saffron block select-none">
+                कथन [Assertion - As]
+              </span>
+              <MarkdownRenderer content={normQ.assertion} className="text-xs text-text font-hindi" />
+            </div>
+          )}
+          {normQ.reason && (
+            <div className="bg-bg-s2 border-l-4 border-blue-500 rounded-r-lg p-3 flex flex-col gap-1">
+              <span className="text-[9px] font-black uppercase text-blue-400 block select-none">
+                कारण [Reason - R]
+              </span>
+              <MarkdownRenderer content={normQ.reason} className="text-xs text-text font-hindi" />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isMatchColumn) {
+    const directive = stripMarkdownTable(normQ.question || '');
+    const colI = normQ.columnI || [];
+    const colII = normQ.columnII || [];
+    const maxLen = Math.max(colI.length, colII.length);
+    return (
+      <div className="flex flex-col gap-3">
+        <MarkdownRenderer 
+          content={directive.trim() ? directive : 'निम्नलिखित को सुमेलित कीजिए-'} 
+          className={textClassName}
+        />
+        <div className="border border-border rounded-xl overflow-hidden text-xs font-hindi shadow-sm max-w-full">
+          <div className="grid grid-cols-2 bg-bg-s2 border-b border-border/80 text-[10px] font-black uppercase text-text-muted select-none">
+            <div className="px-3.5 py-2.5 border-r border-border/40">कॉलम-I</div>
+            <div className="px-3.5 py-2.5">कॉलम-II</div>
+          </div>
+          <div className="divide-y divide-border/30 bg-bg-s2/40">
+            {Array.from({ length: maxLen }).map((_, i) => (
+              <div key={i} className="grid grid-cols-2">
+                <div className="px-3.5 py-2.5 border-r border-border/30 font-semibold flex items-start gap-2 min-w-0">
+                  <span className="text-saffron font-black select-none bg-saffron/10 px-1.5 py-0.5 rounded text-[10px] shrink-0">
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <MarkdownRenderer content={cleanPrefix(colI[i] || '')} />
+                  </div>
+                </div>
+                <div className="px-3.5 py-2.5 font-semibold flex items-start gap-2 min-w-0">
+                  <span className="text-blue-400 font-black select-none bg-blue-500/10 px-1.5 py-0.5 rounded text-[10px] shrink-0">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <MarkdownRenderer content={cleanPrefix(colII[i] || '')} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isMultiStatement) {
+    const directive = stripStatements(normQ.question || '');
+    return (
+      <div className="flex flex-col gap-3">
+        <MarkdownRenderer 
+          content={directive.trim() ? directive : 'नीचे दिए गए कथनों को पढ़िए और सही विकल्प चुनिए:'} 
+          className={textClassName}
+        />
+        <div className="flex flex-col gap-2 font-hindi">
+          {normQ.statements?.map((stmt: string, i: number) => {
+            if (!stmt) return null;
+            const label = normQ.statementLabels?.[i] || `${i + 1}`;
+            return (
+              <div key={i} className="flex items-center gap-3 bg-bg-s2 border border-border/30 rounded-xl px-3.5 py-2.5 shadow-sm">
+                <span className="w-6 h-6 bg-bg-s3 border border-border/80 rounded flex items-center justify-center text-[10px] font-black text-saffron select-none shrink-0">
+                  {label}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <MarkdownRenderer content={stmt} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <MarkdownRenderer content={normQ.question || ''} className={textClassName} />
+  );
+};
+
 export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) => {
   const [tests, setTests] = useState<TestMeta[]>([]);
   const [loadingList, setLoadingList] = useState<boolean>(true);
@@ -226,6 +340,58 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [editingPoolQ, setEditingPoolQ] = useState<any | null>(null);
   const [editingPoolLoading, setEditingPoolLoading] = useState<boolean>(false);
   const [deletingPoolId, setDeletingPoolId] = useState<string | null>(null);
+
+  // Bulk Delete Modal State (Tests & Question Pool)
+  const [bulkDeleteTarget, setBulkDeleteTarget] = useState<'pool' | 'tests' | null>(null);
+  const [adminPasswordInput, setAdminPasswordInput] = useState<string>('');
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState<boolean>(false);
+  const [bulkDeleteError, setBulkDeleteError] = useState<string>('');
+
+  const handleExecuteBulkDelete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminPasswordInput.trim()) {
+      setBulkDeleteError('Please enter your admin password.');
+      return;
+    }
+    setBulkDeleteLoading(true);
+    setBulkDeleteError('');
+
+    try {
+      const token = currentUser ? await currentUser.getIdToken() : '';
+      const endpoint = bulkDeleteTarget === 'pool' 
+        ? getApiUrl('/api/admin/questions/pool/bulk-delete') 
+        : getApiUrl('/api/admin/tests/bulk-delete');
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: adminPasswordInput })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (bulkDeleteTarget === 'pool') {
+          setPoolQuestions([]);
+          if (fetchPoolStats) fetchPoolStats();
+          setSuccessMessage(`All ${data.count || 0} questions deleted from Question Bank Pool! 🗑️`);
+        } else {
+          setTests([]);
+          setSuccessMessage(`All ${data.count || 0} tests deleted from Registry! 🗑️`);
+        }
+        setBulkDeleteTarget(null);
+        setAdminPasswordInput('');
+      } else {
+        setBulkDeleteError(data.error || 'Failed to execute bulk deletion. Check your password.');
+      }
+    } catch (err: any) {
+      setBulkDeleteError(err.message || 'Error executing deletion.');
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
 
   // Fetch Questions in Question Bank Pool
   const fetchPoolQuestions = async (sub?: any, ex?: any, q?: any) => {
@@ -1999,6 +2165,19 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${loadingPoolQuestions ? 'animate-spin' : ''}`} />
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBulkDeleteTarget('pool');
+                      setAdminPasswordInput('');
+                      setBulkDeleteError('');
+                    }}
+                    className="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500 text-redL hover:text-white border border-red-500/20 rounded-lg text-xs font-black uppercase flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
+                    title="Delete All Questions in Pool (Requires Admin Password)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Clear All Pool</span>
+                  </button>
                 </div>
               </div>
 
@@ -2061,7 +2240,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
                       {/* Question Text */}
                       <div className="text-xs font-bold text-text leading-relaxed">
-                        <MarkdownRenderer content={q.question || ''} />
+                        <QuestionBodyRenderer q={q} />
                       </div>
 
                       {/* Options Grid */}
@@ -2081,7 +2260,9 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                                 <span className={`font-mono text-[10px] font-black shrink-0 ${isCorrect ? 'text-greenL' : 'text-text-muted'}`}>
                                   {String.fromCharCode(65 + optIdx)}.
                                 </span>
-                                <span className="flex-1 leading-snug">{String(opt)}</span>
+                                <div className="flex-1 leading-snug font-hindi">
+                                  <MarkdownRenderer content={String(opt || '')} />
+                                </div>
                                 {isCorrect && <CheckCircle className="w-3.5 h-3.5 text-greenL shrink-0 mt-0.5" />}
                               </div>
                             );
@@ -2092,7 +2273,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                       {/* Explanation */}
                       {q.explanation && (
                         <div className="p-2.5 bg-bg-s2 border border-border/60 rounded-lg text-[11px] text-text-muted flex flex-col gap-1">
-                          <span className="text-[9px] font-black uppercase text-saffron">Explanation / स्पष्टीकरण:</span>
+                          <span className="text-[9px] font-black uppercase text-saffron">Explanation:</span>
                           <MarkdownRenderer content={q.explanation} />
                         </div>
                       )}
@@ -2112,19 +2293,34 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
               <h3 className="text-xs font-black uppercase text-text tracking-wider">Generated Tests Registry</h3>
             </div>
             
-            {/* Filter by Exam */}
-            <div className="flex items-center gap-2">
-              <label className="text-[9px] font-black uppercase text-text-muted">Filter Exam:</label>
-              <select
-                value={filterExamId}
-                onChange={(e) => setFilterExamId(e.target.value)}
-                className="bg-bg-s3 text-[11px] text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none cursor-pointer font-sans"
+            {/* Filter by Exam & Bulk Delete */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-[9px] font-black uppercase text-text-muted">Filter Exam:</label>
+                <select
+                  value={filterExamId}
+                  onChange={(e) => setFilterExamId(e.target.value)}
+                  className="bg-bg-s3 text-[11px] text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none cursor-pointer font-sans"
+                >
+                  <option value="all">All Exams</option>
+                  {exams.map(ex => (
+                    <option key={ex.id} value={ex.id}>{ex.name}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkDeleteTarget('tests');
+                  setAdminPasswordInput('');
+                  setBulkDeleteError('');
+                }}
+                className="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500 text-redL hover:text-white border border-red-500/20 rounded-lg text-xs font-black uppercase flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shrink-0"
+                title="Delete All Tests (Requires Admin Password)"
               >
-                <option value="all">All Exams</option>
-                {exams.map(ex => (
-                  <option key={ex.id} value={ex.id}>{ex.name}</option>
-                ))}
-              </select>
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Clear All Tests</span>
+              </button>
             </div>
           </div>
 
@@ -2570,7 +2766,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     {q.qType === 'assertion_reason' ? (
                       <div className="flex flex-col gap-3 border border-border/60 p-3 rounded-lg bg-bg-s2/40">
                         <div className="flex flex-col gap-1">
-                          <label className="text-[8px] font-black uppercase text-text-muted">Directive / Instructions (निर्देश)</label>
+                          <label className="text-[8px] font-black uppercase text-text-muted">Directive / Instructions</label>
                           <textarea
                             value={q.question || ''}
                             onChange={(e) => {
@@ -2579,12 +2775,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                               setEditingTest({ ...editingTest, questions: updatedQuestions });
                             }}
                             className="w-full bg-bg-s2 text-xs text-text border border-border p-2 rounded outline-none h-12 resize-none"
-                            placeholder="e.g. निर्देश - नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए-"
+                            placeholder="e.g. Select the correct option..."
                           />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="flex flex-col gap-1">
-                            <label className="text-[8px] font-black uppercase text-saffron">Assertion [As] (कथन)</label>
+                            <label className="text-[8px] font-black uppercase text-saffron">Assertion [As]</label>
                             <textarea
                               value={q.assertion || ''}
                               onChange={(e) => {
@@ -2597,7 +2793,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                             />
                           </div>
                           <div className="flex flex-col gap-1">
-                            <label className="text-[8px] font-black uppercase text-blue-400">Reason [R] (कारण)</label>
+                            <label className="text-[8px] font-black uppercase text-blue-400">Reason [R]</label>
                             <textarea
                               value={q.reason || ''}
                               onChange={(e) => {
@@ -2614,7 +2810,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     ) : q.qType === 'match_column' ? (
                       <div className="flex flex-col gap-3 border border-border/60 p-3 rounded-lg bg-bg-s2/40">
                         <div className="flex flex-col gap-1">
-                          <label className="text-[8px] font-black uppercase text-text-muted">Directive / Instructions (निर्देश)</label>
+                          <label className="text-[8px] font-black uppercase text-text-muted">Directive / Instructions</label>
                           <textarea
                             value={q.question || ''}
                             onChange={(e) => {
@@ -2623,7 +2819,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                               setEditingTest({ ...editingTest, questions: updatedQuestions });
                             }}
                             className="w-full bg-bg-s2 text-xs text-text border border-border p-2 rounded outline-none h-12 resize-none"
-                            placeholder="e.g. निम्नलिखित को सुमेलित कीजिए-"
+                            placeholder="e.g. Match Column I with Column II-"
                           />
                         </div>
                         <div className="flex flex-col gap-2">
@@ -2679,7 +2875,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     ) : (q.qType === 'ordering' || q.qType === 'multi_statement') ? (
                       <div className="flex flex-col gap-3 border border-border/60 p-3 rounded-lg bg-bg-s2/40">
                         <div className="flex flex-col gap-1">
-                          <label className="text-[8px] font-black uppercase text-text-muted">Directive / Context (निर्देश / प्रसंग)</label>
+                          <label className="text-[8px] font-black uppercase text-text-muted">Directive / Context</label>
                           <textarea
                             value={q.question || ''}
                             onChange={(e) => {
@@ -2688,11 +2884,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                               setEditingTest({ ...editingTest, questions: updatedQuestions });
                             }}
                             className="w-full bg-bg-s2 text-xs text-text border border-border p-2 rounded outline-none h-12 resize-none"
-                            placeholder="e.g. निम्नलिखित शब्दों को क्रम में व्यवस्थित करें-"
+                            placeholder="e.g. Arrange items in correct sequence-"
                           />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <span className="text-[8px] font-black uppercase text-text-muted">Statements / Items (कथन / पद)</span>
+                          <span className="text-[8px] font-black uppercase text-text-muted">Statements / Items</span>
                           <div className="flex flex-col gap-2">
                             {Array.from({ length: 5 }).map((_, stmtIdx) => {
                               const stmtVal = q.statements?.[stmtIdx] || '';
@@ -2968,16 +3164,131 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
             </div>
 
             <div className="flex flex-col gap-4 text-xs">
-              {/* Question Text */}
+              {/* Question Type */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-black uppercase text-text-muted">Question Text</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">Question Type</label>
+                <select
+                  value={editingPoolQ.qType || 'standard'}
+                  onChange={(e) => {
+                    const type = e.target.value;
+                    setEditingPoolQ({
+                      ...editingPoolQ,
+                      qType: type,
+                      assertion: editingPoolQ.assertion || '',
+                      reason: editingPoolQ.reason || '',
+                      columnI: editingPoolQ.columnI && editingPoolQ.columnI.length > 0 ? editingPoolQ.columnI : ['', '', '', ''],
+                      columnII: editingPoolQ.columnII && editingPoolQ.columnII.length > 0 ? editingPoolQ.columnII : ['', '', '', ''],
+                      statements: editingPoolQ.statements && editingPoolQ.statements.length > 0 ? editingPoolQ.statements : ['', '', '', ''],
+                    });
+                  }}
+                  className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none cursor-pointer"
+                >
+                  <option value="standard">Standard MCQ (साधारण)</option>
+                  <option value="assertion_reason">Assertion & Reason (कथन और कारण)</option>
+                  <option value="match_column">Match the Column (सुमेलित कीजिए)</option>
+                  <option value="ordering">Ordering/Sequencing (क्रम में व्यवस्थित करें)</option>
+                  <option value="multi_statement">Multi-statement Code (बहु-कथनीय)</option>
+                </select>
+              </div>
+
+              {/* Question Directive / Main Text */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-black uppercase text-text-muted">
+                  {editingPoolQ.qType === 'assertion_reason' ? 'Directive / Question Instruction' : editingPoolQ.qType === 'match_column' ? 'Table Heading / Directive' : 'Question Text'}
+                </label>
                 <textarea
                   value={editingPoolQ.question || ''}
                   onChange={(e) => setEditingPoolQ({ ...editingPoolQ, question: e.target.value })}
-                  rows={4}
+                  rows={3}
                   className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none font-sans"
                 />
               </div>
+
+              {/* Special Fields based on qType */}
+              {editingPoolQ.qType === 'assertion_reason' && (
+                <div className="flex flex-col gap-2.5 p-3 bg-bg-s3/40 border border-border rounded-lg">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-black uppercase text-saffron">कथन [Assertion - As]</label>
+                    <textarea
+                      value={editingPoolQ.assertion || ''}
+                      onChange={(e) => setEditingPoolQ({ ...editingPoolQ, assertion: e.target.value })}
+                      rows={2}
+                      placeholder="Enter Assertion text..."
+                      className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron p-2.5 rounded-lg outline-none font-sans"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-black uppercase text-blue-400">कारण [Reason - R]</label>
+                    <textarea
+                      value={editingPoolQ.reason || ''}
+                      onChange={(e) => setEditingPoolQ({ ...editingPoolQ, reason: e.target.value })}
+                      rows={2}
+                      placeholder="Enter Reason text..."
+                      className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron p-2.5 rounded-lg outline-none font-sans"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {editingPoolQ.qType === 'match_column' && (
+                <div className="flex flex-col gap-2.5 p-3 bg-bg-s3/40 border border-border rounded-lg">
+                  <label className="text-[9px] font-black uppercase text-saffron">Match Column Items</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-[9px] font-black uppercase text-text-muted">कॉलम-I (A-D)</div>
+                    <div className="text-[9px] font-black uppercase text-text-muted">कॉलम-II (1-4)</div>
+                    {Array.from({ length: 4 }).map((_, cIdx) => (
+                      <React.Fragment key={cIdx}>
+                        <input
+                          type="text"
+                          placeholder={`Item ${String.fromCharCode(65 + cIdx)}`}
+                          value={editingPoolQ.columnI?.[cIdx] || ''}
+                          onChange={(e) => {
+                            const cols = [...(editingPoolQ.columnI || ['', '', '', ''])];
+                            cols[cIdx] = e.target.value;
+                            setEditingPoolQ({ ...editingPoolQ, columnI: cols });
+                          }}
+                          className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none font-sans"
+                        />
+                        <input
+                          type="text"
+                          placeholder={`Item ${cIdx + 1}`}
+                          value={editingPoolQ.columnII?.[cIdx] || ''}
+                          onChange={(e) => {
+                            const cols = [...(editingPoolQ.columnII || ['', '', '', ''])];
+                            cols[cIdx] = e.target.value;
+                            setEditingPoolQ({ ...editingPoolQ, columnII: cols });
+                          }}
+                          className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none font-sans"
+                        />
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(editingPoolQ.qType === 'ordering' || editingPoolQ.qType === 'multi_statement') && (
+                <div className="flex flex-col gap-2.5 p-3 bg-bg-s3/40 border border-border rounded-lg">
+                  <label className="text-[9px] font-black uppercase text-saffron">Statements / Items to Order</label>
+                  <div className="flex flex-col gap-2">
+                    {Array.from({ length: 4 }).map((_, sIdx) => (
+                      <div key={sIdx} className="flex items-center gap-2">
+                        <span className="text-[9px] font-black text-saffron bg-saffron/10 px-2 py-1 rounded shrink-0">{sIdx + 1}</span>
+                        <input
+                          type="text"
+                          placeholder={`Statement ${sIdx + 1}`}
+                          value={editingPoolQ.statements?.[sIdx] || ''}
+                          onChange={(e) => {
+                            const stmts = [...(editingPoolQ.statements || ['', '', '', ''])];
+                            stmts[sIdx] = e.target.value;
+                            setEditingPoolQ({ ...editingPoolQ, statements: stmts });
+                          }}
+                          className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none font-sans"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Options A-D */}
               <div className="flex flex-col gap-2">
@@ -3031,7 +3342,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
               {/* Explanation */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-black uppercase text-text-muted">Explanation / Solution Details</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">Explanation Details</label>
                 <textarea
                   value={editingPoolQ.explanation || ''}
                   onChange={(e) => setEditingPoolQ({ ...editingPoolQ, explanation: e.target.value })}
@@ -3079,6 +3390,76 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
             <Loader2 className="w-5 h-5 text-saffron animate-spin" />
             <span className="text-xs font-bold text-text">Loading test questions...</span>
           </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Admin Password Confirmation Modal */}
+      {bulkDeleteTarget && (
+        <div className="fixed inset-0 bg-[#0B0E14]/85 backdrop-blur-md z-[1000] flex items-center justify-center p-4">
+          <form onSubmit={handleExecuteBulkDelete} className="w-full max-w-md bg-bg-s2 border border-red-500/30 rounded-xl shadow-2xl p-6 flex flex-col gap-4">
+            <div className="flex justify-between items-center border-b border-border/60 pb-3">
+              <h3 className="text-xs font-black uppercase text-redL flex items-center gap-2 tracking-wider">
+                <AlertTriangle className="w-4 h-4 text-redL" />
+                <span>Security Check: Confirm Admin Password</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setBulkDeleteTarget(null)}
+                className="text-xs text-text-muted hover:text-text cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-300 leading-relaxed">
+              ⚠️ <strong>DANGER:</strong> You are about to permanently delete <strong>{bulkDeleteTarget === 'pool' ? 'ALL questions in Question Bank Pool' : 'ALL registered tests in database'}</strong>. This operation cannot be undone. Please enter your admin password to confirm.
+            </div>
+
+            {bulkDeleteError && (
+              <div className="p-2.5 bg-red-500/15 border border-red-500/30 rounded-lg text-xs text-redL font-bold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{bulkDeleteError}</span>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-black uppercase text-text-muted">Admin Account Password</label>
+              <input
+                type="password"
+                required
+                value={adminPasswordInput}
+                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                placeholder="Enter your admin password"
+                className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-redL px-3 py-2.5 rounded-lg outline-none font-sans"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex justify-end gap-2.5 border-t border-border/60 pt-3 mt-1">
+              <button
+                type="button"
+                onClick={() => setBulkDeleteTarget(null)}
+                className="px-4 py-2 bg-bg-s3 border border-border hover:bg-bg-s3/80 text-xs font-black uppercase text-text rounded-lg cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={bulkDeleteLoading}
+                className="px-5 py-2 bg-red-500 hover:bg-red-600 text-xs font-black uppercase text-white rounded-lg flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {bulkDeleteLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Deleting Everything...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" /> Confirm & Delete All
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

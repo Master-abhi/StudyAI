@@ -510,7 +510,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
               <div className="flex flex-col gap-2">
                 <h4 className="text-[10px] font-black text-saffron uppercase tracking-widest flex items-center gap-1">
                   <Flame className="w-3.5 h-3.5 text-orange-500 animate-bounce" />
-                  <span>Trending for Exam / महत्वपूर्ण प्रश्न स्त्रोत</span>
+                  <span>Trending for Exam</span>
                 </h4>
                 <div className="flex items-stretch gap-4 overflow-x-auto no-scrollbar pb-1">
                   {trendingArticles.map((art, idx) => (
@@ -1050,7 +1050,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
 
 
                           <h5 className="text-[9px] font-black uppercase text-saffron tracking-wider mt-1.5">
-                            Exam Summary / परीक्षा सारांश
+                            Exam Summary
                           </h5>
                           
                           <p className="text-sm text-text leading-relaxed tracking-wide pt-2 whitespace-pre-line">

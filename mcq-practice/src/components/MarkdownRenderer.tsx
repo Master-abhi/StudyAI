@@ -180,28 +180,41 @@ const preserveSingleNewlines = (text: string): string => {
   let inTable = false;
   let inMathBlock = false;
 
-  const processedLines = lines.map((line, idx) => {
+  const processedLines: string[] = [];
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx];
     const trimmed = line.trim();
+
     if (trimmed.startsWith('```')) {
       inCodeBlock = !inCodeBlock;
-      return line;
+      processedLines.push(line);
+      continue;
     }
     if (trimmed.startsWith('$$')) {
       inMathBlock = !inMathBlock;
-      return line;
+      processedLines.push(line);
+      continue;
     }
+
     if (trimmed.startsWith('|')) {
+      if (!inTable && idx > 0 && lines[idx - 1].trim() !== '' && !lines[idx - 1].trim().startsWith('|')) {
+        processedLines.push('');
+      }
       inTable = true;
-      return line;
-    } else if (inTable && trimmed === '') {
+      processedLines.push(line);
+      continue;
+    } else if (inTable) {
       inTable = false;
-      return line;
     }
+
     if (inCodeBlock || inTable || inMathBlock) {
-      return line;
+      processedLines.push(line);
+      continue;
     }
     if (trimmed === '' || line.endsWith('  ') || line.endsWith('\\')) {
-      return line;
+      processedLines.push(line);
+      continue;
     }
     const nextLine = lines[idx + 1];
     if (nextLine !== undefined) {
@@ -216,11 +229,13 @@ const preserveSingleNewlines = (text: string): string => {
         !nextTrimmed.startsWith('#') &&
         !/^\d+\./.test(nextTrimmed)
       ) {
-        return line + '  ';
+        processedLines.push(line + '  ');
+        continue;
       }
     }
-    return line;
-  });
+    processedLines.push(line);
+  }
+
   return processedLines.join('\n');
 };
 

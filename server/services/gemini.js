@@ -316,7 +316,7 @@ async function* chatStream(
 
 
 
-async function generateTest(examId, examName, subject, mode, questionCount, language, examSubjects = [], modelName = MODEL) {
+async function generateTest(examId, examName, subject, mode, questionCount, language, examSubjects = [], syllabusContext = null, modelName = MODEL) {
   const langInstruction = getLanguageInstruction(language);
 
   let subjectContext = '';
@@ -325,12 +325,29 @@ async function generateTest(examId, examName, subject, mode, questionCount, lang
   } else if (examSubjects.length > 0) {
     subjectContext = `covering questions from these subjects: ${examSubjects.slice(0, 8).join(', ')}${examSubjects.length > 8 ? ' and more' : ''}`;
   } else {
-    subjectContext = 'covering various subjects including General Knowledge, Reasoning, Mathematics, Hindi, and relevant technical subjects for this exam';
+    subjectContext = 'covering various subjects from the official exam syllabus';
   }
 
-  const prompt = `Generate exactly ${questionCount} multiple choice questions for the ${examName} exam, ${subjectContext}.
+  let syllabusScopePrompt = '';
+  if (syllabusContext && syllabusContext.scopeText) {
+    syllabusScopePrompt = `\n\nOFFICIAL EXAM SYLLABUS BOUNDARIES FOR ${examName.toUpperCase()} (STRICT COMPLIANCE REQUIRED):\n${syllabusContext.scopeText}\n\nCRITICAL SYLLABUS SCOPE DIRECTIVES:\n1. Every question MUST be strictly constructed from the official topics listed in the syllabus scope above.\n2. Do NOT generate questions on topics outside this syllabus.\n3. Out-of-syllabus questions are strictly invalid and rejected.`;
+  }
+
+  let verifiedKnowledgePrompt = '';
+  if (syllabusContext && syllabusContext.verifiedKnowledge) {
+    verifiedKnowledgePrompt = syllabusContext.verifiedKnowledge;
+  }
+
+  const prompt = `Generate exactly ${questionCount} multiple choice questions for the ${examName} exam, ${subjectContext}.${syllabusScopePrompt}${verifiedKnowledgePrompt}
 
 ${langInstruction}
+
+STRICT EXAM QUALITY & SOURCE VERIFICATION MANDATES:
+1. 100% SYLLABUS ADHERENCE: Every question must directly assess a specific concept from the official ${examName} syllabus. Zero out-of-syllabus questions allowed.
+2. VERIFIED FACT ACCURACY & ZERO AMBIGUITY: Every historical fact, date, geographical detail, government scheme, constitutional article/amendment, science law, and mathematical formula MUST be 100% accurate and cross-checked against standard verified official sources (NCERT, State Granth Academy, Official Acts & Gazettes).
+3. EXTREMELY DETAILED EXPLANATION: The "explanation" field MUST provide an in-depth, educational breakdown explaining the core principles, citing standard facts, showing step-by-step logic (for math/reasoning), and explaining why incorrect options are wrong.
+4. EXAM PATTERN DISTRACTORS: Include exactly 4 options per question. The incorrect options must be plausible distractors commonly encountered in ${examName} exams, with exactly ONE 100% indisputably correct answer.
+${mode === 'mock' ? '- Include a mix of easy (30%), medium (50%), and hard (20%) questions' : '- Keep questions at medium difficulty for quick practice'}
 
 You MUST respond with a JSON object that matches this format strictly:
 {
@@ -340,25 +357,14 @@ You MUST respond with a JSON object that matches this format strictly:
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correctIndex": 0,
       "explanation": "Detailed explanation of why this is correct",
-      "subject": "The specific subject category of this question (e.g. Chhattisgarh GK, Mathematics, Reasoning, Hindi, English, General Science)"
+      "subject": "The specific subject category of this question"
     }
   ]
-}
-
-Requirements:
-- Each question must have exactly 4 options
-- correctIndex is 0-based (0 for first option, 3 for last)
-- Questions should be at the exact difficulty level of actual ${examName} exams
-- Mix different topics and sub-topics across the selected subjects
-- Include factual, conceptual, and application-based questions
-- The "explanation" field MUST be highly detailed, accurate, and deeply informative. Do not simply restate the correct option. Explain the core concept behind the answer, provide related supplementary facts, and briefly explain why the incorrect options are wrong.
-- Make questions exam-relevant and strictly fact-checked
-- Distribute questions evenly across the different subjects/topics selected
-${mode === 'mock' ? '- Include a mix of easy (30%), medium (50%), and hard (20%) questions' : '- Keep questions at medium difficulty for quick practice'}`;
+}`;
 
   const model = genAI.getGenerativeModel({
     model: resolveModelName(modelName),
-    systemInstruction: `You are an expert question paper setter for ${examName} exam. You generate high-quality MCQs that match the actual exam pattern and difficulty level. Your questions should cover all relevant subjects and topics as specified in the exam syllabus. You ONLY respond with valid JSON, never any other format.`,
+    systemInstruction: `You are an expert question paper setter and chief examiner for ${examName} exam. You generate high-quality MCQs that strictly match the official exam syllabus and pattern. Every question must be factually accurate, verified against standard textbook sources, and free of ambiguity. You ONLY respond with valid JSON, never any other format.`,
     generationConfig: {
       responseMimeType: "application/json",
       maxOutputTokens: 8192

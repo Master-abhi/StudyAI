@@ -23,7 +23,7 @@ export const ExplanationCard: React.FC<ExplanationCardProps> = ({
       <div className="flex items-center justify-between border-b border-greenL/10 pb-3">
         <div className="flex items-center gap-2 text-greenL font-black text-xs uppercase tracking-widest">
           <FileText className="w-4 h-4" />
-          <span>Detailed Explanation / स्पष्टीकरण</span>
+          <span>Detailed Explanation</span>
         </div>
 
         {question.examRelevance && (
