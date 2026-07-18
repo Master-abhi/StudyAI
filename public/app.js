@@ -2,6 +2,11 @@
    CG Guru — CG Vyapam Exam Prep
    ═══════════════════════════════════════════ */
 
+// Lock screen orientation to portrait on mobile devices
+if (window.screen && window.screen.orientation && typeof window.screen.orientation.lock === 'function') {
+  window.screen.orientation.lock('portrait').catch(() => {});
+}
+
 // ── API Base URL Auto-configuration & Fetch Interceptor ──
 let API_BASE = 'https://study-ai-olive.vercel.app';
 

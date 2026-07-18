@@ -4,6 +4,11 @@ import './index.css'
 import App from './App.tsx'
 import { Capacitor } from '@capacitor/core'
 
+// Lock screen orientation to portrait on mobile devices
+if (window.screen && window.screen.orientation && typeof window.screen.orientation.lock === 'function') {
+  window.screen.orientation.lock('portrait').catch(() => {});
+}
+
 // Redirect API calls to the production server when running as a native app
 if (Capacitor.isNativePlatform()) {
   const originalFetch = window.fetch;

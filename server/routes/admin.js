@@ -541,50 +541,42 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
 
       let intelObj = art.intelligence || null;
 
-      // Pre-generate AI news analysis & quiz questions during upload if not provided
-      if (!intelObj) {
-        try {
-          console.log(`[Admin News Upload] Pre-generating AI news analysis & quiz for: ${cleanTitle}`);
-          const intel = await generateNewsIntelligence(
-            cleanTitle, 
-            art.description || art.summary || '', 
-            category, 
-            art.source || 'Manual Upload'
-          );
-
-          if (intel) {
-            intelObj = {
-              ...intel,
-              title: cleanTitle,
-              description: art.description || art.summary || '',
-              source: art.source || 'Manual Upload',
-              category: category,
-              createdAt: admin.firestore.FieldValue.serverTimestamp()
-            };
-
-            // Save directly to news_intelligence collection so users get instant response without extra AI calls
-            await db.collection('news_intelligence').doc(intelDocId).set(intelObj);
-            console.log(`[Admin News Upload] Saved pre-generated news_intelligence for: ${cleanTitle} ✅`);
-          }
-        } catch (intelErr) {
-          console.error(`[Admin News Upload] Intelligence pre-generation failed for "${cleanTitle}":`, intelErr.message);
-        }
-      }
+      const dept = art.department || art.dept || art.organization || art.board || '';
+      const posts = art.totalPosts || art.posts || art.post || art.vacancies || art.total_posts || '';
+      const qual = art.qualification || art.eligibility || art.qualification_hi || art.education || '';
+      const lDate = art.lastDate || art.last_date || art.deadline || art.pubDate || art.date || '';
+      const sal = art.salary || art.payScale || art.pay_scale || art.stipend || '';
+      const age = art.ageLimit || art.age_limit || art.age || '';
+      const fee = art.applicationFee || art.fee || art.application_fee || '';
+      const mode = art.applyMode || art.mode || art.apply_mode || '';
+      const selection = art.selectionProcess || art.selection || art.selection_process || '';
+      const details = art.details || art.job_details || art.description || art.description_hi || art.summary || art.summary_hi || '';
 
       const cleanArt = {
         title: cleanTitle,
         title_hi: art.title_hi || cleanTitle,
-        description: art.description || '',
-        description_hi: art.description_hi || art.description || '',
-        summary: art.summary || art.description || '',
-        summary_hi: art.summary_hi || art.description_hi || art.description || '',
+        description: art.description || details || '',
+        description_hi: art.description_hi || details || '',
+        summary: art.summary || details || '',
+        summary_hi: art.summary_hi || details || '',
         source: art.source || 'Manual Upload',
         category: category,
-        pubDate: art.pubDate || art.date || timestamp.split('T')[0],
-        date: art.pubDate || art.date || timestamp.split('T')[0],
+        department: dept,
+        totalPosts: posts,
+        qualification: qual,
+        lastDate: lDate,
+        salary: sal,
+        ageLimit: age,
+        fee: fee,
+        mode: mode,
+        selectionProcess: selection,
+        details: details,
+        state: art.state || 'CG',
+        pubDate: lDate || timestamp.split('T')[0],
+        date: lDate || timestamp.split('T')[0],
         url: art.url || '',
         examRelevance: true,
-        icon: art.icon || (category === 'chhattisgarh' ? '🏔️' : '📰'),
+        icon: art.icon || (category === 'jobs' ? '💼' : category === 'chhattisgarh' ? '🏔️' : '📰'),
         lang: art.lang || 'hi',
         intelligence: intelObj || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -634,6 +626,175 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
   } catch (err) {
     console.error('[Admin News Upload Error]:', err.message);
     res.status(500).json({ error: err.message || 'Failed to upload news articles.' });
+  }
+});
+
+// Helper function to update news & jobs cache in Firestore
+async function updateNewsCacheInFirestore() {
+  try {
+    const crypto = require('crypto');
+    const timestamp = new Date().toISOString();
+    const snap = await db.collection('news_articles').orderBy('createdAt', 'desc').limit(150).get();
+    let allStored = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    allStored.sort((a, b) => {
+      const dateA = a.pubDate || a.date || '';
+      const dateB = b.pubDate || b.date || '';
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA);
+      }
+      const createA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime()) : 0;
+      const createB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime()) : 0;
+      return createB - createA;
+    });
+
+    const cacheArticles = allStored.slice(0, 100).map(art => ({
+      ...art,
+      id: art.id || crypto.createHash('md5').update(art.url || art.title || '').digest('hex'),
+      date: art.date || art.pubDate || timestamp.split('T')[0],
+      pubDate: art.pubDate || art.date || timestamp.split('T')[0]
+    }));
+
+    const cacheData = {
+      lastUpdated: timestamp,
+      articles: cacheArticles
+    };
+
+    await db.collection('news').doc('cache').set(cacheData);
+    return cacheData;
+  } catch (err) {
+    console.error('[Update News Cache Error]:', err.message);
+  }
+}
+
+// ── Admin News/Jobs Edit Endpoint ──
+router.post('/news/edit', verifyStaffOrAdmin('news'), async (req, res) => {
+  try {
+    const { article } = req.body;
+    if (!article || (!article.id && !article.url && !article.title)) {
+      return res.status(400).json({ error: 'Article payload with id, url or title is required' });
+    }
+
+    const crypto = require('crypto');
+    const docId = article.id || crypto.createHash('md5').update(article.url || article.title).digest('hex');
+    
+    const updatedArt = {
+      ...article,
+      id: docId,
+      updatedAt: new Date().toISOString()
+    };
+
+    await db.collection('news_articles').doc(docId).set(updatedArt, { merge: true });
+    await updateNewsCacheInFirestore();
+
+    await logStaffActivity(req, 'edit_news', { id: docId, title: article.title });
+
+    res.json({ success: true, message: 'Article updated successfully' });
+  } catch (err) {
+    console.error('[Admin News Edit Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to edit article' });
+  }
+});
+
+// ── Admin News/Jobs Delete Endpoint ──
+router.post('/news/delete', verifyStaffOrAdmin('news'), async (req, res) => {
+  try {
+    const { id, url, title } = req.body;
+    if (!id && !url && !title) {
+      return res.status(400).json({ error: 'id, url or title is required for deletion' });
+    }
+
+    const crypto = require('crypto');
+    const docId = id || crypto.createHash('md5').update(url || title).digest('hex');
+
+    await db.collection('news_articles').doc(docId).delete().catch(() => {});
+    
+    if (title || url) {
+      const hashId = crypto.createHash('md5').update(url || title).digest('hex');
+      if (hashId !== docId) {
+        await db.collection('news_articles').doc(hashId).delete().catch(() => {});
+      }
+    }
+
+    // Direct delete from cache document as well
+    const cacheRef = db.collection('news').doc('cache');
+    const cacheDoc = await cacheRef.get();
+    if (cacheDoc.exists) {
+      const data = cacheDoc.data();
+      const filtered = (data.articles || []).filter(a => {
+        if (id && a.id === id) return false;
+        if (url && a.url === url) return false;
+        if (title && a.title === title) return false;
+        return true;
+      });
+      await cacheRef.set({ ...data, articles: filtered }, { merge: true });
+    }
+
+    await updateNewsCacheInFirestore();
+    await logStaffActivity(req, 'delete_news', { id: docId, title });
+
+    res.json({ success: true, message: 'Article deleted successfully' });
+  } catch (err) {
+    console.error('[Admin News Delete Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to delete article' });
+  }
+});
+
+// ── Admin News/Jobs Bulk Delete Endpoint ──
+router.post('/news/delete-bulk', verifyStaffOrAdmin('news'), async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Array of items to delete is required' });
+    }
+
+    const crypto = require('crypto');
+    const batch = db.batch();
+    const deleteIdsSet = new Set();
+    const deleteTitlesSet = new Set();
+    const deleteUrlsSet = new Set();
+
+    for (const item of items) {
+      const id = item.id || '';
+      const url = item.url || '';
+      const title = item.title || '';
+
+      const docId = id || crypto.createHash('md5').update(url || title).digest('hex');
+      const hashId = crypto.createHash('md5').update(url || title).digest('hex');
+
+      if (id) deleteIdsSet.add(id);
+      if (title) deleteTitlesSet.add(title);
+      if (url) deleteUrlsSet.add(url);
+
+      batch.delete(db.collection('news_articles').doc(docId));
+      if (hashId !== docId) {
+        batch.delete(db.collection('news_articles').doc(hashId));
+      }
+    }
+
+    await batch.commit();
+
+    // Clean up from cache doc as well
+    const cacheRef = db.collection('news').doc('cache');
+    const cacheDoc = await cacheRef.get();
+    if (cacheDoc.exists) {
+      const data = cacheDoc.data();
+      const filtered = (data.articles || []).filter(a => {
+        if (a.id && deleteIdsSet.has(a.id)) return false;
+        if (a.title && deleteTitlesSet.has(a.title)) return false;
+        if (a.url && deleteUrlsSet.has(a.url)) return false;
+        return true;
+      });
+      await cacheRef.set({ ...data, articles: filtered }, { merge: true });
+    }
+
+    await updateNewsCacheInFirestore();
+    await logStaffActivity(req, 'delete_news_bulk', { count: items.length });
+
+    res.json({ success: true, count: items.length, message: `Successfully deleted ${items.length} entries` });
+  } catch (err) {
+    console.error('[Admin News Bulk Delete Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to delete selected entries' });
   }
 });
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Newspaper, RefreshCw, Loader2, Calendar, 
   Search, ShieldAlert, CheckCircle, ExternalLink, UploadCloud,
-  Briefcase
+  Briefcase, Pencil, Trash2, X, Save, CheckSquare, Square
 } from 'lucide-react';
 
 interface AdminNewsProps {
@@ -10,6 +10,7 @@ interface AdminNewsProps {
 }
 
 interface Article {
+  id?: string;
   title: string;
   title_hi?: string;
   description?: string;
@@ -26,6 +27,10 @@ interface Article {
   qualification?: string;
   lastDate?: string;
   salary?: string;
+  ageLimit?: string;
+  fee?: string;
+  selectionProcess?: string;
+  details?: string;
 }
 
 export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
@@ -43,6 +48,13 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [pasteJson, setPasteJson] = useState<string>('');
   const [loadingUpload, setLoadingUpload] = useState<boolean>(false);
+
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [loadingSaveEdit, setLoadingSaveEdit] = useState<boolean>(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [loadingBulkDelete, setLoadingBulkDelete] = useState<boolean>(false);
 
   const getApiUrl = (path: string) => {
     const hostname = window.location.hostname;
@@ -195,8 +207,6 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
       {
         title: "Chhattisgarh Vyapam Patwari & Revenue Inspector Recruitment 2026",
         title_hi: "छत्तीसगढ़ व्यापम पटवारी एवं राजस्व निरीक्षक भर्ती 2026",
-        description: "Official vacancy notification for 350 Patwari posts across Chhattisgarh districts.",
-        description_hi: "छत्तीसगढ़ के जिलों में 350 पटवारी पदों के लिए आधिकारिक भर्ती घोषणा।",
         category: "jobs",
         department: "CG Revenue Department",
         totalPosts: "350 Posts",
@@ -209,8 +219,6 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
       {
         title: "CG Health Staff Nurse & Lab Technician Recruitment 2026",
         title_hi: "छत्तीसगढ़ स्वास्थ्य विभाग स्टाफ नर्स एवं लैब तकनीशियन भर्ती 2026",
-        description: "Health Department invites online applications for 500 nursing staff vacancies.",
-        description_hi: "स्वास्थ्य विभाग द्वारा 500 पदों पर सीधी भर्ती हेतु ऑनलाइन आवेदन आमंत्रित।",
         category: "jobs",
         department: "CG Health Department",
         totalPosts: "500 Posts",
@@ -253,8 +261,6 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
       {
         title: "Chhattisgarh Vyapam Patwari & Revenue Inspector Recruitment 2026",
         title_hi: "छत्तीसगढ़ व्यापम पटवारी एवं राजस्व निरीक्षक भर्ती 2026",
-        description: "Official vacancy notification for 350 Patwari posts across Chhattisgarh districts.",
-        description_hi: "छत्तीसगढ़ के जिलों में 350 पटवारी पदों के लिए आधिकारिक भर्ती घोषणा।",
         category: "jobs",
         department: "CG Revenue Department",
         totalPosts: "350 Posts",
@@ -385,6 +391,141 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
       setErrorMessage(err.message || 'Refresh failed.');
     } finally {
       setLoadingRefresh(false);
+    }
+  };
+
+  const handleDeleteArticle = async (art: Article) => {
+    const targetId = art.id || art.url || art.title;
+    if (!window.confirm(`Are you sure you want to delete "${art.title_hi || art.title}"?`)) {
+      return;
+    }
+
+    setDeletingId(targetId);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(getApiUrl('/api/admin/news/delete'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          id: art.id || '',
+          url: art.url || '',
+          title: art.title || ''
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage('Entry deleted successfully!');
+        fetchNewsCache();
+      } else {
+        throw new Error(data.error || 'Failed to delete entry.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Delete failed.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleSaveEditArticle = async () => {
+    if (!editingArticle) return;
+
+    setLoadingSaveEdit(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(getApiUrl('/api/admin/news/edit'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ article: editingArticle })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage('Entry updated successfully!');
+        setEditingArticle(null);
+        fetchNewsCache();
+      } else {
+        throw new Error(data.error || 'Failed to update entry.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Update failed.');
+    } finally {
+      setLoadingSaveEdit(false);
+    }
+  };
+
+  const getItemKey = (art: Article) => {
+    return art.id || art.url || art.title;
+  };
+
+  const toggleSelectItem = (art: Article) => {
+    const key = getItemKey(art);
+    setSelectedKeys(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const handleSelectAllVisible = (visibleArticles: Article[]) => {
+    const visibleKeys = visibleArticles.map(art => getItemKey(art));
+    const allSelected = visibleKeys.length > 0 && visibleKeys.every(k => selectedKeys.includes(k));
+
+    if (allSelected) {
+      setSelectedKeys(prev => prev.filter(k => !visibleKeys.includes(k)));
+    } else {
+      setSelectedKeys(prev => Array.from(new Set([...prev, ...visibleKeys])));
+    }
+  };
+
+  const handleBulkDelete = async (visibleArticles: Article[]) => {
+    const selectedArticles = visibleArticles.filter(art => selectedKeys.includes(getItemKey(art)));
+    if (selectedArticles.length === 0) return;
+
+    if (!window.confirm(`Are you sure you want to delete ${selectedArticles.length} selected ${activeAdminTab === 'jobs' ? 'job alerts' : 'news articles'}?`)) {
+      return;
+    }
+
+    setLoadingBulkDelete(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(getApiUrl('/api/admin/news/delete-bulk'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ items: selectedArticles })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage(`Successfully deleted ${data.count || selectedArticles.length} entries!`);
+        setSelectedKeys([]);
+        fetchNewsCache();
+      } else {
+        throw new Error(data.error || 'Failed to delete selected entries.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Bulk delete failed.');
+    } finally {
+      setLoadingBulkDelete(false);
     }
   };
 
@@ -559,7 +700,6 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
   {
     "title": "CG Vyapam Patwari Bharti 2026",
     "title_hi": "छत्तीसगढ़ व्यापम पटवारी भर्ती 2026",
-    "description": "Vacancy announcement for 250 Posts...",
     "category": "jobs",
     "department": "Revenue Department",
     "totalPosts": "250 Posts",
@@ -633,8 +773,8 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
         )}
       </div>
 
-      {/* Filter and Search header */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+      {/* Filter and Search header with Bulk Select Actions */}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         <div className="relative flex-1">
           <input
             type="text"
@@ -645,6 +785,51 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
           />
           <Search className="w-4 h-4 text-text-muted absolute left-3 top-3.5" />
         </div>
+
+        {filteredArticles.length > 0 && (
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => handleSelectAllVisible(filteredArticles)}
+              className="px-3 py-2 bg-bg-s2 border border-border hover:bg-bg-s3 text-text-muted text-[10px] font-black uppercase rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              {filteredArticles.every(art => selectedKeys.includes(getItemKey(art))) ? (
+                <>
+                  <CheckSquare className="w-3.5 h-3.5 text-saffron" />
+                  <span>Deselect All</span>
+                </>
+              ) : (
+                <>
+                  <Square className="w-3.5 h-3.5" />
+                  <span>Select All ({filteredArticles.length})</span>
+                </>
+              )}
+            </button>
+
+            {selectedKeys.length > 0 && (
+              <>
+                <button
+                  onClick={() => handleBulkDelete(filteredArticles)}
+                  disabled={loadingBulkDelete}
+                  className="px-3.5 py-2 bg-red-500 hover:bg-red-600 text-white text-[10px] font-black uppercase rounded-lg flex items-center gap-1.5 cursor-pointer shadow-md transition-colors disabled:opacity-40"
+                >
+                  {loadingBulkDelete ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>Delete Selected ({selectedKeys.filter(k => filteredArticles.some(a => getItemKey(a) === k)).length})</span>
+                </button>
+
+                <button
+                  onClick={() => setSelectedKeys([])}
+                  className="px-2.5 py-2 bg-bg-s3 text-text-muted hover:text-text text-[10px] font-bold uppercase rounded-lg cursor-pointer"
+                >
+                  Clear
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Grid listing */}
@@ -659,19 +844,41 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredArticles.map((art, idx) => (
-            <div
-              key={idx}
-              className="p-5 bg-bg-s2 border border-border rounded-xl flex flex-col gap-3 relative hover:border-saffron-border/30 transition-colors shadow-sm"
-            >
-              <div className="flex justify-between items-center shrink-0">
-                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded leading-none flex items-center gap-1 ${
-                  activeAdminTab === 'jobs'
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    : 'bg-saffron-dim/30 text-saffron border border-saffron-border/30'
-                }`}>
-                  <span>{activeAdminTab === 'jobs' ? '💼 Job Vacancy' : '📰 News Update'}</span>
-                </span>
+          {filteredArticles.map((art, idx) => {
+            const key = getItemKey(art);
+            const isSelected = selectedKeys.includes(key);
+            return (
+              <div
+                key={idx}
+                className={`p-5 bg-bg-s2 border rounded-xl flex flex-col gap-3 relative transition-all shadow-sm ${
+                  isSelected
+                    ? activeAdminTab === 'jobs' 
+                      ? 'border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500/30' 
+                      : 'border-saffron bg-saffron/5 ring-1 ring-saffron/30'
+                    : 'border-border hover:border-saffron-border/30'
+                }`}
+              >
+                <div className="flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleSelectItem(art)}
+                      className="text-text-muted hover:text-saffron cursor-pointer p-0.5"
+                    >
+                      {isSelected ? (
+                        <CheckSquare className={`w-4 h-4 ${activeAdminTab === 'jobs' ? 'text-emerald-400' : 'text-saffron'}`} />
+                      ) : (
+                        <Square className="w-4 h-4 text-text-muted/60" />
+                      )}
+                    </button>
+
+                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded leading-none flex items-center gap-1 ${
+                      activeAdminTab === 'jobs'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-saffron-dim/30 text-saffron border border-saffron-border/30'
+                    }`}>
+                      <span>{activeAdminTab === 'jobs' ? '💼 Job Vacancy' : '📰 News Update'}</span>
+                    </span>
+                  </div>
                 
                 <span className="text-[9px] text-text-muted font-bold flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5" />
@@ -693,36 +900,254 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
 
               {/* If job, render job parameters */}
               {activeAdminTab === 'jobs' && (
-                <div className="p-3 bg-bg-s3 border border-border rounded-lg grid grid-cols-2 gap-2 text-[10px] font-semibold text-text-muted">
-                  <div><strong>Department:</strong> {art.department || 'Govt'}</div>
-                  <div><strong>Posts:</strong> {art.totalPosts || 'N/A'}</div>
-                  <div><strong>Qualification:</strong> {art.qualification || 'As per notice'}</div>
-                  <div><strong>Deadline:</strong> {art.lastDate || 'N/A'}</div>
+                <div className="p-3 bg-bg-s3 border border-border rounded-lg flex flex-col gap-2 text-[10px] font-semibold text-text-muted">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><strong>Department:</strong> {art.department || (art as any).dept || (art as any).organization || art.source || 'Govt'}</div>
+                    <div><strong>Posts:</strong> {art.totalPosts || (art as any).posts || (art as any).vacancies || 'N/A'}</div>
+                    <div className="col-span-2"><strong>Qualification:</strong> {art.qualification || (art as any).eligibility || 'As per notice'}</div>
+                    <div><strong>Deadline:</strong> {art.lastDate || (art as any).deadline || art.date || 'N/A'}</div>
+                    {art.salary && <div><strong>Salary:</strong> {art.salary}</div>}
+                    {(art as any).ageLimit && <div className="col-span-2"><strong>Age Limit:</strong> {(art as any).ageLimit}</div>}
+                  </div>
+                  {(art as any).details && (
+                    <div className="border-t border-border/50 pt-1.5 text-[10px] text-text-muted font-normal leading-relaxed whitespace-pre-line">
+                      <strong className="text-text font-bold">Details:</strong> {(art as any).details}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Summary */}
-              <div className="p-3 bg-bg-s3 border border-border rounded-lg flex flex-col gap-2 mt-1">
-                <p className="text-[11px] text-text leading-normal font-medium whitespace-pre-line">
-                  {art.summary_hi || art.description_hi || art.summary || art.description}
-                </p>
-              </div>
+              {/* Summary (Only for news articles) */}
+              {activeAdminTab !== 'jobs' && (
+                <div className="p-3 bg-bg-s3 border border-border rounded-lg flex flex-col gap-2 mt-1">
+                  <p className="text-[11px] text-text leading-normal font-medium whitespace-pre-line">
+                    {art.summary_hi || art.description_hi || art.summary || art.description}
+                  </p>
+                </div>
+              )}
 
-              {/* Footer */}
-              <div className="flex justify-between items-center text-[10px] border-t border-border/45 pt-3 mt-1 shrink-0">
-                <span className="font-bold text-text-muted uppercase">Source: {art.source}</span>
+              {/* Footer Actions */}
+              <div className="flex flex-wrap justify-between items-center text-[10px] border-t border-border/45 pt-3 mt-1 shrink-0 gap-2">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setEditingArticle({ ...art })}
+                    className="px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-lg font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    <span>Edit</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleDeleteArticle(art)}
+                    disabled={deletingId === (art.id || art.url || art.title)}
+                    className="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-40"
+                  >
+                    {deletingId === (art.id || art.url || art.title) ? (
+                      <Loader2 className="w-3 h-3 animate-spin text-red-400" />
+                    ) : (
+                      <Trash2 className="w-3 h-3" />
+                    )}
+                    <span>Delete</span>
+                  </button>
+                </div>
+
                 <a
                   href={art.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-saffron hover:underline font-bold flex items-center gap-0.5"
+                  className="text-saffron hover:underline font-bold flex items-center gap-0.5 ml-auto"
                 >
                   <span>Open Feed</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
             </div>
-          ))}
+          );
+        })}
+        </div>
+      )}
+
+      {/* Edit Modal Overlay */}
+      {editingArticle && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-bg-s2 border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-border/80 flex items-center justify-between bg-bg-s3/60 shrink-0">
+              <h3 className="text-xs font-black uppercase tracking-wider text-text flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-saffron" />
+                <span>Edit {activeAdminTab === 'jobs' ? 'Job Alert' : 'News Article'}</span>
+              </h3>
+              <button
+                onClick={() => setEditingArticle(null)}
+                className="text-text-muted hover:text-text p-1 rounded-lg hover:bg-bg-s3 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Form Content */}
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto custom-scrollbar text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Title (English)</label>
+                  <input
+                    type="text"
+                    value={editingArticle.title || ''}
+                    onChange={(e) => setEditingArticle({ ...editingArticle, title: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Title (Hindi)</label>
+                  <input
+                    type="text"
+                    value={editingArticle.title_hi || ''}
+                    onChange={(e) => setEditingArticle({ ...editingArticle, title_hi: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {activeAdminTab === 'jobs' ? (
+                  <>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Department</label>
+                      <input
+                        type="text"
+                        value={editingArticle.department || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, department: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Total Posts / Vacancies</label>
+                      <input
+                        type="text"
+                        value={editingArticle.totalPosts || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, totalPosts: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Qualification / Eligibility</label>
+                      <input
+                        type="text"
+                        value={editingArticle.qualification || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, qualification: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Last Date / Deadline</label>
+                      <input
+                        type="text"
+                        value={editingArticle.lastDate || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, lastDate: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Salary / Pay Scale</label>
+                      <input
+                        type="text"
+                        value={editingArticle.salary || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, salary: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Age Limit</label>
+                      <input
+                        type="text"
+                        value={editingArticle.ageLimit || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, ageLimit: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-1 sm:col-span-2">
+                    <label className="text-[10px] font-black uppercase text-text-muted">Category</label>
+                    <input
+                      type="text"
+                      value={editingArticle.category || ''}
+                      onChange={(e) => setEditingArticle({ ...editingArticle, category: e.target.value })}
+                      className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Source</label>
+                  <input
+                    type="text"
+                    value={editingArticle.source || ''}
+                    onChange={(e) => setEditingArticle({ ...editingArticle, source: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Official Portal URL</label>
+                  <input
+                    type="text"
+                    value={editingArticle.url || ''}
+                    onChange={(e) => setEditingArticle({ ...editingArticle, url: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text-muted">
+                    {activeAdminTab === 'jobs' ? 'Job Overview & Details' : 'Article Description / Summary'}
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={editingArticle.details || editingArticle.description || editingArticle.summary || ''}
+                    onChange={(e) => setEditingArticle({ 
+                      ...editingArticle, 
+                      details: e.target.value,
+                      description: e.target.value,
+                      summary: e.target.value
+                    })}
+                    className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text font-sans"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 border-t border-border/80 flex items-center justify-end gap-3 bg-bg-s3/40 shrink-0">
+              <button
+                onClick={() => setEditingArticle(null)}
+                className="px-4 py-2 bg-bg-s3 border border-border hover:bg-bg-s3/80 text-text-muted text-xs font-bold uppercase rounded-lg cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEditArticle}
+                disabled={loadingSaveEdit}
+                className="px-5 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-40"
+              >
+                {loadingSaveEdit ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save Changes</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

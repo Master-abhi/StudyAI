@@ -11,15 +11,44 @@ interface JobArticle {
   title_hi?: string;
   description?: string;
   description_hi?: string;
+  summary?: string;
+  summary_hi?: string;
   category: string;
   source: string;
   url: string;
   date?: string;
   department?: string;
+  dept?: string;
+  organization?: string;
+  board?: string;
   totalPosts?: string;
+  posts?: string;
+  post?: string;
+  vacancies?: string;
+  total_posts?: string;
   qualification?: string;
+  eligibility?: string;
+  education?: string;
+  qualification_hi?: string;
   lastDate?: string;
+  last_date?: string;
+  deadline?: string;
   salary?: string;
+  payScale?: string;
+  pay_scale?: string;
+  stipend?: string;
+  ageLimit?: string;
+  age_limit?: string;
+  age?: string;
+  fee?: string;
+  applicationFee?: string;
+  application_fee?: string;
+  mode?: string;
+  applyMode?: string;
+  selectionProcess?: string;
+  selection?: string;
+  details?: string;
+  job_details?: string;
 }
 
 interface JobsTabProps {
@@ -112,8 +141,8 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
     const q = searchQuery.toLowerCase();
     const title = (job.title || '').toLowerCase();
     const titleHi = (job.title_hi || '').toLowerCase();
-    const dept = (job.department || '').toLowerCase();
-    const qual = (job.qualification || '').toLowerCase();
+    const dept = (job.department || job.dept || job.organization || '').toLowerCase();
+    const qual = (job.qualification || job.eligibility || '').toLowerCase();
     const src = (job.source || '').toLowerCase();
 
     const matchesSearch = title.includes(q) || titleHi.includes(q) || dept.includes(q) || qual.includes(q) || src.includes(q);
@@ -216,6 +245,18 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredJobs.map((job, idx) => {
             const isSaved = savedJobs.some(j => j.title === job.title);
+
+            // Extract all essential job detail aliases safely
+            const dept = job.department || job.dept || job.organization || job.board || job.source || 'Govt Notification';
+            const posts = job.totalPosts || job.posts || job.vacancies || job.post || job.total_posts;
+            const qual = job.qualification || job.eligibility || job.education || job.qualification_hi;
+            const lastDate = job.lastDate || job.last_date || job.deadline || job.date;
+            const salary = job.salary || job.payScale || job.pay_scale || job.stipend;
+            const age = job.ageLimit || job.age_limit || job.age;
+            const fee = job.fee || job.applicationFee || job.application_fee;
+            const selection = job.selectionProcess || job.selection;
+            const details = job.details || job.job_details || job.description_hi || job.description || job.summary_hi || job.summary;
+
             return (
               <motion.div
                 key={idx}
@@ -229,13 +270,13 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[9px] font-black uppercase text-saffron bg-saffron/10 border border-saffron-border/30 px-2 py-0.5 rounded-md flex items-center gap-1">
                       <Building className="w-3 h-3" />
-                      <span>{job.department || job.source || 'Govt Notification'}</span>
+                      <span>{dept}</span>
                     </span>
 
-                    {job.totalPosts && (
+                    {posts && (
                       <span className="text-[9px] font-black uppercase text-saffron bg-saffron/10 border border-saffron-border/30 px-2 py-0.5 rounded-md flex items-center gap-1">
                         <Users className="w-3 h-3" />
-                        <span>{job.totalPosts}</span>
+                        <span>{posts}</span>
                       </span>
                     )}
                   </div>
@@ -265,32 +306,55 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
                   )}
                 </div>
 
-                {/* Key Job Specifications */}
-                <div className="grid grid-cols-2 gap-2 p-3 bg-bg-s3/60 border border-border/70 rounded-xl text-[10px]">
-                  <div className="flex items-center gap-2 text-text-muted font-medium">
-                    <GraduationCap className="w-3.5 h-3.5 text-saffron shrink-0" />
-                    <span className="truncate"><strong>Qual:</strong> {job.qualification || 'As per notification'}</span>
+                {/* Essential Job Specifications */}
+                <div className="flex flex-col gap-2 p-3.5 bg-bg-s3/70 border border-border/80 rounded-xl text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                    <div className="flex items-start gap-2 text-text-muted font-medium">
+                      <GraduationCap className="w-3.5 h-3.5 text-saffron shrink-0 mt-0.5" />
+                      <span className="break-words"><strong>Qual:</strong> {qual || 'As per official notice'}</span>
+                    </div>
+
+                    <div className="flex items-start gap-2 text-text-muted font-medium">
+                      <Clock className="w-3.5 h-3.5 text-orange-400 shrink-0 mt-0.5" />
+                      <span className="break-words"><strong>Last Date:</strong> {lastDate || 'Refer Notification'}</span>
+                    </div>
+
+                    {salary && (
+                      <div className="flex items-start gap-2 text-text-muted font-medium sm:col-span-2 border-t border-border/40 pt-1.5">
+                        <Coins className="w-3.5 h-3.5 text-saffron shrink-0 mt-0.5" />
+                        <span className="break-words"><strong>Pay Scale:</strong> {salary}</span>
+                      </div>
+                    )}
+
+                    {age && (
+                      <div className="flex items-start gap-2 text-text-muted font-medium sm:col-span-2 border-t border-border/40 pt-1.5">
+                        <span className="text-[11px] shrink-0">⏳</span>
+                        <span className="break-words"><strong>Age Limit:</strong> {age}</span>
+                      </div>
+                    )}
+
+                    {fee && (
+                      <div className="flex items-start gap-2 text-text-muted font-medium">
+                        <span className="text-[11px] shrink-0">💳</span>
+                        <span className="break-words"><strong>Fee:</strong> {fee}</span>
+                      </div>
+                    )}
+
+                    {selection && (
+                      <div className="flex items-start gap-2 text-text-muted font-medium">
+                        <span className="text-[11px] shrink-0">📝</span>
+                        <span className="break-words"><strong>Selection:</strong> {selection}</span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2 text-text-muted font-medium">
-                    <Clock className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                    <span className="truncate"><strong>Last Date:</strong> {job.lastDate || job.date || 'Refer Notification'}</span>
-                  </div>
-
-                  {job.salary && (
-                    <div className="flex items-center gap-2 text-text-muted font-medium col-span-2 border-t border-border/40 pt-1.5">
-                      <Coins className="w-3.5 h-3.5 text-saffron shrink-0" />
-                      <span className="truncate"><strong>Pay Scale:</strong> {job.salary}</span>
+                  {details && (
+                    <div className="mt-1 border-t border-border/50 pt-2 text-[11px] text-text-muted leading-relaxed whitespace-pre-line bg-bg-s2/50 p-2.5 rounded-lg border border-border/40">
+                      <strong className="text-text font-bold uppercase text-[9px] block mb-0.5 tracking-wider">📌 Job Overview & Details:</strong>
+                      {details}
                     </div>
                   )}
                 </div>
-
-                {/* Description snippet */}
-                {(job.description_hi || job.description) && (
-                  <p className="text-[11px] text-text-muted leading-relaxed line-clamp-3">
-                    {job.description_hi || job.description}
-                  </p>
-                )}
 
                 {/* Action Footer */}
                 <div className="flex items-center justify-between border-t border-border/60 pt-3 text-[10px]">
