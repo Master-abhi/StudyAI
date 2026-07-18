@@ -372,9 +372,16 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     return '📰';
   };
 
+  const isJobCategory = (cat?: string) => {
+    if (!cat) return false;
+    const c = cat.toLowerCase();
+    return c === 'jobs' || c === 'job' || c === 'job_alert' || c === 'recruitment';
+  };
+
   // Filter lists based on Search & Category
   const getFilteredList = (list: Article[]) => {
     return list.filter(art => {
+      if (isJobCategory(art.category)) return false;
       const matchesCategory = activeCategory === 'all' || art.category.toLowerCase().includes(activeCategory.toLowerCase()) || activeCategory.toLowerCase().includes(art.category.toLowerCase());
       const query = searchQuery.toLowerCase();
       const titleText = (art.title || '').toLowerCase() + ' ' + 
@@ -386,7 +393,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     });
   };
 
-  const displayFeed = articles;
+  const displayFeed = articles.filter(art => !isJobCategory(art.category));
   const filteredArticles = getFilteredList(displayFeed);
 
   // Trending Section (Top 5 scoring articles or just first 5 articles)

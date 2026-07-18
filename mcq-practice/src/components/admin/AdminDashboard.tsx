@@ -68,7 +68,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
       const [testsRes, materialsRes, newsRes, aiRes, usersRes] = await Promise.all([
         fetch(getApiUrl('/api/admin/tests'), { headers }),
         fetch(getApiUrl('/api/admin/materials'), { headers }),
-        fetch(getApiUrl('/api/news')),
+        fetch(getApiUrl('/api/news?includeJobs=true')),
         fetch(getApiUrl('/api/admin/config/ai'), { headers }),
         fetch(getApiUrl('/api/admin/users'), { headers })
       ]);

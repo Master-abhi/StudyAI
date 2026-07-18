@@ -67,7 +67,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         if (res.ok) {
           const data = await res.json();
           if (data && Array.isArray(data.articles)) {
-            setArticles(data.articles.slice(0, 3));
+            const nonJobArticles = data.articles.filter((art: any) => {
+              const cat = (art.category || '').toLowerCase();
+              return cat !== 'jobs' && cat !== 'job' && cat !== 'job_alert' && cat !== 'recruitment';
+            });
+            setArticles(nonJobArticles.slice(0, 3));
           }
         }
       } catch (err) {

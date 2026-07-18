@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Timer, LayoutGrid, Clock } from 'lucide-react';
+import { ArrowLeft, Timer, LayoutGrid, Clock, Share2 } from 'lucide-react';
 
 interface PracticeHeaderProps {
   subjectName: string;
@@ -81,6 +81,31 @@ export const PracticeHeader: React.FC<PracticeHeaderProps> = ({
           title="Toggle Question Palette"
         >
           <LayoutGrid className="w-5 h-5" />
+        </button>
+
+        {/* Share Test Button */}
+        <button
+          onClick={async () => {
+            const shareText = `📝 CG Guru Practice Test:\nSubject: ${subjectName}\nMode: ${mode === 'mock' ? 'Mock Test' : mode === 'pyq' ? 'PYQ Paper' : 'Quick Quiz'} (${totalQuestions} Questions)\n\nPractice now on CG Guru!`;
+            try {
+              if (navigator.share) {
+                await navigator.share({
+                  title: `CG Guru - ${subjectName}`,
+                  text: shareText,
+                  url: window.location.origin
+                });
+              } else {
+                await navigator.clipboard.writeText(shareText + '\n' + window.location.origin);
+                alert('Test details copied to clipboard! 📋');
+              }
+            } catch (err) {
+              console.warn('Share error:', err);
+            }
+          }}
+          className="p-1.5 rounded-lg bg-bg-s3 border border-border hover:border-saffron-border hover:bg-saffron-dim text-text hover:text-saffron transition-all cursor-pointer"
+          title="Share Test"
+        >
+          <Share2 className="w-5 h-5" />
         </button>
       </div>
     </header>

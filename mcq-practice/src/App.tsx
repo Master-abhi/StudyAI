@@ -16,12 +16,12 @@ import {
   Settings,
   ShieldAlert,
   Shield,
-  GraduationCap,
   Flame,
   FileText,
   Landmark,
   HelpCircle,
-  Briefcase
+  Briefcase,
+  Share2
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -1783,7 +1783,7 @@ export default function App() {
         <aside className="hidden md:flex flex-col w-64 bg-bg-s2 border-r border-border/60 shrink-0 fixed top-0 left-0 h-screen z-30">
           {/* Logo & Brand */}
           <div className="p-6 border-b border-border/60 flex items-center gap-3">
-            <GraduationCap className="w-7 h-7 text-saffron" />
+            <img src="/icon-192.png" alt="CG Guru Logo" className="w-8 h-8 rounded-lg object-contain shadow-sm" />
             <span className="text-base font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
               CG Guru
             </span>
@@ -1887,8 +1887,8 @@ export default function App() {
         {/* Mobile Sticky Top Header (Shown if test workspace is NOT active, hidden on desktop) */}
         {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
           <header className="md:hidden sticky top-0 left-0 right-0 bg-bg-s1/90 backdrop-blur-md border-b border-border/60 px-5 py-4 flex items-center justify-between z-30 shadow-sm shrink-0">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-6 h-6 text-saffron" />
+            <div className="flex items-center gap-2.5">
+              <img src="/icon-192.png" alt="CG Guru Logo" className="w-7 h-7 rounded-lg object-contain shadow-sm" />
               <span className="text-sm font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
                 CG Guru
               </span>
@@ -2099,7 +2099,7 @@ export default function App() {
                       />
 
                       {/* Actions row */}
-                      <div className="flex gap-3 mt-1.5 shrink-0">
+                      <div className="flex gap-3 mt-1.5 shrink-0 flex-wrap sm:flex-nowrap">
                         <button
                           onClick={() => {
                             const clearedAnswers = Array(questions.length).fill(null);
@@ -2114,14 +2114,42 @@ export default function App() {
                             setSessionCompleted(false);
                             setFeedbackEnabled(true);
                           }}
-                          className="flex-1 py-3.5 bg-bg-s3 hover:bg-bg-s2 border border-border text-xs font-black uppercase text-text rounded-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
+                          className="flex-1 min-w-[130px] py-3.5 bg-bg-s3 hover:bg-bg-s2 border border-border text-xs font-black uppercase text-text rounded-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
                         >
                           <RotateCcw className="w-4 h-4 text-saffron" />
                           <span>Retake Session</span>
                         </button>
                         <button
+                          onClick={async () => {
+                            const correctCount = answers.filter((ans, idx) => ans !== null && ans === questions[idx].correctIndex).length;
+                            const totalCount = questions.length;
+                            const pct = Math.round((correctCount / totalCount) * 100);
+                            const shareText = `🎯 CG Guru Practice Test Score:\nSubject: ${subjectName}\nScore: ${correctCount}/${totalCount} (${pct}% Accuracy)\nTime Taken: ${Math.floor(elapsedTime / 60)}m ${elapsedTime % 60}s\n\nPractice mock tests on CG Guru!`;
+                            
+                            try {
+                              if (navigator.share) {
+                                await navigator.share({
+                                  title: 'CG Guru Practice Test Score',
+                                  text: shareText,
+                                  url: window.location.origin
+                                });
+                              } else {
+                                await navigator.clipboard.writeText(shareText + '\n' + window.location.origin);
+                                alert('Scorecard copied to clipboard! 📋');
+                              }
+                            } catch (e) {
+                              console.warn('Share error:', e);
+                            }
+                          }}
+                          className="flex-1 min-w-[130px] py-3.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs font-black uppercase text-emerald-400 rounded-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
+                          title="Share Scorecard"
+                        >
+                          <Share2 className="w-4 h-4" />
+                          <span>Share Score</span>
+                        </button>
+                        <button
                           onClick={() => setIsTestActive(false)}
-                          className="flex-1 py-3.5 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
+                          className="flex-1 min-w-[130px] py-3.5 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-md flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
                         >
                           <BookOpen className="w-4 h-4" />
                           <span>Back to Hub</span>

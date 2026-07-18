@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, Zap, BookOpen, Search, SlidersHorizontal, X, Keyboard, Download, CheckCircle2, HardDriveDownload, Loader2 } from 'lucide-react';
+import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, Zap, BookOpen, Search, SlidersHorizontal, X, Keyboard, Download, CheckCircle2, HardDriveDownload, Loader2, Share2 } from 'lucide-react';
 import type { Question } from '../types';
 import { TypingTest } from './TypingTest';
 
@@ -51,6 +51,25 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3500);
+  };
+
+  const handleShareTest = async (testSubject: string, mode: string, totalQuestions: number, language: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const shareText = `📝 CG Guru Practice Test:\nSubject: ${testSubject}\nMode: ${mode.toUpperCase()} (${totalQuestions} Questions, ${language})\n\nPractice now on CG Guru!`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `CG Guru - ${testSubject}`,
+          text: shareText,
+          url: window.location.origin
+        });
+      } else {
+        await navigator.clipboard.writeText(shareText + '\n' + window.location.origin);
+        showToast('Test link copied to clipboard! 📋');
+      }
+    } catch (err) {
+      console.warn('Share cancelled or failed:', err);
+    }
   };
 
   useEffect(() => {
@@ -434,6 +453,14 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                           )}
 
                           <button
+                            onClick={(e) => handleShareTest(test.subject, 'PYQ Paper', test.totalQuestions, test.language, e)}
+                            className="p-2 bg-bg-s3 hover:bg-saffron-dim/20 text-text-muted hover:text-saffron border border-border rounded-lg text-[10px] font-black transition-all cursor-pointer"
+                            title="Share Test"
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
                             onClick={() => handleStartEducatorTest(test.id, 'pyq', test.subject)}
                             className="px-3 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow active:scale-95 shrink-0"
                           >
@@ -518,6 +545,13 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={(e) => handleShareTest(offTest.subject, offTest.mode || 'test', offTest.questions?.length || offTest.totalQuestions, offTest.language || 'Hindi', e)}
+                          className="p-2 bg-bg-s3 hover:bg-saffron-dim/20 text-text-muted hover:text-saffron border border-border rounded-lg text-[10px] font-black transition-all cursor-pointer"
+                          title="Share Test"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => handleStartEducatorTest(offTest.id, offTest.mode || 'quiz', offTest.subject)}
                           className="px-3 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow active:scale-95 shrink-0"
@@ -796,6 +830,14 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                             <span className="hidden sm:inline">Offline</span>
                           </button>
                         )}
+
+                        <button
+                          onClick={(e) => handleShareTest(test.subject, activeMode === 'quiz' ? 'Quiz' : 'Mock Exam', test.totalQuestions, test.language, e)}
+                          className="p-2 bg-bg-s3 hover:bg-saffron-dim/20 text-text-muted hover:text-saffron border border-border rounded-lg text-[10px] font-black transition-all cursor-pointer"
+                          title="Share Test"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </button>
 
                         <button
                           onClick={() => handleStartEducatorTest(test.id, test.mode, test.subject)}

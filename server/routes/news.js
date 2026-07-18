@@ -29,13 +29,20 @@ function verifyRefreshSecret(req, res, next) {
 // GET /api/news — reads cache from Firestore
 router.get('/', async (req, res) => {
   try {
-    const { category } = req.query;
+    const { category, includeJobs } = req.query;
     const cached = await getCachedNews();
 
     let articles = cached.articles || [];
 
+    const isJobCategory = (cat) => {
+      const c = (cat || '').toLowerCase();
+      return c === 'jobs' || c === 'job' || c === 'job_alert' || c === 'recruitment';
+    };
+
     if (category && category !== 'all') {
-      articles = articles.filter(a => a.category === category);
+      articles = articles.filter(a => (a.category || '').toLowerCase() === category.toLowerCase());
+    } else if (includeJobs !== 'true') {
+      articles = articles.filter(a => !isJobCategory(a.category));
     }
 
     res.json({
@@ -91,7 +98,10 @@ router.get('/recommended', verifyFirebaseToken, async (req, res) => {
     const userId = req.user.uid;
 
     const cached = await getCachedNews();
-    let articles = cached.articles || [];
+    let articles = (cached.articles || []).filter(a => {
+      const c = (a.category || '').toLowerCase();
+      return c !== 'jobs' && c !== 'job' && c !== 'job_alert' && c !== 'recruitment';
+    });
 
     const userDoc = await db.collection('users').doc(userId).get();
     const user = userDoc.exists ? userDoc.data() : {};
@@ -308,7 +318,10 @@ router.get('/analytics', verifyFirebaseToken, async (req, res) => {
 router.get('/capsules', async (req, res) => {
   try {
     const cached = await getCachedNews();
-    const articles = cached.articles || [];
+    const articles = (cached.articles || []).filter(a => {
+      const c = (a.category || '').toLowerCase();
+      return c !== 'jobs' && c !== 'job' && c !== 'job_alert' && c !== 'recruitment';
+    });
     
     const today = new Date();
     const oneDay = 24 * 60 * 60 * 1000;

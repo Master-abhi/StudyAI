@@ -347,7 +347,7 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
     setLoadingList(true);
     setErrorMessage('');
     try {
-      const res = await fetch(getApiUrl('/api/news'));
+      const res = await fetch(getApiUrl('/api/news?includeJobs=true'));
       if (res.ok) {
         const data = await res.json();
         setArticles(data.articles || []);
@@ -531,10 +531,12 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
 
   // Filter articles based on activeAdminTab (News vs Jobs)
   const categoryFiltered = articles.filter(art => {
+    const c = (art.category || '').toLowerCase();
+    const isJob = c === 'jobs' || c === 'job' || c === 'job_alert' || c === 'recruitment';
     if (activeAdminTab === 'jobs') {
-      return art.category === 'jobs';
+      return isJob;
     } else {
-      return art.category !== 'jobs';
+      return !isJob;
     }
   });
 
