@@ -241,9 +241,9 @@
   }
 }
 
-/* Mobile Screen Orientation & Landscape Stability Rules */
-@media screen and (max-height: 550px) {
-  /* Prevent desktop sidebar from popping up on mobile devices in landscape mode */
+/* Mobile Screen Orientation & Layout Lock Rules */
+@media screen and (max-device-width: 950px), screen and (max-height: 550px) {
+  /* Prevent desktop sidebar from popping up on mobile devices in landscape mode or screen tilts */
   aside.fixed.left-0.top-0.bottom-0.w-64 {
     display: none !important;
   }

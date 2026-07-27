@@ -588,45 +588,72 @@ export default function App() {
     }
   };
 
-  const fetchInitialUnreadNotifications = async () => {
-    try {
+  // Real-time Notifications Listener & Automatic Unread Count Calculation
+  useEffect(() => {
+    let unsubscribeSnap: (() => void) | null = null;
+
+    const checkAndSubscribe = async () => {
       const storedRead = localStorage.getItem('examprep_read_notifications');
       const readIds: string[] = storedRead ? JSON.parse(storedRead) : [];
-      
-      let notifs: any[] = [];
-      const firebase = (window as any).firebase;
-      if (firebase && firebase.apps.length > 0) {
-        try {
-          const snap = await firebase.firestore().collection('notifications')
-            .orderBy('createdAt', 'desc')
-            .limit(50)
-            .get();
-          notifs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-        } catch (e) {}
-      }
 
-      if (notifs.length === 0) {
+      const processNotifications = (notifs: any[]) => {
+        const unread = notifs.filter(n => !readIds.includes(n.id)).length;
+        setUnreadNotificationsCount(unread);
+      };
+
+      const setupFirestoreListener = () => {
+        const firebase = (window as any).firebase;
+        if (firebase && firebase.apps && firebase.apps.length > 0) {
+          try {
+            unsubscribeSnap = firebase.firestore().collection('notifications')
+              .orderBy('createdAt', 'desc')
+              .limit(50)
+              .onSnapshot((snap: any) => {
+                const docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+                processNotifications(docs);
+              }, (err: any) => {
+                console.warn('[Firestore Notifications Listener Error]:', err);
+              });
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+        return false;
+      };
+
+      // Direct API fetch immediately as fallback
+      try {
         const res = await fetch(getApiUrl('/api/notifications'));
         if (res.ok) {
           const data = await res.json();
           if (data && Array.isArray(data.notifications)) {
-            notifs = data.notifications;
+            processNotifications(data.notifications);
           }
         }
-      }
+      } catch (e) {}
 
-      const unreadCount = notifs.filter(n => !readIds.includes(n.id)).length;
-      setUnreadNotificationsCount(unreadCount);
-    } catch (err) {
-      console.warn('[Fetch Unread Notifications Count Error]:', err);
-    }
-  };
+      // Try setting up Firestore real-time listener
+      if (!setupFirestoreListener()) {
+        setTimeout(() => {
+          if (!unsubscribeSnap) {
+            setupFirestoreListener();
+          }
+        }, 1500);
+      }
+    };
+
+    checkAndSubscribe();
+
+    return () => {
+      if (unsubscribeSnap) unsubscribeSnap();
+    };
+  }, []);
 
   useEffect(() => {
     fetchCustomSyllabi();
     fetchTabVisibility();
     fetchExamVisibility();
-    fetchInitialUnreadNotifications();
   }, [activeTab]);
 
   // Ensure active exam is valid and visible for regular users
