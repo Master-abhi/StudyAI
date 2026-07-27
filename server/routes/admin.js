@@ -348,7 +348,8 @@ router.get('/config/tabs', async (req, res) => {
       syllabus_ai_planner: true,
       syllabus_revision: true,
       syllabus_analytics: true,
-      syllabus_strategy: true
+      syllabus_strategy: true,
+      practice_pyq: true
     };
     if (doc.exists) {
       const data = doc.data();
@@ -373,7 +374,8 @@ router.post('/config/tabs', verifyAdmin, async (req, res) => {
     const updatedVisibility = {};
     const validTabs = [
       'home', 'practice', 'chat', 'news', 'syllabus', 'profile',
-      'syllabus_ai_planner', 'syllabus_revision', 'syllabus_analytics', 'syllabus_strategy'
+      'syllabus_ai_planner', 'syllabus_revision', 'syllabus_analytics', 'syllabus_strategy',
+      'practice_pyq'
     ];
     for (const key of validTabs) {
       if (visibility.hasOwnProperty(key)) {

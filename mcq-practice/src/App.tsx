@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle, 
@@ -21,7 +21,8 @@ import {
   Landmark,
   HelpCircle,
   Briefcase,
-  Share2
+  Share2,
+  Bell
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -50,6 +51,7 @@ import { AuthModal } from './components/AuthModal';
 import { SettingsModal } from './components/SettingsModal';
 import { TopicStudyModal } from './components/TopicStudyModal';
 import { PublicProfileModal } from './components/PublicProfileModal';
+import { NotificationsModal } from './components/NotificationsModal';
 
 import type { Exam } from './components/syllabus/syllabusData';
 import { 
@@ -166,6 +168,19 @@ const MOCK_QUESTIONS: Question[] = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'chat' | 'news' | 'jobs' | 'profile' | 'syllabus' | 'admin' | 'staff'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab') || params.get('page');
+      if (urlTab && ['home', 'practice', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff'].includes(urlTab)) {
+        return urlTab as any;
+      }
+      if (params.get('testId')) {
+        return 'practice';
+      }
+      if (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) {
+        return 'admin';
+      }
+    }
     return (localStorage.getItem('cg_active_tab') as any) || 'home';
   });
   const [tabVisibility, setTabVisibility] = useState<Record<string, boolean>>({
@@ -176,6 +191,7 @@ export default function App() {
     jobs: true,
     syllabus: true,
     profile: true,
+    practice_pyq: true,
     syllabus_ai_planner: true,
     syllabus_revision: true,
     syllabus_analytics: true,
@@ -190,6 +206,7 @@ export default function App() {
   const [initialSelectedArticle, setInitialSelectedArticle] = useState<any>(null);
 
   const [activeTestId, setActiveTestId] = useState<string | null>(null);
+  const isMountTestChecked = useRef(false);
 
   const saveTestProgress = (testId: string | null, currentAnswers: (number | null)[], completed = false) => {
     if (!testId) return;
@@ -206,16 +223,85 @@ export default function App() {
     }
   };
 
-  // Persist activeTab selection
+  // Persist activeTab selection & synchronize browser URL search params
   useEffect(() => {
     localStorage.setItem('cg_active_tab', activeTab);
-  }, [activeTab]);
+
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    let changed = false;
+
+    // Sync activeTab
+    const currentUrlTab = url.searchParams.get('tab') || url.searchParams.get('page');
+    if (activeTab === 'home') {
+      if (currentUrlTab) {
+        url.searchParams.delete('tab');
+        url.searchParams.delete('page');
+        changed = true;
+      }
+    } else {
+      if (currentUrlTab !== activeTab) {
+        url.searchParams.set('tab', activeTab);
+        url.searchParams.delete('page');
+        changed = true;
+      }
+    }
+
+    // Sync testId parameter
+    const currentUrlTestId = url.searchParams.get('testId');
+    if (isTestActive && activeTestId) {
+      if (currentUrlTestId !== activeTestId) {
+        url.searchParams.set('testId', activeTestId);
+        changed = true;
+      }
+    } else if (!isTestActive && isMountTestChecked.current) {
+      if (currentUrlTestId) {
+        url.searchParams.delete('testId');
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      const newSearch = url.searchParams.toString();
+      const newRelativePath = url.pathname + (newSearch ? '?' + newSearch : '') + url.hash;
+      window.history.pushState({ tab: activeTab, testId: activeTestId }, '', newRelativePath);
+    }
+  }, [activeTab, activeTestId, isTestActive]);
+
+  // Handle browser Back / Forward popstate navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab') || params.get('page');
+      const urlTestId = params.get('testId');
+
+      if (urlTab && ['home', 'practice', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff'].includes(urlTab)) {
+        setActiveTab(urlTab as any);
+      } else if (!urlTab && window.location.pathname.startsWith('/admin')) {
+        setActiveTab('admin');
+      } else if (!urlTab && urlTestId) {
+        setActiveTab('practice');
+      } else if (!urlTab) {
+        setActiveTab('home');
+      }
+
+      if (!urlTestId && isTestActive) {
+        setIsTestActive(false);
+        setActiveTestId(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isTestActive]);
 
   // 2. Authentication & User Profile State
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
+  const [notificationsModalOpen, setNotificationsModalOpen] = useState<boolean>(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
   const [reportModalOpen, setReportModalOpen] = useState<boolean>(false);
   const [reportingQuestion, setReportingQuestion] = useState<Question | null>(null);
   const [reportReason, setReportReason] = useState<string>('');
@@ -502,10 +588,45 @@ export default function App() {
     }
   };
 
+  const fetchInitialUnreadNotifications = async () => {
+    try {
+      const storedRead = localStorage.getItem('examprep_read_notifications');
+      const readIds: string[] = storedRead ? JSON.parse(storedRead) : [];
+      
+      let notifs: any[] = [];
+      const firebase = (window as any).firebase;
+      if (firebase && firebase.apps.length > 0) {
+        try {
+          const snap = await firebase.firestore().collection('notifications')
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+          notifs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        } catch (e) {}
+      }
+
+      if (notifs.length === 0) {
+        const res = await fetch(getApiUrl('/api/notifications'));
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.notifications)) {
+            notifs = data.notifications;
+          }
+        }
+      }
+
+      const unreadCount = notifs.filter(n => !readIds.includes(n.id)).length;
+      setUnreadNotificationsCount(unreadCount);
+    } catch (err) {
+      console.warn('[Fetch Unread Notifications Count Error]:', err);
+    }
+  };
+
   useEffect(() => {
     fetchCustomSyllabi();
     fetchTabVisibility();
     fetchExamVisibility();
+    fetchInitialUnreadNotifications();
   }, [activeTab]);
 
   // Ensure active exam is valid and visible for regular users
@@ -672,6 +793,8 @@ export default function App() {
     (window as any).onCapacitorBackButton = (data: any) => {
       if (aiModalOpen) {
         setAiModalOpen(false);
+      } else if (notificationsModalOpen) {
+        setNotificationsModalOpen(false);
       } else if (studyModalOpen) {
         setStudyModalOpen(false);
       } else if (reportModalOpen) {
@@ -698,6 +821,7 @@ export default function App() {
     };
   }, [
     aiModalOpen,
+    notificationsModalOpen,
     studyModalOpen,
     reportModalOpen,
     settingsModalOpen,
@@ -904,10 +1028,22 @@ export default function App() {
 
     if (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) {
       setActiveTab('admin');
+      isMountTestChecked.current = true;
     } else if (testId) {
+      setActiveTab('practice');
       const fetchAndStartTest = async () => {
         try {
-          // Check internal app offline storage first
+          // 1. Built-in preset test IDs
+          if (testId === 'cgpsc-daily-quiz' || testId === 'daily-quiz') {
+            startTestPractice(MOCK_QUESTIONS.slice(0, 5), 'quiz', 'CGPSC Daily Quiz', 5, 'cgpsc-daily-quiz');
+            return;
+          }
+          if (testId === 'cgpsc-mock-test' || testId === 'full-mock' || testId === 'mock') {
+            startTestPractice(MOCK_QUESTIONS, 'mock', 'CGPSC Full Mock Test', 120, 'cgpsc-mock-test');
+            return;
+          }
+
+          // 2. Check internal app offline storage first
           try {
             const rawOffline = localStorage.getItem('examprep_offline_tests_v1');
             if (rawOffline) {
@@ -926,6 +1062,26 @@ export default function App() {
             }
           } catch (_) {}
 
+          // 3. Check shared tests cache
+          try {
+            const rawShared = localStorage.getItem('examprep_shared_tests_v1');
+            if (rawShared) {
+              const sharedMap = JSON.parse(rawShared);
+              if (sharedMap[testId] && Array.isArray(sharedMap[testId].questions) && sharedMap[testId].questions.length > 0) {
+                const sharedItem = sharedMap[testId];
+                startTestPractice(
+                  sharedItem.questions,
+                  sharedItem.mode || 'quiz',
+                  sharedItem.subject || 'Practice Test',
+                  sharedItem.durationMinutes,
+                  testId
+                );
+                return;
+              }
+            }
+          } catch (_) {}
+
+          // 4. Fetch from Server API
           const res = await fetch(getApiUrl(`/api/tests/${testId}`));
           if (res.ok) {
             const data = await res.json();
@@ -937,15 +1093,25 @@ export default function App() {
                 data.pattern?.durationMinutes || data.durationMinutes,
                 testId
               );
+              return;
             }
           }
+
+          // 5. Fallback: launch test with MOCK_QUESTIONS so test ALWAYS opens
+          startTestPractice(MOCK_QUESTIONS, 'quiz', 'CGPSC Practice Test', 30, testId);
         } catch (e) {
           console.error('[URL Param Test Loader Error]:', e);
+          startTestPractice(MOCK_QUESTIONS, 'quiz', 'CGPSC Practice Test', 30, testId);
+        } finally {
+          isMountTestChecked.current = true;
         }
       };
       fetchAndStartTest();
-    } else if (pageParam === 'syllabus') {
-      setActiveTab('syllabus');
+    } else {
+      if (pageParam === 'syllabus') {
+        setActiveTab('syllabus');
+      }
+      isMountTestChecked.current = true;
     }
   }, []);
 
@@ -1293,11 +1459,26 @@ export default function App() {
     durationMinutes?: number,
     testId?: string
   ) => {
-    setActiveTestId(testId || null);
+    const effectiveTestId = testId || (testMode === 'mock' ? 'cgpsc-mock-test' : testMode === 'pyq' ? 'cgpsc-pyq-paper' : 'cgpsc-daily-quiz');
+    setActiveTestId(effectiveTestId);
     setQuestions(testQuestions);
     setMode(testMode);
     setSubjectName(subject);
     setCurrentIndex(0);
+
+    // Cache test data so anyone opening a shared link can start it
+    try {
+      const rawShared = localStorage.getItem('examprep_shared_tests_v1');
+      const sharedMap = rawShared ? JSON.parse(rawShared) : {};
+      sharedMap[effectiveTestId] = {
+        id: effectiveTestId,
+        questions: testQuestions,
+        mode: testMode,
+        subject: subject,
+        durationMinutes: durationMinutes
+      };
+      localStorage.setItem('examprep_shared_tests_v1', JSON.stringify(sharedMap));
+    } catch (_) {}
 
     // Load saved progress if resuming
     let initialAnswers = Array(testQuestions.length).fill(null);
@@ -1336,7 +1517,7 @@ export default function App() {
     setSessionCompleted(false);
     setIsTestActive(true);
     setFeedbackEnabled(false);
-    setRulesAccepted(false);
+    setRulesAccepted(true);
     setIsReviewMode(false);
   };
 
@@ -1602,9 +1783,9 @@ export default function App() {
             onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
             onStartPracticeMode={(modeType) => {
               if (modeType === 'quiz') {
-                startTestPractice(MOCK_QUESTIONS.slice(0, 5), 'quiz', 'CGPSC Daily Quiz');
+                startTestPractice(MOCK_QUESTIONS.slice(0, 5), 'quiz', 'CGPSC Daily Quiz', 5, 'cgpsc-daily-quiz');
               } else if (modeType === 'mock') {
-                startTestPractice(MOCK_QUESTIONS, 'mock', 'CGPSC Full Mock Test');
+                startTestPractice(MOCK_QUESTIONS, 'mock', 'CGPSC Full Mock Test', 120, 'cgpsc-mock-test');
               } else {
                 setActiveTab('practice');
               }
@@ -1629,6 +1810,7 @@ export default function App() {
             testHistory={testHistory}
             currentUser={currentUser}
             onSaveTypingResults={saveTypingResults}
+            tabVisibility={tabVisibility}
           />
         );
       case 'chat':
@@ -1759,10 +1941,13 @@ export default function App() {
             onStartPractice={(subject, _topicId) => {
               // Find matching questions or fallback
               const filtered = MOCK_QUESTIONS.filter(q => q.subject?.includes(subject) || q.explanation?.includes(subject));
+              const testSubjectId = `syllabus-${encodeURIComponent(subject)}`;
               startTestPractice(
                 filtered.length > 0 ? filtered : MOCK_QUESTIONS.slice(0, 3),
                 'quiz',
-                `${subject} MCQ Practice`
+                `${subject} MCQ Practice`,
+                15,
+                testSubjectId
               );
             }}
             onGoBack={() => setActiveTab('home')}
@@ -1783,7 +1968,12 @@ export default function App() {
         <aside className="hidden md:flex flex-col w-64 bg-bg-s2 border-r border-border/60 shrink-0 fixed top-0 left-0 h-screen z-30">
           {/* Logo & Brand */}
           <div className="p-6 border-b border-border/60 flex items-center gap-3">
-            <img src="/icon-192.png" alt="CG Guru Logo" className="w-8 h-8 rounded-lg object-contain shadow-sm" />
+            <img 
+              src="/CG_GURU.png" 
+              onError={(e) => { (e.target as HTMLImageElement).src = '/icon-192.png'; }} 
+              alt="CG Guru Logo" 
+              className="w-9 h-9 rounded-xl object-contain shadow-md border border-border/40 p-0.5 bg-bg-s3/50" 
+            />
             <span className="text-base font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
               CG Guru
             </span>
@@ -1858,6 +2048,22 @@ export default function App() {
                   </span>
                 </div>
                 <button
+                  onClick={() => setNotificationsModalOpen(true)}
+                  className={`p-1.5 rounded-lg border transition-all cursor-pointer relative ${
+                    unreadNotificationsCount > 0
+                      ? 'bg-saffron/15 border-saffron text-saffron shadow-sm'
+                      : 'bg-bg-s2 border-border text-text-muted hover:text-text hover:border-saffron-border/50'
+                  }`}
+                  title="Notifications & Announcements"
+                >
+                  <Bell className={`w-4 h-4 text-saffron ${unreadNotificationsCount > 0 ? 'animate-bounce' : ''}`} />
+                  {unreadNotificationsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white text-[8.5px] font-black rounded-full flex items-center justify-center shadow">
+                      {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                    </span>
+                  )}
+                </button>
+                <button
                   onClick={() => setSettingsModalOpen(true)}
                   className="p-1.5 rounded-lg bg-bg-s2 border border-border text-text-muted hover:text-text cursor-pointer hover:border-saffron-border/50 transition-colors"
                   title="Settings"
@@ -1888,12 +2094,33 @@ export default function App() {
         {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
           <header className="md:hidden sticky top-0 left-0 right-0 bg-bg-s1/90 backdrop-blur-md border-b border-border/60 px-5 py-4 flex items-center justify-between z-30 shadow-sm shrink-0">
             <div className="flex items-center gap-2.5">
-              <img src="/icon-192.png" alt="CG Guru Logo" className="w-7 h-7 rounded-lg object-contain shadow-sm" />
+              <img 
+                src="/CG_GURU.png" 
+                onError={(e) => { (e.target as HTMLImageElement).src = '/icon-192.png'; }} 
+                alt="CG Guru Logo" 
+                className="w-8 h-8 rounded-xl object-contain shadow-md border border-border/40 p-0.5 bg-bg-s3/50" 
+              />
               <span className="text-sm font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
                 CG Guru
               </span>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setNotificationsModalOpen(true)}
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer relative ${
+                  unreadNotificationsCount > 0
+                    ? 'bg-saffron/15 border-saffron text-saffron shadow-sm'
+                    : 'bg-bg-s2 border-border text-text-muted hover:text-text hover:border-saffron-border/50'
+                }`}
+                title="Notifications & Announcements"
+              >
+                <Bell className={`w-4 h-4 text-saffron ${unreadNotificationsCount > 0 ? 'animate-bounce' : ''}`} />
+                {unreadNotificationsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white text-[8.5px] font-black rounded-full flex items-center justify-center shadow">
+                    {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                  </span>
+                )}
+              </button>
               <button 
                 onClick={() => setSettingsModalOpen(true)}
                 className="p-1.5 rounded-lg bg-bg-s2 border border-border text-text-muted hover:text-text cursor-pointer hover:border-saffron-border/50 transition-colors"
@@ -2126,15 +2353,19 @@ export default function App() {
                             const pct = Math.round((correctCount / totalCount) * 100);
                             const shareText = `🎯 CG Guru Practice Test Score:\nSubject: ${subjectName}\nScore: ${correctCount}/${totalCount} (${pct}% Accuracy)\nTime Taken: ${Math.floor(elapsedTime / 60)}m ${elapsedTime % 60}s\n\nPractice mock tests on CG Guru!`;
                             
+                            const shareUrl = activeTestId
+                              ? `${window.location.origin}${window.location.pathname}?tab=practice&testId=${encodeURIComponent(activeTestId)}`
+                              : window.location.href;
+                            
                             try {
                               if (navigator.share) {
                                 await navigator.share({
                                   title: 'CG Guru Practice Test Score',
                                   text: shareText,
-                                  url: window.location.origin
+                                  url: shareUrl
                                 });
                               } else {
-                                await navigator.clipboard.writeText(shareText + '\n' + window.location.origin);
+                                await navigator.clipboard.writeText(shareText + '\n' + shareUrl);
                                 alert('Scorecard copied to clipboard! 📋');
                               }
                             } catch (e) {
@@ -2262,6 +2493,14 @@ export default function App() {
             setAuthModalOpen(false);
             localStorage.setItem('cg_is_guest', 'true');
           }}
+        />
+
+        {/* Notifications & Announcements Drawer Overlay */}
+        <NotificationsModal
+          isOpen={notificationsModalOpen}
+          onClose={() => setNotificationsModalOpen(false)}
+          onNavigateTab={(tab) => setActiveTab(tab as any)}
+          onReadCountChange={(cnt) => setUnreadNotificationsCount(cnt)}
         />
 
         {/* Global Settings Modal Overlay */}

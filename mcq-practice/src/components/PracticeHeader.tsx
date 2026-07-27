@@ -92,11 +92,11 @@ export const PracticeHeader: React.FC<PracticeHeaderProps> = ({
                 await navigator.share({
                   title: `CG Guru - ${subjectName}`,
                   text: shareText,
-                  url: window.location.origin
+                  url: window.location.href
                 });
               } else {
-                await navigator.clipboard.writeText(shareText + '\n' + window.location.origin);
-                alert('Test details copied to clipboard! 📋');
+                await navigator.clipboard.writeText(shareText + '\n' + window.location.href);
+                alert('Test details & link copied to clipboard! 📋');
               }
             } catch (err) {
               console.warn('Share error:', err);

@@ -25,6 +25,7 @@ interface PracticeTabProps {
   testHistory?: any[];
   currentUser?: any;
   onSaveTypingResults?: (netWpm: number, grossWpm: number, accuracy: number, correctChars: number, incorrectChars: number, language: string, duration: number, topicId: string, topicTitle: string) => void;
+  tabVisibility?: Record<string, boolean>;
 }
 
 export const PracticeTab: React.FC<PracticeTabProps> = ({
@@ -34,12 +35,20 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   onToggleBookmark,
   testHistory = [],
   currentUser,
-  onSaveTypingResults
+  onSaveTypingResults,
+  tabVisibility
 }) => {
   const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'offline' | 'typing' | 'saved'>('quiz');
   const [tests, setTests] = useState<ServerTest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedSavedQuestion, setSelectedSavedQuestion] = useState<Question | null>(null);
+
+  // If pyq is disabled in tab visibility settings, default activeMode to quiz
+  useEffect(() => {
+    if (activeMode === 'pyq' && tabVisibility?.practice_pyq === false) {
+      setActiveMode('quiz');
+    }
+  }, [activeMode, tabVisibility]);
 
   const [testProgress, setTestProgress] = useState<{ [testId: string]: { answers: (number | null)[]; completed: boolean } }>({});
 
@@ -53,18 +62,21 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  const handleShareTest = async (testSubject: string, mode: string, totalQuestions: number, language: string, e?: React.MouseEvent) => {
+  const handleShareTest = async (testSubject: string, mode: string, totalQuestions: number, language: string, e?: React.MouseEvent, testId?: string) => {
     if (e) e.stopPropagation();
+    const shareUrl = testId 
+      ? `${window.location.origin}${window.location.pathname}?tab=practice&testId=${encodeURIComponent(testId)}`
+      : window.location.href;
     const shareText = `📝 CG Guru Practice Test:\nSubject: ${testSubject}\nMode: ${mode.toUpperCase()} (${totalQuestions} Questions, ${language})\n\nPractice now on CG Guru!`;
     try {
       if (navigator.share) {
         await navigator.share({
           title: `CG Guru - ${testSubject}`,
           text: shareText,
-          url: window.location.origin
+          url: shareUrl
         });
       } else {
-        await navigator.clipboard.writeText(shareText + '\n' + window.location.origin);
+        await navigator.clipboard.writeText(shareText + '\n' + shareUrl);
         showToast('Test link copied to clipboard! 📋');
       }
     } catch (err) {
@@ -339,11 +351,11 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
         {[
           { id: 'quiz', label: 'Quizzes', icon: <Zap className="w-5 h-5 text-saffron" />, desc: 'Educator tests' },
           { id: 'mock', label: 'Mock Exams', icon: <Trophy className="w-5 h-5 text-saffron" />, desc: 'Full length tests' },
-          { id: 'pyq', label: 'PYQ Papers', icon: <BookOpen className="w-5 h-5 text-saffron" />, desc: 'Previous papers' },
+          { id: 'pyq', label: 'PYQ Papers', icon: <BookOpen className="w-5 h-5 text-saffron" />, desc: 'Previous papers', configKey: 'practice_pyq' },
           { id: 'offline', label: 'Offline Tests', icon: <HardDriveDownload className="w-5 h-5 text-saffron" />, desc: `Downloaded (${Object.keys(offlineTests).length})` },
           { id: 'typing', label: 'Typing Test', icon: <Keyboard className="w-5 h-5 text-saffron" />, desc: 'Speed & Accuracy' },
           { id: 'saved', label: 'Saved MCQs', icon: <Bookmark className="w-5 h-5 text-saffron" />, desc: `Saved (${bookmarkedQuestions.length})` }
-        ].map(m => (
+        ].filter(m => !m.configKey || (tabVisibility?.[m.configKey] !== false && tabVisibility?.[m.id] !== false)).map(m => (
           <button
             key={m.id}
             onClick={() => setActiveMode(m.id as any)}
@@ -453,7 +465,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                           )}
 
                           <button
-                            onClick={(e) => handleShareTest(test.subject, 'PYQ Paper', test.totalQuestions, test.language, e)}
+                            onClick={(e) => handleShareTest(test.subject, 'PYQ Paper', test.totalQuestions, test.language, e, test.id)}
                             className="p-2 bg-bg-s3 hover:bg-saffron-dim/20 text-text-muted hover:text-saffron border border-border rounded-lg text-[10px] font-black transition-all cursor-pointer"
                             title="Share Test"
                           >
@@ -546,7 +558,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
 
                       <div className="flex items-center gap-2 shrink-0">
                         <button
-                          onClick={(e) => handleShareTest(offTest.subject, offTest.mode || 'test', offTest.questions?.length || offTest.totalQuestions, offTest.language || 'Hindi', e)}
+                          onClick={(e) => handleShareTest(offTest.subject, offTest.mode || 'test', offTest.questions?.length || offTest.totalQuestions, offTest.language || 'Hindi', e, offTest.id || offTest.testId)}
                           className="p-2 bg-bg-s3 hover:bg-saffron-dim/20 text-text-muted hover:text-saffron border border-border rounded-lg text-[10px] font-black transition-all cursor-pointer"
                           title="Share Test"
                         >
@@ -589,7 +601,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
               </div>
               {bookmarkedQuestions.length > 0 && (
                 <button
-                  onClick={() => onStartPracticeSession(bookmarkedQuestions, 'quiz', 'Saved Questions Practice')}
+                  onClick={() => onStartPracticeSession(bookmarkedQuestions, 'quiz', 'Saved Questions Practice', 15, 'saved-questions')}
                   className="px-4 py-2.5 bg-saffron hover:bg-orange-500 text-xs font-black text-bg-s1 uppercase rounded-lg flex items-center gap-1.5 shrink-0 transition-all duration-200 cursor-pointer shadow active:scale-95"
                 >
                   <Play className="w-3.5 h-3.5 fill-bg-s1" />
@@ -832,7 +844,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                         )}
 
                         <button
-                          onClick={(e) => handleShareTest(test.subject, activeMode === 'quiz' ? 'Quiz' : 'Mock Exam', test.totalQuestions, test.language, e)}
+                          onClick={(e) => handleShareTest(test.subject, activeMode === 'quiz' ? 'Quiz' : 'Mock Exam', test.totalQuestions, test.language, e, test.id)}
                           className="p-2 bg-bg-s3 hover:bg-saffron-dim/20 text-text-muted hover:text-saffron border border-border rounded-lg text-[10px] font-black transition-all cursor-pointer"
                           title="Share Test"
                         >

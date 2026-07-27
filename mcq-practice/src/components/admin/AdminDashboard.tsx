@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, Cpu, 
   ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History, Sliders, Eye,
-  MessageSquare, Award, Keyboard, Brain
+  MessageSquare, Award, Keyboard, Brain, Bell
 } from 'lucide-react';
 import { AdminTyping } from './AdminTyping';
 import { AdminTests } from './AdminTests';
@@ -19,6 +19,7 @@ import { AdminBadges } from './AdminBadges';
 import { AdminReports } from './AdminReports';
 import { AdminTraining } from './AdminTraining';
 import { AdminBranding } from './AdminBranding';
+import { AdminNotifications } from './AdminNotifications';
 
 import type { Exam } from '../syllabus/syllabusData';
 
@@ -30,7 +31,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'reports' | 'staffs' | 'tests' | 'news' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges' | 'typing' | 'training' | 'branding'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'reports' | 'staffs' | 'tests' | 'news' | 'notifications' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges' | 'typing' | 'training' | 'branding'>('overview');
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({
@@ -106,6 +107,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'notifications', label: 'Notifications & Broadcasts', icon: Bell },
     { id: 'feedbacks', label: 'Feedbacks', icon: MessageSquare },
     { id: 'reports', label: 'Reported Questions', icon: AlertTriangle },
     { id: 'staffs', label: 'Staff Accounts', icon: ShieldCheck },
@@ -129,6 +131,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
         return renderOverview();
       case 'users':
         return <AdminUsers currentUser={currentUser} />;
+      case 'notifications':
+        return <AdminNotifications currentUser={currentUser} />;
       case 'feedbacks':
         return <AdminFeedbacks currentUser={currentUser} />;
       case 'reports':

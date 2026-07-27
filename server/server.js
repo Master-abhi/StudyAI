@@ -23,6 +23,7 @@ const analyticsRoutes = require('./routes/analytics');
 const userRoutes = require('./routes/user');
 const studyIntelligenceRoutes = require('./routes/studyIntelligence');
 const jobsRoutes = require('./routes/jobs');
+const notificationsRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/study-intelligence', studyIntelligenceRoutes);
 app.use('/api/jobs', jobsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

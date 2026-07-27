@@ -35,32 +35,32 @@
   --amber-l: #fbbf24;
 }
 
-/* Light Theme Variables */
+/* Light Theme Variables - Soft Eye-Care Palette */
 :root[data-theme="light"], .light-theme {
-  --bg-s0: #F1F5F9;
-  --bg-s1: #F8FAFC;
-  --bg-s2: #FFFFFF;
+  --bg-s0: #E2E8F0;
+  --bg-s1: #F1F5F9;
+  --bg-s2: #F8FAFC;
   --bg-s3: #E2E8F0;
 
   --saffron: #D97706; /* Amber-600 */
-  --saffron-dim: rgba(217, 119, 6, 0.07);
-  --saffron-border: rgba(217, 119, 6, 0.18);
+  --saffron-dim: rgba(217, 119, 6, 0.09);
+  --saffron-border: rgba(217, 119, 6, 0.22);
 
   --gold: #CA8A04; /* Yellow-600 */
-  --gold-dim: rgba(202, 138, 4, 0.07);
-  --gold-border: rgba(202, 138, 4, 0.18);
+  --gold-dim: rgba(202, 138, 4, 0.09);
+  --gold-border: rgba(202, 138, 4, 0.22);
 
-  --text-color: #1E293B; /* Slate-800 */
-  --text-muted: #64748B; /* Slate-500 for better readability */
+  --text-color: #0F172A; /* Deep Slate-900 for high crisp contrast */
+  --text-muted: #475569; /* Slate-600 for comfortable reading */
 
-  --border-color: rgba(0, 0, 0, 0.10);
-  --green-l: #16A34A; /* Green-600 */
-  --red-l: #DC2626; /* Red-600 */
+  --border-color: rgba(15, 23, 42, 0.12);
+  --green-l: #15803D; /* Green-700 */
+  --red-l: #B91C1C; /* Red-700 */
 
-  --purple-l: #7e22ce; /* Purple-700 */
-  --blue-l: #1d4ed8; /* Blue-700 */
-  --indigo-l: #4338ca; /* Indigo-700 */
-  --amber-l: #b45309; /* Amber-700 */
+  --purple-l: #6b21a8;
+  --blue-l: #1d4ed8;
+  --indigo-l: #3730a3;
+  --amber-l: #92400e;
 }
 
 @theme {
@@ -240,3 +240,21 @@
     background-color: var(--bg-s1) !important;
   }
 }
+
+/* Mobile Screen Orientation & Landscape Stability Rules */
+@media screen and (max-height: 550px) {
+  /* Prevent desktop sidebar from popping up on mobile devices in landscape mode */
+  aside.fixed.left-0.top-0.bottom-0.w-64 {
+    display: none !important;
+  }
+  .md\:pl-64 {
+    padding-left: 0 !important;
+  }
+  header.md\:hidden {
+    display: flex !important;
+  }
+  nav.md\:hidden {
+    display: flex !important;
+  }
+}
+
