@@ -1353,9 +1353,10 @@ router.post('/questions/pool/bulk-delete', verifyStaffOrAdmin('tests'), handleBu
 router.delete('/questions/pool/bulk-delete', verifyStaffOrAdmin('tests'), handleBulkDeletePoolQuestions);
 
 // Generate a test from the global Question Bank pool (Strict Syllabus & AI Augmentation)
+// Generate a single test from the global Question Bank pool (Strict Syllabus, Difficulty Ratio & AI Augmentation)
 router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
-    const { examId, examName, examIds, examNames, subject, mode, language, questionCount, durationMinutes } = req.body;
+    const { examId, examName, examIds, examNames, subject, mode, language, questionCount, durationMinutes, difficultyRatio } = req.body;
 
     if (!examId || !examName) {
       return res.status(400).json({ error: 'examId and examName are required' });
@@ -1428,9 +1429,37 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
       finalQuestions = [...finalQuestions, ...toAdd];
     }
 
+    // Hardness level ratio filtering if requested
+    if (difficultyRatio && difficultyRatio.enable) {
+      const easyPct = Number(difficultyRatio.easy) || 30;
+      const medPct = Number(difficultyRatio.medium) || 50;
+      const hardPct = Number(difficultyRatio.hard) || 20;
+      const totalPct = easyPct + medPct + hardPct || 100;
+
+      const easyTarget = Math.round((count * easyPct) / totalPct);
+      const medTarget = Math.round((count * medPct) / totalPct);
+      const hardTarget = count - (easyTarget + medTarget);
+
+      const easyQs = finalQuestions.filter(q => (q.difficulty || 'medium') === 'easy');
+      const medQs = finalQuestions.filter(q => (q.difficulty || 'medium') === 'medium');
+      const hardQs = finalQuestions.filter(q => (q.difficulty || 'medium') === 'hard');
+
+      const selectedByRatio = [
+        ...easyQs.slice(0, easyTarget),
+        ...medQs.slice(0, medTarget),
+        ...hardQs.slice(0, hardTarget)
+      ];
+
+      if (selectedByRatio.length < count) {
+        const selectedIds = new Set(selectedByRatio.map(q => q.id));
+        const remaining = finalQuestions.filter(q => !selectedIds.has(q.id));
+        selectedByRatio.push(...remaining.slice(0, count - selectedByRatio.length));
+      }
+      finalQuestions = selectedByRatio;
+    }
+
     // 4. SMART SYLLABUS AI AUGMENTATION:
-    // If pool has fewer questions than requested, NEVER pull out-of-syllabus questions from random exams!
-    // Dynamically generate remaining count via AI using official syllabus boundaries & verified sources!
+    // If pool has fewer questions than requested, generate remaining count via AI
     if (finalQuestions.length < count) {
       const remainingNeeded = count - finalQuestions.length;
       console.log(`[Smart Pool Gen] Pool has ${finalQuestions.length}/${count} questions for ${examName}. Generating remaining ${remainingNeeded} verified syllabus questions via AI...`);
@@ -1442,7 +1471,7 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
           selectedSubject,
           testMode,
           remainingNeeded,
-          language || 'english',
+          language || 'hindi',
           [],
           syllabusContext
         );
@@ -1460,8 +1489,9 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
               correctIndex: q.correctIndex,
               explanation: q.explanation,
               subject: q.subject || selectedSubject,
+              difficulty: q.difficulty || 'medium',
               examTags: limitedExamIds,
-              language: language || 'english',
+              language: language || 'hindi',
               qType: q.qType || 'standard',
               verifiedSyllabus: true,
               createdAt: timestamp
@@ -1618,6 +1648,306 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
   } catch (err) {
     console.error('[Admin Test Pool Gen Error]:', err.message);
     res.status(500).json({ error: err.message || 'Failed to generate test from the pool.' });
+  }
+});
+
+// Generate MULTIPLE tests from the global Question Bank pool (Strict Syllabus, Hardness Ratio, Unique Non-repeating Qs & Warning Alert)
+router.post('/tests/generate-multiple-from-pool', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { 
+      examId, examName, examIds, examNames, subject, testCount, 
+      questionCount, mode, language, durationMinutes, difficultyRatio 
+    } = req.body;
+
+    if (!examId || !examName) {
+      return res.status(400).json({ error: 'examId and examName are required' });
+    }
+
+    const numTests = Math.max(1, parseInt(testCount, 10) || 5);
+    const countPerTest = Math.max(1, parseInt(questionCount, 10) || 10);
+    const testMode = mode || 'quiz';
+    const selectedSubject = subject || 'all';
+    const totalRequiredQuestions = numTests * countPerTest;
+
+    const targetExamIds = Array.isArray(examIds) && examIds.length > 0 ? examIds : [examId];
+    const limitedExamIds = targetExamIds.slice(0, 10);
+
+    // Fetch official syllabus context for target exam & subject
+    const syllabusContext = await fetchExamSyllabusContext(examId, selectedSubject);
+
+    // Fetch questions matching target exams from question_bank
+    let candidateQuestions = [];
+    try {
+      const examSnapshot = await db.collection('question_bank')
+        .where('examTags', 'array-contains-any', limitedExamIds)
+        .get();
+      if (!examSnapshot.empty) {
+        candidateQuestions = examSnapshot.docs.map(doc => doc.data());
+      }
+    } catch (e) {
+      console.warn('[Multiple Pool Gen] Firestore array-contains-any query failed:', e.message);
+    }
+
+    // Helper to parse subject list
+    const getSubjectList = (subVal) => {
+      if (!subVal) return [];
+      if (Array.isArray(subVal)) {
+        return subVal.map(s => String(s).toLowerCase().trim()).filter(Boolean);
+      }
+      if (typeof subVal === 'string') {
+        return subVal.split(',').map(s => s.toLowerCase().trim()).filter(Boolean);
+      }
+      return [String(subVal).toLowerCase().trim()];
+    };
+
+    const targetSubjects = getSubjectList(selectedSubject);
+    const hasSubjectFilter = targetSubjects.length > 0 && !targetSubjects.includes('all') && !targetSubjects.includes('mixed');
+
+    if (hasSubjectFilter) {
+      candidateQuestions = candidateQuestions.filter(q => targetSubjects.includes((q.subject || '').toLowerCase().trim()));
+    }
+
+    // Shuffle candidate questions
+    const shuffle = (array) => {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+
+    candidateQuestions = shuffle(candidateQuestions);
+
+    const availablePoolCount = candidateQuestions.length;
+    let warningMessage = null;
+    if (availablePoolCount < totalRequiredQuestions) {
+      warningMessage = `⚠️ Warning: Requested ${numTests} tests (${totalRequiredQuestions} total questions), but pool has only ${availablePoolCount} matching questions. AI generated missing ${totalRequiredQuestions - availablePoolCount} syllabus questions so no question repeats.`;
+      console.warn(`[Multiple Pool Gen] ${warningMessage}`);
+    }
+
+    const usedQuestionIds = new Set();
+    const generatedTests = [];
+    const timestamp = new Date().toISOString();
+
+    for (let t = 0; t < numTests; t++) {
+      let unusedPool = candidateQuestions.filter(q => !usedQuestionIds.has(q.id));
+      let testQuestions = [];
+
+      // Difficulty Ratio Filtering per test if enabled
+      if (difficultyRatio && difficultyRatio.enable) {
+        const easyPct = Number(difficultyRatio.easy) || 30;
+        const medPct = Number(difficultyRatio.medium) || 50;
+        const hardPct = Number(difficultyRatio.hard) || 20;
+        const totalPct = easyPct + medPct + hardPct || 100;
+
+        const easyTarget = Math.round((countPerTest * easyPct) / totalPct);
+        const medTarget = Math.round((countPerTest * medPct) / totalPct);
+        const hardTarget = countPerTest - (easyTarget + medTarget);
+
+        const easyPool = unusedPool.filter(q => (q.difficulty || 'medium') === 'easy');
+        const medPool = unusedPool.filter(q => (q.difficulty || 'medium') === 'medium');
+        const hardPool = unusedPool.filter(q => (q.difficulty || 'medium') === 'hard');
+
+        const pickedEasy = easyPool.slice(0, easyTarget);
+        const pickedMed = medPool.slice(0, medTarget);
+        const pickedHard = hardPool.slice(0, hardTarget);
+
+        pickedEasy.forEach(q => { testQuestions.push(q); usedQuestionIds.add(q.id); });
+        pickedMed.forEach(q => { testQuestions.push(q); usedQuestionIds.add(q.id); });
+        pickedHard.forEach(q => { testQuestions.push(q); usedQuestionIds.add(q.id); });
+
+        if (testQuestions.length < countPerTest) {
+          const remainingUnused = candidateQuestions.filter(q => !usedQuestionIds.has(q.id));
+          const fillCount = countPerTest - testQuestions.length;
+          const fillQs = remainingUnused.slice(0, fillCount);
+          fillQs.forEach(q => { testQuestions.push(q); usedQuestionIds.add(q.id); });
+        }
+      } else {
+        const picked = unusedPool.slice(0, countPerTest);
+        picked.forEach(q => { testQuestions.push(q); usedQuestionIds.add(q.id); });
+      }
+
+      // AI Augmentation if testQuestions fell short for this specific test
+      if (testQuestions.length < countPerTest) {
+        const remainingNeeded = countPerTest - testQuestions.length;
+        console.log(`[Multiple Pool Gen] Test #${t + 1}: Pool has ${testQuestions.length}/${countPerTest} questions. Generating ${remainingNeeded} via AI...`);
+
+        try {
+          const aiResult = await generateTest(
+            examId,
+            examName,
+            selectedSubject,
+            testMode,
+            remainingNeeded,
+            language || 'hindi',
+            [],
+            syllabusContext
+          );
+
+          if (aiResult && Array.isArray(aiResult.questions) && aiResult.questions.length > 0) {
+            const batch = db.batch();
+
+            aiResult.questions.forEach((q, idx) => {
+              const poolQId = `q_pool_multi_${Date.now()}_${t}_${idx}`;
+              const poolItem = {
+                id: poolQId,
+                question: q.question,
+                options: q.options,
+                correctIndex: q.correctIndex,
+                explanation: q.explanation,
+                subject: q.subject || selectedSubject,
+                difficulty: q.difficulty || 'medium',
+                examTags: limitedExamIds,
+                language: language || 'hindi',
+                qType: q.qType || 'standard',
+                verifiedSyllabus: true,
+                createdAt: timestamp
+              };
+              const ref = db.collection('question_bank').doc(poolQId);
+              batch.set(ref, poolItem);
+              testQuestions.push(poolItem);
+              usedQuestionIds.add(poolQId);
+            });
+
+            await batch.commit();
+          }
+        } catch (aiErr) {
+          console.error(`[Multiple Pool Gen AI Augment Error in Test #${t + 1}]:`, aiErr.message);
+        }
+      }
+
+      if (testQuestions.length === 0) {
+        continue;
+      }
+
+      const testId = `test_pool_${Date.now()}_${t + 1}`;
+      const enrichedQuestions = testQuestions.map((q, index) => {
+        const newQId = `q_${testId}_${index}`;
+        let directive = q.question || '';
+        let formattedQuestion = directive;
+        if (q.qType === 'assertion_reason') {
+          const dir = directive || 'नीचे दिए गए कथन [As] और कारण [R] के लिए सही विकल्प चुनिए-';
+          formattedQuestion = `${dir}\n\n**कथन [As] :** ${q.assertion || ''}\n\n**कारण [R] :** ${q.reason || ''}`;
+        } else if (q.qType === 'match_column') {
+          const dir = directive || 'निम्नलिखित को सुमेलित कीजिए-';
+          let md = `${dir}\n\n| कॉलम-I | कॉलम-II |\n| :--- | :--- |\n`;
+          const colI = q.columnI || [];
+          const colII = q.columnII || [];
+          const maxLen = Math.max(colI.length, colII.length);
+          for (let idx = 0; idx < maxLen; idx++) {
+            if (colI[idx] || colII[idx]) {
+              md += `| ${colI[idx] || ''} | ${colII[idx] || ''} |\n`;
+            }
+          }
+          formattedQuestion = md;
+        } else if (q.qType === 'ordering' || q.qType === 'multi_statement') {
+          const dir = directive || '';
+          let md = `${dir}\n\n`;
+          const stmts = q.statements || [];
+          const labels = q.statementLabels || [];
+          for (let idx = 0; idx < stmts.length; idx++) {
+            if (stmts[idx]) {
+              const label = labels[idx] ? `(${labels[idx]})` : `(${idx + 1})`;
+              md += `${label} ${stmts[idx]}\n`;
+            }
+          }
+          formattedQuestion = md.trim();
+        }
+
+        return {
+          ...q,
+          id: newQId,
+          question: formattedQuestion,
+          timestamp
+        };
+      });
+
+      const testPattern = {
+        totalQuestions: enrichedQuestions.length,
+        totalMarks: enrichedQuestions.length,
+        durationMinutes: parseInt(durationMinutes, 10) || ((testMode === 'mock' || testMode === 'pyq') ? 120 : 10),
+        markingScheme: (testMode === 'mock' || testMode === 'pyq') ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
+      };
+
+      const testSubjectName = hasSubjectFilter
+        ? (Array.isArray(selectedSubject) ? selectedSubject.join(', ') : selectedSubject)
+        : 'Mixed Subjects';
+
+      const newTest = {
+        id: testId,
+        examId,
+        examName: `${examName} (Test ${t + 1})`,
+        examIds: Array.isArray(examIds) ? examIds : [examId],
+        examNames: Array.isArray(examNames) ? examNames : [examName],
+        subject: testSubjectName,
+        mode: testMode,
+        language: language || 'hindi',
+        questions: enrichedQuestions,
+        pattern: testPattern,
+        createdAt: timestamp,
+        generatedFromPool: true
+      };
+
+      await db.collection('tests').doc(testId).set(newTest);
+
+      const batch = db.batch();
+      enrichedQuestions.forEach((q) => {
+        const qRef = db.collection('questions').doc(q.id);
+        batch.set(qRef, {
+          id: q.id,
+          question: q.question,
+          options: q.options,
+          correctIndex: q.correctIndex,
+          explanation: q.explanation,
+          subject: q.subject,
+          difficulty: q.difficulty || 'medium',
+          timestamp: q.timestamp,
+          examId,
+          examName: newTest.examName,
+          examIds: Array.isArray(examIds) ? examIds : [examId],
+          examNames: Array.isArray(examNames) ? examNames : [examName],
+          testId,
+          mode: testMode,
+          language: language || 'hindi',
+          qType: q.qType || 'standard',
+          assertion: q.assertion || '',
+          reason: q.reason || '',
+          columnI: q.columnI || [],
+          columnII: q.columnII || [],
+          statements: q.statements || [],
+          statementLabels: q.statementLabels || [],
+          topic: q.topic || '',
+          sourcePattern: q.sourcePattern || '',
+          yearTrend: q.yearTrend || '',
+          expectedIn2026: q.expectedIn2026 === true
+        });
+      });
+      await batch.commit();
+
+      generatedTests.push({
+        id: testId,
+        examName: newTest.examName,
+        subject: newTest.subject,
+        totalQuestions: enrichedQuestions.length
+      });
+    }
+
+    await logStaffActivity(req, 'generate_multiple_tests_from_pool', {
+      count: generatedTests.length,
+      examName,
+      totalQuestionsPicked: usedQuestionIds.size
+    });
+
+    res.json({
+      success: true,
+      count: generatedTests.length,
+      tests: generatedTests,
+      warning: warningMessage
+    });
+  } catch (err) {
+    console.error('[Multiple Test Pool Gen Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to generate multiple tests from pool.' });
   }
 });
 

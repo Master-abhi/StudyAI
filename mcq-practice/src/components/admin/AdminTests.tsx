@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Trophy, Plus, Trash2, Calendar, Globe, 
   Settings, Loader2, X, Eye, ShieldAlert, CheckCircle, Pencil,
-  AlertTriangle, AlertCircle, Save, Sparkles, Upload, Database, FolderUp, RefreshCw
+  AlertTriangle, AlertCircle, Save, Sparkles, Upload, Database, FolderUp, RefreshCw,
+  Layers, Sliders
 } from 'lucide-react';
 import type { Exam } from '../syllabus/syllabusData';
 import { MarkdownRenderer } from '../MarkdownRenderer';
@@ -302,7 +303,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [filterExamId, setFilterExamId] = useState<string>('all');
 
   // Creator state
-  const [creatorTab, setCreatorTab] = useState<'generate' | 'upload' | 'pool_upload' | 'pool_generate' | 'pool_monitor'>('generate');
+  const [creatorTab, setCreatorTab] = useState<'generate' | 'upload' | 'pool_upload' | 'pool_generate' | 'pool_monitor'>('pool_generate');
   const [uploadJsonText, setUploadJsonText] = useState<string>('');
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
 
@@ -324,12 +325,21 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [loadingStats, setLoadingStats] = useState<boolean>(false);
   
   // Pool generation form state
+  const [poolGenType, setPoolGenType] = useState<'single' | 'multiple'>('single');
   const [selectedPoolSubjects, setSelectedPoolSubjects] = useState<string[]>([]);
   const [poolGenCount, setPoolGenCount] = useState<number>(10);
+  const [poolMultipleTestCount, setPoolMultipleTestCount] = useState<number>(5);
+  const [poolPrimarySubject, setPoolPrimarySubject] = useState<string>('all');
   const [poolGenMode, setPoolGenMode] = useState<'quiz' | 'mock' | 'pyq'>('quiz');
   const [poolGenLanguage, setPoolGenLanguage] = useState<'english' | 'hindi'>('hindi');
   const [poolGenDuration, setPoolGenDuration] = useState<number>(10);
   const [loadingPoolGen, setLoadingPoolGen] = useState<boolean>(false);
+
+  // Hardness Level Ratio State
+  const [poolEnableHardnessRatio, setPoolEnableHardnessRatio] = useState<boolean>(false);
+  const [poolEasyRatio, setPoolEasyRatio] = useState<number>(30);
+  const [poolMediumRatio, setPoolMediumRatio] = useState<number>(50);
+  const [poolHardRatio, setPoolHardRatio] = useState<number>(20);
 
   // Pool Monitor State
   const [poolQuestions, setPoolQuestions] = useState<any[]>([]);
@@ -1353,7 +1363,13 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         mode: poolGenMode,
         language: poolGenLanguage,
         questionCount: poolGenCount,
-        durationMinutes: poolGenDuration
+        durationMinutes: poolGenDuration,
+        difficultyRatio: poolEnableHardnessRatio ? {
+          enable: true,
+          easy: poolEasyRatio,
+          medium: poolMediumRatio,
+          hard: poolHardRatio
+        } : { enable: false }
       };
 
       const res = await fetch(getApiUrl('/api/admin/tests/generate-from-pool'), {
@@ -1367,7 +1383,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setSuccessMessage(`Successfully generated ${poolGenMode} (${poolGenCount} Qs) from the pool!`);
+        setSuccessMessage(`Successfully generated single ${poolGenMode} (${poolGenCount} Qs) from pool!`);
         fetchTestsList();
       } else {
         throw new Error(data.error || 'Failed to generate test from pool.');
@@ -1375,6 +1391,63 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message || 'Failed to generate test from pool.');
+    } finally {
+      setLoadingPoolGen(false);
+    }
+  };
+
+  const handleGenerateMultipleFromPool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingPoolGen(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const token = await currentUser.getIdToken();
+      const selectedExamsData = exams.filter(ex => selectedExamIds.includes(ex.id));
+
+      const payload = {
+        examId: activeExam.id,
+        examName: activeExam.name,
+        examIds: selectedExamIds,
+        examNames: selectedExamsData.map(ex => ex.name),
+        testCount: poolMultipleTestCount,
+        subject: poolPrimarySubject,
+        mode: poolGenMode,
+        language: poolGenLanguage,
+        questionCount: poolGenCount,
+        durationMinutes: poolGenDuration,
+        difficultyRatio: poolEnableHardnessRatio ? {
+          enable: true,
+          easy: poolEasyRatio,
+          medium: poolMediumRatio,
+          hard: poolHardRatio
+        } : { enable: false }
+      };
+
+      const res = await fetch(getApiUrl('/api/admin/tests/generate-multiple-from-pool'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        let msg = `Successfully generated batch of ${data.count} tests (${poolGenCount} Qs each) from Question Bank Pool! 🎉`;
+        if (data.warning) {
+          msg += `\n\n${data.warning}`;
+        }
+        setSuccessMessage(msg);
+        fetchTestsList();
+      } else {
+        throw new Error(data.error || 'Failed to generate multiple tests from pool.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Failed to generate multiple tests from pool.');
     } finally {
       setLoadingPoolGen(false);
     }
@@ -1570,7 +1643,12 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
             </button>
             <button
               type="button"
-              onClick={() => { setCreatorTab('pool_generate'); setErrorMessage(''); setSuccessMessage(''); }}
+              onClick={() => { 
+                setCreatorTab('pool_generate'); 
+                setErrorMessage(''); 
+                setSuccessMessage('');
+                fetchPoolStats();
+              }}
               className={`py-2 px-3 text-[10px] md:text-xs font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-2 ${
                 creatorTab === 'pool_generate' ? 'bg-saffron text-bg-s1 font-black shadow-md' : 'text-text-muted hover:text-text hover:bg-bg-s2/40'
               }`}
@@ -1843,163 +1921,499 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
           )}
 
           {creatorTab === 'pool_generate' && (
-            <form onSubmit={handleGenerateFromPool} className="flex flex-col gap-5 font-sans">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {/* Exam Select */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Base Syllabus Exam</label>
-                  <select
-                    value={selectedExamId}
-                    onChange={handleExamChange}
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
-                    disabled={loadingPoolGen}
+            <div className="flex flex-col gap-5 font-sans">
+              {/* Prominent Option Selector: Single Test vs Multiple Tests */}
+              <div className="p-4 bg-gradient-to-r from-saffron/15 via-bg-s3 to-bg-s2 border border-saffron-border/40 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm select-none">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-black uppercase text-saffron tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Advanced Question Bank Pool Engine</span>
+                  </span>
+                  <h3 className="text-xs sm:text-sm font-black text-text">Select Pool Generation Mode:</h3>
+                </div>
+
+                {/* Switcher Buttons */}
+                <div className="grid grid-cols-2 gap-2 bg-bg-s3 p-1 rounded-xl border border-border shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setPoolGenType('single')}
+                    className={`px-3.5 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      poolGenType === 'single'
+                        ? 'bg-saffron text-bg-s1 shadow-md scale-[1.02]'
+                        : 'text-text-muted hover:text-text hover:bg-bg-s2/60'
+                    }`}
                   >
-                    {exams.map(ex => (
-                      <option key={ex.id} value={ex.id}>{ex.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Subject Select */}
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center w-full">
-                    <label className="text-[10px] font-black uppercase text-text-muted">Subject Pool Filter</label>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPoolSubjects([])}
-                      className="text-[8px] font-black uppercase text-saffron hover:underline cursor-pointer"
-                    >
-                      Reset (All)
-                    </button>
-                  </div>
-                  <div className="w-full h-[95px] overflow-y-auto bg-bg-s3 border border-border p-2 rounded-lg flex flex-col gap-1.5 no-scrollbar select-none">
-                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer border-b border-border/20 pb-1">
-                      <input
-                        type="checkbox"
-                        checked={selectedPoolSubjects.length === 0}
-                        onChange={() => setSelectedPoolSubjects([])}
-                        className="rounded border-border text-saffron focus:ring-saffron accent-saffron cursor-pointer"
-                      />
-                      <span className={selectedPoolSubjects.length === 0 ? "text-saffron font-black uppercase text-[10px]" : "text-text-muted font-bold text-[10px]"}>
-                        Mixed (All Subjects)
-                      </span>
-                    </label>
-                    {poolStats && Object.keys(poolStats.subjects || {}).map(sub => {
-                      const isChecked = selectedPoolSubjects.includes(sub);
-                      return (
-                        <label key={sub} className="flex items-center gap-2 text-[10px] font-semibold cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedPoolSubjects(prev => [...prev, sub]);
-                              } else {
-                                setSelectedPoolSubjects(prev => prev.filter(s => s !== sub));
-                              }
-                            }}
-                            className="rounded border-border text-saffron focus:ring-saffron accent-saffron cursor-pointer"
-                          />
-                          <span className={isChecked ? "text-saffron font-bold" : "text-text-muted hover:text-text"}>
-                            {sub} <span className="text-[8px] font-normal opacity-60">({poolStats.subjects[sub]} Qs)</span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Question Count Input */}
-                <div className="flex flex-col gap-1.5 justify-center">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Questions ({poolGenCount})</label>
-                  <input
-                    type="range"
-                    min="5"
-                    max="100"
-                    step="5"
-                    value={poolGenCount}
-                    onChange={(e) => setPoolGenCount(parseInt(e.target.value, 10))}
-                    className="w-full h-1.5 bg-bg-s3 rounded-lg appearance-none cursor-pointer accent-saffron my-2"
-                    disabled={loadingPoolGen}
-                  />
-                  <div className="flex justify-between text-[7.5px] font-black uppercase text-text-muted select-none">
-                    <span>5 Qs</span>
-                    <span>50 Qs</span>
-                    <span>100 Qs</span>
-                  </div>
-                </div>
-
-                {/* Test Mode */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Test Mode</label>
-                  <select
-                    value={poolGenMode}
-                    onChange={(e) => {
-                      const newMode = e.target.value as 'quiz' | 'mock' | 'pyq';
-                      setPoolGenMode(newMode);
-                      setPoolGenDuration(newMode === 'mock' || newMode === 'pyq' ? 120 : 10);
-                    }}
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
-                    disabled={loadingPoolGen}
+                    <Database className="w-3.5 h-3.5" />
+                    <span>1. Single Test</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPoolGenType('multiple')}
+                    className={`px-3.5 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      poolGenType === 'multiple'
+                        ? 'bg-saffron text-bg-s1 shadow-md scale-[1.02]'
+                        : 'text-text-muted hover:text-text hover:bg-bg-s2/60'
+                    }`}
                   >
-                    <option value="quiz">Standard Quiz</option>
-                    <option value="mock">Full Length Mock</option>
-                    <option value="pyq">Previous Year Paper (PYQ)</option>
-                  </select>
-                </div>
-
-                {/* Language */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Language</label>
-                  <select
-                    value={poolGenLanguage}
-                    onChange={(e) => setPoolGenLanguage(e.target.value as any)}
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
-                    disabled={loadingPoolGen}
-                  >
-                    <option value="hindi">Hindi (Devanagari)</option>
-                    <option value="english">English</option>
-                  </select>
-                </div>
-
-                {/* Duration */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Duration (Mins)</label>
-                  <input
-                    type="number"
-                    value={poolGenDuration}
-                    onChange={(e) => setPoolGenDuration(parseInt(e.target.value, 10) || 0)}
-                    min="1"
-                    max="300"
-                    className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none"
-                    disabled={loadingPoolGen}
-                    required
-                  />
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>2. Multiple Tests (Batch)</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Target Exams Checkboxes */}
-              {renderTargetExamsSelection(loadingPoolGen)}
+              {poolGenType === 'single' ? (
+                /* Single Test Generation Form */
+                <form onSubmit={handleGenerateFromPool} className="flex flex-col gap-5 font-sans">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {/* Exam Select */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Base Syllabus Exam</label>
+                      <select
+                        value={selectedExamId}
+                        onChange={handleExamChange}
+                        className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                        disabled={loadingPoolGen}
+                      >
+                        {exams.map(ex => (
+                          <option key={ex.id} value={ex.id}>{ex.name}</option>
+                        ))}
+                      </select>
+                    </div>
 
-              {/* Submit button */}
-              <button
-                type="submit"
-                disabled={loadingPoolGen}
-                className="w-full py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md mt-2"
-              >
-                {loadingPoolGen ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Generating from Pool...</span>
-                  </>
-                ) : (
-                  <>
-                    <Settings className="w-3.5 h-3.5" />
-                    <span>Generate Test from Pool</span>
-                  </>
-                )}
-              </button>
-            </form>
+                    {/* Subject Select */}
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex justify-between items-center w-full">
+                        <label className="text-[10px] font-black uppercase text-text-muted">Subject Pool Filter</label>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPoolSubjects([])}
+                          className="text-[8px] font-black uppercase text-saffron hover:underline cursor-pointer"
+                        >
+                          Reset (All)
+                        </button>
+                      </div>
+                      <div className="w-full h-[95px] overflow-y-auto bg-bg-s3 border border-border p-2 rounded-lg flex flex-col gap-1.5 no-scrollbar select-none">
+                        <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer border-b border-border/20 pb-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedPoolSubjects.length === 0}
+                            onChange={() => setSelectedPoolSubjects([])}
+                            className="rounded border-border text-saffron focus:ring-saffron accent-saffron cursor-pointer"
+                          />
+                          <span className={selectedPoolSubjects.length === 0 ? "text-saffron font-black uppercase text-[10px]" : "text-text-muted font-bold text-[10px]"}>
+                            Mixed (All Subjects)
+                          </span>
+                        </label>
+                        {poolStats && Object.keys(poolStats.subjects || {}).map(sub => {
+                          const isChecked = selectedPoolSubjects.includes(sub);
+                          return (
+                            <label key={sub} className="flex items-center gap-2 text-[10px] font-semibold cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedPoolSubjects(prev => [...prev, sub]);
+                                  } else {
+                                    setSelectedPoolSubjects(prev => prev.filter(s => s !== sub));
+                                  }
+                                }}
+                                className="rounded border-border text-saffron focus:ring-saffron accent-saffron cursor-pointer"
+                              />
+                              <span className={isChecked ? "text-saffron font-bold" : "text-text-muted hover:text-text"}>
+                                {sub} <span className="text-[8px] font-normal opacity-60">({poolStats.subjects[sub]} Qs)</span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Question Count Input */}
+                    <div className="flex flex-col gap-1.5 justify-center">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Questions ({poolGenCount})</label>
+                      <input
+                        type="range"
+                        min="5"
+                        max="100"
+                        step="5"
+                        value={poolGenCount}
+                        onChange={(e) => setPoolGenCount(parseInt(e.target.value, 10))}
+                        className="w-full h-1.5 bg-bg-s3 rounded-lg appearance-none cursor-pointer accent-saffron my-2"
+                        disabled={loadingPoolGen}
+                      />
+                      <div className="flex justify-between text-[7.5px] font-black uppercase text-text-muted select-none">
+                        <span>5 Qs</span>
+                        <span>50 Qs</span>
+                        <span>100 Qs</span>
+                      </div>
+                    </div>
+
+                    {/* Test Mode */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Test Mode</label>
+                      <select
+                        value={poolGenMode}
+                        onChange={(e) => {
+                          const newMode = e.target.value as 'quiz' | 'mock' | 'pyq';
+                          setPoolGenMode(newMode);
+                          setPoolGenDuration(newMode === 'mock' || newMode === 'pyq' ? 120 : 10);
+                        }}
+                        className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                        disabled={loadingPoolGen}
+                      >
+                        <option value="quiz">Standard Quiz</option>
+                        <option value="mock">Full Length Mock</option>
+                        <option value="pyq">Previous Year Paper (PYQ)</option>
+                      </select>
+                    </div>
+
+                    {/* Language */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Language</label>
+                      <select
+                        value={poolGenLanguage}
+                        onChange={(e) => setPoolGenLanguage(e.target.value as any)}
+                        className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                        disabled={loadingPoolGen}
+                      >
+                        <option value="hindi">Hindi (Devanagari)</option>
+                        <option value="english">English</option>
+                      </select>
+                    </div>
+
+                    {/* Duration */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Duration (Mins)</label>
+                      <input
+                        type="number"
+                        value={poolGenDuration}
+                        onChange={(e) => setPoolGenDuration(parseInt(e.target.value, 10) || 0)}
+                        min="1"
+                        max="300"
+                        className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none"
+                        disabled={loadingPoolGen}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Target Exams Checkboxes */}
+                  {renderTargetExamsSelection(loadingPoolGen)}
+
+                  {/* Hardness Level Ratio Section */}
+                  <div className="p-3 bg-bg-s3/60 border border-border/80 rounded-xl flex flex-col gap-2 select-none">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-text">
+                      <input
+                        type="checkbox"
+                        checked={poolEnableHardnessRatio}
+                        onChange={(e) => setPoolEnableHardnessRatio(e.target.checked)}
+                        className="rounded border-border text-saffron focus:ring-saffron accent-saffron cursor-pointer"
+                      />
+                      <span className="flex items-center gap-1.5">
+                        <Sliders className="w-3.5 h-3.5 text-saffron" />
+                        <span>Hardness Level Ratio Options (Difficulty Breakdown)</span>
+                      </span>
+                    </label>
+
+                    {poolEnableHardnessRatio && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1 pt-2 border-t border-border/40 animate-fade-in">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase text-greenL">Easy (%)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={poolEasyRatio}
+                            onChange={(e) => setPoolEasyRatio(parseInt(e.target.value, 10) || 0)}
+                            className="bg-bg-s2 text-xs font-bold text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase text-amber-400">Medium (%)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={poolMediumRatio}
+                            onChange={(e) => setPoolMediumRatio(parseInt(e.target.value, 10) || 0)}
+                            className="bg-bg-s2 text-xs font-bold text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase text-redL">Hard (%)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={poolHardRatio}
+                            onChange={(e) => setPoolHardRatio(parseInt(e.target.value, 10) || 0)}
+                            className="bg-bg-s2 text-xs font-bold text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none"
+                          />
+                        </div>
+                        {poolEasyRatio + poolMediumRatio + poolHardRatio !== 100 && (
+                          <span className="sm:col-span-3 text-[9.5px] text-amber-400 font-medium">
+                            Ratio Total: {poolEasyRatio + poolMediumRatio + poolHardRatio}% (will be proportionally normalized to 100%).
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submit button */}
+                  <button
+                    type="submit"
+                    disabled={loadingPoolGen}
+                    className="w-full py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md mt-2"
+                  >
+                    {loadingPoolGen ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generating Single Test from Pool...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Settings className="w-3.5 h-3.5" />
+                        <span>Generate Single Test from Pool</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* Multiple Test Generation Form */
+                <form onSubmit={handleGenerateMultipleFromPool} className="flex flex-col gap-5 font-sans">
+                  {/* Target Exams Selection (Checkboxes for Multi-Exam) */}
+                  {renderTargetExamsSelection(loadingPoolGen)}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {/* Number of Tests to generate */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Total Tests Count</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={poolMultipleTestCount}
+                        onChange={(e) => setPoolMultipleTestCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        className="w-full bg-bg-s3 text-xs font-bold text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none"
+                        disabled={loadingPoolGen}
+                        required
+                      />
+                    </div>
+
+                    {/* Primary Subject Select */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Primary Subject Scope</label>
+                      <select
+                        value={poolPrimarySubject}
+                        onChange={(e) => setPoolPrimarySubject(e.target.value)}
+                        className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                        disabled={loadingPoolGen}
+                      >
+                        <option value="all">Mixed (All Subjects Syllabus)</option>
+                        {activeExam?.subjects?.map(s => (
+                          <option key={s.id} value={s.name}>{s.name}</option>
+                        ))}
+                        {poolStats?.subjects && Object.keys(poolStats.subjects).map(sub => {
+                          if (activeExam?.subjects?.some(s => s.name.toLowerCase() === sub.toLowerCase())) return null;
+                          return (
+                            <option key={sub} value={sub}>{sub} ({poolStats.subjects[sub]} Qs)</option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    {/* Questions per Test */}
+                    <div className="flex flex-col gap-1.5 justify-center">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Questions / Test ({poolGenCount})</label>
+                      <input
+                        type="range"
+                        min="5"
+                        max="100"
+                        step="5"
+                        value={poolGenCount}
+                        onChange={(e) => setPoolGenCount(parseInt(e.target.value, 10))}
+                        className="w-full h-1.5 bg-bg-s3 rounded-lg appearance-none cursor-pointer accent-saffron my-2"
+                        disabled={loadingPoolGen}
+                      />
+                      <div className="flex justify-between text-[7.5px] font-black uppercase text-text-muted select-none">
+                        <span>5 Qs</span>
+                        <span>50 Qs</span>
+                        <span>100 Qs</span>
+                      </div>
+                    </div>
+
+                    {/* Test Mode */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Test Type / Mode</label>
+                      <select
+                        value={poolGenMode}
+                        onChange={(e) => {
+                          const newMode = e.target.value as 'quiz' | 'mock' | 'pyq';
+                          setPoolGenMode(newMode);
+                          setPoolGenDuration(newMode === 'mock' || newMode === 'pyq' ? 120 : 10);
+                        }}
+                        className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                        disabled={loadingPoolGen}
+                      >
+                        <option value="quiz">Standard Quiz</option>
+                        <option value="mock">Full Length Mock</option>
+                        <option value="pyq">Previous Year Paper (PYQ)</option>
+                      </select>
+                    </div>
+
+                    {/* Language */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Language</label>
+                      <select
+                        value={poolGenLanguage}
+                        onChange={(e) => setPoolGenLanguage(e.target.value as any)}
+                        className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                        disabled={loadingPoolGen}
+                      >
+                        <option value="hindi">Hindi (Devanagari)</option>
+                        <option value="english">English</option>
+                      </select>
+                    </div>
+
+                    {/* Duration */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Duration / Test (Mins)</label>
+                      <input
+                        type="number"
+                        value={poolGenDuration}
+                        onChange={(e) => setPoolGenDuration(parseInt(e.target.value, 10) || 0)}
+                        min="1"
+                        max="300"
+                        className="w-full bg-bg-s3 text-xs text-text border border-border focus-within:border-saffron px-3 py-2.5 rounded-lg outline-none"
+                        disabled={loadingPoolGen}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Hardness Level Ratio Section */}
+                  <div className="p-3 bg-bg-s3/60 border border-border/80 rounded-xl flex flex-col gap-2 select-none">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-text">
+                      <input
+                        type="checkbox"
+                        checked={poolEnableHardnessRatio}
+                        onChange={(e) => setPoolEnableHardnessRatio(e.target.checked)}
+                        className="rounded border-border text-saffron focus:ring-saffron accent-saffron cursor-pointer"
+                      />
+                      <span className="flex items-center gap-1.5">
+                        <Sliders className="w-3.5 h-3.5 text-saffron" />
+                        <span>Hardness Level Ratio Options (Difficulty Breakdown for each test)</span>
+                      </span>
+                    </label>
+
+                    {poolEnableHardnessRatio && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1 pt-2 border-t border-border/40 animate-fade-in">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase text-greenL">Easy (%)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={poolEasyRatio}
+                            onChange={(e) => setPoolEasyRatio(parseInt(e.target.value, 10) || 0)}
+                            className="bg-bg-s2 text-xs font-bold text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase text-amber-400">Medium (%)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={poolMediumRatio}
+                            onChange={(e) => setPoolMediumRatio(parseInt(e.target.value, 10) || 0)}
+                            className="bg-bg-s2 text-xs font-bold text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[9px] font-black uppercase text-redL">Hard (%)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={poolHardRatio}
+                            onChange={(e) => setPoolHardRatio(parseInt(e.target.value, 10) || 0)}
+                            className="bg-bg-s2 text-xs font-bold text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none"
+                          />
+                        </div>
+                        {poolEasyRatio + poolMediumRatio + poolHardRatio !== 100 && (
+                          <span className="sm:col-span-3 text-[9.5px] text-amber-400 font-medium">
+                            Ratio Total: {poolEasyRatio + poolMediumRatio + poolHardRatio}% (will be proportionally normalized to 100%).
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Warning & Pool Calculation Badge */}
+                  {(() => {
+                    const totalRequired = poolMultipleTestCount * poolGenCount;
+                    let matchingPoolCount = poolStats ? poolStats.totalCount : 0;
+                    if (poolStats?.subjects && poolPrimarySubject !== 'all' && poolPrimarySubject !== 'mixed') {
+                      matchingPoolCount = poolStats.subjects[poolPrimarySubject] || 0;
+                    }
+                    const isShort = matchingPoolCount < totalRequired;
+
+                    return (
+                      <div className={`p-3.5 rounded-xl border flex flex-col gap-1 text-xs select-none ${
+                        isShort 
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' 
+                          : 'bg-greenL/10 border-greenL/30 text-greenL'
+                      }`}>
+                        <div className="flex justify-between items-center font-bold">
+                          <span className="flex items-center gap-1.5">
+                            <Layers className="w-4 h-4" />
+                            <span>Batch Generation Pool Capacity Check</span>
+                          </span>
+                          <span className="font-mono text-xs font-black">
+                            {poolMultipleTestCount} Tests × {poolGenCount} Qs = {totalRequired} Unique Questions
+                          </span>
+                        </div>
+
+                        {isShort ? (
+                          <div className="flex items-start gap-2 mt-1 text-[11px] font-medium leading-relaxed">
+                            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                            <span>
+                              <strong>Warning (कम Question Warning):</strong> Question bank pool me is subject/exam ke ~{matchingPoolCount} questions hain lekin multiple tests generate karne ke liye total {totalRequired} unique questions ki zarurat hai. System remaining ({totalRequired - matchingPoolCount}) verified syllabus questions AI se auto-generate kar legi taaki <strong>koi question kisi test me repeat na ho</strong>!
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 mt-0.5 text-[11px] font-medium">
+                            <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span>Sufficient pool questions available (~{matchingPoolCount} Qs). System will pick unique non-repeating questions across all {poolMultipleTestCount} tests.</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Submit button */}
+                  <button
+                    type="submit"
+                    disabled={loadingPoolGen}
+                    className="w-full py-3 bg-saffron hover:bg-orange-500 text-xs font-black uppercase text-bg-s1 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md mt-2"
+                  >
+                    {loadingPoolGen ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generating {poolMultipleTestCount} Tests from Pool (No Duplicates)...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>Generate {poolMultipleTestCount} Tests from Pool (No Duplicate Qs)</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
           )}
 
           {creatorTab === 'pool_upload' && (
