@@ -2163,7 +2163,10 @@ export default function App() {
         <main className={`flex-1 flex flex-col min-h-0 ${
           isWorkspaceActive
             ? 'h-[100dvh] max-h-[100dvh] overflow-hidden w-full p-0 gap-0'
-            : (activeTab === 'chat' ? 'h-full max-h-full overflow-hidden ' : 'overflow-y-auto ') + 'px-4 py-4 gap-4 ' + (!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40' : 'w-full')
+            : (activeTab === 'chat' ? 'h-full max-h-full overflow-hidden ' : 'overflow-y-auto ') + 
+              (activeTab === 'admin' || activeTab === 'staff' 
+                ? 'px-4 py-4 md:px-8 gap-4 w-full' 
+                : 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40 px-4 py-4 gap-4')
         }`}>
           <AnimatePresence mode="wait">
             {!isTestActive ? (

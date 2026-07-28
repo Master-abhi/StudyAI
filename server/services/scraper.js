@@ -316,17 +316,7 @@ async function scrapeNewsAPI() {
 }
 
 function getFallbackNews() {
-  return [
-    {
-      title: 'Supreme Court Landmark Ruling on Right to Privacy',
-      description: 'National • The Supreme Court expanded the scope of fundamental right to privacy in a landmark judgment.',
-      category: 'affairs',
-      date: new Date().toISOString().split('T')[0],
-      source: 'National News',
-      url: '#',
-      icon: '⚖️'
-    }
-  ];
+  return [];
 }
 
 function deduplicateArticles(articles) {
@@ -357,10 +347,7 @@ async function scrapeAll() {
   if (employment.status === 'fulfilled') allArticles.push(...employment.value);
   if (newsAPI.status === 'fulfilled') allArticles.push(...newsAPI.value);
 
-  if (allArticles.length < 5) {
-    console.log('[Scraper] Too few articles scraped, adding fallback data');
-    allArticles.push(...getFallbackNews());
-  }
+
 
   allArticles = deduplicateArticles(allArticles);
 

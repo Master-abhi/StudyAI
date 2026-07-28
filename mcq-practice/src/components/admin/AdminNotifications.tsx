@@ -242,7 +242,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ currentU
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in w-full max-w-4xl font-sans">
+    <div className="flex flex-col gap-6 animate-fade-in w-full font-sans">
       
       {/* Top Banner Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-bg-s2 border border-border p-5 rounded-xl">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, Zap, BookOpen, Search, SlidersHorizontal, X, Keyboard, Download, CheckCircle2, HardDriveDownload, Loader2, Share2 } from 'lucide-react';
+import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, ChevronLeft, Zap, BookOpen, Search, SlidersHorizontal, X, Keyboard, Download, CheckCircle2, HardDriveDownload, Loader2, Share2, FolderOpen, Layers } from 'lucide-react';
 import type { Question } from '../types';
 import { TypingTest } from './TypingTest';
 
@@ -183,15 +183,30 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   const [selectedLanguage, setSelectedLanguage] = useState<string>('All');
   const [selectedLength, setSelectedLength] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('newest');
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState<boolean>(false);
 
-  // Reset filters when mode changes
+  // Reset filters when mode or active exam changes
   useEffect(() => {
     setSearchQuery('');
     setSelectedLanguage('All');
     setSelectedLength('All');
     setSortBy('newest');
-  }, [activeMode]);
+    setSelectedSubject(null);
+  }, [activeMode, activeExam]);
+
+  const getSubjectProgress = (subjectTests: ServerTest[]) => {
+    let completed = 0;
+    let inProgress = 0;
+    subjectTests.forEach(test => {
+      const prog = getTestProgressInfo(test);
+      if (prog) {
+        if (prog.completed) completed++;
+        else if (prog.attemptedCount > 0) inProgress++;
+      }
+    });
+    return { completed, inProgress, total: subjectTests.length };
+  };
 
   const getApiUrl = (path: string) => {
     const hostname = window.location.hostname;
@@ -293,7 +308,25 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   // 2. Extract unique languages dynamically from base tests
   const availableLanguages = Array.from(new Set(baseFilteredTests.map(t => t.language).filter(Boolean)));
 
-  // 3. Apply active filters
+  // 3. Extract unique subjects and group tests subject-wise
+  const subjectsMap = React.useMemo(() => {
+    const map: Record<string, ServerTest[]> = {};
+    baseFilteredTests.forEach(t => {
+      let rawSub = (t.subject || 'General Knowledge').trim();
+      if (rawSub.toLowerCase() === 'all' || rawSub.toLowerCase() === 'all subjects') {
+        rawSub = 'Full Syllabus / All Subjects';
+      }
+      if (!map[rawSub]) {
+        map[rawSub] = [];
+      }
+      map[rawSub].push(t);
+    });
+    return map;
+  }, [baseFilteredTests]);
+
+  const availableSubjects = Object.keys(subjectsMap).sort();
+
+  // 4. Apply active filters
   let filteredTests = baseFilteredTests.filter(t => {
     const matchesSearch = searchQuery 
       ? t.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -313,7 +346,16 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       matchesLength = t.totalQuestions > 50;
     }
 
-    return matchesSearch && matchesLanguage && matchesLength;
+    const testSubj = (t.subject || 'General Knowledge').trim();
+    const normalizedTestSubj = (testSubj.toLowerCase() === 'all' || testSubj.toLowerCase() === 'all subjects')
+      ? 'Full Syllabus / All Subjects'
+      : testSubj;
+
+    const matchesSubject = selectedSubject
+      ? normalizedTestSubj.toLowerCase() === selectedSubject.toLowerCase()
+      : true;
+
+    return matchesSearch && matchesLanguage && matchesLength && matchesSubject;
   });
 
   // 4. Sort filtered results
@@ -702,6 +744,23 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden flex flex-col sm:flex-row gap-3 pt-2 border-t border-border/40"
                   >
+                    {/* Subject Filter */}
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <label className="text-[9px] font-black uppercase text-text-muted">Subject (विषय)</label>
+                      <select
+                        value={selectedSubject || 'All'}
+                        onChange={(e) => setSelectedSubject(e.target.value === 'All' ? null : e.target.value)}
+                        className="w-full bg-bg-s3 border border-border focus:border-saffron/50 rounded-lg px-2.5 py-2 text-xs font-semibold text-text outline-none cursor-pointer"
+                      >
+                        <option value="All">All Subjects ({baseFilteredTests.length})</option>
+                        {availableSubjects.map(sub => (
+                          <option key={sub} value={sub}>
+                            {sub} ({(subjectsMap[sub] || []).length})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     {/* Language Filter */}
                     <div className="flex-1 flex flex-col gap-1.5">
                       <label className="text-[9px] font-black uppercase text-text-muted">Language</label>
@@ -749,29 +808,168 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Subject Filter Horizontal Pills Bar */}
+              {availableSubjects.length > 0 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar pt-2 border-t border-border/40">
+                  <button
+                    onClick={() => setSelectedSubject(null)}
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-black shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
+                      selectedSubject === null
+                        ? 'bg-saffron text-bg-s1 shadow'
+                        : 'bg-bg-s3 border border-border text-text-muted hover:text-text hover:bg-bg-s3/80'
+                    }`}
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>All Subjects ({baseFilteredTests.length})</span>
+                  </button>
+                  {availableSubjects.map(sub => {
+                    const count = (subjectsMap[sub] || []).length;
+                    const isSelected = selectedSubject?.toLowerCase() === sub.toLowerCase();
+                    return (
+                      <button
+                        key={sub}
+                        onClick={() => setSelectedSubject(isSelected ? null : sub)}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-black shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-saffron text-bg-s1 shadow'
+                            : 'bg-bg-s3 border border-border text-text-muted hover:text-text hover:bg-bg-s3/80'
+                        }`}
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>{sub}</span>
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
+                          isSelected ? 'bg-bg-s1/20 text-bg-s1' : 'bg-bg-s2 text-text-muted'
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
+
+            {/* Front View: ONLY Subject Categories Cards Grid (when no subject selected and no search query) */}
+            {selectedSubject === null && !searchQuery ? (
+              <div className="flex flex-col gap-3 mb-1">
+                <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="w-4 h-4 text-saffron" />
+                    <h4 className="text-xs font-black text-text uppercase tracking-wider">
+                      Choose Subject (विषय चुनें)
+                    </h4>
+                  </div>
+                  <span className="text-[10px] text-text-muted font-bold">
+                    {availableSubjects.length} Subjects • {baseFilteredTests.length} Tests
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {availableSubjects.map(sub => {
+                    const subTests = subjectsMap[sub] || [];
+                    const stats = getSubjectProgress(subTests);
+                    return (
+                      <motion.div
+                        key={sub}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setSelectedSubject(sub)}
+                        className="p-4 bg-bg-s2 hover:bg-bg-s2/90 border border-border hover:border-saffron-border/60 rounded-xl flex flex-col justify-between gap-3 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-saffron-dim/10 rounded-full blur-xl pointer-events-none group-hover:bg-saffron-dim/20 transition-all" />
+                        
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="w-9 h-9 bg-saffron-dim/20 border border-saffron-border/30 rounded-lg flex items-center justify-center text-saffron shrink-0 group-hover:bg-saffron group-hover:text-bg-s1 transition-colors">
+                            <BookOpen className="w-4.5 h-4.5" />
+                          </div>
+                          <span className="text-[10px] font-black text-saffron bg-saffron-dim/20 border border-saffron-border/30 px-2 py-0.5 rounded-full shrink-0">
+                            {stats.total} {stats.total === 1 ? 'Test' : 'Tests'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <h5 className="text-xs font-black text-text group-hover:text-saffron transition-colors leading-tight line-clamp-2">
+                            {sub}
+                          </h5>
+                          <div className="flex items-center gap-2 text-[9px] font-bold text-text-muted">
+                            {stats.completed > 0 && (
+                              <span className="text-greenL font-black">{stats.completed} Completed</span>
+                            )}
+                            {stats.inProgress > 0 && (
+                              <span className="text-saffron font-black">{stats.inProgress} In Progress</span>
+                            )}
+                            {stats.completed === 0 && stats.inProgress === 0 && (
+                              <span>Not Started</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[9.5px] font-black text-saffron-border group-hover:text-saffron border-t border-border/40 pt-2">
+                          <span>View {stats.total} {stats.total === 1 ? 'Test' : 'Tests'}</span>
+                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              /* Inside Subject View / Search View: Render tests belonging to subject */
+              <div className="flex flex-col gap-4">
+                {/* Active Subject Banner Header */}
+                {selectedSubject && (
+                  <div className="p-3.5 bg-bg-s2 border border-saffron/40 rounded-xl flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setSelectedSubject(null)}
+                        className="px-2.5 py-1.5 bg-bg-s3 hover:bg-saffron-dim/20 text-text-muted hover:text-saffron border border-border rounded-lg text-xs font-black flex items-center gap-1 transition-all cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>← Back to All Subjects</span>
+                      </button>
+                      <div className="flex flex-col">
+                        <h4 className="text-xs font-black text-text flex items-center gap-1.5">
+                          <BookOpen className="w-3.5 h-3.5 text-saffron" />
+                          <span>{selectedSubject}</span>
+                        </h4>
+                        <span className="text-[9.5px] text-text-muted font-bold">
+                          Showing {filteredTests.length} tests for this subject
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedSubject(null)}
+                      className="text-[10px] text-text-muted hover:text-saffron font-bold underline cursor-pointer"
+                    >
+                      Clear Subject Filter
+                    </button>
+                  </div>
+                )}
 
             {/* List or Empty Indicator */}
             {filteredTests.length === 0 ? (
               <div className="p-8 text-center bg-bg-s2 border border-border rounded-xl text-xs text-text-muted flex flex-col items-center gap-2">
                 <AlertCircle className="w-6 h-6 text-saffron-border/60 mb-0.5" />
-                <span>No educator tests match your filter criteria or none are available.</span>
+                <span>No educator tests match your filter criteria or selected subject.</span>
                 <span className="text-[10px]">
                   {baseFilteredTests.length === 0 
                     ? "Generate customized mock practice in the Syllabus tab or practice preloaded PYQs." 
-                    : "Try adjusting your search query or filters."}
+                    : "Try adjusting your subject selection or search query."}
                 </span>
-                {(searchQuery || selectedLanguage !== 'All' || selectedLength !== 'All' || sortBy !== 'newest') && (
+                {(searchQuery || selectedLanguage !== 'All' || selectedLength !== 'All' || sortBy !== 'newest' || selectedSubject) && (
                   <button 
                     onClick={() => {
                       setSearchQuery('');
                       setSelectedLanguage('All');
                       setSelectedLength('All');
                       setSortBy('newest');
+                      setSelectedSubject(null);
                     }}
                     className="mt-2 px-3 py-1.5 bg-saffron-dim border border-saffron-border text-saffron hover:bg-saffron/20 rounded-lg text-[10px] font-black cursor-pointer transition-all active:scale-95"
                   >
-                    Clear Filters
+                    Clear All Filters & Reset
                   </button>
                 )}
               </div>
@@ -862,6 +1060,8 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                     </motion.div>
                   );
                 })}
+              </div>
+            )}
               </div>
             )}
           </div>

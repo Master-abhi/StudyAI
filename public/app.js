@@ -3489,24 +3489,9 @@ async function loadNews() {
 
     // ── Step 4: If no cached data anywhere, use bilingual fallback data ──
     if (!data || (data.articles || []).length === 0) {
-      console.log('[News] No cache found, using default fallback data.');
       data = {
         lastUpdated: new Date().toISOString(),
-        articles: [
-          {
-            title: 'Supreme Court Landmark Ruling on Right to Privacy',
-            title_hi: 'निजता के अधिकार पर सुप्रीम कोर्ट का ऐतिहासिक फैसला',
-            description: 'National • The Supreme Court expanded the scope of fundamental right to privacy in a landmark judgment.',
-            description_hi: 'राष्ट्रीय • सुप्रीम कोर्ट ने एक ऐतिहासिक फैसले में मौलिक निजता के अधिकार के दायरे का विस्तार किया।',
-            summary: 'National • The Supreme Court expanded the scope of fundamental right to privacy in a landmark judgment.',
-            summary_hi: 'राष्ट्रीय • सुप्रीम कोर्ट ने एक ऐतिहासिक फैसले में मौलिक निजता के अधिकार के दायरे का विस्तार किया।',
-            category: 'affairs',
-            date: new Date().toISOString().split('T')[0],
-            source: 'National News',
-            url: '#',
-            icon: '⚖️'
-          }
-        ]
+        articles: []
       };
     }
 

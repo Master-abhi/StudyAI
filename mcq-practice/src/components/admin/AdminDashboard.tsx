@@ -287,7 +287,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
   };
 
   return (
-    <div className="flex flex-col min-h-screen text-text font-sans w-full max-w-7xl mx-auto pb-12">
+    <div className="flex flex-col min-h-screen text-text font-sans w-full pb-12">
       {/* Admin Panel Header */}
       <header className="sticky top-0 bg-[#0B0E14]/90 backdrop-blur-md border-b border-border/60 py-4 flex flex-col sm:flex-row justify-between items-center z-40 shrink-0 gap-3">
         <div className="flex items-center gap-2.5">

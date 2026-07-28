@@ -148,7 +148,7 @@ export const AdminAIConfig: React.FC<AdminAIConfigProps> = ({ currentUser }) => 
           <span className="text-[10px] font-black uppercase tracking-wider">Loading Configuration...</span>
         </div>
       ) : (
-        <form onSubmit={handleSaveConfig} className="bg-bg-s2 border border-border p-6 rounded-xl shadow-md flex flex-col gap-6 max-w-4xl">
+        <form onSubmit={handleSaveConfig} className="bg-bg-s2 border border-border p-6 rounded-xl shadow-md flex flex-col gap-6 w-full">
           
           <div className="flex items-center gap-2 border-b border-border/40 pb-3">
             <Cpu className="w-4.5 h-4.5 text-saffron" />
