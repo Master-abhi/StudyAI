@@ -396,6 +396,16 @@ async function scrapeAll() {
     articles: interleaved.slice(0, 50)
   };
 
+  const LOCAL_CACHE_PATH = path.join(__dirname, '../cache/news-cache.json');
+  try {
+    const cacheDir = path.dirname(LOCAL_CACHE_PATH);
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+    fs.writeFileSync(LOCAL_CACHE_PATH, JSON.stringify(cacheData, null, 2), 'utf-8');
+    console.log('[Scraper] Saved local news cache to disk ✅');
+  } catch (fsErr) {
+    console.error('[Scraper] Failed saving local news cache to disk:', fsErr.message);
+  }
+
   // Save to Firestore instead of local file
   try {
     await NEWS_DOC.set(cacheData);
@@ -409,17 +419,40 @@ async function scrapeAll() {
 
 /**
  * Reads cached news from Firestore.
- * Now async — await this function.
+ * Falls back to local disk cache (news-cache.json) if Firestore quota is exceeded or unavailable.
  */
 async function getCachedNews() {
   try {
-    const doc = await NEWS_DOC.get();
-    if (doc.exists) {
+    const firestorePromise = NEWS_DOC.get();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Firestore read timeout')), 3000)
+    );
+
+    const doc = await Promise.race([firestorePromise, timeoutPromise]);
+    if (doc && doc.exists && doc.data()?.articles?.length > 0) {
       return doc.data();
     }
   } catch (err) {
-    console.error('[Scraper] Error reading Firestore cache:', err.message);
+    console.error('[Scraper] Error reading Firestore cache (quota/timeout):', err.message);
   }
+
+  // Fallback to local disk cache if Firestore quota is exceeded or fails
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const LOCAL_CACHE_PATH = path.join(__dirname, '../cache/news-cache.json');
+    if (fs.existsSync(LOCAL_CACHE_PATH)) {
+      const raw = fs.readFileSync(LOCAL_CACHE_PATH, 'utf-8');
+      const data = JSON.parse(raw);
+      if (data && Array.isArray(data.articles) && data.articles.length > 0) {
+        console.log(`[Scraper] Serving ${data.articles.length} news articles from local disk cache fallback.`);
+        return data;
+      }
+    }
+  } catch (fsErr) {
+    console.error('[Scraper] Error reading local disk cache fallback:', fsErr.message);
+  }
+
   return { lastUpdated: null, articles: getFallbackNews() };
 }
 

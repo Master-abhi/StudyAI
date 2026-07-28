@@ -418,8 +418,24 @@ async function scrapeAllNews() {
     articles: cacheArticles
   };
 
-  await db.collection('news').doc('cache').set(cacheData);
-  console.log('[NewsScraper] Cached compilation successfully written to news/cache.');
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const LOCAL_CACHE_PATH = path.join(__dirname, '../cache/news-cache.json');
+    const cacheDir = path.dirname(LOCAL_CACHE_PATH);
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+    fs.writeFileSync(LOCAL_CACHE_PATH, JSON.stringify(cacheData, null, 2), 'utf-8');
+    console.log('[NewsScraper] Saved local news cache to disk ✅');
+  } catch (fsErr) {
+    console.error('[NewsScraper] Failed saving local news cache to disk:', fsErr.message);
+  }
+
+  try {
+    await db.collection('news').doc('cache').set(cacheData);
+    console.log('[NewsScraper] Cached compilation successfully written to news/cache.');
+  } catch (err) {
+    console.error('[NewsScraper] Failed writing cache to Firestore:', err.message);
+  }
 
   return cacheData;
 }

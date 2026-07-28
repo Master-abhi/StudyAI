@@ -499,24 +499,24 @@ router.get('/materials', verifyStaffOrAdmin('syllabus'), async (req, res) => {
   }
 });
 
-// ── Admin News Refresh Endpoint ──
+// ── Admin News Refresh Endpoint (Scraper Disabled) ──
 
 router.post('/news/refresh', verifyStaffOrAdmin('news'), async (req, res) => {
   try {
-    console.log('[Admin News Refresh] Scraping and translating fresh articles...');
-    const { scrapeAllNews } = require('../services/newsScraper');
-    const result = await scrapeAllNews();
+    console.log('[Admin News Refresh] Scraper disabled. Refreshing cache from manual news articles...');
+    const cacheData = await updateNewsCacheInFirestore();
 
-    await logStaffActivity(req, 'refresh_news', { totalArticles: result.articles.length, lastUpdated: result.lastUpdated });
+    await logStaffActivity(req, 'refresh_news_cache', { totalArticles: cacheData?.articles?.length || 0 });
 
     res.json({
       success: true,
-      lastUpdated: result.lastUpdated,
-      totalArticles: result.articles.length
+      message: 'Automated scraper disabled. Cache refreshed from manual news articles.',
+      lastUpdated: cacheData?.lastUpdated || new Date().toISOString(),
+      totalArticles: cacheData?.articles?.length || 0
     });
   } catch (err) {
     console.error('[Admin News Refresh Error]:', err.message);
-    res.status(500).json({ error: err.message || 'Failed to refresh news' });
+    res.status(500).json({ error: err.message || 'Failed to refresh news cache' });
   }
 });
 
@@ -619,8 +619,24 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
       articles: cacheArticles
     };
 
-    await db.collection('news').doc('cache').set(cacheData);
-    console.log('[Admin News Upload] Cache successfully updated in news/cache.');
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const LOCAL_CACHE_PATH = path.join(__dirname, '../cache/news-cache.json');
+      const cacheDir = path.dirname(LOCAL_CACHE_PATH);
+      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+      fs.writeFileSync(LOCAL_CACHE_PATH, JSON.stringify(cacheData, null, 2), 'utf-8');
+      console.log('[Admin News Upload] Saved news cache to disk ✅');
+    } catch (fsErr) {
+      console.error('[Admin News Upload] Disk write error:', fsErr.message);
+    }
+
+    try {
+      await db.collection('news').doc('cache').set(cacheData);
+      console.log('[Admin News Upload] Cache successfully updated in news/cache.');
+    } catch (writeErr) {
+      console.warn('[Admin News Upload] Firestore cache write fail:', writeErr.message);
+    }
 
     await logStaffActivity(req, 'upload_news', { totalArticles: cleanedArticles.length });
 
@@ -631,13 +647,21 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
   }
 });
 
-// Helper function to update news & jobs cache in Firestore
+// Helper function to update news & jobs cache in Firestore and local disk
 async function updateNewsCacheInFirestore() {
   try {
     const crypto = require('crypto');
+    const fs = require('fs');
+    const path = require('path');
     const timestamp = new Date().toISOString();
-    const snap = await db.collection('news_articles').orderBy('createdAt', 'desc').limit(150).get();
-    let allStored = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    let allStored = [];
+    try {
+      const snap = await db.collection('news_articles').orderBy('createdAt', 'desc').limit(150).get();
+      allStored = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (readErr) {
+      console.warn('[Update News Cache Firestore read fail]:', readErr.message);
+    }
 
     allStored.sort((a, b) => {
       const dateA = a.pubDate || a.date || '';
@@ -662,7 +686,22 @@ async function updateNewsCacheInFirestore() {
       articles: cacheArticles
     };
 
-    await db.collection('news').doc('cache').set(cacheData);
+    try {
+      const LOCAL_CACHE_PATH = path.join(__dirname, '../cache/news-cache.json');
+      const cacheDir = path.dirname(LOCAL_CACHE_PATH);
+      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+      fs.writeFileSync(LOCAL_CACHE_PATH, JSON.stringify(cacheData, null, 2), 'utf-8');
+      console.log('[Update News Cache] Saved news cache to disk ✅');
+    } catch (fsErr) {
+      console.error('[Update News Cache] Disk write error:', fsErr.message);
+    }
+
+    try {
+      await db.collection('news').doc('cache').set(cacheData);
+    } catch (writeErr) {
+      console.warn('[Update News Cache Firestore write fail]:', writeErr.message);
+    }
+
     return cacheData;
   } catch (err) {
     console.error('[Update News Cache Error]:', err.message);

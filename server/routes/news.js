@@ -66,10 +66,19 @@ router.get('/intelligence', async (req, res) => {
 
     const docId = crypto.createHash('md5').update(title).digest('hex');
     const docRef = db.collection('news_intelligence').doc(docId);
-    const doc = await docRef.get();
+    
+    let existingData = null;
+    try {
+      const doc = await docRef.get();
+      if (doc.exists) {
+        existingData = doc.data();
+      }
+    } catch (readErr) {
+      console.warn('[News Intelligence Firestore read fail]:', readErr.message);
+    }
 
-    if (doc.exists) {
-      return res.json(doc.data());
+    if (existingData) {
+      return res.json(existingData);
     }
 
     console.log(`[News Intelligence] Generating intelligence for: ${title}`);
@@ -81,10 +90,15 @@ router.get('/intelligence', async (req, res) => {
       description: description || '',
       source: source || 'Google News',
       category: category || 'affairs',
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: new Date().toISOString()
     };
 
-    await docRef.set(fullIntel);
+    try {
+      await docRef.set(fullIntel);
+    } catch (writeErr) {
+      console.warn('[News Intelligence Firestore write fail]:', writeErr.message);
+    }
+
     res.json(fullIntel);
   } catch (err) {
     console.error('[News Intelligence Error]:', err.message);
@@ -103,20 +117,27 @@ router.get('/recommended', verifyFirebaseToken, async (req, res) => {
       return c !== 'jobs' && c !== 'job' && c !== 'job_alert' && c !== 'recruitment';
     });
 
-    const userDoc = await db.collection('users').doc(userId).get();
-    const user = userDoc.exists ? userDoc.data() : {};
-    const targetExam = (user.targetExam || 'cgpsc').toLowerCase();
-
-    const weakTopicsSnap = await db.collection('topic_mastery')
-      .where('userId', '==', userId)
-      .where('status', '==', 'Weak Area')
-      .get();
-    
+    let user = {};
     const weakSubjects = new Set();
-    weakTopicsSnap.docs.forEach(doc => {
-      const data = doc.data();
-      if (data.subjectId) weakSubjects.add(data.subjectId.toLowerCase());
-    });
+    
+    try {
+      const userDoc = await db.collection('users').doc(userId).get();
+      if (userDoc.exists) user = userDoc.data();
+
+      const weakTopicsSnap = await db.collection('topic_mastery')
+        .where('userId', '==', userId)
+        .where('status', '==', 'Weak Area')
+        .get();
+      
+      weakTopicsSnap.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.subjectId) weakSubjects.add(data.subjectId.toLowerCase());
+      });
+    } catch (dbErr) {
+      console.warn('[News Recommended Firestore query fail]:', dbErr.message);
+    }
+
+    const targetExam = (user.targetExam || 'cgpsc').toLowerCase();
 
     const categoryToSubjectMap = {
       'polity': ['polity', 'indian constitution'],
@@ -202,18 +223,21 @@ router.post('/log-interaction', verifyFirebaseToken, async (req, res) => {
     }
     
     const articleId = crypto.createHash('md5').update(title).digest('hex');
-    const timestamp = admin.firestore.FieldValue.serverTimestamp();
     
-    const interactionRef = db.collection('user_current_affairs_interactions').doc();
-    await interactionRef.set({
-      userId,
-      articleId,
-      articleTitle: title,
-      activityType,
-      timeSpentSeconds: parseInt(timeSpentSeconds) || 0,
-      mcqScore: mcqScore || null,
-      timestamp
-    });
+    try {
+      const interactionRef = db.collection('user_current_affairs_interactions').doc();
+      await interactionRef.set({
+        userId,
+        articleId,
+        articleTitle: title,
+        activityType,
+        timeSpentSeconds: parseInt(timeSpentSeconds) || 0,
+        mcqScore: mcqScore || null,
+        timestamp: new Date().toISOString()
+      });
+    } catch (writeErr) {
+      console.warn('[Log News Interaction Firestore write fail]:', writeErr.message);
+    }
     
     res.json({ success: true });
   } catch (err) {
@@ -227,9 +251,15 @@ router.get('/analytics', verifyFirebaseToken, async (req, res) => {
   try {
     const userId = req.user.uid;
     
-    const snap = await db.collection('user_current_affairs_interactions')
-      .where('userId', '==', userId)
-      .get();
+    let docs = [];
+    try {
+      const snap = await db.collection('user_current_affairs_interactions')
+        .where('userId', '==', userId)
+        .get();
+      docs = snap.docs;
+    } catch (dbErr) {
+      console.warn('[News Analytics Firestore query fail]:', dbErr.message);
+    }
       
     const uniqueReads = new Set();
     const uniqueBookmarks = new Set();
@@ -237,7 +267,7 @@ router.get('/analytics', verifyFirebaseToken, async (req, res) => {
     const mcqLatestScoreMap = new Map();
     let totalTimeSpent = 0;
     
-    snap.docs.forEach(doc => {
+    docs.forEach(doc => {
       const data = doc.data();
       totalTimeSpent += data.timeSpentSeconds || 0;
       
@@ -372,19 +402,12 @@ router.post('/summarize', async (req, res) => {
   }
 });
 
-// POST /api/news/refresh — triggers a fresh scrape and updates Firestore
+// POST /api/news/refresh — (Automated Scraper disabled as requested by admin)
 router.post('/refresh', verifyRefreshSecret, async (req, res) => {
-  try {
-    const result = await scrapeAllNews();
-    res.json({
-      message: 'News refreshed successfully',
-      lastUpdated: result.lastUpdated,
-      totalArticles: result.articles.length
-    });
-  } catch (err) {
-    console.error('[News Refresh Error]:', err.message);
-    res.status(500).json({ error: 'Failed to refresh news.' });
-  }
+  res.json({
+    message: 'Automated news scraper is disabled. News updates are managed manually via Admin Panel.',
+    disabled: true
+  });
 });
 
 module.exports = router;

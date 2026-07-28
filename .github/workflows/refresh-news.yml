@@ -1,21 +1,17 @@
-name: Refresh News Cache
+name: Refresh News Cache (DISABLED)
 
 on:
-  schedule:
-    # Run every hour
-    - cron: '0 * * * *'
+  # Automated schedule disabled as requested by admin (News scraper turned off)
+  # schedule:
+  #   - cron: '0 * * * *'
   workflow_dispatch:
-    # Allow manual trigger from GitHub Actions tab
+    # Allow manual trigger only if needed
 
 jobs:
   refresh-news:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping news refresh endpoint
+      - name: Scraper disabled notice
         run: |
-          echo "Triggering news refresh at $(date)"
-          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" \
-            -X POST \
-            -H "x-refresh-secret: ${{ secrets.NEWS_REFRESH_SECRET }}" \
-            "${{ secrets.VERCEL_API_URL }}/api/news/refresh"
-          echo "News refresh triggered ✅"
+          echo "Automated News Scraper is disabled. News is updated manually via Admin Panel."
+
