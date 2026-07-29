@@ -90,23 +90,51 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
       }
     }
 
+    // Instant local load from localStorage to minimize load time
+    const cachedJobs = localStorage.getItem('cg_cached_jobs_news');
+    if (cachedJobs) {
+      try {
+        const parsed = JSON.parse(cachedJobs);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setJobs(parsed);
+          setLoading(false);
+        }
+      } catch (e) {}
+    }
+
     fetchJobs();
   }, []);
 
   const fetchJobs = async () => {
-    setLoading(true);
+    const cachedJobs = localStorage.getItem('cg_cached_jobs_news');
+    let hasLocalCache = false;
+    if (cachedJobs) {
+      try {
+        const parsed = JSON.parse(cachedJobs);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          hasLocalCache = true;
+        }
+      } catch (e) {}
+    }
+    if (!hasLocalCache) {
+      setLoading(true);
+    }
     setError('');
     try {
       const res = await fetch(getApiUrl('/api/news?category=jobs'));
       if (res.ok) {
         const data = await res.json();
-        setJobs(data.articles || []);
+        const fetched = data.articles || [];
+        setJobs(fetched);
+        localStorage.setItem('cg_cached_jobs_news', JSON.stringify(fetched));
       } else {
         throw new Error('Failed to fetch job updates.');
       }
     } catch (e: any) {
       console.error(e);
-      setError('Unable to load job notifications right now.');
+      if (!hasLocalCache && jobs.length === 0) {
+        setError('Unable to load job notifications right now.');
+      }
     } finally {
       setLoading(false);
     }

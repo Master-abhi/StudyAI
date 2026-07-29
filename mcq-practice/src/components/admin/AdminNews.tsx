@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Newspaper, RefreshCw, Loader2, Calendar, 
   Search, ShieldAlert, CheckCircle, ExternalLink, UploadCloud,
-  Briefcase, Pencil, Trash2, X, Save, CheckSquare, Square
+  Briefcase, Pencil, Trash2, X, Save, CheckSquare, Square, Eye
 } from 'lucide-react';
 
 interface AdminNewsProps {
@@ -17,6 +17,10 @@ interface Article {
   description_hi?: string;
   summary?: string;
   summary_hi?: string;
+  history?: string;
+  history_hi?: string;
+  historicalContext?: string;
+  historicalContext_hi?: string;
   category: string;
   source: string;
   url: string;
@@ -31,6 +35,10 @@ interface Article {
   fee?: string;
   selectionProcess?: string;
   details?: string;
+  bulletPoints?: string[];
+  highlights?: string[];
+  content?: string;
+  intelligence?: any;
 }
 
 export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
@@ -49,6 +57,7 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
   const [pasteJson, setPasteJson] = useState<string>('');
   const [loadingUpload, setLoadingUpload] = useState<boolean>(false);
 
+  const [viewingArticle, setViewingArticle] = useState<Article | null>(null);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [loadingSaveEdit, setLoadingSaveEdit] = useState<boolean>(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -183,18 +192,47 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
         title_hi: "सीजीपीएससी राज्य सेवा मुख्य परीक्षा 2026 समय सारणी घोषित",
         description: "The Chhattisgarh Public Service Commission has officially announced the exam dates for Mains 2026.",
         description_hi: "छत्तीसगढ़ लोक सेवा आयोग ने मुख्य परीक्षा 2026 के लिए तिथियां जारी कर दी हैं।",
+        history: "CGPSC was constituted under Article 315 of the Constitution of India on 23 May 2001 after the state formation.",
+        history_hi: "छत्तीसगढ़ लोक सेवा आयोग का गठन राज्य निर्माण के पश्चात 23 मई 2001 को भारतीय संविधान के अनुच्छेद 315 के तहत किया गया था।",
         category: "exams",
         source: "CGPSC Portal",
-        url: "https://psc.cg.gov.in"
+        url: "https://psc.cg.gov.in",
+        examRelevance: "CGPSC Mains Paper 3",
+        intelligence: {
+          title_hi: "सीजीपीएससी राज्य सेवा मुख्य परीक्षा 2026 समय सारणी घोषित",
+          category: "Exam-Specific Topics",
+          relevanceScore: 95,
+          whyItMatters: "Mains exam dates determine revision timeline and paper preparation strategy.",
+          summary_en: "Official exam schedule released by CGPSC for 2026 Mains exam candidates.",
+          summary_hi: "सीजीपीएससी ने मुख्य परीक्षा 2026 के लिए विस्तृत समय सारणी और परीक्षा केंद्र सूची जारी कर दी है।",
+          history_en: "CGPSC was established in May 2001 with headquarters at Raipur.",
+          history_hi: "सीजीपीएससी की स्थापना मई 2001 में रायपुर मुख्यालय के साथ की गई थी।",
+          keyFacts_en: ["Exam starting dates announced", "7 papers scheduled over 4 days"],
+          keyFacts_hi: ["परीक्षा तिथियों की घोषणा की गई", "4 दिनों में 7 प्रश्नपत्र आयोजित होंगे"],
+          mcqs: [
+            {
+              question_en: "Which body conducts the State Service Exam in Chhattisgarh?",
+              question_hi: "छत्तीसगढ़ में राज्य सेवा परीक्षा का आयोजन कौन सा निकाय करता है?",
+              options_en: ["CG Vyapam", "CGPSC", "UPSC", "CG Board"],
+              options_hi: ["सीजी व्यापम", "सीजीपीएससी", "यूपीएससी", "सीजी बोर्ड"],
+              correctIndex: 1,
+              explanation_en: "CGPSC is the constitutional body responsible for conducting state service exams.",
+              explanation_hi: "छत्तीसगढ़ लोक सेवा आयोग (CGPSC) राज्य सेवा परीक्षाओं का संचालन करता है।"
+            }
+          ]
+        }
       },
       {
         title: "Chhattisgarh Launches Rajiv Gandhi Kisan Nyay Yojana 2.0",
         title_hi: "छत्तीसगढ़ ने राजीव गांधी किसान न्याय योजना 2.0 की शुरुआत की",
         description: "Direct bank transfer scheme launched for paddy farmers in Chhattisgarh.",
         description_hi: "धान उत्पादक किसानों के लिए बैंक खाते में सीधी सहायता राशि योजना।",
+        history: "Originally launched in 2020 to provide direct income support to paddy and kharif crop farmers.",
+        history_hi: "मूल रूप से 2020 में धान एवं खरीफ फसल उत्पादक किसानों को प्रत्यक्ष आय सहायता देने हेतु शुरू की गई थी।",
         category: "affairs",
         source: "DPR Chhattisgarh",
-        url: "https://dprcg.gov.in"
+        url: "https://dprcg.gov.in",
+        examRelevance: "CG Schemes & Economy"
       }
     ];
     setPasteJson(JSON.stringify(sampleNews, null, 2));
@@ -243,7 +281,29 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
         description_hi: "छत्तीसगढ़ लोक सेवा आयोग ने मुख्य परीक्षा 2026 के लिए तिथियां जारी कर दी हैं।",
         category: "exams",
         source: "CGPSC Portal",
-        url: "https://psc.cg.gov.in"
+        url: "https://psc.cg.gov.in",
+        examRelevance: "CGPSC Mains Paper 3",
+        intelligence: {
+          title_hi: "सीजीपीएससी राज्य सेवा मुख्य परीक्षा 2026 समय सारणी घोषित",
+          category: "Exam-Specific Topics",
+          relevanceScore: 95,
+          whyItMatters: "Mains exam dates determine revision timeline and paper preparation strategy.",
+          summary_en: "Official exam schedule released by CGPSC for 2026 Mains exam candidates.",
+          summary_hi: "सीजीपीएससी ने मुख्य परीक्षा 2026 के लिए विस्तृत समय सारणी और परीक्षा केंद्र सूची जारी कर दी है।",
+          keyFacts_en: ["Exam starting dates announced", "7 papers scheduled over 4 days"],
+          keyFacts_hi: ["परीक्षा तिथियों की घोषणा की गई", "4 दिनों में 7 प्रश्नपत्र आयोजित होंगे"],
+          mcqs: [
+            {
+              question_en: "Which body conducts the State Service Exam in Chhattisgarh?",
+              question_hi: "छत्तीसगढ़ में राज्य सेवा परीक्षा का आयोजन कौन सा निकाय करता है?",
+              options_en: ["CG Vyapam", "CGPSC", "UPSC", "CG Board"],
+              options_hi: ["सीजी व्यापम", "सीजीपीएससी", "यूपीएससी", "सीजी बोर्ड"],
+              correctIndex: 1,
+              explanation_en: "CGPSC is the constitutional body responsible for conducting state service exams.",
+              explanation_hi: "छत्तीसगढ़ लोक सेवा आयोग (CGPSC) राज्य सेवा परीक्षाओं का संचालन करता है।"
+            }
+          ]
+        }
       }
     ];
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sampleNews, null, 2));
@@ -860,8 +920,8 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
                     : 'border-border hover:border-saffron-border/30'
                 }`}
               >
-                <div className="flex justify-between items-center shrink-0">
-                  <div className="flex items-center gap-2">
+                <div className="flex justify-between items-center shrink-0 gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => toggleSelectItem(art)}
                       className="text-text-muted hover:text-saffron cursor-pointer p-0.5"
@@ -873,31 +933,45 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
                       )}
                     </button>
 
-                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded leading-none flex items-center gap-1 ${
-                      activeAdminTab === 'jobs'
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-saffron-dim/30 text-saffron border border-saffron-border/30'
-                    }`}>
-                      <span>{activeAdminTab === 'jobs' ? '💼 Job Vacancy' : '📰 News Update'}</span>
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded leading-none flex items-center gap-1 ${
+                        activeAdminTab === 'jobs'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-saffron-dim/30 text-saffron border border-saffron-border/30'
+                      }`}>
+                        <span>{activeAdminTab === 'jobs' ? '💼 Job Vacancy' : `📰 ${art.category || 'News'}`}</span>
+                      </span>
+
+                      {art.source && (
+                        <span className="text-[9px] text-text-muted bg-bg-s3 border border-border px-2 py-0.5 rounded font-bold uppercase">
+                          Source: {art.source}
+                        </span>
+                      )}
+
+                      {art.examRelevance && (
+                        <span className="text-[8.5px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded uppercase">
+                          🎯 {art.examRelevance}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 
-                <span className="text-[9px] text-text-muted font-bold flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>{art.date || 'Today'}</span>
-                </span>
-              </div>
-
-              {/* Title */}
-              <div className="flex flex-col gap-1">
-                <h4 className="text-xs font-black text-text leading-snug tracking-wide">
-                  {art.title_hi || art.title}
-                </h4>
-                {art.title_hi && (
-                  <span className="text-[10px] text-text-muted font-semibold italic leading-tight">
-                    {art.title}
+                  <span className="text-[9px] text-text-muted font-bold flex items-center gap-1 shrink-0">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>{art.date || 'Today'}</span>
                   </span>
+                </div>
+
+              {/* Titles (Bilingual) */}
+              <div className="flex flex-col gap-1">
+                {art.title_hi && (
+                  <h4 className="text-xs font-black text-text leading-snug tracking-wide">
+                    {art.title_hi}
+                  </h4>
                 )}
+                <span className={`text-xs ${art.title_hi ? 'text-text-muted font-medium italic text-[11px]' : 'font-black text-text'} leading-snug`}>
+                  {art.title}
+                </span>
               </div>
 
               {/* If job, render job parameters */}
@@ -919,18 +993,52 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
                 </div>
               )}
 
-              {/* Summary (Only for news articles) */}
+              {/* Summary / Description (Bilingual for News articles) */}
               {activeAdminTab !== 'jobs' && (
-                <div className="p-3 bg-bg-s3 border border-border rounded-lg flex flex-col gap-2 mt-1">
-                  <p className="text-[11px] text-text leading-normal font-medium whitespace-pre-line">
-                    {art.summary_hi || art.description_hi || art.summary || art.description}
-                  </p>
+                <div className="p-3 bg-bg-s3 border border-border rounded-lg flex flex-col gap-2.5 mt-1">
+                  {(art.summary_hi || art.description_hi) && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-black uppercase text-saffron tracking-wider">हिन्दी सारांश (Hindi Summary)</span>
+                      <p className="text-[11px] text-text leading-relaxed font-medium whitespace-pre-line">
+                        {art.summary_hi || art.description_hi}
+                      </p>
+                    </div>
+                  )}
+
+                  {(art.summary || art.description) && (
+                    <div className={`flex flex-col gap-1 ${art.summary_hi || art.description_hi ? 'border-t border-border/50 pt-2' : ''}`}>
+                      <span className="text-[9px] font-black uppercase text-text-muted tracking-wider">English Summary</span>
+                      <p className="text-[11px] text-text-muted leading-relaxed font-normal whitespace-pre-line">
+                        {art.summary || art.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {(art.bulletPoints || art.highlights) && (art.bulletPoints || art.highlights)!.length > 0 && (
+                    <div className="border-t border-border/50 pt-2 flex flex-col gap-1">
+                      <span className="text-[9px] font-black uppercase text-amber-400 tracking-wider">Key Highlights</span>
+                      <ul className="list-disc list-inside text-[10.5px] text-text-muted flex flex-col gap-0.5">
+                        {(art.bulletPoints || art.highlights)!.map((bp, bidx) => (
+                          <li key={bidx}>{bp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Footer Actions */}
               <div className="flex flex-wrap justify-between items-center text-[10px] border-t border-border/45 pt-3 mt-1 shrink-0 gap-2">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setViewingArticle(art)}
+                    className="px-2.5 py-1.5 bg-saffron-dim/20 hover:bg-saffron-dim/40 text-saffron border border-saffron-border/30 rounded-lg font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                    title="View Full News Details"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-saffron" />
+                    <span>View Details</span>
+                  </button>
+
                   <button
                     onClick={() => setEditingArticle({ ...art })}
                     className="px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-lg font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
@@ -1106,18 +1214,81 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
 
                 <div className="flex flex-col gap-1 sm:col-span-2">
                   <label className="text-[10px] font-black uppercase text-text-muted">
-                    {activeAdminTab === 'jobs' ? 'Job Overview & Details' : 'Article Description / Summary'}
+                    {activeAdminTab === 'jobs' ? 'Job Overview & Details' : 'Article Description / Summary (Hindi)'}
                   </label>
                   <textarea
                     rows={4}
-                    value={editingArticle.details || editingArticle.description || editingArticle.summary || ''}
+                    value={editingArticle.description_hi || editingArticle.summary_hi || editingArticle.details || ''}
                     onChange={(e) => setEditingArticle({ 
                       ...editingArticle, 
-                      details: e.target.value,
+                      description_hi: e.target.value,
+                      summary_hi: e.target.value,
+                      details: e.target.value
+                    })}
+                    className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text font-sans"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text-muted">
+                    Article Description / Summary (English)
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={editingArticle.description || editingArticle.summary || ''}
+                    onChange={(e) => setEditingArticle({ 
+                      ...editingArticle, 
                       description: e.target.value,
                       summary: e.target.value
                     })}
                     className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text font-sans"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-amber-400 flex items-center gap-1">
+                    <span>📜</span>
+                    <span>Historical Background & Origin / इतिहास (Hindi)</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="विषय का ऐतिहासिक पृष्ठभूमि, उत्पत्ति एवं इतिहास (Devanagari)..."
+                    value={editingArticle.history_hi || editingArticle.historicalContext_hi || ''}
+                    onChange={(e) => setEditingArticle({ 
+                      ...editingArticle, 
+                      history_hi: e.target.value,
+                      historicalContext_hi: e.target.value
+                    })}
+                    className="bg-bg-s3 border border-border focus:border-amber-400/50 rounded-lg p-2.5 outline-none text-text font-sans"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text-muted flex items-center gap-1">
+                    <span>📜</span>
+                    <span>Historical Background & Origin (English)</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Historical background, origin, past acts, or background context in English..."
+                    value={editingArticle.history || editingArticle.historicalContext || ''}
+                    onChange={(e) => setEditingArticle({ 
+                      ...editingArticle, 
+                      history: e.target.value,
+                      historicalContext: e.target.value
+                    })}
+                    className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text font-sans"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Exam Relevance Tag</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CGPSC Mains Paper 3, CG Police Constable"
+                    value={editingArticle.examRelevance || ''}
+                    onChange={(e) => setEditingArticle({ ...editingArticle, examRelevance: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
                   />
                 </div>
               </div>
@@ -1148,6 +1319,197 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Data View Modal Overlay */}
+      {viewingArticle && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-bg-s2 border border-border rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-border/80 flex items-center justify-between bg-bg-s3/80 shrink-0">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-saffron" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-text">
+                  Full {activeAdminTab === 'jobs' ? 'Job Alert' : 'News Article'} Data
+                </h3>
+              </div>
+              <button
+                onClick={() => setViewingArticle(null)}
+                className="text-text-muted hover:text-text p-1 rounded-lg hover:bg-bg-s3 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Content - Shows ALL Data */}
+            <div className="p-6 flex flex-col gap-5 overflow-y-auto custom-scrollbar text-xs font-sans">
+              {/* Category, Source, Date, Exam Relevance Badges */}
+              <div className="flex items-center gap-2 flex-wrap border-b border-border/40 pb-3">
+                <span className="text-[9.5px] font-black uppercase px-2.5 py-1 rounded bg-saffron-dim/30 text-saffron border border-saffron-border/30">
+                  Category: {viewingArticle.category || 'News'}
+                </span>
+                {viewingArticle.source && (
+                  <span className="text-[9.5px] font-bold text-text-muted bg-bg-s3 border border-border px-2.5 py-1 rounded uppercase">
+                    Source: {viewingArticle.source}
+                  </span>
+                )}
+                {viewingArticle.date && (
+                  <span className="text-[9.5px] font-bold text-text-muted bg-bg-s3 border border-border px-2.5 py-1 rounded flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-text-muted" />
+                    <span>{viewingArticle.date}</span>
+                  </span>
+                )}
+                {viewingArticle.examRelevance && (
+                  <span className="text-[9.5px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2.5 py-1 rounded uppercase">
+                    🎯 Relevance: {viewingArticle.examRelevance}
+                  </span>
+                )}
+              </div>
+
+              {/* Titles */}
+              <div className="flex flex-col gap-1.5">
+                {viewingArticle.title_hi && (
+                  <h2 className="text-base font-black text-text leading-snug">
+                    {viewingArticle.title_hi}
+                  </h2>
+                )}
+                <h3 className={`text-sm ${viewingArticle.title_hi ? 'text-text-muted font-semibold italic' : 'text-text font-black'} leading-snug`}>
+                  {viewingArticle.title}
+                </h3>
+              </div>
+
+              {/* Job Details Grid */}
+              {activeAdminTab === 'jobs' && (
+                <div className="p-4 bg-bg-s3 border border-border rounded-xl flex flex-col gap-3">
+                  <h4 className="text-xs font-black uppercase text-emerald-400 border-b border-border/40 pb-2">
+                    Job Vacancy Specifications
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div><strong className="text-text">Department:</strong> {viewingArticle.department || (viewingArticle as any).dept || 'N/A'}</div>
+                    <div><strong className="text-text">Total Posts:</strong> {viewingArticle.totalPosts || (viewingArticle as any).posts || 'N/A'}</div>
+                    <div className="sm:col-span-2"><strong className="text-text">Qualification:</strong> {viewingArticle.qualification || 'N/A'}</div>
+                    <div><strong className="text-text">Last Date:</strong> {viewingArticle.lastDate || 'N/A'}</div>
+                    <div><strong className="text-text">Salary:</strong> {viewingArticle.salary || 'N/A'}</div>
+                    {viewingArticle.ageLimit && <div><strong className="text-text">Age Limit:</strong> {viewingArticle.ageLimit}</div>}
+                    {viewingArticle.fee && <div><strong className="text-text">Application Fee:</strong> {viewingArticle.fee}</div>}
+                  </div>
+                </div>
+              )}
+
+              {/* Hindi Summary / Description */}
+              {(viewingArticle.summary_hi || viewingArticle.description_hi) && (
+                <div className="p-4 bg-bg-s3 border border-border rounded-xl flex flex-col gap-2">
+                  <span className="text-[10px] font-black uppercase text-saffron tracking-wider flex items-center gap-1">
+                    <span>🇮🇳 हिन्दी विवरण (Hindi Description)</span>
+                  </span>
+                  <p className="text-xs text-text leading-relaxed font-medium whitespace-pre-line">
+                    {viewingArticle.summary_hi || viewingArticle.description_hi}
+                  </p>
+                </div>
+              )}
+
+              {/* Historical Background & Context (Hindi & English) */}
+              {(viewingArticle.history_hi || viewingArticle.historicalContext_hi || viewingArticle.history || viewingArticle.historicalContext) && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/25 rounded-xl flex flex-col gap-2.5">
+                  <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1">
+                    <span>📜</span>
+                    <span>ऐतिहासिक पृष्ठभूमि एवं इतिहास (Historical Background & Origin)</span>
+                  </span>
+                  
+                  {(viewingArticle.history_hi || viewingArticle.historicalContext_hi) && (
+                    <p className="text-xs text-text leading-relaxed font-medium whitespace-pre-line">
+                      {viewingArticle.history_hi || viewingArticle.historicalContext_hi}
+                    </p>
+                  )}
+
+                  {(viewingArticle.history || viewingArticle.historicalContext) && (
+                    <p className={`text-xs text-text-muted leading-relaxed font-normal whitespace-pre-line ${(viewingArticle.history_hi || viewingArticle.historicalContext_hi) ? 'border-t border-border/40 pt-2' : ''}`}>
+                      {viewingArticle.history || viewingArticle.historicalContext}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* English Summary / Description */}
+              {(viewingArticle.summary || viewingArticle.description) && (
+                <div className="p-4 bg-bg-s3 border border-border rounded-xl flex flex-col gap-2">
+                  <span className="text-[10px] font-black uppercase text-text-muted tracking-wider flex items-center gap-1">
+                    <span>🌐 English Description / Overview</span>
+                  </span>
+                  <p className="text-xs text-text leading-relaxed font-normal whitespace-pre-line">
+                    {viewingArticle.summary || viewingArticle.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Detailed Article Body / Content */}
+              {(viewingArticle.details || viewingArticle.content) && (
+                <div className="p-4 bg-bg-s3 border border-border rounded-xl flex flex-col gap-2">
+                  <span className="text-[10px] font-black uppercase text-text tracking-wider">
+                    📜 Detailed Article Content / Text
+                  </span>
+                  <p className="text-xs text-text-muted leading-relaxed whitespace-pre-line font-mono">
+                    {viewingArticle.details || viewingArticle.content}
+                  </p>
+                </div>
+              )}
+
+              {/* Bullet Points / Highlights */}
+              {(viewingArticle.bulletPoints || viewingArticle.highlights) && (viewingArticle.bulletPoints || viewingArticle.highlights)!.length > 0 && (
+                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl flex flex-col gap-2">
+                  <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">
+                    ⚡ Key Highlights & Facts
+                  </span>
+                  <ul className="list-disc list-inside text-xs text-text flex flex-col gap-1.5 pl-1">
+                    {(viewingArticle.bulletPoints || viewingArticle.highlights)!.map((point, idx) => (
+                      <li key={idx} className="leading-relaxed">{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Raw JSON Data View for Admin */}
+              <div className="flex flex-col gap-1.5 pt-2 border-t border-border/40">
+                <span className="text-[10px] font-black uppercase text-text-muted">Raw JSON Payload</span>
+                <pre className="p-3 bg-bg-s1 border border-border rounded-lg text-[10px] text-text-muted overflow-x-auto font-mono">
+                  {JSON.stringify(viewingArticle, null, 2)}
+                </pre>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 border-t border-border/80 flex items-center justify-between bg-bg-s3/40 shrink-0">
+              <a
+                href={viewingArticle.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-saffron/10 border border-saffron-border/30 text-saffron text-xs font-bold uppercase rounded-lg flex items-center gap-1.5 cursor-pointer hover:bg-saffron/20 transition-all"
+              >
+                <span>Open Source Link</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setEditingArticle({ ...viewingArticle });
+                    setViewingArticle(null);
+                  }}
+                  className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase rounded-lg cursor-pointer hover:bg-blue-500/20 transition-all flex items-center gap-1"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span>Edit Data</span>
+                </button>
+                <button
+                  onClick={() => setViewingArticle(null)}
+                  className="px-4 py-2 bg-bg-s3 border border-border text-text text-xs font-bold uppercase rounded-lg cursor-pointer hover:bg-bg-s3/80 transition-all"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

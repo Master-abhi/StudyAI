@@ -52,6 +52,18 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const todayKey = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
+    // Instant local load from localStorage to minimize app load
+    const cachedHome = localStorage.getItem('cg_cached_home_news');
+    if (cachedHome) {
+      try {
+        const parsed = JSON.parse(cachedHome);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setArticles(parsed);
+          setLoadingNews(false);
+        }
+      } catch (e) {}
+    }
+
     const fetchHomeNews = async () => {
       try {
         let res;
@@ -71,7 +83,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               const cat = (art.category || '').toLowerCase();
               return cat !== 'jobs' && cat !== 'job' && cat !== 'job_alert' && cat !== 'recruitment';
             });
-            setArticles(nonJobArticles.slice(0, 3));
+            const top3 = nonJobArticles.slice(0, 3);
+            setArticles(top3);
+            localStorage.setItem('cg_cached_home_news', JSON.stringify(top3));
           }
         }
       } catch (err) {

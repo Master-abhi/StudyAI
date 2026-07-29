@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle, 
@@ -35,23 +35,32 @@ import { QuestionPalette } from './components/QuestionPalette';
 import { PerformancePanel } from './components/PerformancePanel';
 import { AiTutorModal } from './components/AiTutorModal';
 
-// Components
+// Instant Home Dashboard Component
 import { DashboardTab } from './components/DashboardTab';
-import { PracticeTab } from './components/PracticeTab';
-import { AiTutorTab } from './components/AiTutorTab';
-import { NewsTab } from './components/NewsTab';
-import { JobsTab } from './components/JobsTab';
-import { ProfileTab } from './components/ProfileTab';
-import { SyllabusPage } from './components/syllabus/SyllabusPage';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { StaffDashboard } from './components/staff/StaffDashboard';
 
-// Modals
-import { AuthModal } from './components/AuthModal';
-import { SettingsModal } from './components/SettingsModal';
-import { TopicStudyModal } from './components/TopicStudyModal';
-import { PublicProfileModal } from './components/PublicProfileModal';
-import { NotificationsModal } from './components/NotificationsModal';
+// Lazy Loaded Secondary Tabs for instant startup & code splitting
+const PracticeTab = lazy(() => import('./components/PracticeTab').then(m => ({ default: m.PracticeTab })));
+const AiTutorTab = lazy(() => import('./components/AiTutorTab').then(m => ({ default: m.AiTutorTab })));
+const NewsTab = lazy(() => import('./components/NewsTab').then(m => ({ default: m.NewsTab })));
+const JobsTab = lazy(() => import('./components/JobsTab').then(m => ({ default: m.JobsTab })));
+const ProfileTab = lazy(() => import('./components/ProfileTab').then(m => ({ default: m.ProfileTab })));
+const SyllabusPage = lazy(() => import('./components/syllabus/SyllabusPage').then(m => ({ default: m.SyllabusPage })));
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const StaffDashboard = lazy(() => import('./components/staff/StaffDashboard').then(m => ({ default: m.StaffDashboard })));
+
+// Lazy Loaded Modals
+const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const SettingsModal = lazy(() => import('./components/SettingsModal').then(m => ({ default: m.SettingsModal })));
+const TopicStudyModal = lazy(() => import('./components/TopicStudyModal').then(m => ({ default: m.TopicStudyModal })));
+const PublicProfileModal = lazy(() => import('./components/PublicProfileModal').then(m => ({ default: m.PublicProfileModal })));
+const NotificationsModal = lazy(() => import('./components/NotificationsModal').then(m => ({ default: m.NotificationsModal })));
+
+const TabFallback = () => (
+  <div className="flex flex-col items-center justify-center min-h-[350px] w-full py-12 gap-3 text-text-muted">
+    <div className="w-7 h-7 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
+    <span className="text-[10px] font-bold uppercase tracking-wider text-saffron">Loading tab...</span>
+  </div>
+);
 
 import type { Exam } from './components/syllabus/syllabusData';
 import { 
@@ -879,6 +888,172 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Direct Firestore Sync helper for multi-device instant broadcast
+  const syncUserDataDirectly = async (updateObj: Record<string, any>) => {
+    if (!currentUser) return;
+    try {
+      const firebase = (window as any).firebase;
+      if (firebase && firebase.apps && firebase.apps.length > 0) {
+        const db = firebase.firestore();
+        await db.collection('users').doc(currentUser.uid).set({
+          ...updateObj,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
+    } catch (e) {
+      console.warn('[syncUserDataDirectly Error]:', e);
+    }
+  };
+
+  // Real-time multi-device Firestore Synchronization Listener
+  useEffect(() => {
+    if (isGuest || !currentUser) return;
+
+    let unsubscribeUserDoc: (() => void) | null = null;
+    let unsubscribeTopicMastery: (() => void) | null = null;
+
+    const setupRealtimeSync = () => {
+      const firebase = (window as any).firebase;
+      if (!firebase || !firebase.apps || firebase.apps.length === 0) return false;
+
+      try {
+        const db = firebase.firestore();
+
+        // 1. Real-time User Profile & Progress Listener across all logged-in devices
+        unsubscribeUserDoc = db.collection('users').doc(currentUser.uid).onSnapshot(
+          (docSnap: any) => {
+            if (docSnap && docSnap.exists) {
+              const data = docSnap.data();
+              if (data) {
+                if (typeof data.points === 'number') {
+                  setXp(data.points);
+                  localStorage.setItem('examprep_points', String(data.points));
+                }
+                if (data.streak) {
+                  if (typeof data.streak.count === 'number') {
+                    setStreak(data.streak.count);
+                    localStorage.setItem('examprep_streak', String(data.streak.count));
+                  }
+                  if (data.streak.lastDate) {
+                    setStreakLastDate(data.streak.lastDate);
+                    localStorage.setItem('examprep_streak_last_date', data.streak.lastDate);
+                  }
+                }
+                if (typeof data.mcqsSolved === 'number') {
+                  setSolvedMcqsCount(data.mcqsSolved);
+                  localStorage.setItem('examprep_mcqsSolved', String(data.mcqsSolved));
+                }
+                if (Array.isArray(data.testResults)) {
+                  setTestHistory(data.testResults);
+                  localStorage.setItem('examprep_testResults', JSON.stringify(data.testResults));
+                }
+                if (Array.isArray(data.typingResults)) {
+                  setTypingResults(data.typingResults);
+                  localStorage.setItem('examprep_typingResults', JSON.stringify(data.typingResults));
+                }
+                if (Array.isArray(data.bookmarks)) {
+                  setBookmarks(data.bookmarks);
+                  localStorage.setItem('examprep_bookmarks', JSON.stringify(data.bookmarks));
+                }
+                if (data.selectedExam) {
+                  setActiveExamId(data.selectedExam);
+                  localStorage.setItem('examprep_selectedExam', data.selectedExam);
+                  setShowFirstTimeExamSelector(false);
+                }
+                if (data.mobile) {
+                  setUserMobile(data.mobile);
+                  localStorage.setItem('examprep_userMobile', data.mobile);
+                }
+                if (data.plan) setUserPlan(data.plan);
+                if (data.topicProgress && typeof data.topicProgress === 'object') {
+                  setTopicProgress(prev => ({ ...prev, ...data.topicProgress }));
+                }
+                const todayKey = new Date().toISOString().split('T')[0];
+                if (data.readArticlesToday && Array.isArray(data.readArticlesToday)) {
+                  localStorage.setItem(`cg_read_articles_${todayKey}`, JSON.stringify(data.readArticlesToday));
+                }
+                if (data.completedTasksToday && typeof data.completedTasksToday === 'object') {
+                  if (data.completedTasksToday.completedTopic) {
+                    localStorage.setItem(`cg_topic_completed_${todayKey}`, 'true');
+                  }
+                  if (data.completedTasksToday.revisedTopic) {
+                    localStorage.setItem(`cg_topic_revised_${todayKey}`, 'true');
+                  }
+                }
+                if (Array.isArray(data.savedNews)) {
+                  localStorage.setItem('cg_saved_articles', JSON.stringify(data.savedNews));
+                }
+                if (Array.isArray(data.savedJobs)) {
+                  localStorage.setItem('cg_saved_jobs', JSON.stringify(data.savedJobs));
+                }
+                if (data.testProgress && typeof data.testProgress === 'object') {
+                  localStorage.setItem('examprep_test_progress', JSON.stringify(data.testProgress));
+                }
+                if (data.appLanguage) {
+                  setAppLanguage(data.appLanguage);
+                  localStorage.setItem('cg_lang', data.appLanguage);
+                }
+                if (data.theme) {
+                  setTheme(data.theme);
+                  localStorage.setItem('cg_theme', data.theme);
+                }
+              }
+            }
+          },
+          (err: any) => console.warn('[Realtime User Sync Listener Error]:', err)
+        );
+
+        // 2. Real-time Topic Mastery Listener across devices
+        unsubscribeTopicMastery = db.collection('topic_mastery')
+          .where('userId', '==', currentUser.uid)
+          .onSnapshot(
+            (snap: any) => {
+              if (snap && !snap.empty) {
+                setTopicProgress(prev => {
+                  const updatedMap = { ...prev };
+                  snap.docs.forEach((d: any) => {
+                    const m = d.data();
+                    if (m && m.topicId) {
+                      const existing = updatedMap[m.topicId] || {};
+                      const isDone = existing.status === 'Completed' || existing.status === 'Revised';
+                      updatedMap[m.topicId] = {
+                        ...existing,
+                        topicId: m.topicId,
+                        status: isDone ? existing.status : (m.status || existing.status || 'Not Started'),
+                        notesRead: (m.notesReadCount || 0) > 0 || existing.notesRead,
+                        mcqCompleted: (m.totalMcqsAttempted || 0) > 0 || existing.mcqCompleted,
+                        videoWatched: (m.videosWatchedCount || 0) > 0 || existing.videoWatched,
+                        accuracy: m.accuracy || existing.accuracy || 0,
+                        revisionCount: Math.max(m.revisionCount || 0, existing.revisionCount || 0),
+                        lastStudied: existing.lastStudied || (m.lastUpdated ? (typeof m.lastUpdated === 'string' ? m.lastUpdated : (m.lastUpdated.seconds ? new Date(m.lastUpdated.seconds * 1000).toISOString() : '')) : '')
+                      };
+                    }
+                  });
+                  return updatedMap;
+                });
+              }
+            },
+            (err: any) => console.warn('[Realtime Topic Mastery Listener Error]:', err)
+          );
+
+        return true;
+      } catch (e) {
+        console.warn('[Setup Realtime Sync Error]:', e);
+        return false;
+      }
+    };
+
+    if (!setupRealtimeSync()) {
+      const timer = setTimeout(() => setupRealtimeSync(), 1500);
+      return () => clearTimeout(timer);
+    }
+
+    return () => {
+      if (unsubscribeUserDoc) unsubscribeUserDoc();
+      if (unsubscribeTopicMastery) unsubscribeTopicMastery();
+    };
+  }, [currentUser, isGuest]);
+
   // Fetch / Sync stats on Auth or activeExam change
   useEffect(() => {
     if (isGuest || !currentUser) {
@@ -908,8 +1083,42 @@ export default function App() {
           setTestHistory(profileData.testResults || []);
           setTypingResults(profileData.typingResults || []);
           setUserMobile(profileData.mobile || '');
-          setUserPlan(profileData.plan || 'free');
-          localStorage.setItem('examprep_userMobile', profileData.mobile || '');
+          if (profileData.readArticlesToday && Array.isArray(profileData.readArticlesToday)) {
+            const todayKey = new Date().toISOString().split('T')[0];
+            localStorage.setItem(`cg_read_articles_${todayKey}`, JSON.stringify(profileData.readArticlesToday));
+          }
+          if (profileData.completedTasksToday && typeof profileData.completedTasksToday === 'object') {
+            const todayKey = new Date().toISOString().split('T')[0];
+            if (profileData.completedTasksToday.completedTopic) {
+              localStorage.setItem(`cg_topic_completed_${todayKey}`, 'true');
+            }
+            if (profileData.completedTasksToday.revisedTopic) {
+              localStorage.setItem(`cg_topic_revised_${todayKey}`, 'true');
+            }
+          }
+          if (profileData.topicProgress && typeof profileData.topicProgress === 'object') {
+            setTopicProgress(prev => ({ ...profileData.topicProgress, ...prev }));
+          }
+          if (Array.isArray(profileData.bookmarks)) {
+            setBookmarks(profileData.bookmarks);
+          }
+          if (Array.isArray(profileData.savedNews)) {
+            localStorage.setItem('cg_saved_articles', JSON.stringify(profileData.savedNews));
+          }
+          if (Array.isArray(profileData.savedJobs)) {
+            localStorage.setItem('cg_saved_jobs', JSON.stringify(profileData.savedJobs));
+          }
+          if (profileData.testProgress && typeof profileData.testProgress === 'object') {
+            localStorage.setItem('examprep_test_progress', JSON.stringify(profileData.testProgress));
+          }
+          if (profileData.appLanguage) {
+            setAppLanguage(profileData.appLanguage);
+            localStorage.setItem('cg_lang', profileData.appLanguage);
+          }
+          if (profileData.theme) {
+            setTheme(profileData.theme);
+            localStorage.setItem('cg_theme', profileData.theme);
+          }
           if (profileData.selectedExam) {
             setActiveExamId(profileData.selectedExam);
             setShowFirstTimeExamSelector(false);
@@ -971,19 +1180,22 @@ export default function App() {
             });
           });
 
-          // Merge server masteries
+          // Merge server masteries safely
           if (data.masteries && Array.isArray(data.masteries)) {
             data.masteries.forEach((m: any) => {
               if (topicProgressMap[m.topicId]) {
+                const existing = topicProgress[m.topicId] || {};
+                const isDone = existing.status === 'Completed' || existing.status === 'Revised';
                 topicProgressMap[m.topicId] = {
                   ...topicProgressMap[m.topicId],
-                  status: m.status || 'Not Started',
-                  notesRead: (m.notesReadCount || 0) > 0,
-                  mcqCompleted: (m.totalMcqsAttempted || 0) > 0,
-                  videoWatched: (m.videosWatchedCount || 0) > 0,
-                  accuracy: m.accuracy || 0,
-                  revisionCount: m.revisionCount || 0,
-                  lastStudied: m.lastUpdated ? (typeof m.lastUpdated === 'string' ? m.lastUpdated : (m.lastUpdated.seconds ? new Date(m.lastUpdated.seconds * 1000).toISOString() : '')) : ''
+                  ...existing,
+                  status: isDone ? existing.status : (m.status || existing.status || 'Not Started'),
+                  notesRead: (m.notesReadCount || 0) > 0 || existing.notesRead,
+                  mcqCompleted: (m.totalMcqsAttempted || 0) > 0 || existing.mcqCompleted,
+                  videoWatched: (m.videosWatchedCount || 0) > 0 || existing.videoWatched,
+                  accuracy: m.accuracy || existing.accuracy || 0,
+                  revisionCount: Math.max(m.revisionCount || 0, existing.revisionCount || 0),
+                  lastStudied: existing.lastStudied || (m.lastUpdated ? (typeof m.lastUpdated === 'string' ? m.lastUpdated : (m.lastUpdated.seconds ? new Date(m.lastUpdated.seconds * 1000).toISOString() : '')) : '')
                 };
               }
             });
@@ -1001,13 +1213,15 @@ export default function App() {
             });
           }
 
-          setTopicProgress(topicProgressMap);
-          // Keep local storage in sync as cache
-          saveProgressToLocalStorage({
-            examId: activeExamId,
-            streak: Math.round((data.metrics?.consistencyIndex || 50) / 10),
-            lastActive: new Date().toISOString(),
-            topicProgress: topicProgressMap
+          setTopicProgress(prev => {
+            const merged = { ...topicProgressMap, ...prev };
+            saveProgressToLocalStorage({
+              examId: activeExamId,
+              streak: Math.round((data.metrics?.consistencyIndex || 50) / 10),
+              lastActive: new Date().toISOString(),
+              topicProgress: merged
+            });
+            return merged;
           });
         }
       } catch (err) {
@@ -1047,12 +1261,115 @@ export default function App() {
     localStorage.setItem('examprep_typingResults', JSON.stringify(typingResults));
   }, [typingResults]);
 
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  const shuffleQuestionOptions = (question: any): Question => {
+    if (!question || !question.options || !Array.isArray(question.options) || question.options.length === 0) {
+      return question;
+    }
+    const originalCorrectOption = question.options[question.correctIndex];
+    const shuffledOptions = [...question.options];
+    for (let i = shuffledOptions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+    }
+    const newCorrectIndex = shuffledOptions.indexOf(originalCorrectOption);
+    return {
+      ...question,
+      options: shuffledOptions,
+      correctIndex: newCorrectIndex >= 0 ? newCorrectIndex : question.correctIndex
+    };
+  };
+
+  const handleStartRandomPractice = async (modeType: 'quiz' | 'mock') => {
+    try {
+      // 1. Try to fetch available tests from server
+      const res = await fetch(getApiUrl(`/api/tests?examId=${activeExamId}`));
+      if (res.ok) {
+        const allTests: any[] = await res.json();
+        if (Array.isArray(allTests) && allTests.length > 0) {
+          const matching = allTests.filter(t => 
+            t.mode === modeType || (modeType === 'quiz' && t.mode !== 'mock')
+          );
+          if (matching.length > 0) {
+            // Pick a random test from matching list
+            const randomTest = matching[Math.floor(Math.random() * matching.length)];
+            const detailRes = await fetch(getApiUrl(`/api/tests/${randomTest.id}`));
+            if (detailRes.ok) {
+              const detail = await detailRes.json();
+              if (detail && Array.isArray(detail.questions) && detail.questions.length > 0) {
+                const preparedQuestions = shuffleArray(detail.questions).map(q => shuffleQuestionOptions(q));
+                const duration = detail.pattern?.durationMinutes || detail.durationMinutes || (modeType === 'mock' ? 120 : 15);
+                startTestPractice(
+                  preparedQuestions,
+                  modeType,
+                  detail.subject || (modeType === 'mock' ? `${activeExam?.name || 'Exam'} Full Mock Test` : 'Mixed Practice Quiz'),
+                  duration,
+                  `${modeType}_${randomTest.id}_${Date.now()}`
+                );
+                return;
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Random Practice] Could not fetch server test list:', err);
+    }
+
+    // 2. Check offline downloaded tests for random question pools
+    try {
+      const storedOffline = localStorage.getItem('examprep_offline_tests_v1');
+      if (storedOffline) {
+        const offlineMap = JSON.parse(storedOffline);
+        const offlineList = Object.values(offlineMap).filter((t: any) => t && Array.isArray(t.questions) && t.questions.length > 0);
+        if (offlineList.length > 0) {
+          const matchingOffline = offlineList.filter((t: any) => t.mode === modeType);
+          const pool = matchingOffline.length > 0 ? matchingOffline : offlineList;
+          const randomOffline: any = pool[Math.floor(Math.random() * pool.length)];
+          const preparedQuestions = shuffleArray(randomOffline.questions).map(q => shuffleQuestionOptions(q));
+          startTestPractice(
+            preparedQuestions,
+            modeType,
+            randomOffline.subject || 'Offline Practice Test',
+            randomOffline.pattern?.durationMinutes || randomOffline.durationMinutes || (modeType === 'mock' ? 120 : 15),
+            `${modeType}_offline_${Date.now()}`
+          );
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('[Random Practice] Error reading offline storage:', e);
+    }
+
+    // 3. Fallback: Generate a randomized, option-shuffled test from MOCK_QUESTIONS
+    const preparedPool = shuffleArray(MOCK_QUESTIONS).map(q => shuffleQuestionOptions(q));
+    const count = modeType === 'quiz' ? Math.min(10, preparedPool.length) : preparedPool.length;
+    const finalQuestions = preparedPool.slice(0, count);
+
+    startTestPractice(
+      finalQuestions,
+      modeType,
+      modeType === 'mock' 
+        ? `${activeExam?.name || 'CGPSC'} Full Mock Test` 
+        : `Mixed Subject Quiz (${new Date().toLocaleDateString('hi-IN')})`,
+      modeType === 'mock' ? 120 : 15,
+      `${modeType}_random_${Date.now()}`
+    );
+  };
+
   // Handle study trigger navigation parameter and testId check on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const testId = params.get('testId');
     const pageParam = params.get('page');
-
     if (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) {
       setActiveTab('admin');
       isMountTestChecked.current = true;
@@ -1062,11 +1379,11 @@ export default function App() {
         try {
           // 1. Built-in preset test IDs
           if (testId === 'cgpsc-daily-quiz' || testId === 'daily-quiz') {
-            startTestPractice(MOCK_QUESTIONS.slice(0, 5), 'quiz', 'CGPSC Daily Quiz', 5, 'cgpsc-daily-quiz');
+            handleStartRandomPractice('quiz');
             return;
           }
           if (testId === 'cgpsc-mock-test' || testId === 'full-mock' || testId === 'mock') {
-            startTestPractice(MOCK_QUESTIONS, 'mock', 'CGPSC Full Mock Test', 120, 'cgpsc-mock-test');
+            handleStartRandomPractice('mock');
             return;
           }
 
@@ -1203,6 +1520,7 @@ export default function App() {
 
   const onToggleActivity = async (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => {
     const { streak: currentStreakVal } = recordStudyActivity();
+    const todayKey = new Date().toISOString().split('T')[0];
     setTopicProgress(prev => {
       const current = prev[topicId] || {
         topicId,
@@ -1226,6 +1544,7 @@ export default function App() {
       const { notesRead, mcqCompleted, videoWatched } = updated;
       if (notesRead && mcqCompleted && videoWatched) {
         updated.status = 'Completed';
+        localStorage.setItem(`cg_topic_completed_${todayKey}`, 'true');
       } else if (notesRead || mcqCompleted || videoWatched) {
         if (current.status !== 'Revised') {
           updated.status = 'In Progress';
@@ -1246,6 +1565,7 @@ export default function App() {
 
       // Async sync to server if logged in
       if (currentUser) {
+        syncUserDataDirectly({ topicProgress: nextState });
         currentUser.getIdToken().then(async (token: string) => {
           try {
             let subjectId = '';
@@ -1288,6 +1608,10 @@ export default function App() {
 
   const onMarkRevised = async (topicId: string) => {
     const { streak: currentStreakVal } = recordStudyActivity();
+    const todayKey = new Date().toISOString().split('T')[0];
+    localStorage.setItem(`cg_topic_completed_${todayKey}`, 'true');
+    localStorage.setItem(`cg_topic_revised_${todayKey}`, 'true');
+
     setTopicProgress(prev => {
       const current = prev[topicId] || {
         topicId,
@@ -1321,6 +1645,7 @@ export default function App() {
 
       // Async sync to server if logged in
       if (currentUser) {
+        syncUserDataDirectly({ topicProgress: nextState });
         currentUser.getIdToken().then(async (token: string) => {
           try {
             let subjectId = '';
@@ -1466,6 +1791,7 @@ export default function App() {
         ? prev.filter(q => q.question !== question.question && (!question.id || q.id !== question.id))
         : [...prev, question];
       localStorage.setItem('examprep_bookmarks', JSON.stringify(updated));
+      syncUserDataDirectly({ bookmarks: updated });
       return updated;
     });
   };
@@ -1616,6 +1942,14 @@ export default function App() {
       saveTestProgress(activeTestId, answers, true);
     }
 
+    // Direct multi-device broadcast & server sync
+    syncUserDataDirectly({
+      points: newXp,
+      mcqsSolved: newMcqsSolved,
+      testResults: newHistory,
+      streak: { count: currentStreakVal, lastDate: currentStreakDate }
+    });
+
     // Sync to Express REST databases if authenticated user is logged in
     if (currentUser) {
       try {
@@ -1740,7 +2074,9 @@ export default function App() {
 
   const handleSelectExam = (examId: string) => {
     setActiveExamId(examId);
-    // Persist to server
+    localStorage.setItem('examprep_selectedExam', examId);
+    // Direct multi-device broadcast & server sync
+    syncUserDataDirectly({ selectedExam: examId });
     if (currentUser) {
       currentUser.getIdToken().then((token: string) => {
         fetch(getApiUrl('/api/user/sync'), {
@@ -1809,10 +2145,8 @@ export default function App() {
             onSelectExam={handleSelectExam}
             onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
             onStartPracticeMode={(modeType) => {
-              if (modeType === 'quiz') {
-                startTestPractice(MOCK_QUESTIONS.slice(0, 5), 'quiz', 'CGPSC Daily Quiz', 5, 'cgpsc-daily-quiz');
-              } else if (modeType === 'mock') {
-                startTestPractice(MOCK_QUESTIONS, 'mock', 'CGPSC Full Mock Test', 120, 'cgpsc-mock-test');
+              if (modeType === 'quiz' || modeType === 'mock') {
+                handleStartRandomPractice(modeType);
               } else {
                 setActiveTab('practice');
               }
@@ -2179,7 +2513,9 @@ export default function App() {
                 transition={{ duration: 0.15 }}
                 className="flex-1 flex flex-col min-h-0"
               >
-                {renderTabContent()}
+                <Suspense fallback={<TabFallback />}>
+                  {renderTabContent()}
+                </Suspense>
               </motion.div>
             ) : (
               /* CBT Practice Workspace (Full screen overlay style) */
@@ -2652,16 +2988,18 @@ export default function App() {
 
         {/* Public Profile Modal for Leaderboard users */}
         {selectedProfileUid && (
-          <PublicProfileModal
-            isOpen={publicProfileOpen}
-            onClose={() => {
-              setPublicProfileOpen(false);
-              setSelectedProfileUid(null);
-            }}
-            uid={selectedProfileUid}
-            currentUser={currentUser}
-            getApiUrl={getApiUrl}
-          />
+          <Suspense fallback={null}>
+            <PublicProfileModal
+              isOpen={publicProfileOpen}
+              onClose={() => {
+                setPublicProfileOpen(false);
+                setSelectedProfileUid(null);
+              }}
+              uid={selectedProfileUid}
+              currentUser={currentUser}
+              getApiUrl={getApiUrl}
+            />
+          </Suspense>
         )}
 
         {/* First-Time Exam Selector Modal for New Users */}

@@ -275,7 +275,7 @@ router.post('/sync', async (req, res) => {
     //   return res.status(403).json({ error: 'Please verify your email address before syncing data.' });
     // }
 
-    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email, username, photoURL, typingResults } = req.body;
+    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email, username, photoURL, typingResults, topicProgress, bookmarks, readArticlesToday, completedTasksToday, savedNews, savedJobs, examTargetDates, appLanguage, theme, testProgress } = req.body;
 
     const update = {};
     const cleanTyping = cleanTypingResults(typingResults);
@@ -301,6 +301,16 @@ router.post('/sync', async (req, res) => {
     if (cleanProgress) update.progress = cleanProgress;
     if (cleanSelectedExam) update.selectedExam = cleanSelectedExam;
     if (cleanPhotoURL) update.photoURL = cleanPhotoURL;
+    if (topicProgress && typeof topicProgress === 'object') update.topicProgress = topicProgress;
+    if (Array.isArray(bookmarks)) update.bookmarks = bookmarks;
+    if (readArticlesToday) update.readArticlesToday = readArticlesToday;
+    if (completedTasksToday) update.completedTasksToday = completedTasksToday;
+    if (Array.isArray(savedNews)) update.savedNews = savedNews;
+    if (Array.isArray(savedJobs)) update.savedJobs = savedJobs;
+    if (examTargetDates && typeof examTargetDates === 'object') update.examTargetDates = examTargetDates;
+    if (cleanString(appLanguage, 10)) update.appLanguage = cleanString(appLanguage, 10);
+    if (cleanString(theme, 20)) update.theme = cleanString(theme, 20);
+    if (testProgress && typeof testProgress === 'object') update.testProgress = testProgress;
     if (cleanMobile) {
       const userDoc = await db.collection('users').doc(req.user.uid).get();
       const currentMobile = userDoc.exists ? userDoc.data().mobile : null;

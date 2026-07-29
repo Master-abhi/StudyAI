@@ -518,6 +518,8 @@ JSON Schema:
   "whyItMatters": "A concise paragraph (40-80 words) in bilingual Hinglish/Hindi explaining exactly why this article is critical for exams, what syllabus topic it links to, and how questions might be framed.",
   "summary_en": "A highly detailed exam-focused summary of the news in English (60-120 words). Focus on figures, facts, dates, and provisions.",
   "summary_hi": "A highly detailed exam-focused summary of the news in Hindi (60-120 words). Focus on figures, facts, dates, and provisions. Write in clean Devanagari script.",
+  "history_en": "Comprehensive historical background, origin, past developments, or background context of this news topic in English (60-120 words).",
+  "history_hi": "इस समाचार/विषय का विस्तृत ऐतिहासिक पृष्ठभूमि, उत्पत्ति एवं इतिहास (60-120 शब्द) स्वच्छ देवनागरी लिपि में।",
   "keyFacts_en": [
     "Fact 1 in English",
     "Fact 2 in English"

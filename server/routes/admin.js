@@ -540,8 +540,45 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
       const cleanTitle = art.title || `News Article ${index + 1}`;
       const docId = crypto.createHash('md5').update(art.url || cleanTitle).digest('hex');
       const intelDocId = crypto.createHash('md5').update(cleanTitle).digest('hex');
+      let intelObj = art.intelligence || art.aiAnalysis || null;
+      if (!intelObj && art.quiz && Array.isArray(art.quiz)) {
+        intelObj = {
+          title: cleanTitle,
+          summary_en: art.summary || art.description || '',
+          summary_hi: art.summary_hi || art.description_hi || '',
+          mcqs: art.quiz
+        };
+      }
 
-      let intelObj = art.intelligence || null;
+      if (intelObj) {
+        try {
+          const fullIntel = {
+            ...intelObj,
+            title: cleanTitle,
+            createdAt: timestamp
+          };
+          await db.collection('news_intelligence').doc(intelDocId).set(fullIntel, { merge: true });
+          const urlIntelId = crypto.createHash('md5').update(art.url || cleanTitle).digest('hex');
+          await db.collection('news_intelligence').doc(urlIntelId).set(fullIntel, { merge: true });
+        } catch (err) {
+          console.warn('[Admin News Upload] Failed to save pre-provided news_intelligence:', err.message);
+        }
+      } else if (category !== 'jobs' && category !== 'job' && category !== 'job_alert' && category !== 'recruitment') {
+        try {
+          console.log(`[Admin News Upload] Pre-generating AI intelligence & quiz ONCE for: ${cleanTitle}`);
+          const intel = await ai.generateNewsIntelligence(cleanTitle, art.description || art.summary || details || '', category, art.source || 'Manual Upload');
+          intelObj = {
+            ...intel,
+            title: cleanTitle,
+            createdAt: timestamp
+          };
+          await db.collection('news_intelligence').doc(intelDocId).set(intelObj, { merge: true });
+          const urlIntelId = crypto.createHash('md5').update(art.url || cleanTitle).digest('hex');
+          await db.collection('news_intelligence').doc(urlIntelId).set(intelObj, { merge: true });
+        } catch (genErr) {
+          console.warn('[Admin News Upload] Auto AI pre-generation fail (will fallback when requested):', genErr.message);
+        }
+      }
 
       const dept = art.department || art.dept || art.organization || art.board || '';
       const posts = art.totalPosts || art.posts || art.post || art.vacancies || art.total_posts || '';
@@ -553,6 +590,8 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
       const mode = art.applyMode || art.mode || art.apply_mode || '';
       const selection = art.selectionProcess || art.selection || art.selection_process || '';
       const details = art.details || art.job_details || art.description || art.description_hi || art.summary || art.summary_hi || '';
+      const historyEn = art.history || art.historicalContext || art.history_en || '';
+      const historyHi = art.history_hi || art.historicalContext_hi || art.history_hi || '';
 
       const cleanArt = {
         title: cleanTitle,
@@ -561,6 +600,10 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
         description_hi: art.description_hi || details || '',
         summary: art.summary || details || '',
         summary_hi: art.summary_hi || details || '',
+        history: historyEn,
+        history_hi: historyHi,
+        historicalContext: historyEn,
+        historicalContext_hi: historyHi,
         source: art.source || 'Manual Upload',
         category: category,
         department: dept,
@@ -577,7 +620,7 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
         pubDate: lDate || timestamp.split('T')[0],
         date: lDate || timestamp.split('T')[0],
         url: art.url || '',
-        examRelevance: true,
+        examRelevance: art.examRelevance || true,
         icon: art.icon || (category === 'jobs' ? '💼' : category === 'chhattisgarh' ? '🏔️' : '📰'),
         lang: art.lang || 'hi',
         intelligence: intelObj || null,

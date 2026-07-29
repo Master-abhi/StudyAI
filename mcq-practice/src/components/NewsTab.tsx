@@ -16,6 +16,10 @@ interface Article {
   description_hi?: string;
   summary?: string;
   summary_hi?: string;
+  history?: string;
+  history_hi?: string;
+  historicalContext?: string;
+  historicalContext_hi?: string;
   category: string;
   source: string;
   url: string;
@@ -55,6 +59,11 @@ interface ArticleIntelligence {
   whyItMatters: string;
   summary_en: string;
   summary_hi: string;
+  history?: string;
+  history_hi?: string;
+  history_en?: string;
+  historicalContext?: string;
+  historicalContext_hi?: string;
   keyFacts: string[];
   keyFacts_en?: string[];
   keyFacts_hi?: string[];
@@ -189,7 +198,20 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
 
   // Fetch Public Feed
   const fetchNews = async () => {
-    setLoading(true);
+    // Only set loading to true if we don't have articles in state/localStorage already
+    const cached = localStorage.getItem('cg_cached_news');
+    let hasLocalCache = false;
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          hasLocalCache = true;
+        }
+      } catch (e) {}
+    }
+    if (!hasLocalCache) {
+      setLoading(true);
+    }
     setError('');
     try {
       const res = await fetch(getApiUrl('/api/news'));
@@ -197,28 +219,44 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
         const data = await res.json();
         if (data && Array.isArray(data.articles)) {
           setArticles(data.articles);
+          localStorage.setItem('cg_cached_news', JSON.stringify(data.articles));
         }
       } else {
         throw new Error('Failed to fetch general feed');
       }
     } catch (err: any) {
       console.error('[News Fetch Error]:', err);
-      setError('Could not retrieve current affairs updates.');
+      // Only set error if we don't have cached articles
+      if (!hasLocalCache && articles.length === 0) {
+        setError('Could not retrieve current affairs updates.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-
-
   // Fetch Capsules Data
   const fetchCapsules = async () => {
-    setLoadingCapsules(true);
+    const cachedCapsules = localStorage.getItem('cg_cached_news_capsules');
+    let hasCapsuleCache = false;
+    if (cachedCapsules) {
+      try {
+        const parsed = JSON.parse(cachedCapsules);
+        if (parsed) {
+          setCapsuleData(parsed);
+          hasCapsuleCache = true;
+        }
+      } catch (e) {}
+    }
+    if (!hasCapsuleCache) {
+      setLoadingCapsules(true);
+    }
     try {
       const res = await fetch(getApiUrl('/api/news/capsules'));
       if (res.ok) {
         const data = await res.json();
         setCapsuleData(data);
+        localStorage.setItem('cg_cached_news_capsules', JSON.stringify(data));
       }
     } catch (e) {
       console.warn('[News Capsules Error]:', e);
@@ -264,18 +302,35 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
   };
 
   // Load Initial Data
-
-
-
-  // Load Initial Data
   useEffect(() => {
+    // Instant local load from localStorage to minimize app loading time
+    const cached = localStorage.getItem('cg_cached_news');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setArticles(parsed);
+          setLoading(false);
+        }
+      } catch (e) {}
+    }
+    const cachedCapsules = localStorage.getItem('cg_cached_news_capsules');
+    if (cachedCapsules) {
+      try {
+        const parsed = JSON.parse(cachedCapsules);
+        if (parsed) setCapsuleData(parsed);
+      } catch (e) {}
+    }
+
     fetchNews();
     if (currentUser) {
       fetchAnalytics();
     }
     const saved = localStorage.getItem('cg_saved_articles');
     if (saved) {
-      setSavedArticles(JSON.parse(saved));
+      try {
+        setSavedArticles(JSON.parse(saved));
+      } catch (e) {}
     }
   }, [currentUser]);
 
@@ -317,6 +372,15 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
       if (!readStored.includes(article.title)) {
         const updated = [...readStored, article.title];
         localStorage.setItem(`cg_read_articles_${todayKey}`, JSON.stringify(updated));
+        if (currentUser) {
+          const firebase = (window as any).firebase;
+          if (firebase && firebase.apps && firebase.apps.length > 0) {
+            firebase.firestore().collection('users').doc(currentUser.uid).set({
+              readArticlesToday: updated,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).catch((err: any) => console.warn('News sync error:', err));
+          }
+        }
       }
     } catch (e) {
       console.warn(e);
@@ -1064,6 +1128,22 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                             {summaryLang === 'hi' ? intel.summary_hi : intel.summary_en}
                           </p>
                         </div>
+
+                        {/* Historical Background & Context */}
+                        {(intel.history_hi || intel.history || intel.history_en || intel.historicalContext_hi || intel.historicalContext || (selectedArticle as any)?.history_hi || (selectedArticle as any)?.history) && (
+                          <div className="p-4 bg-amber-500/10 border border-amber-500/25 rounded-lg flex flex-col gap-2 relative">
+                            <h5 className="text-[9.5px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                              <span>📜</span>
+                              <span>ऐतिहासिक पृष्ठभूमि एवं इतिहास (Historical Context & Origin)</span>
+                            </h5>
+                            <p className="text-xs text-text leading-relaxed tracking-wide whitespace-pre-line font-medium">
+                              {summaryLang === 'hi'
+                                ? (intel.history_hi || intel.historicalContext_hi || intel.history || intel.history_en || intel.historicalContext || (selectedArticle as any)?.history_hi || (selectedArticle as any)?.history)
+                                : (intel.history || intel.history_en || intel.historicalContext || intel.history_hi || intel.historicalContext_hi || (selectedArticle as any)?.history || (selectedArticle as any)?.history_hi)
+                              }
+                            </p>
+                          </div>
+                        )}
 
                         {/* Key Facts list */}
                         <div className="flex flex-col gap-2">
