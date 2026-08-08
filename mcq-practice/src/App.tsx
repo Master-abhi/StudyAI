@@ -16,13 +16,16 @@ import {
   Settings,
   ShieldAlert,
   Shield,
+  GraduationCap,
   Flame,
   FileText,
   Landmark,
   HelpCircle,
   Briefcase,
   Share2,
-  Bell
+  Bell,
+  Smartphone,
+  Download
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -34,6 +37,11 @@ import { ExplanationCard } from './components/ExplanationCard';
 import { QuestionPalette } from './components/QuestionPalette';
 import { PerformancePanel } from './components/PerformancePanel';
 import { AiTutorModal } from './components/AiTutorModal';
+import { 
+  requestPushNotificationPermission, 
+  registerServiceWorker, 
+  sendSystemPushNotification 
+} from './services/pushNotificationService';
 
 // Instant Home Dashboard Component
 import { DashboardTab } from './components/DashboardTab';
@@ -311,6 +319,36 @@ export default function App() {
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [notificationsModalOpen, setNotificationsModalOpen] = useState<boolean>(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleDownloadApp = async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      try {
+        await deferredInstallPrompt.userChoice;
+      } catch (e) {}
+      setDeferredInstallPrompt(null);
+    } else {
+      const apkUrl = '/cgguru.apk';
+      const a = document.createElement('a');
+      a.href = apkUrl;
+      a.download = 'CG_Guru_App.apk';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+  };
   const [reportModalOpen, setReportModalOpen] = useState<boolean>(false);
   const [reportingQuestion, setReportingQuestion] = useState<Question | null>(null);
   const [reportReason, setReportReason] = useState<string>('');
@@ -602,12 +640,43 @@ export default function App() {
     let unsubscribeSnap: (() => void) | null = null;
 
     const checkAndSubscribe = async () => {
+      // 1. Request Push Permission & Register SW for System Notification Bar
+      requestPushNotificationPermission();
+      registerServiceWorker();
+
+      // 2. Trigger backend job deadline scan & expired notification cleanup
+      try {
+        fetch(getApiUrl('/api/notifications/job-alerts/scan'), { method: 'POST' }).catch(() => {});
+      } catch (e) {}
+
       const storedRead = localStorage.getItem('examprep_read_notifications');
       const readIds: string[] = storedRead ? JSON.parse(storedRead) : [];
 
       const processNotifications = (notifs: any[]) => {
-        const unread = notifs.filter(n => !readIds.includes(n.id)).length;
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        // Filter out expired job deadline notifications (deadline < today)
+        const validNotifs = notifs.filter(n => {
+          const lDate = n.lastDate || n.deadline || n.expiresAt;
+          if (lDate && lDate < todayStr) return false;
+          return true;
+        });
+
+        const unread = validNotifs.filter(n => !readIds.includes(n.id)).length;
         setUnreadNotificationsCount(unread);
+
+        // Send Push Notification for unread job deadlines or high priority alerts directly to Status Bar
+        validNotifs.forEach(notif => {
+          if (!readIds.includes(notif.id) && (notif.type === 'job_deadline' || notif.pinned)) {
+            sendSystemPushNotification(
+              notif.title || '⚠️ Job Deadline Alert',
+              notif.message || 'Today is the last date to apply!',
+              '/pwa-192x192.png',
+              notif.actionUrl || '/jobs',
+              notif.id
+            );
+          }
+        });
       };
 
       const setupFirestoreListener = () => {
@@ -1812,7 +1881,7 @@ export default function App() {
     durationMinutes?: number,
     testId?: string
   ) => {
-    const effectiveTestId = testId || (testMode === 'mock' ? 'cgpsc-mock-test' : testMode === 'pyq' ? 'cgpsc-pyq-paper' : 'cgpsc-daily-quiz');
+    const effectiveTestId = testId || `test_${testMode}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     setActiveTestId(effectiveTestId);
     setQuestions(testQuestions);
     setMode(testMode);
@@ -2329,12 +2398,7 @@ export default function App() {
         <aside className="hidden md:flex flex-col w-64 bg-bg-s2 border-r border-border/60 shrink-0 fixed top-0 left-0 h-screen z-30">
           {/* Logo & Brand */}
           <div className="p-6 border-b border-border/60 flex items-center gap-3">
-            <img 
-              src="/CG_GURU.png" 
-              onError={(e) => { (e.target as HTMLImageElement).src = '/icon-192.png'; }} 
-              alt="CG Guru Logo" 
-              className="w-9 h-9 rounded-xl object-contain shadow-md border border-border/40 p-0.5 bg-bg-s3/50" 
-            />
+            <GraduationCap className="w-7 h-7 text-saffron" />
             <span className="text-base font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
               CG Guru
             </span>
@@ -2454,18 +2518,24 @@ export default function App() {
         {/* Mobile Sticky Top Header (Shown if test workspace is NOT active, hidden on desktop) */}
         {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
           <header className="md:hidden sticky top-0 left-0 right-0 bg-bg-s1/90 backdrop-blur-md border-b border-border/60 px-5 py-4 flex items-center justify-between z-30 shadow-sm shrink-0">
-            <div className="flex items-center gap-2.5">
-              <img 
-                src="/CG_GURU.png" 
-                onError={(e) => { (e.target as HTMLImageElement).src = '/icon-192.png'; }} 
-                alt="CG Guru Logo" 
-                className="w-8 h-8 rounded-xl object-contain shadow-md border border-border/40 p-0.5 bg-bg-s3/50" 
-              />
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-6 h-6 text-saffron" />
               <span className="text-sm font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
                 CG Guru
               </span>
             </div>
             <div className="flex items-center gap-2">
+              {/* App Download Button right next to Notification Bell */}
+              <button 
+                onClick={handleDownloadApp}
+                className="px-2 py-1.5 rounded-lg bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-bg-s1 font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer transition-all active:scale-[0.96]"
+                title="Download App / Install PWA"
+              >
+                <Smartphone className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-extrabold text-[10px]">App</span>
+                <Download className="w-3 h-3 shrink-0" />
+              </button>
+
               <button 
                 onClick={() => setNotificationsModalOpen(true)}
                 className={`p-1.5 rounded-lg border transition-all cursor-pointer relative ${

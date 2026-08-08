@@ -39,8 +39,24 @@ router.get('/', async (req, res) => {
       return c === 'jobs' || c === 'job' || c === 'job_alert' || c === 'recruitment';
     };
 
+    const isStructuredJob = (a) => {
+      const title = (a.title || '').toLowerCase() + ' ' + (a.title_hi || '').toLowerCase();
+      if (title.includes('एसबीआई क्लर्क') || title.includes('बिहान') || title.includes('sbi clerk') || title.includes('bihan')) {
+        return false;
+      }
+      return Boolean(
+        a.department || a.dept || a.organization || a.board || a.totalPosts || a.posts || a.vacancies || a.qualification || a.eligibility || a.lastDate || a.salary || a.details
+      );
+    };
+
     if (category && category !== 'all') {
-      articles = articles.filter(a => (a.category || '').toLowerCase() === category.toLowerCase());
+      articles = articles.filter(a => {
+        const catMatch = (a.category || '').toLowerCase() === category.toLowerCase();
+        if (category.toLowerCase() === 'jobs') {
+          return catMatch && isStructuredJob(a);
+        }
+        return catMatch;
+      });
     } else if (includeJobs !== 'true') {
       articles = articles.filter(a => !isJobCategory(a.category));
     }

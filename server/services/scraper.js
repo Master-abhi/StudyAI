@@ -27,8 +27,7 @@ async function scrapeSarkariResult() {
         articles.push({
           title,
           description: `Latest update from Sarkari Result: ${title}`,
-          category: title.toLowerCase().includes('admit') ? 'exams' :
-            title.toLowerCase().includes('result') ? 'exams' : 'jobs',
+          category: 'exams',
           date: new Date().toISOString().split('T')[0],
           source: 'Sarkari Result',
           url: url.startsWith('http') ? url : `https://www.sarkariresult.com${url}`,
@@ -71,9 +70,6 @@ async function scrapeExamNewsRSS() {
         if (title) {
           let category = 'exams';
           const titleLower = title.toLowerCase();
-          if (titleLower.includes('recruitment') || titleLower.includes('vacancy') || titleLower.includes('naukri') || titleLower.includes('bharti') || titleLower.includes('apply')) {
-            category = 'jobs';
-          }
           articles.push({
             title,
             description: `Source: ${source || 'Google News'}`,
@@ -152,7 +148,7 @@ async function scrapeHindiNewsRSS() {
     { q: 'अंतरराष्ट्रीय+समाचार+विश्व+when:24h', icon: '🌍', tag: 'अंतरराष्ट्रीय', category: 'affairs' },
     { q: 'खेल+क्रिकेट+भारत+when:24h', icon: '🏏', tag: 'खेल', category: 'affairs' },
     { q: 'विज्ञान+तकनीक+भारत+when:7d', icon: '🔬', tag: 'विज्ञान', category: 'affairs' },
-    { q: 'सरकारी+नौकरी+भर्ती+when:7d', icon: '💼', tag: 'नौकरी', category: 'jobs' },
+    { q: 'सरकारी+नौकरी+भर्ती+when:7d', icon: '💼', tag: 'नौकरी', category: 'exams' },
     { q: 'UPSC+SSC+परीक्षा+नोटिफिकेशन+when:7d', icon: '📝', tag: 'परीक्षा', category: 'exams' },
     { q: 'अर्थव्यवस्था+बजट+भारत+when:7d', icon: '📈', tag: 'अर्थव्यवस्था', category: 'affairs' }
   ];
@@ -224,7 +220,7 @@ async function scrapeEmploymentNews() {
         articles.push({
           title,
           description: 'Government vacancy notification from NCS Portal',
-          category: 'jobs',
+          category: 'exams',
           date: new Date().toISOString().split('T')[0],
           source: 'NCS Portal',
           url: url.startsWith('http') ? url : `https://www.ncs.gov.in${url}`,
@@ -279,7 +275,7 @@ async function scrapeNewsAPI() {
 
         // Categorize based on keywords in title or description
         if (titleLower.includes('recruitment') || titleLower.includes('vacancy') || titleLower.includes('naukri') || titleLower.includes('jobs') || titleLower.includes('bharti') || titleLower.includes('apprentice') || descLower.includes('recruitment') || descLower.includes('vacancy') || descLower.includes('naukri')) {
-          category = 'jobs';
+          category = 'exams';
           icon = '💼';
         } else if (titleLower.includes('exam') || titleLower.includes('upsc') || titleLower.includes('ssc') || titleLower.includes('result') || titleLower.includes('admit card') || titleLower.includes('answer key') || titleLower.includes('neet') || titleLower.includes('jee') || titleLower.includes('cbse') || titleLower.includes('cutoff') || descLower.includes('admit card') || descLower.includes('exam result')) {
           category = 'exams';

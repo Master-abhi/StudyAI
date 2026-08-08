@@ -608,8 +608,8 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                         <h5 className="text-sm font-bold leading-relaxed line-clamp-2 text-text animate-fade-in" title={art.title_hi || art.title}>
                           {art.title_hi || art.title}
                         </h5>
-                        <p className="text-xs text-text-muted leading-normal">
-                          {art.description_hi || art.summary_hi || art.description || art.title}
+                        <p className="text-xs text-text/90 font-medium leading-relaxed bg-bg-s3/60 border border-border/50 p-2 rounded-lg whitespace-pre-line">
+                          {art.description_hi || art.summary_hi || art.description || art.summary || art.title}
                         </p>
                       </div>
                       <div className="flex justify-between items-center text-[10px] text-text-muted border-t border-border/40 pt-2 w-full font-bold">
@@ -679,8 +679,8 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                         {art.title_hi || art.title}
                       </h4>
 
-                      <p className="text-xs text-text-muted leading-relaxed">
-                        {art.description_hi || art.summary_hi || art.description || art.title}
+                      <p className="text-xs text-text/90 font-medium leading-relaxed bg-bg-s3/60 border border-border/50 p-2.5 rounded-lg whitespace-pre-line">
+                        {art.description_hi || art.summary_hi || art.description || art.summary || art.title}
                       </p>
 
                       <div className="flex justify-between items-center text-[10px] text-text-muted border-t border-border/40 pt-2 mt-1">
@@ -824,8 +824,8 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                       <h4 className="text-sm font-bold text-text group-hover:text-saffron transition-colors leading-normal line-clamp-2 animate-fade-in" title={art.title_hi || art.title}>
                         {art.title_hi || art.title}
                       </h4>
-                      <p className="text-xs text-text-muted leading-normal">
-                        {art.description_hi || art.summary_hi || art.description || art.title}
+                      <p className="text-xs text-text/90 font-medium leading-relaxed bg-bg-s3/60 border border-border/50 p-2.5 rounded-lg whitespace-pre-line">
+                        {art.description_hi || art.summary_hi || art.description || art.summary || art.title}
                       </p>
 
                       <div className="flex justify-between items-center text-[10px] text-text-muted border-t border-border/40 pt-2 mt-1 w-full font-bold">
@@ -976,8 +976,8 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                       {art.title_hi || art.title}
                     </h4>
 
-                    <p className="text-xs text-text-muted leading-relaxed">
-                      {art.description_hi || art.summary_hi || art.description || art.title}
+                    <p className="text-xs text-text/90 font-medium leading-relaxed bg-bg-s3/60 border border-border/50 p-2.5 rounded-lg whitespace-pre-line">
+                      {art.description_hi || art.summary_hi || art.description || art.summary || art.title}
                     </p>
 
                     <div className="flex gap-2 border-t border-border/40 pt-3 mt-1">

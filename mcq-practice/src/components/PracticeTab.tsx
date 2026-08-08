@@ -138,8 +138,96 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     showToast(`"${deletedSubject}" removed from offline storage. 🗑️`);
   };
 
+  const isGenericTestId = (id?: string) => {
+    if (!id) return true;
+    const genericIds = ['cgpsc-daily-quiz', 'cgpsc-mock-test', 'cgpsc-pyq-paper', 'saved-questions'];
+    return genericIds.includes(id);
+  };
+
+  // Auto-migrate legacy logs to assign unique test IDs and bind them to matching server tests
+  useEffect(() => {
+    if (!tests || tests.length === 0 || !testHistory || testHistory.length === 0) return;
+
+    try {
+      const storedProgressRaw = localStorage.getItem('examprep_test_progress');
+      const progressStore: Record<string, { answers: any[]; completed: boolean }> = storedProgressRaw ? JSON.parse(storedProgressRaw) : {};
+
+      let historyChanged = false;
+      let progressChanged = false;
+      const boundTestIds = new Set<string>();
+
+      // First pass: collect explicitly bound testIds
+      testHistory.forEach((log: any) => {
+        if (log && log.testId && !isGenericTestId(log.testId)) {
+          boundTestIds.add(log.testId);
+          if (!progressStore[log.testId]?.completed) {
+            progressStore[log.testId] = { answers: log.userAnswers || [], completed: true };
+            progressChanged = true;
+          }
+        }
+      });
+
+      // Second pass: migrate legacy/generic logs and pair with unbound matching tests
+      const updatedHistory = testHistory.map((log: any, idx: number) => {
+        if (!log) return log;
+
+        if (log.testId && !isGenericTestId(log.testId)) {
+          return log;
+        }
+
+        const logSub = (log.subject || '').trim().toLowerCase();
+        const logMode = log.mode || 'quiz';
+        const logTotal = log.total !== undefined ? log.total : (log.questions ? log.questions.length : 0);
+
+        // Find the first unbound server test matching subject, mode, and question count
+        const match = tests.find(t => {
+          if (!t || !t.id || boundTestIds.has(t.id)) return false;
+          const tSub = (t.subject || '').trim().toLowerCase();
+          if (tSub !== logSub) return false;
+          if (t.mode && t.mode !== logMode) return false;
+          if (logTotal > 0 && t.totalQuestions && t.totalQuestions !== logTotal) return false;
+          return true;
+        });
+
+        if (match) {
+          boundTestIds.add(match.id);
+          historyChanged = true;
+          if (!progressStore[match.id]?.completed) {
+            progressStore[match.id] = { answers: log.userAnswers || [], completed: true };
+            progressChanged = true;
+          }
+          return {
+            ...log,
+            testId: match.id
+          };
+        } else {
+          // Assign a unique isolated testId to prevent cross-contamination
+          const uniqueId = `legacy_${logSub.replace(/[^a-z0-9]/g, '_')}_${log.timestamp || idx}_${idx}`;
+          historyChanged = true;
+          return {
+            ...log,
+            testId: uniqueId
+          };
+        }
+      });
+
+      if (progressChanged) {
+        setTestProgress(progressStore);
+        localStorage.setItem('examprep_test_progress', JSON.stringify(progressStore));
+      }
+
+      if (historyChanged) {
+        localStorage.setItem('examprep_testResults', JSON.stringify(updatedHistory));
+      }
+    } catch (e) {
+      console.warn('[PracticeTab] Migration effect error:', e);
+    }
+  }, [tests, testHistory]);
+
   const getTestProgressInfo = (test: ServerTest) => {
-    // 1. Check in-progress map in localStorage
+    if (!test || !test.id) return null;
+
+    // 1. Check in-progress map in localStorage by test ID
     if (testProgress && testProgress[test.id]) {
       const saved = testProgress[test.id];
       const answers = Array.isArray(saved.answers) ? saved.answers : [];
@@ -147,21 +235,13 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       return {
         attemptedCount: attempted,
         totalQuestions: test.totalQuestions || answers.length || 5,
-        completed: saved.completed
+        completed: Boolean(saved.completed)
       };
     }
 
-    // 2. Check in testHistory prop
+    // 2. Check in testHistory prop strictly by test ID
     if (testHistory && Array.isArray(testHistory)) {
-      let match = testHistory.find((log: any) => log.testId === test.id);
-      if (!match) {
-        // Fallback: match by subject name and mode
-        match = testHistory.find((log: any) => 
-          (log.subject || '').trim().toLowerCase() === (test.subject || '').trim().toLowerCase() && 
-          log.mode === test.mode
-        );
-      }
-
+      const match = testHistory.find((log: any) => log && log.testId === test.id);
       if (match) {
         const correct = match.correct !== undefined ? match.correct : 0;
         const wrong = match.wrong !== undefined ? match.wrong : 0;
@@ -917,34 +997,36 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
             ) : (
               /* Inside Subject View / Search View: Render tests belonging to subject */
               <div className="flex flex-col gap-4">
-                {/* Active Subject Banner Header */}
+                {/* Active Subject Navigation Header */}
                 {selectedSubject && (
-                  <div className="p-3.5 bg-bg-s2 border border-saffron/40 rounded-xl flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-3">
+                  <div className="p-3 bg-gradient-to-r from-bg-s2 via-bg-s3/50 to-bg-s2 border border-saffron-border/30 rounded-2xl flex items-center justify-between shadow-sm transition-all">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {/* Back Button */}
                       <button
                         onClick={() => setSelectedSubject(null)}
-                        className="px-2.5 py-1.5 bg-bg-s3 hover:bg-saffron-dim/20 text-text-muted hover:text-saffron border border-border rounded-lg text-xs font-black flex items-center gap-1 transition-all cursor-pointer"
+                        className="px-3 py-1.5 bg-bg-s1 hover:bg-saffron hover:text-bg-s1 border border-border text-text-muted hover:border-saffron rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-xs active:scale-[0.97]"
+                        title="Back to All Subjects"
                       >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span>← Back to All Subjects</span>
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>All Subjects</span>
                       </button>
-                      <div className="flex flex-col">
-                        <h4 className="text-xs font-black text-text flex items-center gap-1.5">
-                          <BookOpen className="w-3.5 h-3.5 text-saffron" />
-                          <span>{selectedSubject}</span>
-                        </h4>
-                        <span className="text-[9.5px] text-text-muted font-bold">
-                          Showing {filteredTests.length} tests for this subject
-                        </span>
+
+                      {/* Breadcrumb Divider & Subject Title */}
+                      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                        <span className="text-text-muted/40 text-xs font-bold shrink-0">/</span>
+                        <div className="flex items-center gap-1.5 truncate">
+                          <BookOpen className="w-3.5 h-3.5 text-saffron shrink-0" />
+                          <span className="text-xs font-black text-text truncate tracking-tight">
+                            {selectedSubject}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => setSelectedSubject(null)}
-                      className="text-[10px] text-text-muted hover:text-saffron font-bold underline cursor-pointer"
-                    >
-                      Clear Subject Filter
-                    </button>
+                    {/* Right side badge with test count */}
+                    <span className="text-[10px] font-black uppercase text-saffron bg-saffron/10 border border-saffron-border/30 px-2.5 py-1 rounded-full shrink-0">
+                      {filteredTests.length} {filteredTests.length === 1 ? 'Test' : 'Tests'}
+                    </span>
                   </div>
                 )}
 

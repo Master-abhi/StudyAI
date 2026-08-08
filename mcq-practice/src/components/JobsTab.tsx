@@ -79,6 +79,21 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
     return path;
   };
 
+  const isStructuredJob = (job: JobArticle) => {
+    const title = (job.title || '').toLowerCase() + ' ' + (job.title_hi || '').toLowerCase();
+    if (title.includes('एसबीआई क्लर्क') || title.includes('बिहान') || title.includes('sbi clerk') || title.includes('bihan')) {
+      return false;
+    }
+    return Boolean(
+      job.department || job.dept || job.organization || job.board || 
+      job.totalPosts || job.posts || job.vacancies || job.post || job.total_posts || 
+      job.qualification || job.eligibility || job.education || job.qualification_hi || 
+      job.lastDate || job.last_date || job.deadline || 
+      job.salary || job.payScale || job.pay_scale || job.stipend || 
+      job.details || job.job_details
+    );
+  };
+
   useEffect(() => {
     // Load local saved jobs
     const saved = localStorage.getItem('cg_saved_jobs');
@@ -90,14 +105,19 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
       }
     }
 
-    // Instant local load from localStorage to minimize load time
+    // Instant local load from localStorage (only structured jobs)
     const cachedJobs = localStorage.getItem('cg_cached_jobs_news');
     if (cachedJobs) {
       try {
         const parsed = JSON.parse(cachedJobs);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setJobs(parsed);
-          setLoading(false);
+        if (Array.isArray(parsed)) {
+          const structuredOnly = parsed.filter(isStructuredJob);
+          if (structuredOnly.length > 0) {
+            setJobs(structuredOnly);
+            setLoading(false);
+          } else {
+            localStorage.removeItem('cg_cached_jobs_news');
+          }
         }
       } catch (e) {}
     }
@@ -111,7 +131,7 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
     if (cachedJobs) {
       try {
         const parsed = JSON.parse(cachedJobs);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.filter(isStructuredJob).length > 0) {
           hasLocalCache = true;
         }
       } catch (e) {}
@@ -124,7 +144,7 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
       const res = await fetch(getApiUrl('/api/news?category=jobs'));
       if (res.ok) {
         const data = await res.json();
-        const fetched = data.articles || [];
+        const fetched = (data.articles || []).filter(isStructuredJob);
         setJobs(fetched);
         localStorage.setItem('cg_cached_jobs_news', JSON.stringify(fetched));
       } else {
@@ -302,9 +322,9 @@ export const JobsTab: React.FC<JobsTabProps> = () => {
                     </span>
 
                     {posts && (
-                      <span className="text-[9px] font-black uppercase text-saffron bg-saffron/10 border border-saffron-border/30 px-2 py-0.5 rounded-md flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        <span>{posts}</span>
+                      <span className="text-[9.5px] font-black uppercase text-red-500 bg-red-500/15 border border-red-500/40 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 shadow-xs">
+                        <Users className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                        <span className="tracking-wide">{posts}</span>
                       </span>
                     )}
                   </div>

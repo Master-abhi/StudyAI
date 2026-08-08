@@ -24,6 +24,10 @@ const userRoutes = require('./routes/user');
 const studyIntelligenceRoutes = require('./routes/studyIntelligence');
 const jobsRoutes = require('./routes/jobs');
 const notificationsRoutes = require('./routes/notifications');
+const { initJobAlertScheduler } = require('./services/jobAlertScheduler');
+
+// Start background job deadline alert scheduler & expired notifications cleaner
+initJobAlertScheduler();
 
 const app = express();
 const PORT = process.env.PORT || 3000;

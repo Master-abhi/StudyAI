@@ -3,10 +3,13 @@ const router = express.Router();
 const { db } = require('../firebase-admin');
 const { verifyStaffOrAdmin } = require('../middleware/verifyFirebaseToken');
 
+const { runJobDeadlineScheduler, parseToIsoDate, getTodayIsoDate } = require('../services/jobAlertScheduler');
+
 // GET /api/notifications - Fetch public broadcast notifications
 router.get('/', async (req, res) => {
   try {
     let notifications = [];
+    const todayStr = getTodayIsoDate();
     
     try {
       const snap = await db.collection('notifications')
@@ -14,10 +17,19 @@ router.get('/', async (req, res) => {
         .limit(50)
         .get();
         
-      notifications = snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      notifications = snap.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(notif => {
+          // Filter out expired job deadline notifications (date < today)
+          const lastDate = parseToIsoDate(notif.lastDate || notif.deadline || notif.expiryDate || notif.expiresAt);
+          if (lastDate && lastDate < todayStr) {
+            return false;
+          }
+          return true;
+        });
     } catch (fsErr) {
       console.warn('[Notifications GET Firestore Warn]:', fsErr.message);
     }
@@ -29,10 +41,21 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/notifications/job-alerts/scan - Manually trigger job deadline scan & cleanup
+router.post('/job-alerts/scan', async (req, res) => {
+  try {
+    const result = await runJobDeadlineScheduler();
+    res.json(result);
+  } catch (err) {
+    console.error('[Job Deadline Scan Error]:', err.message);
+    res.status(500).json({ error: 'Failed to scan job deadlines' });
+  }
+});
+
 // POST /api/notifications/admin - Create a new notification broadcast (Admin/Staff)
 router.post('/admin', verifyStaffOrAdmin('news'), async (req, res) => {
   try {
-    const { title, message, type, actionUrl, actionText, pinned, targetExam } = req.body;
+    const { title, message, type, actionUrl, actionText, pinned, targetExam, lastDate } = req.body;
     if (!title || !message) {
       return res.status(400).json({ error: 'Title and message are required.' });
     }
@@ -42,11 +65,12 @@ router.post('/admin', verifyStaffOrAdmin('news'), async (req, res) => {
       id: notifId,
       title: title.trim(),
       message: message.trim(),
-      type: type || 'announcement', // notice | offer | announcement | update
+      type: type || 'announcement', // notice | offer | announcement | update | job_deadline
       actionUrl: actionUrl || '',
       actionText: actionText || '',
       pinned: !!pinned,
       targetExam: targetExam || 'all',
+      lastDate: lastDate || null,
       createdAt: new Date().toISOString(),
       createdBy: req.user.email || req.user.uid || 'Admin'
     };

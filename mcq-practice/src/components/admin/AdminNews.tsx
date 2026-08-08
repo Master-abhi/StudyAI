@@ -592,7 +592,11 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
   // Filter articles based on activeAdminTab (News vs Jobs)
   const categoryFiltered = articles.filter(art => {
     const c = (art.category || '').toLowerCase();
-    const isJob = c === 'jobs' || c === 'job' || c === 'job_alert' || c === 'recruitment';
+    const titleText = (art.title || '').toLowerCase() + ' ' + (art.title_hi || '').toLowerCase();
+    const hasJobAttrs = Boolean(art.department || art.totalPosts || art.qualification || art.salary || art.lastDate);
+    const isJobKeyword = titleText.includes('recruitment') || titleText.includes('bharti') || titleText.includes('vacancy') || titleText.includes('भर्ती') || titleText.includes('नियुक्तियां');
+    const isJob = c === 'jobs' || c === 'job' || c === 'job_alert' || c === 'recruitment' || hasJobAttrs || isJobKeyword;
+    
     if (activeAdminTab === 'jobs') {
       return isJob;
     } else {
