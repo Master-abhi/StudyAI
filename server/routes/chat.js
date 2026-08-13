@@ -1,3 +1,6 @@
+const express = require('express');
+const router = express.Router();
+const { chat, chatStream } = require('../services/aiManager');
 const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 const { aiRateLimiter } = require('../middleware/rateLimiter');
 
@@ -40,7 +43,7 @@ router.post('/', verifyFirebaseToken, aiRateLimiter, async (req, res) => {
       };
 
       try {
-        const streamObj = await ai.chatStream(message, exam, lang, cleanHistory);
+        const streamObj = await chatStream(message, exam, lang, cleanHistory);
 
         req.on('close', () => {
           ended = true;
@@ -69,7 +72,7 @@ router.post('/', verifyFirebaseToken, aiRateLimiter, async (req, res) => {
         safeEnd();
       }
     } else {
-      const reply = await ai.chat(message, exam, lang, cleanHistory);
+      const reply = await chat(message, exam, lang, cleanHistory);
       res.json({ reply });
     }
   } catch (err) {

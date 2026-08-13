@@ -5,42 +5,50 @@ const ai = require('../services/aiManager');
 const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 const { aiRateLimiter } = require('../middleware/rateLimiter');
 
+const { safeFirestoreQuery } = require('../services/firestoreCache');
+
 // GET /api/tests - list generated tests for current exam
 router.get('/', async (req, res) => {
   try {
     const { examId } = req.query;
-    const snapshot = await db.collection('tests').get();
-    let tests = snapshot.docs.map(doc => {
-      const d = doc.data();
-      return {
-        id: d.id,
-        examId: d.examId,
-        examIds: d.examIds || (d.examId ? [d.examId] : []),
-        examName: d.examName,
-        examNames: d.examNames || (d.examName ? [d.examName] : []),
-        subject: d.subject,
-        mode: d.mode,
-        language: d.language,
-        totalQuestions: d.questions ? d.questions.length : 0,
-        createdAt: d.createdAt
-      };
-    });
+    const cacheKey = `tests_${examId || 'all'}`;
 
-    if (examId) {
-      tests = tests.filter(t => t.examId === examId || (Array.isArray(t.examIds) && t.examIds.includes(examId)));
-    }
+    const tests = await safeFirestoreQuery(cacheKey, async () => {
+      const snapshot = await db.collection('tests').get();
+      let list = snapshot.docs.map(doc => {
+        const d = doc.data();
+        return {
+          id: d.id,
+          examId: d.examId,
+          examIds: d.examIds || (d.examId ? [d.examId] : []),
+          examName: d.examName,
+          examNames: d.examNames || (d.examName ? [d.examName] : []),
+          subject: d.subject,
+          mode: d.mode,
+          language: d.language,
+          totalQuestions: d.questions ? d.questions.length : 0,
+          createdAt: d.createdAt
+        };
+      });
 
-    // Sort in-memory to avoid requiring a Firestore composite index
-    tests.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt) : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt) : 0;
-      return dateB - dateA;
-    });
+      if (examId) {
+        list = list.filter(t => t.examId === examId || (Array.isArray(t.examIds) && t.examIds.includes(examId)));
+      }
 
-    res.json(tests);
+      // Sort in-memory to avoid requiring a Firestore composite index
+      list.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt) : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt) : 0;
+        return dateB - dateA;
+      });
+
+      return list;
+    }, []);
+
+    res.json(tests || []);
   } catch (err) {
     console.error('[Get Tests Error]:', err.message);
-    res.status(500).json({ error: 'Failed to fetch tests.' });
+    res.json([]);
   }
 });
 

@@ -169,7 +169,11 @@ async function runJobDeadlineScheduler() {
       scannedTodayDate: todayStr
     };
   } catch (err) {
-    console.error('[Job Deadline Scheduler Error]:', err.message);
+    if (err.message && (err.message.includes('RESOURCE_EXHAUSTED') || err.message.includes('Quota exceeded') || err.code === 8)) {
+      console.warn('[Job Deadline Scheduler] Firestore quota exceeded for today. Scheduler paused gracefully.');
+    } else {
+      console.error('[Job Deadline Scheduler Error]:', err.message);
+    }
     return { success: false, error: err.message };
   }
 }

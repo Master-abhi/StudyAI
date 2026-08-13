@@ -1196,6 +1196,42 @@ router.post('/questions/pool/upload', verifyStaffOrAdmin('tests'), async (req, r
   }
 });
 
+function getCanonicalSubject(rawSubject) {
+  if (!rawSubject || typeof rawSubject !== 'string') return 'General Knowledge';
+  let trimmed = rawSubject.trim().replace(/\s+/g, ' ');
+  if (!trimmed) return 'General Knowledge';
+  
+  const lower = trimmed.toLowerCase();
+  if (lower === 'all' || lower === 'all subjects' || lower === 'mixed' || lower === 'full syllabus') {
+    return 'Full Syllabus / All Subjects';
+  }
+  
+  if (lower === 'cg gk' || lower === 'cggk' || lower === 'cg general knowledge' || lower === 'chhattisgarh gk') return 'CG GK';
+  if (lower === 'cg geography' || lower === 'chhattisgarh geography') return 'CG Geography';
+  if (lower === 'cg history' || lower === 'chhattisgarh history') return 'CG History';
+  if (lower === 'cg polity' || lower === 'cg admin' || lower === 'chhattisgarh polity') return 'CG Polity & Governance';
+  if (lower === 'cg economy' || lower === 'chhattisgarh economy') return 'CG Economy';
+  if (lower === 'cg culture' || lower === 'cg culture & tribe' || lower === 'cg tribe' || lower === 'chhattisgarh culture') return 'CG Culture & Tribes';
+  if (lower === 'general knowledge' || lower === 'gk' || lower === 'general studies' || lower === 'gs') return 'General Knowledge';
+  if (lower === 'indian history' || lower === 'history of india' || lower === 'history') return 'Indian History';
+  if (lower === 'indian polity' || lower === 'indian constitution' || lower === 'polity') return 'Indian Polity';
+  if (lower === 'indian geography' || lower === 'geography') return 'Indian Geography';
+  if (lower === 'indian economy' || lower === 'economy') return 'Indian Economy';
+  if (lower === 'general science' || lower === 'science') return 'General Science';
+  if (lower === 'aptitude' || lower === 'maths' || lower === 'mathematics' || lower === 'quant') return 'Aptitude & Maths';
+  if (lower === 'reasoning' || lower === 'logical reasoning') return 'Reasoning';
+  if (lower === 'hindi' || lower === 'hindi language') return 'Hindi Language';
+  if (lower === 'chhattisgarhi' || lower === 'chhattisgarhi language') return 'Chhattisgarhi Language';
+  if (lower === 'english' || lower === 'english language') return 'English Language';
+  if (lower === 'current affairs' || lower === 'ca') return 'Current Affairs';
+
+  if (trimmed === trimmed.toLowerCase() || trimmed === trimmed.toUpperCase()) {
+    return trimmed.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  }
+  
+  return trimmed;
+}
+
 // Get stats from the Question Bank & Test Questions
 router.get('/questions/pool/stats', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
@@ -1209,7 +1245,7 @@ router.get('/questions/pool/stats', verifyStaffOrAdmin('tests'), async (req, res
 
     const processDoc = (doc) => {
       const q = doc.data();
-      const sub = q.subject || 'General Knowledge';
+      const sub = getCanonicalSubject(q.subject);
       subjects[sub] = (subjects[sub] || 0) + 1;
 
       if (Array.isArray(q.examTags)) {
@@ -2118,6 +2154,128 @@ const handleBulkDeleteTests = async (req, res) => {
 
 router.post('/tests/bulk-delete', verifyStaffOrAdmin('tests'), handleBulkDeleteTests);
 router.delete('/tests/bulk-delete', verifyStaffOrAdmin('tests'), handleBulkDeleteTests);
+
+// Rename a subject across tests, question_bank, questions, and exam configs
+router.post('/subjects/rename', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { oldName, newName } = req.body;
+    if (!oldName || !newName || !oldName.trim() || !newName.trim()) {
+      return res.status(400).json({ error: 'oldName and newName are required' });
+    }
+
+    const trimmedOld = oldName.trim();
+    const trimmedNew = newName.trim();
+    const targetOldLower = trimmedOld.toLowerCase();
+
+    let updatedQuestionsCount = 0;
+    let updatedTestsCount = 0;
+    let updatedExamsCount = 0;
+
+    // 1. Always update global subject renames map in Firestore settings (1 write)
+    try {
+      const renamesRef = db.collection('settings').doc('subject_renames');
+      const renamesDoc = await renamesRef.get();
+      const currentMap = renamesDoc.exists ? (renamesDoc.data().map || {}) : {};
+      currentMap[targetOldLower] = trimmedNew;
+      await renamesRef.set({ map: currentMap, updatedAt: new Date().toISOString() }, { merge: true });
+    } catch (e) {
+      console.warn('[Subject Rename Settings Warning]:', e.message);
+    }
+
+    // Helper to safely commit in batches of max 400
+    const commitInBatches = async (docsToUpdate, updateData) => {
+      let count = 0;
+      for (let i = 0; i < docsToUpdate.length; i += 400) {
+        const chunk = docsToUpdate.slice(i, i + 400);
+        const batch = db.batch();
+        chunk.forEach(doc => {
+          batch.update(doc.ref, updateData);
+          count++;
+        });
+        await batch.commit();
+      }
+      return count;
+    };
+
+    // 2. Targeted update for tests collection
+    try {
+      const testsSnap = await db.collection('tests').get();
+      const matchingTests = testsSnap.docs.filter(doc => {
+        const sub = (doc.data().subject || '').trim().toLowerCase();
+        return sub === targetOldLower || getCanonicalSubject(doc.data().subject).toLowerCase() === targetOldLower;
+      });
+      if (matchingTests.length > 0) {
+        updatedTestsCount = await commitInBatches(matchingTests, { subject: trimmedNew });
+      }
+    } catch (e) {
+      console.warn('[Subject Rename Tests Update Warning]:', e.message);
+    }
+
+    // 3. Targeted update for question_bank collection (in safe chunks)
+    try {
+      const poolSnap = await db.collection('question_bank').get();
+      const matchingPool = poolSnap.docs.filter(doc => {
+        const sub = (doc.data().subject || '').trim().toLowerCase();
+        return sub === targetOldLower || getCanonicalSubject(doc.data().subject).toLowerCase() === targetOldLower;
+      });
+      if (matchingPool.length > 0) {
+        updatedQuestionsCount += await commitInBatches(matchingPool, { subject: trimmedNew });
+      }
+    } catch (e) {
+      console.warn('[Subject Rename Pool Update Warning]:', e.message);
+    }
+
+    // 4. Update exam configs
+    try {
+      const examsSnap = await db.collection('exams').get();
+      for (const doc of examsSnap.docs) {
+        const exam = doc.data();
+        let changed = false;
+        if (Array.isArray(exam.subjects)) {
+          exam.subjects.forEach(s => {
+            if (s && s.name && (s.name.trim().toLowerCase() === targetOldLower || getCanonicalSubject(s.name).toLowerCase() === targetOldLower)) {
+              s.name = trimmedNew;
+              changed = true;
+            }
+          });
+        }
+        if (changed) {
+          await doc.ref.update({ subjects: exam.subjects });
+          updatedExamsCount++;
+        }
+      }
+    } catch (e) {
+      console.warn('[Subject Rename Exams Update Warning]:', e.message);
+    }
+
+    await logStaffActivity(req, 'rename_subject', { oldName: trimmedOld, newName: trimmedNew, updatedQuestionsCount, updatedTestsCount });
+
+    res.json({
+      success: true,
+      oldName: trimmedOld,
+      newName: trimmedNew,
+      updatedQuestionsCount,
+      updatedTestsCount,
+      updatedExamsCount,
+      message: `Subject successfully renamed from "${trimmedOld}" to "${trimmedNew}"! 🏷️`
+    });
+  } catch (err) {
+    console.error('[Admin Subject Rename Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to rename subject.' });
+  }
+});
+
+// GET saved subject renames map
+router.get('/subjects/renames', async (req, res) => {
+  try {
+    const renamesRef = db.collection('settings').doc('subject_renames');
+    const renamesDoc = await renamesRef.get();
+    const map = renamesDoc.exists ? (renamesDoc.data().map || {}) : {};
+    res.json({ map });
+  } catch (err) {
+    res.json({ map: {} });
+  }
+});
 
 // Edit a generated test (questions, metadata, options, explanation)
 router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { admin, db, bucket } = require('../firebase-admin');
+const { safeFirestoreQuery } = require('../services/firestoreCache');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -366,66 +367,60 @@ router.post('/sync', async (req, res) => {
 
 router.get('/ranking', async (req, res) => {
   try {
-    const usersSnapshot = await db.collection('users').get();
-    const userScores = [];
     const currentUid = req.user.uid;
-    let currentUserIncluded = false;
+    const rankingData = await safeFirestoreQuery(`ranking_${currentUid}`, async () => {
+      const usersSnapshot = await db.collection('users').get();
+      const userScores = [];
+      let currentUserIncluded = false;
 
-    usersSnapshot.forEach(doc => {
-      const data = doc.data();
-      const points = data.points !== undefined ? data.points : 0;
-      const displayName = data.displayName || data.email?.split('@')[0] || 'Aspirant';
-      
-      if (doc.id === currentUid) {
-        currentUserIncluded = true;
+      usersSnapshot.forEach(doc => {
+        const data = doc.data();
+        const points = data.points !== undefined ? data.points : 0;
+        const displayName = data.displayName || data.email?.split('@')[0] || 'Aspirant';
+        
+        if (doc.id === currentUid) {
+          currentUserIncluded = true;
+        }
+
+        userScores.push({
+          uid: doc.id,
+          displayName: displayName,
+          points: points,
+          photoURL: data.photoURL || ''
+        });
+      });
+
+      if (!currentUserIncluded) {
+        const displayName = req.user.name || req.user.email?.split('@')[0] || 'Aspirant';
+        userScores.push({
+          uid: currentUid,
+          displayName: displayName,
+          points: 0,
+          photoURL: ''
+        });
       }
 
-      userScores.push({
-        uid: doc.id,
-        displayName: displayName,
-        points: points,
-        photoURL: data.photoURL || ''
-      });
-    });
+      // Sort users by points descending
+      userScores.sort((a, b) => b.points - a.points);
 
-    if (!currentUserIncluded) {
-      const displayName = req.user.name || req.user.email?.split('@')[0] || 'Aspirant';
-      userScores.push({
-        uid: currentUid,
-        displayName: displayName,
-        points: 0,
-        photoURL: ''
-      });
-    }
+      // Find the rank of the current user
+      const userIndex = userScores.findIndex(u => u.uid === currentUid);
+      const rank = userIndex !== -1 ? userIndex + 1 : userScores.length + 1;
+      const totalUsers = Math.max(userScores.length, 1);
 
-    // Sort users by points descending
-    userScores.sort((a, b) => b.points - a.points);
+      return {
+        rank: rank,
+        totalUsers: totalUsers,
+        leaderboard: userScores.slice(0, 5),
+        followersCount: 0,
+        followingCount: 0
+      };
+    }, { rank: 1, totalUsers: 1, leaderboard: [], followersCount: 0, followingCount: 0 });
 
-    // Find the rank of the current user
-    const userIndex = userScores.findIndex(u => u.uid === currentUid);
-    const rank = userIndex !== -1 ? userIndex + 1 : userScores.length + 1;
-    const totalUsers = Math.max(userScores.length, 1);
-
-    // Count following for current user
-    const currentUserDoc = await db.collection('users').doc(currentUid).get();
-    const followingCount = currentUserDoc.exists && Array.isArray(currentUserDoc.data().following) 
-      ? currentUserDoc.data().following.length 
-      : 0;
-
-    // Count followers for current user
-    const followersSnapshot = await db.collection('users').where('following', 'array-contains', currentUid).get();
-    const followersCount = followersSnapshot.size;
-
-    res.json({
-      rank: rank,
-      totalUsers: totalUsers,
-      leaderboard: userScores.slice(0, 5), // return top 5
-      followersCount,
-      followingCount
-    });
+    res.json(rankingData);
   } catch (err) {
     console.error('[User Ranking] Error:', err.message);
-    res.status(500).json({ error: 'Failed to calculate rankings' });
+    res.json({ rank: 1, totalUsers: 1, leaderboard: [], followersCount: 0, followingCount: 0 });
   }
 });
 
@@ -602,85 +597,77 @@ router.post('/report', async (req, res) => {
 
 // GET /api/user/badges - Fetch all configured badges/achievements
 router.get('/badges', async (req, res) => {
-  try {
-    const snapshot = await db.collection('badges').orderBy('createdAt', 'asc').get();
-    
-    // If the badges collection is empty, seed it with default achievements
-    if (snapshot.empty) {
-      console.log('[Badges] Collection is empty. Seeding default achievements...');
-      const defaultBadges = [
-        {
-          id: 'first_step',
-          name: 'First Step',
-          desc: 'Complete your first practice test.',
-          criteriaType: 'tests',
-          criteriaValue: 1,
-          icon: 'Rocket',
-          emoji: '🚀',
-          color: 'from-blue-500/15 to-indigo-500/15 border-blue-500/25 text-blue-400',
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'streak_3',
-          name: 'Consistency King',
-          desc: 'Maintain a study streak of 3+ days.',
-          criteriaType: 'streak',
-          criteriaValue: 3,
-          icon: 'Flame',
-          emoji: '🔥',
-          color: 'from-orange-500/15 to-red-500/15 border-orange-500/25 text-orange-400',
-          createdAt: new Date(Date.now() + 1000).toISOString()
-        },
-        {
-          id: 'mcq_50',
-          name: 'Practice Guru',
-          desc: 'Solve 50 or more practice questions.',
-          criteriaType: 'mcqs',
-          criteriaValue: 50,
-          icon: 'BookOpen',
-          emoji: '📖',
-          color: 'from-amber-500/15 to-yellow-500/15 border-amber-500/25 text-yellow-400',
-          createdAt: new Date(Date.now() + 2000).toISOString()
-        },
-        {
-          id: 'accuracy_75',
-          name: 'Accuracy Master',
-          desc: 'Achieve over 75% average test accuracy.',
-          criteriaType: 'accuracy',
-          criteriaValue: 75,
-          icon: 'Target',
-          emoji: '🎯',
-          color: 'from-emerald-500/15 to-teal-500/15 border-emerald-500/25 text-emerald-400',
-          createdAt: new Date(Date.now() + 3000).toISOString()
-        },
-        {
-          id: 'syllabus_50',
-          name: 'Scholar',
-          desc: 'Acquire 500+ XP points in study sessions.',
-          criteriaType: 'xp',
-          criteriaValue: 500,
-          icon: 'Award',
-          emoji: '🏅',
-          color: 'from-purple-500/15 to-pink-500/15 border-purple-500/25 text-purple-400',
-          createdAt: new Date(Date.now() + 4000).toISOString()
-        }
-      ];
-
-      const batch = db.batch();
-      defaultBadges.forEach(badge => {
-        const docRef = db.collection('badges').doc(badge.id);
-        batch.set(docRef, badge);
-      });
-      await batch.commit();
-
-      return res.json(defaultBadges);
+  const defaultBadges = [
+    {
+      id: 'first_step',
+      name: 'First Step',
+      desc: 'Complete your first practice test.',
+      criteriaType: 'tests',
+      criteriaValue: 1,
+      icon: 'Rocket',
+      emoji: '🚀',
+      color: 'from-blue-500/15 to-indigo-500/15 border-blue-500/25 text-blue-400',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'streak_3',
+      name: 'Consistency King',
+      desc: 'Maintain a study streak of 3+ days.',
+      criteriaType: 'streak',
+      criteriaValue: 3,
+      icon: 'Flame',
+      emoji: '🔥',
+      color: 'from-orange-500/15 to-red-500/15 border-orange-500/25 text-orange-400',
+      createdAt: new Date(Date.now() + 1000).toISOString()
+    },
+    {
+      id: 'mcq_50',
+      name: 'Practice Guru',
+      desc: 'Solve 50 or more practice questions.',
+      criteriaType: 'mcqs',
+      criteriaValue: 50,
+      icon: 'BookOpen',
+      emoji: '📖',
+      color: 'from-amber-500/15 to-yellow-500/15 border-amber-500/25 text-yellow-400',
+      createdAt: new Date(Date.now() + 2000).toISOString()
+    },
+    {
+      id: 'accuracy_75',
+      name: 'Accuracy Master',
+      desc: 'Achieve over 75% average test accuracy.',
+      criteriaType: 'accuracy',
+      criteriaValue: 75,
+      icon: 'Target',
+      emoji: '🎯',
+      color: 'from-emerald-500/15 to-teal-500/15 border-emerald-500/25 text-emerald-400',
+      createdAt: new Date(Date.now() + 3000).toISOString()
+    },
+    {
+      id: 'syllabus_50',
+      name: 'Scholar',
+      desc: 'Acquire 500+ XP points in study sessions.',
+      criteriaType: 'xp',
+      criteriaValue: 500,
+      icon: 'Award',
+      emoji: '🏅',
+      color: 'from-purple-500/15 to-pink-500/15 border-purple-500/25 text-purple-400',
+      createdAt: new Date(Date.now() + 4000).toISOString()
     }
+  ];
 
-    const badges = snapshot.docs.map(doc => doc.data());
+  try {
+    const badges = await safeFirestoreQuery('badges_all', async () => {
+      const snapshot = await db.collection('badges').orderBy('createdAt', 'asc').get();
+      if (snapshot.empty) {
+        return defaultBadges;
+      }
+      return snapshot.docs.map(doc => doc.data());
+    }, defaultBadges);
+
     res.json(badges);
   } catch (err) {
     console.error('[Get Badges Error]:', err.message);
-    res.status(500).json({ error: 'Failed to retrieve achievements.' });
+    res.json(defaultBadges);
   }
 });
 

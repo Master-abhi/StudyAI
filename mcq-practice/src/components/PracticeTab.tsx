@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, ChevronLeft, Zap, BookOpen, Search, SlidersHorizontal, X, Keyboard, Download, CheckCircle2, HardDriveDownload, Loader2, Share2, FolderOpen, Layers } from 'lucide-react';
 import type { Question } from '../types';
 import { TypingTest } from './TypingTest';
+import { getCanonicalSubject } from '../utils/subjectUtils';
 
 interface ServerTest {
   id: string;
@@ -392,10 +393,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   const subjectsMap = React.useMemo(() => {
     const map: Record<string, ServerTest[]> = {};
     baseFilteredTests.forEach(t => {
-      let rawSub = (t.subject || 'General Knowledge').trim();
-      if (rawSub.toLowerCase() === 'all' || rawSub.toLowerCase() === 'all subjects') {
-        rawSub = 'Full Syllabus / All Subjects';
-      }
+      const rawSub = getCanonicalSubject(t.subject || 'General Knowledge');
       if (!map[rawSub]) {
         map[rawSub] = [];
       }
@@ -426,10 +424,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       matchesLength = t.totalQuestions > 50;
     }
 
-    const testSubj = (t.subject || 'General Knowledge').trim();
-    const normalizedTestSubj = (testSubj.toLowerCase() === 'all' || testSubj.toLowerCase() === 'all subjects')
-      ? 'Full Syllabus / All Subjects'
-      : testSubj;
+    const normalizedTestSubj = getCanonicalSubject(t.subject || 'General Knowledge');
 
     const matchesSubject = selectedSubject
       ? normalizedTestSubj.toLowerCase() === selectedSubject.toLowerCase()

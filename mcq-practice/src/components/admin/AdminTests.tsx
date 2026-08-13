@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import type { Exam } from '../syllabus/syllabusData';
 import { MarkdownRenderer } from '../MarkdownRenderer';
+import { getUniqueSubjectOptions } from '../../utils/subjectUtils';
 
 const cleanPrefix = (str: string): string => {
   if (!str) return '';
@@ -356,6 +357,62 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [adminPasswordInput, setAdminPasswordInput] = useState<string>('');
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState<boolean>(false);
   const [bulkDeleteError, setBulkDeleteError] = useState<string>('');
+
+  // Rename Subject Modal State
+  const [showRenameSubjectModal, setShowRenameSubjectModal] = useState<boolean>(false);
+  const [renameOldSubject, setRenameOldSubject] = useState<string>('');
+  const [renameNewSubject, setRenameNewSubject] = useState<string>('');
+  const [renamingLoading, setRenamingLoading] = useState<boolean>(false);
+  const [renameError, setRenameError] = useState<string>('');
+
+  const handleRenameSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renameOldSubject.trim() || !renameNewSubject.trim()) {
+      setRenameError('Please select a subject and enter the new subject name.');
+      return;
+    }
+    if (renameOldSubject.trim().toLowerCase() === renameNewSubject.trim().toLowerCase()) {
+      setRenameError('New subject name must be different from current name.');
+      return;
+    }
+
+    setRenamingLoading(true);
+    setRenameError('');
+
+    try {
+      const token = currentUser ? await currentUser.getIdToken() : '';
+      const res = await fetch(getApiUrl('/api/admin/subjects/rename'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          oldName: renameOldSubject,
+          newName: renameNewSubject
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to rename subject.');
+      }
+
+      setSuccessMessage(data.message || `Renamed "${renameOldSubject}" to "${renameNewSubject}" successfully! 🎉`);
+      setShowRenameSubjectModal(false);
+      setRenameOldSubject('');
+      setRenameNewSubject('');
+      
+      if (fetchPoolStats) fetchPoolStats();
+      if (fetchPoolQuestions) fetchPoolQuestions();
+      if (fetchTestsList) fetchTestsList();
+    } catch (err: any) {
+      console.error('[Rename Subject Error]:', err);
+      setRenameError(err.message || 'Failed to rename subject.');
+    } finally {
+      setRenamingLoading(false);
+    }
+  };
 
   const handleExecuteBulkDelete = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1697,7 +1754,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   <span>Total Pool Qs</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-text font-black text-base leading-none">{Object.keys(poolStats.subjects || {}).length}</span>
+                  <span className="text-text font-black text-base leading-none">{getUniqueSubjectOptions(undefined, poolStats?.subjects).length}</span>
                   <span>Total Subjects</span>
                 </div>
               </div>
@@ -1733,8 +1790,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     disabled={loadingGen}
                   >
                     <option value="all">All Subjects (Mixed Pattern)</option>
-                    {activeExam?.subjects?.map(s => (
-                      <option key={s.id} value={s.name}>{s.name}</option>
+                    {getUniqueSubjectOptions(activeExam?.subjects, undefined).map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
                 </div>
@@ -2004,24 +2061,24 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                             Mixed (All Subjects)
                           </span>
                         </label>
-                        {poolStats && Object.keys(poolStats.subjects || {}).map(sub => {
-                          const isChecked = selectedPoolSubjects.includes(sub);
+                        {getUniqueSubjectOptions(undefined, poolStats?.subjects).map(opt => {
+                          const isChecked = selectedPoolSubjects.some(s => s.toLowerCase() === opt.value.toLowerCase());
                           return (
-                            <label key={sub} className="flex items-center gap-2 text-[10px] font-semibold cursor-pointer">
+                            <label key={opt.value} className="flex items-center gap-2 text-[10px] font-semibold cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={isChecked}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    setSelectedPoolSubjects(prev => [...prev, sub]);
+                                    setSelectedPoolSubjects(prev => [...prev.filter(s => s.toLowerCase() !== opt.value.toLowerCase()), opt.value]);
                                   } else {
-                                    setSelectedPoolSubjects(prev => prev.filter(s => s !== sub));
+                                    setSelectedPoolSubjects(prev => prev.filter(s => s.toLowerCase() !== opt.value.toLowerCase()));
                                   }
                                 }}
                                 className="rounded border-border text-saffron focus:ring-saffron accent-saffron cursor-pointer"
                               />
                               <span className={isChecked ? "text-saffron font-bold" : "text-text-muted hover:text-text"}>
-                                {sub} <span className="text-[8px] font-normal opacity-60">({poolStats.subjects[sub]} Qs)</span>
+                                {opt.label} {opt.count !== undefined && <span className="text-[8px] font-normal opacity-60">({opt.count} Qs)</span>}
                               </span>
                             </label>
                           );
@@ -2211,15 +2268,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                         disabled={loadingPoolGen}
                       >
                         <option value="all">Mixed (All Subjects Syllabus)</option>
-                        {activeExam?.subjects?.map(s => (
-                          <option key={s.id} value={s.name}>{s.name}</option>
+                        {getUniqueSubjectOptions(activeExam?.subjects, poolStats?.subjects).map(opt => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label} {opt.count !== undefined ? `(${opt.count} Qs)` : ''}
+                          </option>
                         ))}
-                        {poolStats?.subjects && Object.keys(poolStats.subjects).map(sub => {
-                          if (activeExam?.subjects?.some(s => s.name.toLowerCase() === sub.toLowerCase())) return null;
-                          return (
-                            <option key={sub} value={sub}>{sub} ({poolStats.subjects[sub]} Qs)</option>
-                          );
-                        })}
                       </select>
                     </div>
 
@@ -2545,8 +2598,10 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     className="bg-bg-s2 text-xs text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none cursor-pointer"
                   >
                     <option value="all">All Subjects</option>
-                    {poolStats?.subjects && Object.keys(poolStats.subjects).map(sub => (
-                      <option key={sub} value={sub}>{sub} ({poolStats.subjects[sub]})</option>
+                    {getUniqueSubjectOptions(undefined, poolStats?.subjects).map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label} {opt.count !== undefined ? `(${opt.count})` : ''}
+                      </option>
                     ))}
                   </select>
 
@@ -2578,6 +2633,20 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     title="Refresh Pool Questions"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${loadingPoolQuestions ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRenameSubjectModal(true);
+                      setRenameError('');
+                      setRenameOldSubject('');
+                      setRenameNewSubject('');
+                    }}
+                    className="px-2.5 py-1.5 bg-saffron/10 hover:bg-saffron text-saffron hover:text-bg-s1 border border-saffron-border/30 rounded-lg text-xs font-black uppercase flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
+                    title="Rename a Subject Folder Across All Tests & Bank"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>Rename Subject</span>
                   </button>
                   <button
                     type="button"
@@ -2722,6 +2791,20 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                   ))}
                 </select>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRenameSubjectModal(true);
+                  setRenameError('');
+                  setRenameOldSubject('');
+                  setRenameNewSubject('');
+                }}
+                className="px-2.5 py-1.5 bg-saffron/10 hover:bg-saffron text-saffron hover:text-bg-s1 border border-saffron-border/30 rounded-lg text-xs font-black uppercase flex items-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
+                title="Rename a Subject Folder Across All Tests & Bank"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Rename Subject</span>
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -3874,6 +3957,89 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Rename Subject Modal */}
+      {showRenameSubjectModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 font-sans animate-fade-in">
+          <div className="bg-bg-s1 border border-border rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-4 relative">
+            <div className="flex items-center justify-between border-b border-border/40 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-saffron/10 border border-saffron/30 flex items-center justify-center text-saffron">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase text-text tracking-wider">Rename Subject Folder</h3>
+                  <p className="text-[9.5px] text-text-muted">Practice Tab ke Subject Folders & Tests me name badlein</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowRenameSubjectModal(false)}
+                className="text-text-muted hover:text-text p-1 rounded-lg hover:bg-bg-s2 text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            {renameError && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-2.5 rounded-lg text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{renameError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleRenameSubject} className="flex flex-col gap-4">
+              {/* Choose Existing Subject */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-text-muted">Select Current Subject (वर्तमान विषय)</label>
+                <select
+                  value={renameOldSubject}
+                  onChange={(e) => setRenameOldSubject(e.target.value)}
+                  className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                  required
+                >
+                  <option value="">-- Select Subject to Rename --</option>
+                  {getUniqueSubjectOptions(activeExam?.subjects, poolStats?.subjects).map(opt => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label} {opt.count !== undefined ? `(${opt.count} Qs)` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* New Subject Name */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-text-muted">New Subject Name (नया नाम)</label>
+                <input
+                  type="text"
+                  value={renameNewSubject}
+                  onChange={(e) => setRenameNewSubject(e.target.value)}
+                  placeholder="e.g. Chhattisgarh Geography & Environment"
+                  className="w-full bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRenameSubjectModal(false)}
+                  className="px-4 py-2 bg-bg-s3 border border-border hover:bg-bg-s3/80 text-xs font-black uppercase text-text rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={renamingLoading || !renameOldSubject.trim() || !renameNewSubject.trim()}
+                  className="px-5 py-2 bg-saffron hover:bg-saffron/90 text-bg-s1 font-black rounded-lg text-xs uppercase flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all shadow"
+                >
+                  {renamingLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span>Save & Rename Subject</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
