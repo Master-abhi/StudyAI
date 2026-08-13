@@ -1,8 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const ai = require('../services/aiManager');
+const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
+const { aiRateLimiter } = require('../middleware/rateLimiter');
 
-router.post('/', async (req, res) => {
+router.post('/', verifyFirebaseToken, aiRateLimiter, async (req, res) => {
   try {
     const { message, examName, language, history, stream } = req.body;
 

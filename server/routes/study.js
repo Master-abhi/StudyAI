@@ -3,11 +3,13 @@ const router = express.Router();
 const ytSearch = require('yt-search');
 const { db } = require('../firebase-admin');
 const { summarizeTopicExtracted, summarizeVideoTranscript } = require('../services/aiManager');
+const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
+const { aiRateLimiter } = require('../middleware/rateLimiter');
 
 const MATERIALS_COL = db.collection('materials');
 
 // Route: Get notes on a specific topic using admin uploaded materials
-router.post('/topic-notes', async (req, res) => {
+router.post('/topic-notes', verifyFirebaseToken, aiRateLimiter, async (req, res) => {
   try {
     const { topicName, language } = req.body;
     if (!topicName) return res.status(400).json({ error: 'Topic name required' });
@@ -35,7 +37,7 @@ router.post('/topic-notes', async (req, res) => {
 });
 
 // Route: Search Youtube and summarize video
-router.post('/youtube-learn', async (req, res) => {
+router.post('/youtube-learn', verifyFirebaseToken, aiRateLimiter, async (req, res) => {
   try {
     const { topicName, language } = req.body;
     if (!topicName) return res.status(400).json({ error: 'Topic name required' });

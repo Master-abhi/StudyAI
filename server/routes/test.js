@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../firebase-admin');
 const ai = require('../services/aiManager');
+const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
+const { aiRateLimiter } = require('../middleware/rateLimiter');
 
 // GET /api/tests - list generated tests for current exam
 router.get('/', async (req, res) => {
@@ -59,7 +61,7 @@ router.get('/:id', async (req, res) => {
 const { fetchExamSyllabusContext } = require('../services/syllabusHelper');
 
 // POST /api/tests/generate - generate a test for a user on-demand
-router.post('/generate', async (req, res) => {
+router.post('/generate', verifyFirebaseToken, aiRateLimiter, async (req, res) => {
   try {
     const { examId, examName, subject, mode, language, subjects } = req.body;
 

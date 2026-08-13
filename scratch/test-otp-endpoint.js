@@ -21,12 +21,12 @@ async function runTests() {
 
   const sendData = await sendRes.json();
   console.log('✅ Send OTP response:', sendData);
-  const otpCode = sendData.demoOtp;
   
-  if (!otpCode) {
-    console.error('❌ No demoOtp returned in response');
+  if (sendData.demoOtp) {
+    console.error('❌ SECURITY ALERT: demoOtp was leaked in API response!');
     process.exit(1);
   }
+  console.log('🔒 Security check passed: OTP code is NOT leaked in API response payload.');
 
   // Test 2: Verify incorrect OTP
   console.log('\n[Test 2] Verifying incorrect OTP (999999)');

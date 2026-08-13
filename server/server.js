@@ -26,15 +26,54 @@ const jobsRoutes = require('./routes/jobs');
 const notificationsRoutes = require('./routes/notifications');
 const { initJobAlertScheduler } = require('./services/jobAlertScheduler');
 
+const { generalRateLimiter, otpRateLimiter } = require('./middleware/rateLimiter');
+
 // Start background job deadline alert scheduler & expired notifications cleaner
 initJobAlertScheduler();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// CORS Security: restrict allowed origins to trusted app domains
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const defaultAllowedOrigins = [
+  'https://cgguru.in',
+  'https://www.cgguru.in',
+  'https://cg-guru.web.app',
+  'https://cg-guru.firebaseapp.com',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5000'
+];
+
+const finalAllowedOrigins = [...new Set([...defaultAllowedOrigins, ...allowedOrigins])];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, server-to-server)
+    if (!origin || finalAllowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Apply general rate limiting across all API routes
+app.use('/api', generalRateLimiter);
+app.use('/api/user/send-otp', otpRateLimiter);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

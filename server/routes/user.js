@@ -15,6 +15,8 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 } // 2MB limit
 });
 
+const { sendOtpSms } = require('../services/smsService');
+
 // --- Public OTP routes (for Fallback Sign Up verification) ---
 router.post('/send-otp', async (req, res) => {
   try {
@@ -33,11 +35,15 @@ router.post('/send-otp', async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    console.log(`[OTP SIGNUP] Generated OTP for mobile: ${cleanMobile} -> Code: ${otpCode}`);
+    console.log(`[OTP SIGNUP] Generated OTP for mobile: ${cleanMobile}`);
 
+    // Dispatch SMS via active SMS provider if configured
+    await sendOtpSms(cleanMobile, otpCode);
+
+    // CRITICAL SECURITY FIX: Do NOT leak actual OTP in the JSON response payload!
     res.json({
       success: true,
-      demoOtp: otpCode
+      message: 'OTP code has been sent to your mobile number'
     });
   } catch (err) {
     console.error('[Send OTP] Error:', err.message);

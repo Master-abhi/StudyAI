@@ -19,10 +19,15 @@ router.post('/run-daily-job', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     const clientSecret = req.query.secret || (authHeader && authHeader.split(' ')[1]);
-    const serverSecret = process.env.CRON_SECRET || 'super-secret-cron-key-1234';
+    const serverSecret = process.env.CRON_SECRET;
 
-    if (clientSecret !== serverSecret) {
-      return res.status(401).json({ error: 'Unauthorized: Invalid cron secret' });
+    if (!serverSecret) {
+      console.error('[API Scheduler Hook Error] CRON_SECRET is not configured in process.env');
+      return res.status(500).json({ error: 'Server configuration error: CRON_SECRET is not set' });
+    }
+
+    if (!clientSecret || clientSecret !== serverSecret) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid or missing cron secret' });
     }
 
     console.log('[API Scheduler Hook] Executing daily pipeline job manually via endpoint...');

@@ -5,6 +5,8 @@ const path = require('path');
 const { extractTextFromPDF } = require('../services/syllabusParser');
 const { parseSyllabus } = require('../services/aiManager');
 const { db } = require('../firebase-admin');
+const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
+const { aiRateLimiter } = require('../middleware/rateLimiter');
 
 const storage = multer.memoryStorage();
 
@@ -26,7 +28,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-router.post('/parse', upload.single('syllabusFile'), async (req, res) => {
+router.post('/parse', verifyFirebaseToken, aiRateLimiter, upload.single('syllabusFile'), async (req, res) => {
   try {
     let text;
 
