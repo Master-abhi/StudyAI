@@ -26,7 +26,9 @@ import {
   Bell,
   Smartphone,
   Download,
-  Keyboard
+  Keyboard,
+  X,
+  BellRing
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -41,7 +43,11 @@ import { AiTutorModal } from './components/AiTutorModal';
 import { 
   requestPushNotificationPermission, 
   registerServiceWorker, 
-  sendSystemPushNotification 
+  sendSystemPushNotification,
+  ensureNotificationChannel,
+  scheduleRecurringReminders,
+  scheduleJobDeadlineNotifications,
+  isCapacitorNative
 } from './services/pushNotificationService';
 
 // Instant Home Dashboard Component
@@ -224,6 +230,8 @@ export default function App() {
   const [isStaff, setIsStaff] = useState<boolean>(false);
   const [staffRoles, setStaffRoles] = useState<string[]>([]);
   const [initialSelectedArticle, setInitialSelectedArticle] = useState<any>(null);
+  const [latestNotificationAlert, setLatestNotificationAlert] = useState<any | null>(null);
+  const [notificationPermissionNeeded, setNotificationPermissionNeeded] = useState<boolean>(false);
 
   const [activeTestId, setActiveTestId] = useState<string | null>(null);
   const isMountTestChecked = useRef(false);
@@ -643,20 +651,34 @@ export default function App() {
     let unsubscribeSnap: (() => void) | null = null;
 
     const checkAndSubscribe = async () => {
-      // 1. Request Push Permission & Register SW for System Notification Bar
+      // 1. Ensure Notification Channel, Request Permission & Register SW
+      ensureNotificationChannel();
       requestPushNotificationPermission();
       registerServiceWorker();
+      scheduleRecurringReminders();
+
+      // Check if browser permission needs user gesture prompt
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && !isCapacitorNative()) {
+        setNotificationPermissionNeeded(true);
+      }
 
       // 2. Trigger backend job deadline scan & expired notification cleanup
       try {
         fetch(getApiUrl('/api/notifications/job-alerts/scan'), { method: 'POST' }).catch(() => {});
       } catch (e) {}
 
-      const storedRead = localStorage.getItem('examprep_read_notifications');
-      const readIds: string[] = storedRead ? JSON.parse(storedRead) : [];
+      const getReadIds = (): string[] => {
+        try {
+          const storedRead = localStorage.getItem('examprep_read_notifications');
+          return storedRead ? JSON.parse(storedRead) : [];
+        } catch {
+          return [];
+        }
+      };
 
       const processNotifications = (notifs: any[]) => {
         const todayStr = new Date().toISOString().split('T')[0];
+        const currentReadIds = getReadIds();
         
         // Filter out expired job deadline notifications (deadline < today)
         const validNotifs = notifs.filter(n => {
@@ -665,21 +687,43 @@ export default function App() {
           return true;
         });
 
-        const unread = validNotifs.filter(n => !readIds.includes(n.id)).length;
-        setUnreadNotificationsCount(unread);
+        const unreadNotifs = validNotifs.filter(n => !currentReadIds.includes(n.id));
+        setUnreadNotificationsCount(unreadNotifs.length);
 
-        // Send Push Notification for unread job deadlines or high priority alerts directly to Status Bar
-        validNotifs.forEach(notif => {
-          if (!readIds.includes(notif.id) && (notif.type === 'job_deadline' || notif.pinned)) {
-            sendSystemPushNotification(
-              notif.title || '⚠️ Job Deadline Alert',
-              notif.message || 'Today is the last date to apply!',
-              '/pwa-192x192.png',
-              notif.actionUrl || '/jobs',
-              notif.id
-            );
+        // Schedule future job deadlines in Android AlarmManager so alarms trigger when app is closed
+        scheduleJobDeadlineNotifications(validNotifs);
+
+        // Display In-App Floating Toast for the latest unread alert so user sees it immediately on app launch!
+        if (unreadNotifs.length > 0) {
+          const topAlert = unreadNotifs[0];
+          const dismissedId = sessionStorage.getItem('cgguru_dismissed_toast');
+          if (dismissedId !== topAlert.id) {
+            setLatestNotificationAlert(topAlert);
           }
+        }
+
+        // Send Push Notification for ALL unread alerts directly to device Status Bar
+        unreadNotifs.forEach(notif => {
+          sendSystemPushNotification(
+            notif.title || '📢 CG Guru Notification',
+            notif.message || 'New announcement available!',
+            '/icon-192.png',
+            notif.actionUrl || '/jobs',
+            notif.id
+          );
         });
+      };
+
+      const fetchNotificationsApi = async () => {
+        try {
+          const res = await fetch(getApiUrl('/api/notifications'));
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Array.isArray(data.notifications)) {
+              processNotifications(data.notifications);
+            }
+          }
+        } catch (e) {}
       };
 
       const setupFirestoreListener = () => {
@@ -694,6 +738,7 @@ export default function App() {
                 processNotifications(docs);
               }, (err: any) => {
                 console.warn('[Firestore Notifications Listener Error]:', err);
+                fetchNotificationsApi();
               });
             return true;
           } catch (e) {
@@ -703,30 +748,34 @@ export default function App() {
         return false;
       };
 
-      // Direct API fetch immediately as fallback
-      try {
-        const res = await fetch(getApiUrl('/api/notifications'));
-        if (res.ok) {
-          const data = await res.json();
-          if (data && Array.isArray(data.notifications)) {
-            processNotifications(data.notifications);
-          }
-        }
-      } catch (e) {}
+      // 1. Initial API fetch
+      await fetchNotificationsApi();
 
-      // Try setting up Firestore real-time listener
-      if (!setupFirestoreListener()) {
+      // 2. Setup real-time Firestore listener
+      const attached = setupFirestoreListener();
+      if (!attached) {
         setTimeout(() => {
           if (!unsubscribeSnap) {
             setupFirestoreListener();
           }
         }, 1500);
       }
+
+      // 3. Periodic Background Polling interval (every 25s) so bell stays active automatically without refresh
+      const pollInterval = setInterval(() => {
+        fetchNotificationsApi();
+      }, 25000);
+
+      return () => {
+        clearInterval(pollInterval);
+        if (unsubscribeSnap) unsubscribeSnap();
+      };
     };
 
-    checkAndSubscribe();
+    let cleanupPromise = checkAndSubscribe();
 
     return () => {
+      cleanupPromise.then(cleanup => cleanup && cleanup());
       if (unsubscribeSnap) unsubscribeSnap();
     };
   }, []);
@@ -2401,12 +2450,31 @@ export default function App() {
       {/* Desktop Left Sidebar Navigation */}
       {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
         <aside className="hidden md:flex flex-col w-64 bg-bg-s2 border-r border-border/60 shrink-0 fixed top-0 left-0 h-screen z-30">
-          {/* Logo & Brand */}
-          <div className="p-6 border-b border-border/60 flex items-center gap-3">
-            <GraduationCap className="w-7 h-7 text-saffron" />
-            <span className="text-base font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
-              CG Guru
-            </span>
+          {/* Logo & Brand + Desktop Notification Bell */}
+          <div className="p-6 border-b border-border/60 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <GraduationCap className="w-7 h-7 text-saffron" />
+              <span className="text-base font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
+                CG Guru
+              </span>
+            </div>
+            {/* Desktop Quick Notification Bell (Always accessible) */}
+            <button
+              onClick={() => setNotificationsModalOpen(true)}
+              className={`p-2 rounded-xl border transition-all cursor-pointer relative ${
+                unreadNotificationsCount > 0
+                  ? 'bg-saffron/15 border-saffron text-saffron shadow-lg ring-2 ring-saffron/30'
+                  : 'bg-bg-s3/60 border-border text-text-muted hover:text-text hover:border-saffron-border/50'
+              }`}
+              title="Notifications & Announcements"
+            >
+              <Bell className={`w-4 h-4 text-saffron ${unreadNotificationsCount > 0 ? 'animate-bounce' : ''}`} />
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-lg animate-pulse ring-2 ring-bg-s2">
+                  {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Navigation Links */}
@@ -2546,14 +2614,14 @@ export default function App() {
                 onClick={() => setNotificationsModalOpen(true)}
                 className={`p-1.5 rounded-lg border transition-all cursor-pointer relative ${
                   unreadNotificationsCount > 0
-                    ? 'bg-saffron/15 border-saffron text-saffron shadow-sm'
+                    ? 'bg-saffron/20 border-saffron text-saffron shadow-md ring-2 ring-saffron/30'
                     : 'bg-bg-s2 border-border text-text-muted hover:text-text hover:border-saffron-border/50'
                 }`}
                 title="Notifications & Announcements"
               >
                 <Bell className={`w-4 h-4 text-saffron ${unreadNotificationsCount > 0 ? 'animate-bounce' : ''}`} />
                 {unreadNotificationsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white text-[8.5px] font-black rounded-full flex items-center justify-center shadow">
+                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-0.5 bg-red-500 text-white text-[8.5px] font-black rounded-full flex items-center justify-center shadow-md animate-pulse ring-1 ring-bg-s1">
                     {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                   </span>
                 )}
@@ -2578,6 +2646,90 @@ export default function App() {
                 ? 'px-4 py-4 md:px-8 gap-4 w-full' 
                 : 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40 px-4 py-4 gap-4')
         }`}>
+          {/* 1-Tap Notification Permission Banner if permission not granted yet */}
+          {notificationPermissionNeeded && !isTestActive && (
+            <div className="w-full bg-gradient-to-r from-amber-500/15 via-saffron/15 to-orange-500/15 border border-saffron-border/60 rounded-xl p-3 mb-2 flex items-center justify-between gap-3 text-xs shadow-sm animate-fade-in">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-saffron/20 flex items-center justify-center shrink-0 text-saffron">
+                  <BellRing className="w-4 h-4 animate-bounce" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-text text-xs leading-tight">
+                    {appLanguage === 'hi' ? 'परीक्षा और जॉब अलर्ट्स चालू करें' : 'Enable Exam & Job Alerts'}
+                  </p>
+                  <p className="text-[11px] text-text-muted truncate">
+                    {appLanguage === 'hi' ? 'ऐप बंद रहने पर भी नए नोटिफिकेशन और लास्ट डेट अलर्ट प्राप्त करें' : 'Get instant alerts even when the app is closed'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={async () => {
+                    const granted = await requestPushNotificationPermission();
+                    if (granted) {
+                      setNotificationPermissionNeeded(false);
+                      ensureNotificationChannel();
+                      scheduleRecurringReminders();
+                    } else {
+                      setNotificationPermissionNeeded(false);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-saffron hover:bg-orange-500 text-bg-s1 font-black text-xs rounded-lg uppercase tracking-wider transition-all shadow cursor-pointer active:scale-95"
+                >
+                  {appLanguage === 'hi' ? 'चालू करें' : 'Enable'}
+                </button>
+                <button
+                  onClick={() => setNotificationPermissionNeeded(false)}
+                  className="p-1 rounded text-text-muted hover:text-text cursor-pointer"
+                  title="Dismiss"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Floating In-App Alert for Latest Unread Notification */}
+          {latestNotificationAlert && !isTestActive && (
+            <div className="w-full bg-gradient-to-r from-bg-s2 via-bg-s3 to-bg-s2 border border-saffron-border rounded-xl p-3 mb-3 flex items-center justify-between gap-3 text-xs shadow-md animate-fade-in">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-saffron/20 flex items-center justify-center shrink-0 text-saffron">
+                  <Bell className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-text text-xs leading-tight truncate">
+                    {latestNotificationAlert.title || '📢 New Notification'}
+                  </p>
+                  <p className="text-[11px] text-text-muted truncate">
+                    {latestNotificationAlert.message}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => {
+                    setNotificationsModalOpen(true);
+                    sessionStorage.setItem('cgguru_dismissed_toast', latestNotificationAlert.id);
+                    setLatestNotificationAlert(null);
+                  }}
+                  className="px-2.5 py-1 bg-saffron-dim/25 hover:bg-saffron text-saffron hover:text-bg-s1 font-bold text-xs rounded-md transition-all border border-saffron-border cursor-pointer"
+                >
+                  {appLanguage === 'hi' ? 'देखें' : 'View'}
+                </button>
+                <button
+                  onClick={() => {
+                    sessionStorage.setItem('cgguru_dismissed_toast', latestNotificationAlert.id);
+                    setLatestNotificationAlert(null);
+                  }}
+                  className="p-1 rounded text-text-muted hover:text-text cursor-pointer"
+                  title="Dismiss"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             {!isTestActive ? (
               /* Tab layout panels wrapper */

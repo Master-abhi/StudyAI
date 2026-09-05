@@ -15,6 +15,12 @@ function syncRootIndexPlugin() {
         fs.copyFileSync(src, dest);
         console.log('[sync-root-index] Copied mcq-practice/index.html → public/index.html ✅');
       }
+      const apkSrc = path.resolve(__dirname, 'public/cgguru.apk');
+      const apkDest = path.resolve(__dirname, '../public/cgguru.apk');
+      if (fs.existsSync(apkSrc)) {
+        fs.copyFileSync(apkSrc, apkDest);
+        console.log('[sync-root-index] Synced cgguru.apk → public/cgguru.apk ✅');
+      }
     }
   };
 }
