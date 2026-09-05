@@ -1115,14 +1115,28 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
         {/* 8. Typing Test Performance History */}
         <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
-          <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
-            <LucideIcons.Keyboard className="w-4 h-4 text-saffron" />
-            <span>Typing Test Performance History</span>
-          </h4>
+          <div className="flex items-center justify-between border-b border-border pb-2.5">
+            <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5">
+              <LucideIcons.Keyboard className="w-4 h-4 text-saffron" />
+              <span>Typing Test Performance History</span>
+            </h4>
+            <button
+              onClick={() => onNavigateToTab && onNavigateToTab('typing')}
+              className="text-[10px] font-black uppercase text-saffron hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              Take Test <LucideIcons.ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
 
           {typingResults.length === 0 ? (
-            <div className="text-center py-6 text-xs text-text-muted">
-              No typing tests completed yet. Take typing tests in the Practice tab.
+            <div className="text-center py-6 text-xs text-text-muted flex flex-col items-center gap-2">
+              <span>No typing tests completed yet. Test your typing speed and accuracy.</span>
+              <button
+                onClick={() => onNavigateToTab && onNavigateToTab('typing')}
+                className="mt-1 px-3 py-1.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all"
+              >
+                Go to Typing Test
+              </button>
             </div>
           ) : (
             <div className="flex flex-col gap-3">

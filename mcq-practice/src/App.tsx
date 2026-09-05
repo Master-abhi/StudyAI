@@ -25,7 +25,8 @@ import {
   Share2,
   Bell,
   Smartphone,
-  Download
+  Download,
+  Keyboard
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -48,6 +49,7 @@ import { DashboardTab } from './components/DashboardTab';
 
 // Lazy Loaded Secondary Tabs for instant startup & code splitting
 const PracticeTab = lazy(() => import('./components/PracticeTab').then(m => ({ default: m.PracticeTab })));
+const TypingTest = lazy(() => import('./components/TypingTest').then(m => ({ default: m.TypingTest })));
 const AiTutorTab = lazy(() => import('./components/AiTutorTab').then(m => ({ default: m.AiTutorTab })));
 const NewsTab = lazy(() => import('./components/NewsTab').then(m => ({ default: m.NewsTab })));
 const JobsTab = lazy(() => import('./components/JobsTab').then(m => ({ default: m.JobsTab })));
@@ -184,11 +186,11 @@ const MOCK_QUESTIONS: Question[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'chat' | 'news' | 'jobs' | 'profile' | 'syllabus' | 'admin' | 'staff'>(() => {
+  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'typing' | 'chat' | 'news' | 'jobs' | 'profile' | 'syllabus' | 'admin' | 'staff'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const urlTab = params.get('tab') || params.get('page');
-      if (urlTab && ['home', 'practice', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff'].includes(urlTab)) {
+      if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff'].includes(urlTab)) {
         return urlTab as any;
       }
       if (params.get('testId')) {
@@ -203,6 +205,7 @@ export default function App() {
   const [tabVisibility, setTabVisibility] = useState<Record<string, boolean>>({
     home: true,
     practice: true,
+    typing: true,
     chat: true,
     news: true,
     jobs: true,
@@ -292,7 +295,7 @@ export default function App() {
       const urlTab = params.get('tab') || params.get('page');
       const urlTestId = params.get('testId');
 
-      if (urlTab && ['home', 'practice', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff'].includes(urlTab)) {
+      if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff'].includes(urlTab)) {
         setActiveTab(urlTab as any);
       } else if (!urlTab && window.location.pathname.startsWith('/admin')) {
         setActiveTab('admin');
@@ -2238,10 +2241,12 @@ export default function App() {
             bookmarkedQuestions={bookmarks}
             onToggleBookmark={handleToggleBookmark}
             testHistory={testHistory}
-            currentUser={currentUser}
-            onSaveTypingResults={saveTypingResults}
             tabVisibility={tabVisibility}
           />
+        );
+      case 'typing':
+        return (
+          <TypingTest currentUser={currentUser} onSaveResults={saveTypingResults} />
         );
       case 'chat':
         return <AiTutorTab activeExam={activeExam} />;
@@ -2408,7 +2413,8 @@ export default function App() {
           <div className="flex-1 px-4 py-6 flex flex-col gap-2 overflow-y-auto">
             {[
               { id: 'home', label: 'Home', icon: Home },
-              { id: 'practice', label: 'Practice', icon: Trophy },
+              { id: 'practice', label: 'Tests', icon: Trophy },
+              { id: 'typing', label: 'Typing Test', icon: Keyboard },
               { id: 'chat', label: 'AI Guru', icon: MessageSquare },
               { id: 'news', label: 'News', icon: Newspaper },
               { id: 'jobs', label: 'Jobs', icon: Briefcase },
@@ -2892,7 +2898,7 @@ export default function App() {
           <nav className="md:hidden fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-bg-s2/95 backdrop-blur-md border-t border-border px-3 py-2 flex items-center justify-around z-30 shadow-2xl shrink-0">
             {[
               { id: 'home', label: 'Home', icon: Home },
-              { id: 'practice', label: 'Practice', icon: Trophy },
+              { id: 'practice', label: 'Tests', icon: Trophy },
               { id: 'chat', label: 'AI Guru', icon: MessageSquare },
               { id: 'news', label: 'News', icon: Newspaper },
               { id: 'jobs', label: 'Jobs', icon: Briefcase },
@@ -2905,7 +2911,7 @@ export default function App() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`flex flex-col items-center gap-1.5 py-1.5 px-3 rounded-lg transition-colors cursor-pointer ${
-                    isSelected ? 'text-saffron' : 'text-text-muted hover:text-text'
+                    isSelected ? 'text-saffron font-black' : 'text-text-muted hover:text-text'
                   }`}
                 >
                   <Icon className="w-5.5 h-5.5" />

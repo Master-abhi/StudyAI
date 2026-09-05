@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Keyboard, 
-  Clock, 
   Settings, 
   AlertCircle, 
   CheckCircle2, 
@@ -13,8 +12,20 @@ import {
   Award, 
   Activity,
   Eye,
-  EyeOff
+  EyeOff,
+  Printer,
+  FileText,
+  Search,
+  X,
+  Sparkles,
+  HelpCircle,
+  Scale
 } from 'lucide-react';
+import {
+  createInitialTypingState,
+  handleHindiKeyPress,
+  type TypingEngineState
+} from '../utils/hindiTypingEngine';
 
 export interface Topic {
   id: string;
@@ -23,9 +34,48 @@ export interface Topic {
   englishText: string;
   hindiUnicodeText: string;
   hindiKrutidevText: string;
+  category?: string;
 }
 
 export const TYPING_TOPICS: Topic[] = [
+  // 1. CG High Court Legal Topics
+  {
+    id: 'cg_court_judgment',
+    title: 'छत्तीसगढ़ उच्च न्यायालय निर्णय / CG High Court Legal Judgment',
+    difficulty: 'medium',
+    category: 'legal',
+    englishText: 'The High Court of Chhattisgarh at Bilaspur exercises original and appellate jurisdiction over all district courts in the state. Under Article 226 of the Constitution, the High Court has the power to issue writs for enforcement of fundamental rights and other legal remedies. Principles of natural justice and speedy trial must always be upheld in judicial administration.',
+    hindiUnicodeText: 'बिलासपुर स्थित छत्तीसगढ़ उच्च न्यायालय राज्य के सभी अधीनस्थ न्यायालयों पर मूल एवं अपीलीय क्षेत्राधिकार रखता है। संविधान के अनुच्छेद 226 के तहत उच्च न्यायालय को मौलिक अधिकारों के संरक्षण तथा अन्य विधिक उपचारों हेतु रिट याचिका जारी करने की शक्ति प्राप्त है। न्यायिक प्रशासन में नैसर्गिक न्याय और त्वरित विचारण के सिद्धांतों का पालन अनिवार्य है।',
+    hindiKrutidevText: `fcykliqj fLFkr NÙkhlx<+ mPp U;k;ky; jkT; ds lHkh v/khuLFk U;k;ky;ksa ij ewy ,oa vihyh; {ks=kf/kdkj j[krk gSA lafo/kku ds vuqPNsn 226 ds rgr mPp U;k;ky; dks ekSfyd vf/kdkjksa ds laj{k.k rFkk vU; fof/kd mipkjksa gsrq fjV ;kfpdk tkjh djus dh 'kfDr çkIr gSA U;kf;d ç'kklu esa uSlfxZd U;k; vkSj Rofjr fopkj.k ds fl)karksa dk ikyu vfuok;Z gSA`
+  },
+  {
+    id: 'cg_revenue_admin',
+    title: 'छत्तीसगढ़ राजस्व एवं जिला प्रशासन / CG Revenue Administration',
+    difficulty: 'medium',
+    category: 'legal',
+    englishText: 'The revenue administration of Chhattisgarh plays a vital role in maintaining land records, revenue courts, and public delivery systems. Collectors and sub-divisional officers manage government revenue, record corrections, and citizen grievances with efficiency. The digitization of land records has brought transparency and security to all citizens.',
+    hindiUnicodeText: 'छत्तीसगढ़ का राजस्व प्रशासन भू-अभिलेखों के संधारण, राजस्व न्यायालयों और जनसुविधा वितरण में महत्वपूर्ण भूमिका निभाता है। कलेक्टर एवं अनुविभागीय अधिकारी शासकीय राजस्व, नामांतरण और जन शिकायतों का दक्षतापूर्वक निराकरण करते हैं। भू-अभिलेखों के कंप्यूटरीकरण से सभी नागरिकों को पारदर्शिता और सुरक्षा प्राप्त हुई है।',
+    hindiKrutidevText: `NÙkhlx<+ dk jktLo ç'kklu Hkw&vfHkys[kksa ds la/kkj.k] jktLo U;k;ky;ksa vkSj tulfqfo/kk forj.k esa egRoiw.kZ Hkwfedk fuHkkrk gSA dysDVj ,oa vuqfoHkkxh; vf/kdkjh 'kkldh; jktLo] ukekarj.k vkSj tu f'kdk;rksa dk n{krkiwoZd fujkdj.k djrs gSaA Hkw&vfHkys[kksa ds daI;wVjhdj.k ls lHkh ukxfjdksa dks ikjnf'kZrk vkSj lqj{kk çkIr gqbZ gSA`
+  },
+  {
+    id: 'civil_procedure_court',
+    title: 'न्यायालयीन प्रक्रिया एवं साक्ष्य / Court Procedure & Evidence',
+    difficulty: 'hard',
+    category: 'legal',
+    englishText: 'In civil and criminal litigation, the Code of Civil Procedure and Evidence Act govern the admissibility of documents and examination of witnesses. The judicial assistant and data entry operators are responsible for drafting cause lists, recording depositions accurately, and issuing certified copies of court decrees.',
+    hindiUnicodeText: 'दीवानी और आपराधिक वादों में सिविल प्रक्रिया संहिता और भारतीय साक्ष्य अधिनियम दस्तावेजों की ग्राह्यता तथा साक्षियों के परीक्षण को नियंत्रित करते हैं। न्यायालयीन सहायकों और डाटा एंट्री ऑपरेटरों का उत्तरदायित्व वाद सूची तैयार करना, गवाही का शुद्ध अभिलेखन तथा आदेशों की प्रमाणित प्रतिलिपियां जारी करना है।',
+    hindiKrutidevText: `nhokuh vkSj vkijkf/kd oknksa esa flfoy çfØ;k lafgrk vkSj Hkkjrh; lk{; vf/kfu;e nLrkostksa dh xzkákrk rFkk lkf{k;ksa ds ijh{k.k dks fu;af=r djrs gSaA U;kf;d lgk;dksa vkSj MkVk ,aVªh v‚ijsVjksa dk mÙkjnkf;Ro okn lwph rS;kj djuk] xokgh dk 'kq) vfHkys[ku rFkk vkns'kksa dh çekf.kr çfrfyfi;ka tkjh djuk gSA`
+  },
+  {
+    id: 'digital_judiciary_ecourts',
+    title: 'ई-कोर्ट मिशन और डिजिटल न्यायपालिका / e-Courts & Digital Judiciary',
+    difficulty: 'medium',
+    category: 'judiciary',
+    englishText: 'The e-Courts project has transformed the Indian judicial system through electronic filing, virtual hearings, and online case status tracking. Accurate and fast typing skill is mandatory for court personnel to handle judicial orders, bail petitions, and digital signatures without delay.',
+    hindiUnicodeText: 'ई-कोर्ट मिशन ने इलेक्ट्रॉनिक फाइलिंग, वर्चुअल सुनवाई और ऑनलाइन वाद स्थिति के माध्यम से भारतीय न्यायिक प्रणाली में क्रांति ला दी है। न्यायालयीन कर्मचारियों के लिए त्वरित एवं शुद्ध टंकण कौशल अनिवार्य है ताकि न्यायिक आदेशों, जमानत याचिकाओं और डिजिटल हस्ताक्षर का कार्य अविलंब संपन्न हो सके।',
+    hindiKrutidevText: `bZ&dksVZ fe'ku us bysDVª‚fud Qkbfyax] opqZvy lquokbZ vkSj v‚uykbu okn fLFkfr ds ek/;e ls Hkkjrh; U;kf;d ç.kkyh esa Økafr yk nh gSA U;kf;d deZpkfj;ksa ds fy, Rofjr ,oa 'kq) Vad.k dkS'ky vfuok;Z gS rkfd U;kf;d vkns'kksa] tekur ;kfpdkvksa vkSj fMftVy gLrk{kj dk dk;Z vfoyac laiUu gks ldsA`
+  },
+  // 2. Standard Constitutional & General Topics
   {
     id: 'constitution',
     title: 'भारतीय संविधान / Constitution of India',
@@ -108,6 +158,31 @@ export const TYPING_TOPICS: Topic[] = [
   }
 ];
 
+// KrutiDev Alt-Code Cheatsheet Database
+const KRUTIDEV_ALT_CODES = [
+  { code: 'Alt + 0161', symbol: '्र', example: 'प्रकाश, प्रकार, प्रयास' },
+  { code: 'Alt + 0216', symbol: 'क्र', example: 'क्रम, क्रिया, क्रमांक' },
+  { code: 'Alt + 0170', symbol: 'द्ध', example: 'बुद्ध, शुद्ध, युद्ध' },
+  { code: 'Alt + 0179', symbol: 'द्द', example: 'उद्देश्य, गद्दा, रद्दी' },
+  { code: 'Alt + 0163', symbol: 'त्र', example: 'छात्र, पत्र, मित्र' },
+  { code: 'Alt + 0204', symbol: 'द्व', example: 'द्वार, द्वितीय, विद्वान' },
+  { code: 'Alt + 0205', symbol: 'ट्र', example: 'ट्रक, ट्रेन, ट्रैफिक' },
+  { code: 'Alt + 0206', symbol: 'ड्र', example: 'ड्राइवर, ड्रम, ड्रेस' },
+  { code: 'Alt + 0217', symbol: 'फ्', example: 'दफ्तर, मुफ्त, हफ्ता' },
+  { code: 'Alt + 0188', symbol: '¼', example: 'छोटा कोष्ठक प्रारंभ (' },
+  { code: 'Alt + 0189', symbol: '½', example: 'छोटा कोष्ठक बंद )' },
+  { code: 'Alt + 0165', symbol: '¥', example: 'ह्य (सह्य, बाह्य)' },
+  { code: 'Alt + 0197', symbol: 'ऋ', example: 'ऋषि, ऋण, ऋतु' },
+  { code: 'Alt + 0227', symbol: 'क्त', example: 'भक्त, रक्त, शक्ति' },
+  { code: 'Alt + 0199', symbol: 'च्', example: 'बच्चा, सच्चा' },
+  { code: 'Alt + 0182', symbol: 'ध्', example: 'मध्य, ध्यान' },
+  { code: 'Alt + 0221', symbol: 'ह्न', example: 'चिह्न, अपराह्न' },
+  { code: 'Alt + 0226', symbol: 'ह्म', example: 'ब्रह्मा, ब्राह्मण' }
+];
+
+export type ExamProfileType = 'cg_high_court' | 'cpct_krutidev' | 'english_exam' | 'custom';
+export type TypingFontLayout = 'vedmata' | 'krutidev' | 'mangal' | 'english';
+
 interface TypingTestProps {
   currentUser?: any;
   onSaveResults?: (
@@ -123,24 +198,89 @@ interface TypingTestProps {
   ) => void;
 }
 
-export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUser, onSaveResults }) => {
-  // Config States
-  const [language, setLanguage] = useState<'english' | 'krutidev'>('english');
-  const [duration, setDuration] = useState<number>(60); // seconds
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResults }) => {
+  // Candidate Profile State
+  const candidateName = currentUser?.displayName || 'Guest Candidate';
+
+  // Mode & Parameters
+  const [examProfile, setExamProfile] = useState<ExamProfileType>('cg_high_court');
+  const [layoutMode, setLayoutMode] = useState<TypingFontLayout>('vedmata');
+  const [duration, setDuration] = useState<number>(600); // 10 minutes default for CG High Court
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [allowBackspace, setAllowBackspace] = useState<boolean>(true);
-  
-  // Custom Topics State
+  const [showHighlight, setShowHighlight] = useState<boolean>(true);
+  const [instantErrorAlert, setInstantErrorAlert] = useState<boolean>(true);
+  const [fontSizeLevel, setFontSizeLevel] = useState<'sm' | 'md' | 'lg'>('md');
+
+  // Topics
   const [topics, setTopics] = useState<Topic[]>(TYPING_TOPICS);
   const [selectedTopic, setSelectedTopic] = useState<Topic>(TYPING_TOPICS[0]);
 
-  // Load custom topics from Firestore on mount
+  // Test Runner State
+  const [status, setStatus] = useState<'config' | 'running' | 'finished'>('config');
+  const [targetWords, setTargetWords] = useState<string[]>([]);
+  const [currentWordIndex, setCurrentWordIndex] = useState<number>(0);
+  const [fullTypedText, setFullTypedText] = useState<string>('');
+  const [userTypedWords, setUserTypedWords] = useState<string[]>([]);
+  const [mistakeWordIndices, setMistakeWordIndices] = useState<Set<number>>(new Set());
+
+  // Metrics
+  const [timeLeft, setTimeLeft] = useState<number>(600);
+  const [totalKeystrokes, setTotalKeystrokes] = useState<number>(0);
+  const [correctKeystrokes, setCorrectKeystrokes] = useState<number>(0);
+  const [mistakesCount, setMistakesCount] = useState<number>(0);
+  const [backspaceCount, setBackspaceCount] = useState<number>(0);
+  const [liveWpm, setLiveWpm] = useState<number>(0);
+  const [liveGrossWpm, setLiveGrossWpm] = useState<number>(0);
+  const [liveKph, setLiveKph] = useState<number>(0);
+  const [liveAccuracy, setLiveAccuracy] = useState<number>(100);
+
+  // Review & Helper Modals
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'mistakes' | 'correct'>('all');
+  const [showAltCodeModal, setShowAltCodeModal] = useState<boolean>(false);
+  const [altCodeSearch, setAltCodeSearch] = useState<string>('');
+  const [showUnicodeHelper, setShowUnicodeHelper] = useState<boolean>(true);
+  const [shakeInput, setShakeInput] = useState<boolean>(false);
+  const [hindiEngineState, setHindiEngineState] = useState<TypingEngineState>(createInitialTypingState());
+  const [enableVirtualHindiKeyboard, setEnableVirtualHindiKeyboard] = useState<boolean>(true);
+
+  // Refs
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const displayContainerRef = useRef<HTMLDivElement>(null);
+  const activeWordRef = useRef<HTMLSpanElement>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Preset switch helper
+  const applyPreset = (preset: ExamProfileType) => {
+    setExamProfile(preset);
+    if (preset === 'cg_high_court') {
+      setLayoutMode('vedmata');
+      setDuration(600); // 10 mins
+      setAllowBackspace(true);
+      setShowHighlight(true);
+      const courtTopic = topics.find(t => t.id === 'cg_court_judgment') || topics[0];
+      setSelectedTopic(courtTopic);
+    } else if (preset === 'cpct_krutidev') {
+      setLayoutMode('krutidev');
+      setDuration(900); // 15 mins
+      setAllowBackspace(true);
+      setShowHighlight(true);
+      const topic = topics.find(t => t.id === 'cg_revenue_admin') || topics[1];
+      setSelectedTopic(topic);
+    } else if (preset === 'english_exam') {
+      setLayoutMode('english');
+      setDuration(600); // 10 mins
+      setAllowBackspace(true);
+      setShowHighlight(true);
+      setSelectedTopic(topics[0]);
+    }
+  };
+
+  // Load custom topics from Firestore
   useEffect(() => {
-    const fetchCustomTopics = async () => {
+    const fetchFirestoreTopics = async () => {
       const firebase = (window as any).firebase;
-      if (!firebase) {
-        return;
-      }
+      if (!firebase) return;
       try {
         const snapshot = await firebase.firestore().collection('typing_topics').get();
         const loaded: Topic[] = [];
@@ -152,103 +292,83 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
             difficulty: data.difficulty || 'easy',
             englishText: data.englishText || '',
             hindiUnicodeText: data.hindiUnicodeText || '',
-            hindiKrutidevText: data.hindiKrutidevText || ''
+            hindiKrutidevText: data.hindiKrutidevText || '',
+            category: data.category
           });
         });
         if (loaded.length > 0) {
-          // Sort topics so they are consistently ordered
-          loaded.sort((a: Topic, b: Topic) => a.title.localeCompare(b.title));
-          setTopics(loaded);
-        } else {
-          setTopics(TYPING_TOPICS);
+          const combined = [...TYPING_TOPICS];
+          loaded.forEach(item => {
+            if (!combined.some(c => c.id === item.id)) combined.push(item);
+          });
+          setTopics(combined);
         }
       } catch (err) {
-        console.warn('Failed to fetch custom typing topics from Firestore:', err);
-        setTopics(TYPING_TOPICS);
+        console.warn('Firestore typing topics load failed:', err);
       }
     };
-
-    fetchCustomTopics();
+    fetchFirestoreTopics();
   }, []);
 
-  // Update selected topic if topics change
+  // Keyboard shortcut listener for F1 (Quick Alt-Codes / Reference)
   useEffect(() => {
-    if (topics.length > 0) {
-      const match = topics.find(t => t.id === selectedTopic.id) || topics[0];
-      setSelectedTopic(match);
-    }
-  }, [topics]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F1') {
+        e.preventDefault();
+        setShowAltCodeModal(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
-  // Test Runner States
-  const [status, setStatus] = useState<'config' | 'running' | 'finished'>('config');
-  const [targetText, setTargetText] = useState<string>('');
-  const [typedText, setTypedText] = useState<string>('');
-  
-  // Stats
-  const [timeLeft, setTimeLeft] = useState<number>(60);
-  const [grossWpm, setGrossWpm] = useState<number>(0);
-  const [netWpm, setNetWpm] = useState<number>(0);
-  const [accuracy, setAccuracy] = useState<number>(100);
-  const [correctChars, setCorrectChars] = useState<number>(0);
-  const [incorrectChars, setIncorrectChars] = useState<number>(0);
-  
-  // UX Helper States
-  const [showUnicodePreview, setShowUnicodePreview] = useState<boolean>(true);
-  const [isFocused, setIsFocused] = useState<boolean>(false);
+  // Filter topics by difficulty if in custom mode
+  const filteredTopics = topics.filter(t => examProfile !== 'custom' || t.difficulty === difficulty);
 
-  // Refs
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const textContainerRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Filter topics based on selected difficulty
-  const filteredTopics = topics.filter(t => t.difficulty === difficulty);
-
-  // Update selected topic if difficulty changes and current topic is not in filtered list
-  useEffect(() => {
-    if (filteredTopics.length > 0 && !filteredTopics.some(t => t.id === selectedTopic.id)) {
-      setSelectedTopic(filteredTopics[0]);
-    }
-  }, [difficulty, topics]);
-
-  // Set target text based on configuration
-  const setupTestText = () => {
-    if (language === 'english') {
-      setTargetText(selectedTopic.englishText);
-    } else {
-      setTargetText(selectedTopic.hindiKrutidevText);
-    }
+  // Helper to extract text according to layoutMode
+  const getTopicText = (topic: Topic, mode: TypingFontLayout): string => {
+    if (mode === 'english') return topic.englishText;
+    if (mode === 'krutidev') return topic.hindiKrutidevText;
+    return topic.hindiUnicodeText; // 'vedmata' & 'mangal' use Hindi Unicode
   };
 
-  useEffect(() => {
-    setupTestText();
-  }, [language, selectedTopic]);
-
-  // Start typing test handler
+  // Start Test
   const handleStartTest = () => {
-    setupTestText();
-    setTypedText('');
+    const text = getTopicText(selectedTopic, layoutMode);
+    const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+    setTargetWords(words);
+    setCurrentWordIndex(0);
+    setFullTypedText('');
+    setUserTypedWords([]);
+    setMistakeWordIndices(new Set());
+    setHindiEngineState(createInitialTypingState());
     setTimeLeft(duration);
-    setGrossWpm(0);
-    setNetWpm(0);
-    setAccuracy(100);
-    setCorrectChars(0);
-    setIncorrectChars(0);
+    setTotalKeystrokes(0);
+    setCorrectKeystrokes(0);
+    setMistakesCount(0);
+    setBackspaceCount(0);
+    setLiveWpm(0);
+    setLiveGrossWpm(0);
+    setLiveKph(0);
+    setLiveAccuracy(100);
     setStatus('running');
 
-    // Focus input area
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
+        inputRef.current.value = '';
       }
-    }, 100);
+      if (displayContainerRef.current) {
+        displayContainerRef.current.scrollTop = 0;
+      }
+    }, 120);
   };
 
-  // Timer Effect
+  // Timer Tick
   useEffect(() => {
     if (status === 'running') {
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
+        setTimeLeft(prev => {
           if (prev <= 1) {
             handleFinishTest();
             return 0;
@@ -257,200 +377,435 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
         });
       }, 1000);
     }
-
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [status]);
 
-  // Calculations Effect
+  // Recalculate Live Metrics whenever keystrokes, mistakes, or time changes
   useEffect(() => {
-    if (status !== 'running' || typedText.length === 0) return;
+    if (status !== 'running') return;
+    const timeSpentSec = Math.max(1, duration - timeLeft);
+    const timeSpentMin = timeSpentSec / 60;
 
-    const timeSpentSec = duration - timeLeft;
-    const timeSpentMin = timeSpentSec > 0 ? timeSpentSec / 60 : 1 / 60; // avoid divide by zero
+    // Gross WPM: (Total Keystrokes / 5) / minutes
+    const gross = Math.round((totalKeystrokes / 5) / timeSpentMin);
+    // Net WPM: ((Total Keystrokes / 5) - Mistakes) / minutes
+    const net = Math.max(0, Math.round(((totalKeystrokes / 5) - mistakesCount) / timeSpentMin));
+    // KPH: Total Keystrokes / (minutes / 60)
+    const kph = Math.round(totalKeystrokes / (timeSpentMin / 60));
+    // Accuracy
+    const acc = totalKeystrokes > 0 
+      ? Math.max(0, Math.min(100, Math.round(((totalKeystrokes - (mistakesCount * 5)) / totalKeystrokes) * 100))) 
+      : 100;
 
-    let correct = 0;
-    let incorrect = 0;
+    setLiveGrossWpm(gross);
+    setLiveWpm(net);
+    setLiveKph(kph);
+    setLiveAccuracy(acc);
+  }, [timeLeft, totalKeystrokes, mistakesCount, status, duration]);
 
-    // Compare characters
-    for (let i = 0; i < typedText.length; i++) {
-      if (i < targetText.length) {
-        if (typedText[i] === targetText[i]) {
-          correct++;
-        } else {
-          incorrect++;
-        }
+  // Smooth Auto-scroll Display Area to keep active word in comfortable view
+  useEffect(() => {
+    if (status !== 'running') return;
+    if (activeWordRef.current && displayContainerRef.current) {
+      const container = displayContainerRef.current;
+      const activeEl = activeWordRef.current;
+      const activeTop = activeEl.offsetTop;
+      const activeHeight = activeEl.offsetHeight;
+      const containerHeight = container.clientHeight;
+
+      // Scroll so active word stays roughly centered or within top 40%
+      const targetScroll = activeTop - (containerHeight / 2) + (activeHeight / 2);
+      container.scrollTo({
+        top: Math.max(0, targetScroll),
+        behavior: 'smooth'
+      });
+    }
+  }, [currentWordIndex, status]);
+
+  // Synchronize typed text and metrics
+  const syncTypedText = (text: string) => {
+    setFullTypedText(text);
+
+    // Keep textarea auto-scrolled so cursor stays in view
+    if (inputRef.current) {
+      inputRef.current.scrollTop = inputRef.current.scrollHeight;
+    }
+
+    const parts = text.split(' ');
+    const activeIdx = Math.max(0, parts.length - 1);
+    setCurrentWordIndex(activeIdx);
+    setUserTypedWords(parts);
+
+    // Calculate mistakes and correct keystrokes from all completed words
+    const mistakesSet = new Set<number>();
+    let correctStrokes = 0;
+
+    for (let i = 0; i < activeIdx; i++) {
+      const typedW = parts[i];
+      const targetW = targetWords[i];
+      if (typedW === targetW) {
+        correctStrokes += (targetW ? targetW.length + 1 : 0);
       } else {
-        incorrect++;
+        mistakesSet.add(i);
       }
     }
 
-    setCorrectChars(correct);
-    setIncorrectChars(incorrect);
+    setMistakeWordIndices(mistakesSet);
+    setMistakesCount(mistakesSet.size);
+    setTotalKeystrokes(text.length);
+    setCorrectKeystrokes(correctStrokes);
 
-    // Accuracy
-    const totalTyped = typedText.length;
-    const currentAccuracy = totalTyped > 0 ? Math.round((correct / totalTyped) * 100) : 100;
-    setAccuracy(currentAccuracy);
-
-    // WPM
-    // Standard WPM: (Total typed chars / 5) / minutes
-    const gross = Math.round((totalTyped / 5) / timeSpentMin);
-    const net = Math.round((correct / 5) / timeSpentMin);
-    
-    setGrossWpm(gross);
-    setNetWpm(net < 0 ? 0 : net);
-
-    // Auto-finish if text is fully completed
-    if (typedText.length >= targetText.length) {
+    // Auto-finish if passage completed
+    if (activeIdx >= targetWords.length && parts[parts.length - 1] === '') {
       handleFinishTest();
     }
-  }, [typedText, timeLeft, status, targetText, duration]);
-
-  const handleFinishTest = () => {
-    setStatus('finished');
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
   };
 
-  // Trigger onSaveResults once test is finished and final state values are set
-  useEffect(() => {
-    if (status === 'finished') {
-      if (onSaveResults) {
-        onSaveResults(
-          netWpm,
-          grossWpm,
-          accuracy,
-          correctChars,
-          incorrectChars,
-          language,
-          duration,
-          selectedTopic.id,
-          selectedTopic.title
-        );
+  // Handle Input Changes (Fallback & direct IME input)
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    syncTypedText(e.target.value);
+  };
+
+  // Keydown handler: In-browser Hindi mapping (Vedmata / Mangal) + strict controls
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // 1. Backspace restriction & pending chhoti-i cancel
+    if (e.key === 'Backspace') {
+      if (!allowBackspace) {
+        e.preventDefault();
+        setShakeInput(true);
+        setTimeout(() => setShakeInput(false), 300);
+        return;
+      }
+      if (hindiEngineState.pendingChhotiI) {
+        e.preventDefault();
+        setHindiEngineState(prev => ({ ...prev, pendingChhotiI: false }));
+        return;
+      }
+      setBackspaceCount(prev => prev + 1);
+      return;
+    }
+
+    // 2. Space key
+    if (e.key === ' ') {
+      if (hindiEngineState.pendingChhotiI) {
+        setHindiEngineState(prev => ({ ...prev, pendingChhotiI: false }));
+      }
+      // Prevent multiple consecutive spaces or leading space
+      if (fullTypedText.endsWith(' ') || fullTypedText.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      return;
+    }
+
+    // 3. Convert Enter to Space
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (hindiEngineState.pendingChhotiI) {
+        setHindiEngineState(prev => ({ ...prev, pendingChhotiI: false }));
+      }
+      if (!fullTypedText.endsWith(' ') && fullTypedText.length > 0) {
+        const newVal = fullTypedText + ' ';
+        syncTypedText(newVal);
+      }
+      return;
+    }
+
+    // 4. In-Browser Hindi Keyboard Mapping (Vedmata m17n & Mangal Remington)
+    if (
+      enableVirtualHindiKeyboard &&
+      (layoutMode === 'vedmata' || layoutMode === 'mangal') &&
+      e.key.length === 1 &&
+      !e.ctrlKey &&
+      !e.altKey &&
+      !e.metaKey
+    ) {
+      const textarea = inputRef.current;
+      const cursorPos = textarea?.selectionStart ?? fullTypedText.length;
+
+      const res = handleHindiKeyPress(
+        e.key,
+        fullTypedText,
+        cursorPos,
+        layoutMode,
+        hindiEngineState
+      );
+
+      if (res.handled) {
+        e.preventDefault();
+        setHindiEngineState(res.newState);
+        syncTypedText(res.newText);
+
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.selectionStart = inputRef.current.selectionEnd = res.newCursorPos;
+            inputRef.current.scrollTop = inputRef.current.scrollHeight;
+          }
+        }, 0);
+        return;
       }
     }
-  }, [status]);
-
-  const handleBackToConfig = () => {
-    setStatus('config');
-    setTypedText('');
   };
 
-  // Focus utility
-  const handleContainerClick = () => {
-    if (inputRef.current) {
-      inputRef.current.focus();
+  // Finish Test
+  const handleFinishTest = () => {
+    setStatus('finished');
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    // Final user words from fullTypedText
+    const finalWords = fullTypedText.trim().split(/\s+/).filter(w => w.length > 0);
+    setUserTypedWords(finalWords);
+
+    // Final calculations
+    const timeSpentSec = Math.max(1, duration - timeLeft);
+    const timeSpentMin = timeSpentSec / 60;
+    const finalGrossWpm = Math.round((totalKeystrokes / 5) / timeSpentMin);
+    const finalNetWpm = Math.max(0, Math.round(((totalKeystrokes / 5) - mistakesCount) / timeSpentMin));
+    const finalAccuracy = totalKeystrokes > 0 
+      ? Math.max(0, Math.min(100, Math.round(((totalKeystrokes - (mistakesCount * 5)) / totalKeystrokes) * 100))) 
+      : 100;
+
+    // Call onSaveResults callback
+    if (onSaveResults) {
+      onSaveResults(
+        finalNetWpm,
+        finalGrossWpm,
+        finalAccuracy,
+        correctKeystrokes,
+        totalKeystrokes - correctKeystrokes,
+        layoutMode,
+        duration,
+        selectedTopic.id,
+        selectedTopic.title
+      );
     }
   };
 
-  // Helper to get speed evaluation feedback
-  const getSpeedFeedback = (wpm: number) => {
-    if (language === 'english') {
-      if (wpm >= 60) return { title: 'Typing Wizard! ⚡', desc: 'Outstanding speed and control! Keep up the brilliant work.' };
-      if (wpm >= 40) return { title: 'Professional Keyboardist! 🚀', desc: 'Very good typing speed! You are above average.' };
-      if (wpm >= 25) return { title: 'Competent Typer! 👍', desc: 'Good typing pace. Regular practice will make you even faster.' };
-      return { title: 'Developing Speed! 🌱', desc: 'Take your time. Focus on accuracy first, speed will naturally follow!' };
+  // Exam Qualification Verdict Assessment
+  const evaluateExamPass = () => {
+    if (examProfile === 'cg_high_court') {
+      // CG High Court standard: 250 words in 10 mins = 25 WPM / 5000 KPH, accuracy >= 80%
+      const speedPass = liveWpm >= 25;
+      const accuracyPass = liveAccuracy >= 80;
+      const isPass = speedPass && accuracyPass;
+      return {
+        isPass,
+        examName: 'CG High Court AG-III / DEO / JJA',
+        requiredSpeed: '25 WPM (5,000 KPH)',
+        requiredAccuracy: '80%',
+        marksDeduction: (mistakesCount * 0.5).toFixed(1),
+        score: Math.max(0, 50 - (mistakesCount * 0.5)).toFixed(1),
+        maxScore: 50,
+        remarks: isPass 
+          ? 'Congratulations! You meet all official CG High Court skill test speed & accuracy benchmarks.'
+          : 'Speed or accuracy fell below the 25 WPM / 80% cutoff. Focus on error reduction.'
+      };
+    } else if (examProfile === 'cpct_krutidev') {
+      const isPass = liveWpm >= 20 && liveAccuracy >= 75;
+      return {
+        isPass,
+        examName: 'MP CPCT / State Exam (KrutiDev 010)',
+        requiredSpeed: '20 WPM',
+        requiredAccuracy: '75%',
+        marksDeduction: (mistakesCount * 0.5).toFixed(1),
+        score: Math.max(0, 50 - (mistakesCount * 0.5)).toFixed(1),
+        maxScore: 50,
+        remarks: isPass 
+          ? 'Qualified! Your KrutiDev 010 Hindi typing pace fulfills government exam requirements.'
+          : 'Hindi KrutiDev speed needs practice. Target consistent 20+ WPM with Remington layout.'
+      };
     } else {
-      // Krutidev standards are usually slightly lower due to complexity
-      if (wpm >= 45) return { title: 'Remington Maestro! ⚡', desc: 'Incredible Krutidev speed! Your muscle memory is top-tier.' };
-      if (wpm >= 30) return { title: 'Advanced Clerk! 🚀', desc: 'Excellent speed for state government typing standards.' };
-      if (wpm >= 20) return { title: 'Eligible Candidate! 👍', desc: 'Satisfactory typing speed. Great for standard exams.' };
-      return { title: 'Beginner Hindi Typist! 🌱', desc: 'Krutidev takes time to master. Keep practicing characters regularly.' };
+      const isPass = liveWpm >= 30 && liveAccuracy >= 85;
+      return {
+        isPass,
+        examName: 'General English / Skill Test',
+        requiredSpeed: '30 WPM',
+        requiredAccuracy: '85%',
+        marksDeduction: mistakesCount.toString(),
+        score: Math.max(0, 50 - mistakesCount).toFixed(1),
+        maxScore: 50,
+        remarks: isPass 
+          ? 'Superb performance! Your speed and accuracy are well within professional guidelines.'
+          : 'Practice regularly to push your net speed past 30+ WPM.'
+      };
     }
   };
 
-  const feedback = getSpeedFeedback(netWpm);
+  const examEvaluation = evaluateExamPass();
+
+  // Print scorecard helper
+  const handlePrintScorecard = () => {
+    window.print();
+  };
+
+  // Font family styles helper
+  const getFontFamilyStyle = () => {
+    if (layoutMode === 'krutidev') {
+      return { fontFamily: 'KrutiDev010, serif', letterSpacing: '0.02em' };
+    }
+    if (layoutMode === 'vedmata' || layoutMode === 'mangal') {
+      return { fontFamily: "'Noto Sans Devanagari', 'Mangal', sans-serif" };
+    }
+    return { fontFamily: "'Inter', sans-serif" };
+  };
+
+  // Current active word comparison check
+  const typedWordsList = fullTypedText.split(' ');
+  const currentWordTyping = typedWordsList[currentWordIndex] || '';
+  const currentTargetWord = targetWords[currentWordIndex] || '';
+  const isCurrentInputError = currentWordTyping.length > 0 && !currentTargetWord.startsWith(currentWordTyping);
 
   return (
-    <div className="w-full max-w-4xl mx-auto pb-6 font-sans text-text">
+    <div className="w-full max-w-5xl mx-auto pb-10 font-sans text-text">
       <AnimatePresence mode="wait">
         
         {/* ============================================================== */}
-        {/* 1. SETUP / CONFIG SCREEN                                       */}
+        {/* 1. SETUP / CONFIGURATION SCREEN                                */}
         {/* ============================================================== */}
         {status === 'config' && (
           <motion.div
             key="config"
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
+            exit={{ opacity: 0, y: -12 }}
             className="flex flex-col gap-6"
           >
-            {/* Setup Card Header */}
-            <div className="bg-bg-s2 border border-border rounded-xl p-5 md:p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-saffron-dim/20 rounded-xl flex items-center justify-center text-saffron shrink-0 border border-saffron-border/30">
+            {/* Header / Hero Banner */}
+            <div className="bg-bg-s2 border border-border rounded-2xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+              <div className="flex items-center gap-3.5 z-10">
+                <div className="w-12 h-12 bg-saffron-dim/25 rounded-2xl flex items-center justify-center text-saffron shrink-0 border border-saffron-border/40 shadow-inner">
                   <Keyboard className="w-6 h-6 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-text uppercase tracking-wide">Typing Speed Test</h3>
-                  <p className="text-xs text-text-muted">Test and improve your typing speed & accuracy in English or Hindi (Krutidev)</p>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg md:text-xl font-black text-text uppercase tracking-wide">
+                      Typing Tests Arena
+                    </h2>
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-saffron-dim text-saffron border border-saffron-border/30">
+                      High Court Ready
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    Official Vedmata m17n (Ubuntu Linux), KrutiDev 010 & English Exam Simulator
+                  </p>
                 </div>
+              </div>
+
+              {/* Quick Action Buttons */}
+              <div className="flex items-center gap-2 z-10 w-full md:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowAltCodeModal(true)}
+                  className="px-3.5 py-2 rounded-xl bg-bg-s3/60 hover:bg-bg-s3 border border-border text-text-muted hover:text-text text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4 text-saffron" />
+                  <span>Alt Codes & Guide (F1)</span>
+                </button>
               </div>
             </div>
 
-            {/* Config Grid */}
+            {/* Exam Presets Bar (Typing Warriors Style) */}
+            <div className="bg-bg-s2 border border-border rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+              <span className="text-[10px] font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-saffron" />
+                <span>Select Target Exam Preset / परीक्षा मोड चुनें</span>
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  {
+                    id: 'cg_high_court',
+                    label: '⚖️ CG High Court',
+                    sub: 'Vedmata m17n Linux (10 Min)',
+                    badge: '25 WPM / 5k KPH'
+                  },
+                  {
+                    id: 'cpct_krutidev',
+                    label: '⌨️ MP CPCT',
+                    sub: 'KrutiDev 010 (15 Min)',
+                    badge: '20 WPM Hindi'
+                  },
+                  {
+                    id: 'english_exam',
+                    label: '🌐 English Exam',
+                    sub: 'General Standard (10 Min)',
+                    badge: '35 WPM Target'
+                  },
+                  {
+                    id: 'custom',
+                    label: '⚙️ Custom Mode',
+                    sub: 'Free Practice & Timers',
+                    badge: 'Flexible'
+                  }
+                ].map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyPreset(p.id as ExamProfileType)}
+                    className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                      examProfile === p.id
+                        ? 'bg-saffron-dim/25 border-saffron text-saffron shadow-sm ring-1 ring-saffron/20'
+                        : 'bg-bg-s3/30 border-border hover:bg-bg-s3/60 text-text-muted'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-black leading-snug">{p.label}</div>
+                      <div className="text-[10px] text-text-muted/80 leading-tight mt-0.5">{p.sub}</div>
+                    </div>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-bg-s0/60 border border-border/60 self-start mt-2">
+                      {p.badge}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Config Form Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              {/* Left Column - Setup Form */}
-              <div className="md:col-span-1 bg-bg-s2 border border-border rounded-xl p-5 flex flex-col gap-4.5">
-                <h4 className="text-xs font-black uppercase text-text border-b border-border/60 pb-2 flex items-center gap-1.5">
+              {/* Left Column: Candidate & Parameters */}
+              <div className="md:col-span-1 bg-bg-s2 border border-border rounded-2xl p-5 flex flex-col gap-4">
+                <h3 className="text-xs font-black uppercase text-text border-b border-border/60 pb-2 flex items-center gap-1.5">
                   <Settings className="w-4 h-4 text-saffron" />
-                  <span>Test Parameters</span>
-                </h4>
+                  <span>Exam Parameters</span>
+                </h3>
 
-                {/* 1. Language Select */}
+                {/* Keyboard Layout / Font Selector */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Layout Language / भाषा</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setLanguage('english')}
-                      className={`py-2 text-xs font-black rounded-lg border transition-all cursor-pointer ${
-                        language === 'english'
-                          ? 'bg-saffron-dim/20 border-saffron text-saffron'
-                          : 'bg-bg-s3/40 border-border hover:bg-bg-s3/70 text-text-muted'
-                      }`}
-                    >
-                      English
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLanguage('krutidev')}
-                      className={`py-2 text-xs font-black rounded-lg border transition-all cursor-pointer ${
-                        language === 'krutidev'
-                          ? 'bg-saffron-dim/20 border-saffron text-saffron'
-                          : 'bg-bg-s3/40 border-border hover:bg-bg-s3/70 text-text-muted'
-                      }`}
-                    >
-                      कृत्तिदेव 010
-                    </button>
-                  </div>
+                  <label className="text-[10px] font-black uppercase text-text-muted">Keyboard / Font Layout</label>
+                  <select
+                    value={layoutMode}
+                    onChange={(e) => setLayoutMode(e.target.value as TypingFontLayout)}
+                    className="w-full px-3 py-2 text-xs bg-bg-s3/50 border border-border rounded-xl focus:border-saffron focus:outline-none text-text font-semibold"
+                  >
+                    <option value="vedmata">🐧 Vedmata m17n (Ubuntu Linux - CG High Court)</option>
+                    <option value="krutidev">⌨️ Kruti Dev 010 (Remington Gail)</option>
+                    <option value="mangal">🔤 Mangal Unicode (InScript / Devanagari)</option>
+                    <option value="english">🔤 English Typing Standard</option>
+                  </select>
                 </div>
 
-                {/* 2. Duration Select */}
+                {/* Duration */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black uppercase text-text-muted">Test Duration / समय</label>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-3 gap-1.5">
                     {[
                       { label: '1 Min', val: 60 },
                       { label: '2 Min', val: 120 },
                       { label: '5 Min', val: 300 },
-                      { label: '10 Min', val: 600 }
+                      { label: '10 Min', val: 600 },
+                      { label: '15 Min', val: 900 },
+                      { label: '30 Min', val: 1800 }
                     ].map(d => (
                       <button
                         key={d.val}
                         type="button"
                         onClick={() => setDuration(d.val)}
-                        className={`py-1.5 text-[10px] font-black rounded-md border transition-all cursor-pointer ${
+                        className={`py-1.5 text-[10px] font-black rounded-lg border transition-all cursor-pointer ${
                           duration === d.val
                             ? 'bg-saffron-dim/20 border-saffron text-saffron'
-                            : 'bg-bg-s3/40 border-border hover:bg-bg-s3/70 text-text-muted'
+                            : 'bg-bg-s3/40 border-border hover:bg-bg-s3 text-text-muted'
                         }`}
                       >
                         {d.label}
@@ -459,19 +814,19 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
                   </div>
                 </div>
 
-                {/* 3. Difficulty Select */}
+                {/* Difficulty Filter */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Difficulty / कठिनाई स्तर</label>
+                  <label className="text-[10px] font-black uppercase text-text-muted">Difficulty / स्तर</label>
                   <div className="grid grid-cols-3 gap-1.5">
                     {(['easy', 'medium', 'hard'] as const).map(diff => (
                       <button
                         key={diff}
                         type="button"
                         onClick={() => setDifficulty(diff)}
-                        className={`py-1.5 text-[10px] font-black rounded-md border uppercase transition-all cursor-pointer ${
+                        className={`py-1 text-[10px] font-black uppercase rounded-lg border transition-all cursor-pointer ${
                           difficulty === diff
                             ? 'bg-saffron-dim/20 border-saffron text-saffron'
-                            : 'bg-bg-s3/40 border-border hover:bg-bg-s3/70 text-text-muted'
+                            : 'bg-bg-s3/40 border-border hover:bg-bg-s3 text-text-muted'
                         }`}
                       >
                         {diff}
@@ -480,89 +835,148 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
                   </div>
                 </div>
 
-                {/* 4. Backspace Setting */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-black uppercase text-text-muted">Backspace / बैकस्पेस</label>
-                  <div className="grid grid-cols-2 gap-2">
+                {/* Strict Exam Rules Toggles */}
+                <div className="flex flex-col gap-2 pt-2 border-t border-border/40">
+                  <span className="text-[9px] font-black uppercase text-text-muted">Strict Exam Controls</span>
+                  
+                  {/* Backspace Toggle */}
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-bg-s3/30 border border-border/60">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-text">Backspace Allowed</span>
+                      <span className="text-[9px] text-text-muted">Toggle off for strict exam rule</span>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setAllowBackspace(true)}
-                      className={`py-1.5 text-[10px] font-black rounded-md border transition-all cursor-pointer ${
-                        allowBackspace
-                          ? 'bg-saffron-dim/20 border-saffron text-saffron'
-                          : 'bg-bg-s3/40 border-border hover:bg-bg-s3/70 text-text-muted'
+                      onClick={() => setAllowBackspace(!allowBackspace)}
+                      className={`px-2.5 py-1 text-[10px] font-black rounded-md border transition-all cursor-pointer ${
+                        allowBackspace 
+                          ? 'bg-greenL/15 border-greenL/40 text-greenL' 
+                          : 'bg-redL/15 border-redL/40 text-redL'
                       }`}
                     >
-                      ON (Allowed)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAllowBackspace(false)}
-                      className={`py-1.5 text-[10px] font-black rounded-md border transition-all cursor-pointer ${
-                        !allowBackspace
-                          ? 'bg-saffron-dim/20 border-saffron text-saffron'
-                          : 'bg-bg-s3/40 border-border hover:bg-bg-s3/70 text-text-muted'
-                      }`}
-                    >
-                      OFF (Blocked)
+                      {allowBackspace ? 'ENABLED' : 'BLOCKED'}
                     </button>
                   </div>
+
+                  {/* Word Highlight Toggle */}
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-bg-s3/30 border border-border/60">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-text">Word Highlight</span>
+                      <span className="text-[9px] text-text-muted">Highlights current active word</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowHighlight(!showHighlight)}
+                      className={`px-2.5 py-1 text-[10px] font-black rounded-md border transition-all cursor-pointer ${
+                        showHighlight 
+                          ? 'bg-saffron-dim/20 border-saffron/40 text-saffron' 
+                          : 'bg-bg-s3 border-border text-text-muted'
+                      }`}
+                    >
+                      {showHighlight ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  {/* Instant Error Alert */}
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-bg-s3/30 border border-border/60">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-text">Live Mistake Alert</span>
+                      <span className="text-[9px] text-text-muted">Red outline on typo deviation</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setInstantErrorAlert(!instantErrorAlert)}
+                      className={`px-2.5 py-1 text-[10px] font-black rounded-md border transition-all cursor-pointer ${
+                        instantErrorAlert 
+                          ? 'bg-saffron-dim/20 border-saffron/40 text-saffron' 
+                          : 'bg-bg-s3 border-border text-text-muted'
+                      }`}
+                    >
+                      {instantErrorAlert ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
                 </div>
+
               </div>
 
-              {/* Right Column - Topic Selection */}
-              <div className="md:col-span-2 bg-bg-s2 border border-border rounded-xl p-5 flex flex-col gap-4">
-                <h4 className="text-xs font-black uppercase text-text border-b border-border/60 pb-2 flex items-center gap-1.5">
-                  <BookOpen className="w-4 h-4 text-saffron" />
-                  <span>Choose Practice Topic</span>
-                </h4>
+              {/* Right Column: Passage & Topic Library */}
+              <div className="md:col-span-2 bg-bg-s2 border border-border rounded-2xl p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <h3 className="text-xs font-black uppercase text-text flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-saffron" />
+                    <span>Select Exam Passage / अनुच्छेद चुनें</span>
+                  </h3>
+                  <span className="text-[9px] font-black text-text-muted uppercase">
+                    {filteredTopics.length} Topics Available
+                  </span>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto pr-1">
+                {/* Topics Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[260px] overflow-y-auto pr-1">
                   {filteredTopics.map(topic => (
                     <button
                       key={topic.id}
                       type="button"
                       onClick={() => setSelectedTopic(topic)}
-                      className={`p-3 text-left border rounded-xl transition-all cursor-pointer flex flex-col gap-1 ${
+                      className={`p-3 text-left border rounded-xl transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
                         selectedTopic.id === topic.id
-                          ? 'bg-saffron-dim/15 border-saffron/80 text-saffron shadow-sm'
-                          : 'bg-bg-s3/30 border-border hover:border-border/80 hover:bg-bg-s3/60 text-text-muted'
+                          ? 'bg-saffron-dim/20 border-saffron text-saffron shadow-sm'
+                          : 'bg-bg-s3/30 border-border hover:bg-bg-s3/60 text-text-muted'
                       }`}
                     >
-                      <span className="text-xs font-bold leading-tight line-clamp-1">{topic.title}</span>
-                      <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-bg-s3 self-start border border-border/60 mt-1">
-                        {topic.difficulty}
-                      </span>
+                      <span className="text-xs font-bold leading-tight line-clamp-2">{topic.title}</span>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-bg-s3 text-text-muted border border-border/60">
+                          {topic.difficulty}
+                        </span>
+                        {topic.category && (
+                          <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-saffron-dim/30 text-saffron border border-saffron-border/30">
+                            {topic.category}
+                          </span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
 
-                {/* Selected Preview Box */}
-                <div className="mt-2 p-3 bg-bg-s3/40 border border-border/80 rounded-lg flex flex-col gap-2">
-                  <span className="text-[9px] font-black uppercase text-text-muted tracking-wider">Preview Text:</span>
+                {/* Preview Box */}
+                <div className="mt-1 p-3.5 bg-bg-s3/30 border border-border rounded-xl flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase text-text-muted tracking-wider">
+                      Passage Preview ({layoutMode.toUpperCase()}):
+                    </span>
+                    {layoutMode === 'krutidev' && (
+                      <span className="text-[8px] font-black text-saffron uppercase">
+                        Font: Kruti Dev 010 (Remington)
+                      </span>
+                    )}
+                  </div>
                   <p 
-                    className="text-xs text-text/80 line-clamp-2 leading-relaxed"
-                    style={language === 'krutidev' ? { fontFamily: 'KrutiDev010', fontSize: '1.15rem', lineHeight: '1.5' } : undefined}
+                    className="text-xs text-text/80 line-clamp-3 leading-relaxed"
+                    style={getFontFamilyStyle()}
                   >
-                    {language === 'krutidev' ? selectedTopic.hindiKrutidevText : selectedTopic.englishText}
+                    {getTopicText(selectedTopic, layoutMode)}
                   </p>
                   
-                  {language === 'krutidev' && (
-                    <div className="border-t border-border/30 pt-1.5 mt-0.5">
+                  {layoutMode === 'krutidev' && (
+                    <div className="border-t border-border/40 pt-2 mt-1">
                       <span className="text-[8px] font-black uppercase text-text-muted tracking-wider">Hindi Unicode (Readable Preview):</span>
-                      <p className="text-[11px] text-text-muted/80 line-clamp-1 italic mt-0.5">{selectedTopic.hindiUnicodeText}</p>
+                      <p className="text-[11px] text-text-muted/80 line-clamp-1 italic mt-0.5 font-sans">
+                        {selectedTopic.hindiUnicodeText}
+                      </p>
                     </div>
                   )}
                 </div>
 
-                {/* Big Start Button */}
+                {/* Start Button */}
                 <button
                   type="button"
                   onClick={handleStartTest}
-                  className="w-full mt-2 py-3.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98] shadow shadow-saffron-dim/20"
+                  className="w-full mt-2 py-4 bg-saffron hover:bg-orange-500 text-bg-s0 text-xs font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98] shadow-lg shadow-saffron-dim/30"
                 >
-                  <Play className="w-4 h-4 fill-bg-s1 text-bg-s1" />
-                  <span>Start Typing Test</span>
+                  <Play className="w-4 h-4 fill-bg-s0 text-bg-s0" />
+                  <span>Start Live Typing Test / टेस्ट शुरू करें</span>
                 </button>
               </div>
 
@@ -571,311 +985,692 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser: _currentUse
         )}
 
         {/* ============================================================== */}
-        {/* 2. ACTIVE TYPING TEST SCREEN                                   */}
+        {/* 2. ACTIVE TEST ENGINE (DUAL-BOX TYPING WARRIORS STYLE)         */}
         {/* ============================================================== */}
         {status === 'running' && (
           <motion.div
             key="running"
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            className="flex flex-col gap-5"
+            exit={{ opacity: 0, y: -12 }}
+            className="flex flex-col gap-4"
           >
-            {/* Active Test Header (Live Stats Panel) */}
-            <div className="bg-bg-s2 border border-border rounded-xl p-4 flex items-center justify-between shadow-sm">
-              <button
-                type="button"
-                onClick={handleBackToConfig}
-                className="px-3 py-2 bg-bg-s3/40 border border-border hover:bg-bg-s3/80 hover:text-text text-text-muted rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Exit Test</span>
-              </button>
+            {/* Top Bar: Candidate Info + Exit + Reference */}
+            <div className="bg-bg-s2 border border-border rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStatus('config')}
+                  className="px-3 py-1.5 bg-bg-s3/50 hover:bg-bg-s3 border border-border hover:text-text text-text-muted rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Exit</span>
+                </button>
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-text">{candidateName}</span>
+                  <span className="text-[9px] text-text-muted font-bold">
+                    {layoutMode === 'vedmata' && 'CG High Court (Vedmata m17n Linux)'}
+                    {layoutMode === 'krutidev' && 'Kruti Dev 010 (Remington Gail)'}
+                    {layoutMode === 'mangal' && 'Mangal InScript (Unicode)'}
+                    {layoutMode === 'english' && 'English Exam Mode'}
+                  </span>
+                </div>
+              </div>
 
-              <div className="flex items-center gap-6 md:gap-10 shrink-0">
-                {/* Stat 1: Time Left */}
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4.5 h-4.5 text-saffron shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[8px] font-black text-text-muted uppercase leading-tight">Time Left</span>
-                    <span className={`text-base font-black tabular-nums leading-tight ${timeLeft <= 10 ? 'text-redL animate-pulse' : 'text-text'}`}>
-                      {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-                    </span>
-                  </div>
+              {/* Text Size Controls & Alt Codes Modal Trigger */}
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <div className="flex items-center bg-bg-s3/40 border border-border rounded-xl p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setFontSizeLevel('sm')}
+                    className={`px-2 py-1 text-[10px] font-black rounded-lg ${fontSizeLevel === 'sm' ? 'bg-saffron text-bg-s0' : 'text-text-muted'}`}
+                  >
+                    A-
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFontSizeLevel('md')}
+                    className={`px-2 py-1 text-[10px] font-black rounded-lg ${fontSizeLevel === 'md' ? 'bg-saffron text-bg-s0' : 'text-text-muted'}`}
+                  >
+                    A
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFontSizeLevel('lg')}
+                    className={`px-2 py-1 text-[10px] font-black rounded-lg ${fontSizeLevel === 'lg' ? 'bg-saffron text-bg-s0' : 'text-text-muted'}`}
+                  >
+                    A+
+                  </button>
                 </div>
 
-                {/* Stat 2: Real-time WPM */}
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4.5 h-4.5 text-greenL shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[8px] font-black text-text-muted uppercase leading-tight">Net WPM</span>
-                    <span className="text-base font-black text-greenL leading-tight">{netWpm}</span>
-                  </div>
-                </div>
-
-                {/* Stat 3: Accuracy */}
-                <div className="flex items-center gap-2">
-                  <Award className="w-4.5 h-4.5 text-purpleL shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-[8px] font-black text-text-muted uppercase leading-tight">Accuracy</span>
-                    <span className="text-base font-black text-purpleL leading-tight">{accuracy}%</span>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAltCodeModal(true)}
+                  className="px-3 py-1.5 bg-saffron-dim/20 hover:bg-saffron-dim/40 border border-saffron-border/30 text-saffron rounded-xl text-[10px] font-black uppercase flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  <span>Alt Codes (F1)</span>
+                </button>
               </div>
             </div>
 
-            {/* Unicode Preview Toggle for Hindi */}
-            {language === 'krutidev' && (
-              <div className="bg-bg-s2 border border-border rounded-xl overflow-hidden shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setShowUnicodePreview(!showUnicodePreview)}
-                  className="w-full px-4 py-3 bg-bg-s3/20 border-b border-border/40 hover:bg-bg-s3/40 transition-colors flex justify-between items-center text-xs font-bold text-text-muted cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-saffron" />
-                    <span>Hindi Unicode Translation (मददगार अनुवाद)</span>
+            {/* Live Metrics Cards Grid (Typing Warriors 5-Card HUD) */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+              
+              {/* 1. Timer */}
+              <div className={`p-3 rounded-2xl border flex flex-col items-center justify-center text-center transition-colors ${
+                timeLeft <= 60 
+                  ? 'bg-redL/15 border-redL text-redL animate-pulse' 
+                  : 'bg-bg-s2 border-saffron/40 text-saffron'
+              }`}>
+                <span className="text-xl font-black tabular-nums tracking-tight">
+                  {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                </span>
+                <span className="text-[8px] font-black uppercase tracking-wider text-text-muted mt-0.5">Time Left</span>
+              </div>
+
+              {/* 2. Net WPM */}
+              <div className="bg-bg-s2 border border-border p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                <span className="text-xl font-black text-greenL tabular-nums tracking-tight">{liveWpm}</span>
+                <span className="text-[8px] font-black uppercase tracking-wider text-text-muted mt-0.5">Net WPM</span>
+              </div>
+
+              {/* 3. Gross WPM */}
+              <div className="bg-bg-s2 border border-border p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                <span className="text-xl font-black text-text tabular-nums tracking-tight">{liveGrossWpm}</span>
+                <span className="text-[8px] font-black uppercase tracking-wider text-text-muted mt-0.5">Gross WPM</span>
+              </div>
+
+              {/* 4. Accuracy */}
+              <div className="bg-bg-s2 border border-border p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                <span className="text-xl font-black text-purpleL tabular-nums tracking-tight">{liveAccuracy}%</span>
+                <span className="text-[8px] font-black uppercase tracking-wider text-text-muted mt-0.5">Accuracy</span>
+              </div>
+
+              {/* 5. KPH (Depressions/Hour) */}
+              <div className="bg-bg-s2 border border-border p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                <span className="text-xl font-black text-blueL tabular-nums tracking-tight">{liveKph}</span>
+                <span className="text-[8px] font-black uppercase tracking-wider text-text-muted mt-0.5">KPH (Depr.)</span>
+              </div>
+
+              {/* 6. Mistakes */}
+              <div className="bg-bg-s2 border border-border p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                <span className="text-xl font-black text-redL tabular-nums tracking-tight">{mistakesCount}</span>
+                <span className="text-[8px] font-black uppercase tracking-wider text-text-muted mt-0.5">Mistakes</span>
+              </div>
+
+            </div>
+
+            {/* Unicode Translation Toggle for KrutiDev */}
+            {layoutMode === 'krutidev' && (
+              <div className="bg-bg-s2 border border-border rounded-xl p-3 flex flex-col gap-1.5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-text-muted flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-saffron" />
+                    <span>Hindi Unicode Meaning (मददगार हिंदी अनुवाद):</span>
                   </span>
-                  <span className="flex items-center gap-1">
-                    {showUnicodePreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    <span className="text-[9px] font-black uppercase">{showUnicodePreview ? 'Hide' : 'Show'}</span>
-                  </span>
-                </button>
-                <AnimatePresence>
-                  {showUnicodePreview && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <p className="p-4 text-xs md:text-sm text-text-muted/90 bg-bg-s2 leading-relaxed">
-                        {selectedTopic.hindiUnicodeText}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  <button
+                    type="button"
+                    onClick={() => setShowUnicodeHelper(!showUnicodeHelper)}
+                    className="text-[9px] font-black uppercase text-saffron flex items-center gap-1 cursor-pointer"
+                  >
+                    {showUnicodeHelper ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    <span>{showUnicodeHelper ? 'Hide' : 'Show'}</span>
+                  </button>
+                </div>
+                {showUnicodeHelper && (
+                  <p className="text-xs text-text-muted/90 italic leading-relaxed">
+                    {selectedTopic.hindiUnicodeText}
+                  </p>
+                )}
               </div>
             )}
 
-            {/* Target & Typing Area */}
-            <div 
-              onClick={handleContainerClick}
-              className={`bg-bg-s2 border rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-6 cursor-text transition-all min-h-[240px] relative ${
-                isFocused ? 'border-saffron/40 ring-1 ring-saffron/15 bg-bg-s2/95' : 'border-border'
+            {/* Dual Display: 1. Reference Passage Box (Top) */}
+            <div
+              ref={displayContainerRef}
+              className={`bg-bg-s2 border border-border rounded-2xl p-5 md:p-6 shadow-sm overflow-y-auto max-h-[220px] transition-all select-none leading-loose ${
+                fontSizeLevel === 'sm' ? 'text-base' : fontSizeLevel === 'lg' ? 'text-2xl' : 'text-xl'
               }`}
+              style={getFontFamilyStyle()}
             >
-              {/* Unfocused overlay */}
-              {!isFocused && (
-                <div className="absolute inset-0 bg-bg-s2/65 backdrop-blur-[1.5px] rounded-xl flex items-center justify-center z-10 transition-all">
-                  <div className="px-4 py-2 bg-bg-s0/90 border border-saffron-border/30 rounded-lg text-[10px] font-black text-saffron uppercase tracking-widest flex items-center gap-2 shadow animate-bounce">
-                    <Keyboard className="w-3.5 h-3.5 text-saffron" />
-                    <span>Click here to type / टाइप करने के लिए क्लिक करें</span>
-                  </div>
-                </div>
-              )}
+              {targetWords.map((word, index) => {
+                const isActive = index === currentWordIndex;
+                const isPastMistake = mistakeWordIndices.has(index);
+                const isPastCorrect = index < currentWordIndex && !isPastMistake;
 
-              {/* Text rendering block */}
-              <div 
-                ref={textContainerRef}
-                className="text-sm md:text-base leading-relaxed tracking-wide select-none"
-                style={language === 'krutidev' ? { fontFamily: 'KrutiDev010', fontSize: '1.35rem', lineHeight: '1.6', letterSpacing: '0.01em' } : undefined}
-              >
-                {targetText.split('').map((char, index) => {
-                  let charClass = '';
-                  
-                  if (index < typedText.length) {
-                    if (typedText[index] === char) {
-                      charClass = 'text-greenL font-semibold';
-                    } else {
-                      // Mark incorrect with red and underline
-                      charClass = 'text-redL border-b-2 border-redL bg-red-500/10 font-bold';
-                    }
-                  } else if (index === typedText.length) {
-                    charClass = 'bg-saffron/30 text-saffron font-semibold border-l-2 border-saffron/90 animate-[pulse_1s_infinite]';
+                let wordClassName = 'inline-block px-1 py-0.5 rounded mx-1 transition-all ';
+
+                if (isActive) {
+                  if (showHighlight) {
+                    wordClassName += isCurrentInputError && instantErrorAlert
+                      ? 'bg-redL/25 text-redL border-b-2 border-redL font-bold shadow-sm '
+                      : 'bg-saffron-dim/40 text-saffron border-b-2 border-saffron font-bold shadow-sm ';
                   } else {
-                    charClass = 'text-text-muted/65';
+                    wordClassName += 'underline font-semibold ';
                   }
+                } else if (isPastCorrect) {
+                  wordClassName += 'text-greenL/80 ';
+                } else if (isPastMistake) {
+                  wordClassName += 'text-redL line-through opacity-85 ';
+                } else {
+                  wordClassName += 'text-text-muted/80 ';
+                }
 
-                  return (
-                    <span key={index} className={`transition-all duration-75 ${charClass}`}>
-                      {char}
-                    </span>
-                  );
-                })}
-              </div>
+                return (
+                  <span
+                    key={index}
+                    ref={isActive ? activeWordRef : null}
+                    className={wordClassName}
+                  >
+                    {word}
+                  </span>
+                );
+              })}
+            </div>
 
-              {/* Hidden text area to capture keys */}
+            {/* Dual Display: 2. Interactive Typing Box (Bottom) */}
+            <div className="relative flex flex-col gap-2">
               <textarea
                 ref={inputRef}
-                value={typedText}
-                onChange={(e) => setTypedText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (!allowBackspace && (e.key === 'Backspace' || e.key === 'Delete')) {
-                    e.preventDefault();
-                  }
-                }}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                className="absolute w-1 h-1 opacity-0 pointer-events-none select-none outline-none"
+                value={fullTypedText}
+                onChange={handleInputChange}
+                onKeyDown={handleInputKeyDown}
+                placeholder="Start typing the passage here... Press SPACE after each word to proceed. / यहाँ पूरा पैसेज टाइप करें..."
                 autoComplete="off"
-                autoCapitalize="none"
+                autoCorrect="off"
+                autoCapitalize="off"
                 spellCheck={false}
+                rows={4}
+                className={`w-full min-h-[130px] max-h-[220px] p-4 md:p-5 rounded-2xl bg-bg-s2 border-2 transition-all outline-none resize-none shadow-md overflow-y-auto ${
+                  fontSizeLevel === 'sm' ? 'text-base' : fontSizeLevel === 'lg' ? 'text-2xl' : 'text-xl'
+                } ${
+                  shakeInput 
+                    ? 'border-redL ring-2 ring-redL/30 animate-[shake_0.2s_ease-in-out]' 
+                    : isCurrentInputError && instantErrorAlert
+                    ? 'border-redL ring-2 ring-redL/20 text-redL' 
+                    : 'border-saffron/60 focus:border-saffron ring-1 ring-saffron/20 text-text'
+                }`}
+                style={getFontFamilyStyle()}
               />
+
+              {/* Typing Helper Footer */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 px-1">
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-text-muted font-bold flex items-center gap-1">
+                    <Activity className="w-3.5 h-3.5 text-saffron" />
+                    <span>Word {currentWordIndex + 1} of {targetWords.length}</span>
+                  </span>
+                  {!allowBackspace && (
+                    <span className="text-[9px] font-black text-redL bg-redL/10 px-2 py-0.5 rounded-full border border-redL/30">
+                      Backspace Disabled
+                    </span>
+                  )}
+                  {backspaceCount > 0 && allowBackspace && (
+                    <span className="text-[9px] text-text-muted font-bold">
+                      Backspaces: {backspaceCount}
+                    </span>
+                  )}
+                  {(layoutMode === 'vedmata' || layoutMode === 'mangal') && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setEnableVirtualHindiKeyboard(!enableVirtualHindiKeyboard)}
+                        className={`text-[9px] font-black px-2 py-0.5 rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
+                          enableVirtualHindiKeyboard
+                            ? 'bg-saffron-dim/30 border-saffron/50 text-saffron'
+                            : 'bg-bg-s3/40 border-border text-text-muted'
+                        }`}
+                        title="Toggle in-browser Hindi layout translation on/off"
+                      >
+                        <span>⌨️ {enableVirtualHindiKeyboard ? `${layoutMode === 'vedmata' ? 'Vedmata m17n' : 'Remington'} In-Browser Active` : 'OS Direct IME'}</span>
+                      </button>
+                      {hindiEngineState.pendingChhotiI && (
+                        <span className="bg-saffron text-bg-s0 px-1.5 py-0.5 rounded text-[8px] font-black animate-pulse">
+                          ि (type consonant)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={handleStartTest}
+                    className="px-3.5 py-1.5 bg-bg-s3/40 hover:bg-bg-s3 border border-border text-text-muted hover:text-text rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Restart</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFinishTest}
+                    className="px-4 py-1.5 bg-greenL hover:bg-emerald-600 text-bg-s0 rounded-xl text-xs font-black uppercase flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-greenL/20"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Submit Test</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Footer tips */}
-            <div className="flex justify-between items-center px-2">
-              <span className="text-[9px] text-text-muted flex items-center gap-1 font-bold">
-                <AlertCircle className="w-3.5 h-3.5 text-saffron/80" />
-                <span>Tip: The test will complete automatically when you finish typing the paragraph.</span>
-              </span>
-              <button
-                type="button"
-                onClick={handleStartTest}
-                className="px-3 py-1.5 hover:text-saffron text-text-muted rounded text-[10px] font-black uppercase flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>Restart</span>
-              </button>
-            </div>
           </motion.div>
         )}
 
         {/* ============================================================== */}
-        {/* 3. TEST RESULTS SCREEN                                         */}
+        {/* 3. TEST RESULT & OFFICIAL SCORECARD SCREEN                     */}
         {/* ============================================================== */}
         {status === 'finished' && (
           <motion.div
             key="finished"
-            initial={{ opacity: 0, scale: 0.96 }}
+            initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
+            exit={{ opacity: 0, scale: 0.97 }}
             className="flex flex-col gap-6"
           >
-            {/* Header Result card */}
-            <div className="bg-bg-s2 border border-border rounded-xl p-6 shadow-sm flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-36 h-36 bg-saffron-dim/10 rounded-full blur-3xl pointer-events-none" />
-
-              {/* Badge/Cup Icon */}
-              <div className="w-20 h-20 bg-saffron-dim/20 rounded-2xl border border-saffron-border/30 flex items-center justify-center text-saffron shrink-0 shadow-inner">
-                <Award className="w-10 h-10 animate-bounce" />
-              </div>
-
-              {/* Message */}
-              <div className="flex-1 flex flex-col gap-1 text-center md:text-left">
-                <span className="text-[9px] font-black uppercase text-saffron tracking-widest leading-none">Typing Performance</span>
-                <h3 className="text-lg font-black text-text mt-1 leading-tight">{feedback.title}</h3>
-                <p className="text-xs text-text-muted leading-relaxed mt-0.5">{feedback.desc}</p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleStartTest}
-                  className="px-4 py-3 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer shadow shadow-saffron-dim"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 fill-bg-s1" />
-                  <span>Retry Test</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBackToConfig}
-                  className="px-4 py-3 bg-bg-s3/40 border border-border hover:bg-bg-s3 hover:text-text text-text-muted text-xs font-black uppercase rounded-lg transition-colors cursor-pointer"
-                >
-                  <span>New Setup</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Metrics Breakdown Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Printable Scorecard Container */}
+            <div className="typing-scorecard-print bg-bg-s2 border border-border rounded-3xl p-6 md:p-8 shadow-xl flex flex-col gap-6 relative overflow-hidden">
               
-              {/* Stat Card 1: Net WPM */}
-              <div className="bg-bg-s2 border border-border rounded-xl p-4 flex flex-col justify-between min-h-[96px]">
-                <span className="text-[9px] font-black uppercase text-text-muted leading-none">Net Speed</span>
-                <div className="flex items-baseline gap-1 mt-3">
-                  <span className="text-3xl font-black text-greenL tabular-nums leading-none">{netWpm}</span>
-                  <span className="text-[10px] font-bold text-text-muted">WPM</span>
-                </div>
-                <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">Adjusted for errors</span>
-              </div>
+              {/* Watermark / Background glow */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-saffron-dim/15 rounded-full blur-3xl pointer-events-none no-print" />
 
-              {/* Stat Card 2: Gross WPM */}
-              <div className="bg-bg-s2 border border-border rounded-xl p-4 flex flex-col justify-between min-h-[96px]">
-                <span className="text-[9px] font-black uppercase text-text-muted leading-none">Gross Speed</span>
-                <div className="flex items-baseline gap-1 mt-3">
-                  <span className="text-3xl font-black text-text tabular-nums leading-none">{grossWpm}</span>
-                  <span className="text-[10px] font-bold text-text-muted">WPM</span>
-                </div>
-                <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">Raw keystroke speed</span>
-              </div>
-
-              {/* Stat Card 3: Accuracy */}
-              <div className="bg-bg-s2 border border-border rounded-xl p-4 flex flex-col justify-between min-h-[96px]">
-                <span className="text-[9px] font-black uppercase text-text-muted leading-none">Accuracy</span>
-                <div className="flex items-baseline gap-1 mt-3">
-                  <span className="text-3xl font-black text-purpleL tabular-nums leading-none">{accuracy}%</span>
-                </div>
-                <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">Target matching correctness</span>
-              </div>
-
-              {/* Stat Card 4: Character breakdown */}
-              <div className="bg-bg-s2 border border-border rounded-xl p-4 flex flex-col justify-between min-h-[96px]">
-                <span className="text-[9px] font-black uppercase text-text-muted leading-none">Keystrokes</span>
-                <div className="flex flex-col gap-1 mt-2.5">
-                  <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-greenL">Correct:</span>
-                    <span className="tabular-nums font-black text-text">{correctChars}</span>
+              {/* Scorecard Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-border pb-5 gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-14 h-14 rounded-2xl bg-saffron-dim/20 border border-saffron-border/40 flex items-center justify-center text-saffron shrink-0">
+                    <Scale className="w-7 h-7" />
                   </div>
-                  <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-redL">Incorrect:</span>
-                    <span className="tabular-nums font-black text-text">{incorrectChars}</span>
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-saffron tracking-widest leading-none">
+                      Official Skill Test Assessment
+                    </span>
+                    <h3 className="text-xl font-black text-text mt-1 leading-tight">
+                      {examEvaluation.examName}
+                    </h3>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      Candidate: <span className="font-bold text-text">{candidateName}</span> &nbsp;|&nbsp; Date: {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
                   </div>
                 </div>
-                <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">
-                  Total: {typedText.length} keys
-                </span>
+
+                {/* Scorecard Action Buttons */}
+                <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end no-print">
+                  <button
+                    type="button"
+                    onClick={handlePrintScorecard}
+                    className="px-3.5 py-2.5 bg-bg-s3/60 hover:bg-bg-s3 border border-border rounded-xl text-xs font-black uppercase text-text flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4 text-saffron" />
+                    <span>Print / Save PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleStartTest}
+                    className="px-4 py-2.5 bg-saffron hover:bg-orange-500 text-bg-s0 rounded-xl text-xs font-black uppercase flex items-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-saffron-dim"
+                  >
+                    <RefreshCw className="w-4 h-4 fill-bg-s0" />
+                    <span>Retake Test</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatus('config')}
+                    className="px-3.5 py-2.5 bg-bg-s3/40 hover:bg-bg-s3 border border-border rounded-xl text-xs font-black uppercase text-text-muted hover:text-text transition-colors cursor-pointer"
+                  >
+                    <span>New Setup</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Qualification Stamp / Verdict Banner */}
+              <div className={`p-4 md:p-5 rounded-2xl border flex flex-col md:flex-row items-center justify-between gap-4 ${
+                examEvaluation.isPass 
+                  ? 'bg-greenL/10 border-greenL/40 text-greenL' 
+                  : 'bg-redL/10 border-redL/40 text-redL'
+              }`}>
+                <div className="flex items-center gap-3 text-center md:text-left">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                    examEvaluation.isPass ? 'bg-greenL/20 text-greenL' : 'bg-redL/20 text-redL'
+                  }`}>
+                    {examEvaluation.isPass ? <Award className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+                  </div>
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-wider">
+                      {examEvaluation.isPass ? 'QUALIFIED FOR SKILL TEST' : 'NEEDS SPEED & ACCURACY IMPROVEMENT'}
+                    </span>
+                    <p className="text-xs text-text-muted mt-0.5 max-w-xl">
+                      {examEvaluation.remarks}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Score / Mark summary */}
+                <div className="flex items-center gap-4 bg-bg-s0/40 px-4 py-2.5 rounded-xl border border-border/40 shrink-0">
+                  <div className="flex flex-col text-right">
+                    <span className="text-[8px] font-black uppercase text-text-muted">High Court Score</span>
+                    <span className="text-base font-black text-text">
+                      {examEvaluation.score} / {examEvaluation.maxScore}
+                    </span>
+                  </div>
+                  <div className="h-7 w-px bg-border/60" />
+                  <div className="flex flex-col text-right">
+                    <span className="text-[8px] font-black uppercase text-text-muted">Deductions</span>
+                    <span className="text-base font-black text-redL">
+                      -{examEvaluation.marksDeduction}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailed Metrics Breakdown Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                
+                {/* 1. Net Speed */}
+                <div className="bg-bg-s3/30 border border-border rounded-2xl p-4 flex flex-col justify-between">
+                  <span className="text-[9px] font-black uppercase text-text-muted">Net Speed (WPM)</span>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-3xl font-black text-greenL tabular-nums">{liveWpm}</span>
+                    <span className="text-[10px] font-bold text-text-muted">WPM</span>
+                  </div>
+                  <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">
+                    Req: {examEvaluation.requiredSpeed}
+                  </span>
+                </div>
+
+                {/* 2. Gross Speed */}
+                <div className="bg-bg-s3/30 border border-border rounded-2xl p-4 flex flex-col justify-between">
+                  <span className="text-[9px] font-black uppercase text-text-muted">Gross Speed</span>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-3xl font-black text-text tabular-nums">{liveGrossWpm}</span>
+                    <span className="text-[10px] font-bold text-text-muted">WPM</span>
+                  </div>
+                  <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">
+                    Raw typing speed
+                  </span>
+                </div>
+
+                {/* 3. Accuracy */}
+                <div className="bg-bg-s3/30 border border-border rounded-2xl p-4 flex flex-col justify-between">
+                  <span className="text-[9px] font-black uppercase text-text-muted">Accuracy Rate</span>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-3xl font-black text-purpleL tabular-nums">{liveAccuracy}%</span>
+                  </div>
+                  <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">
+                    Req: {examEvaluation.requiredAccuracy}
+                  </span>
+                </div>
+
+                {/* 4. KPH (Depressions/Hour) */}
+                <div className="bg-bg-s3/30 border border-border rounded-2xl p-4 flex flex-col justify-between">
+                  <span className="text-[9px] font-black uppercase text-text-muted">Depressions (KPH)</span>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-3xl font-black text-blueL tabular-nums">{liveKph}</span>
+                    <span className="text-[10px] font-bold text-text-muted">KPH</span>
+                  </div>
+                  <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">
+                    Key depressions / hour
+                  </span>
+                </div>
+
+                {/* 5. Total Strokes */}
+                <div className="bg-bg-s3/30 border border-border rounded-2xl p-4 flex flex-col justify-between">
+                  <span className="text-[9px] font-black uppercase text-text-muted">Total Keystrokes</span>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-2xl font-black text-text tabular-nums">{totalKeystrokes}</span>
+                    <span className="text-[10px] font-bold text-greenL">({correctKeystrokes} correct)</span>
+                  </div>
+                  <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">
+                    Backspaces: {backspaceCount}
+                  </span>
+                </div>
+
+                {/* 6. Mistakes Count */}
+                <div className="bg-bg-s3/30 border border-border rounded-2xl p-4 flex flex-col justify-between">
+                  <span className="text-[9px] font-black uppercase text-text-muted">Total Mistakes</span>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-2xl font-black text-redL tabular-nums">{mistakesCount}</span>
+                    <span className="text-[10px] font-bold text-text-muted">words</span>
+                  </div>
+                  <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">
+                    Error rate: {targetWords.length > 0 ? ((mistakesCount / targetWords.length) * 100).toFixed(1) : 0}%
+                  </span>
+                </div>
+
+                {/* 7. Words Count */}
+                <div className="bg-bg-s3/30 border border-border rounded-2xl p-4 flex flex-col justify-between">
+                  <span className="text-[9px] font-black uppercase text-text-muted">Words Progress</span>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-2xl font-black text-text tabular-nums">{userTypedWords.length}</span>
+                    <span className="text-[10px] font-bold text-text-muted">/ {targetWords.length}</span>
+                  </div>
+                  <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">
+                    Passage completion
+                  </span>
+                </div>
+
+                {/* 8. Duration Elapsed */}
+                <div className="bg-bg-s3/30 border border-border rounded-2xl p-4 flex flex-col justify-between">
+                  <span className="text-[9px] font-black uppercase text-text-muted">Time Elapsed</span>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-2xl font-black text-text tabular-nums">
+                      {Math.floor((duration - timeLeft) / 60)}:{( (duration - timeLeft) % 60 ).toString().padStart(2, '0')}
+                    </span>
+                    <span className="text-[10px] font-bold text-text-muted">mins</span>
+                  </div>
+                  <span className="text-[8px] text-text-muted/80 font-bold border-t border-border/30 pt-1.5 mt-2">
+                    Configured: {Math.floor(duration / 60)} mins
+                  </span>
+                </div>
+
+              </div>
+
+              {/* Word-by-Word Interactive Error Audit (Typing Warriors Style) */}
+              <div className="flex flex-col gap-3 pt-3 border-t border-border">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-saffron" />
+                    <span className="text-xs font-black uppercase text-text">Word-by-Word Passage Audit</span>
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-1.5 no-print">
+                    <button
+                      type="button"
+                      onClick={() => setReviewFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors ${
+                        reviewFilter === 'all' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted'
+                      }`}
+                    >
+                      All ({targetWords.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReviewFilter('mistakes')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors ${
+                        reviewFilter === 'mistakes' ? 'bg-redL text-white' : 'bg-bg-s3/40 text-text-muted'
+                      }`}
+                    >
+                      Mistakes ({mistakesCount})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReviewFilter('correct')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors ${
+                        reviewFilter === 'correct' ? 'bg-greenL text-bg-s0' : 'bg-bg-s3/40 text-text-muted'
+                      }`}
+                    >
+                      Correct ({userTypedWords.length - mistakesCount})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Interactive Word Audit Box */}
+                <div 
+                  className="p-4 rounded-2xl bg-bg-s3/20 border border-border max-h-[260px] overflow-y-auto leading-relaxed flex flex-wrap gap-1.5"
+                  style={getFontFamilyStyle()}
+                >
+                  {targetWords.map((targetWord, idx) => {
+                    const typed = userTypedWords[idx];
+                    const isMistake = mistakeWordIndices.has(idx);
+                    const isTyped = typed !== undefined;
+                    const isCorrect = isTyped && !isMistake;
+
+                    if (reviewFilter === 'mistakes' && !isMistake) return null;
+                    if (reviewFilter === 'correct' && !isCorrect) return null;
+
+                    if (isMistake) {
+                      return (
+                        <span
+                          key={idx}
+                          className="inline-flex flex-col items-center bg-redL/15 border border-redL/40 px-2 py-0.5 rounded text-xs text-redL font-bold"
+                          title={`Target: "${targetWord}" | Typed: "${typed || ''}"`}
+                        >
+                          <span className="line-through opacity-70">{typed || '∅'}</span>
+                          <span className="text-[10px] text-text font-normal">[{targetWord}]</span>
+                        </span>
+                      );
+                    }
+
+                    if (isCorrect) {
+                      return (
+                        <span
+                          key={idx}
+                          className="inline-block bg-greenL/15 border border-greenL/30 px-1.5 py-0.5 rounded text-xs text-greenL font-medium"
+                        >
+                          {targetWord}
+                        </span>
+                      );
+                    }
+
+                    return (
+                      <span
+                        key={idx}
+                        className="inline-block px-1.5 py-0.5 text-xs text-text-muted/40 italic"
+                      >
+                        {targetWord}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
 
             </div>
-
-            {/* Text Comparison Review Box */}
-            <div className="bg-bg-s2 border border-border rounded-xl p-5 flex flex-col gap-4">
-              <h4 className="text-xs font-black uppercase text-text border-b border-border/60 pb-2 flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-saffron" />
-                <span>Text Accuracy Review</span>
-              </h4>
-
-              <div className="flex flex-col gap-3">
-                {/* 1. Target Text */}
-                <div className="p-3 bg-bg-s3/20 border border-border/80 rounded-lg flex flex-col gap-1">
-                  <span className="text-[8px] font-black uppercase text-text-muted tracking-wider">Target Text (संदर्भ पाठ):</span>
-                  <p 
-                    className="text-xs md:text-sm text-text/80 leading-relaxed"
-                    style={language === 'krutidev' ? { fontFamily: 'KrutiDev010', fontSize: '1.15rem', lineHeight: '1.5' } : undefined}
-                  >
-                    {targetText}
-                  </p>
-                </div>
-
-                {/* 2. User typed text */}
-                <div className="p-3 bg-bg-s3/20 border border-border/80 rounded-lg flex flex-col gap-1">
-                  <span className="text-[8px] font-black uppercase text-text-muted tracking-wider">Your Typed Text (आपका टाइप किया गया):</span>
-                  <p 
-                    className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap"
-                    style={language === 'krutidev' ? { fontFamily: 'KrutiDev010', fontSize: '1.15rem', lineHeight: '1.5' } : undefined}
-                  >
-                    {typedText || <span className="italic text-text-muted/65">No text was typed.</span>}
-                  </p>
-                </div>
-              </div>
-            </div>
-
           </motion.div>
         )}
 
       </AnimatePresence>
+
+      {/* ============================================================== */}
+      {/* 4. MODAL: KRUTIDEV ALT CODES & EXAM GUIDELINES (F1 TRIGGERED)  */}
+      {/* ============================================================== */}
+      <AnimatePresence>
+        {showAltCodeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg-s0/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-bg-s2 border border-border rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="p-5 border-b border-border flex items-center justify-between bg-bg-s3/20">
+                <div className="flex items-center gap-2.5">
+                  <BookOpen className="w-5 h-5 text-saffron" />
+                  <div>
+                    <h3 className="text-sm font-black text-text uppercase">
+                      KrutiDev Alt Codes & Exam Guidelines
+                    </h3>
+                    <p className="text-[10px] text-text-muted">
+                      Quick Reference Cheat Sheet for Remington Gail & CG High Court
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAltCodeModal(false)}
+                  className="p-1.5 rounded-xl hover:bg-bg-s3 text-text-muted hover:text-text cursor-pointer transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Search Bar */}
+              <div className="p-4 border-b border-border/60 bg-bg-s2">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={altCodeSearch}
+                    onChange={(e) => setAltCodeSearch(e.target.value)}
+                    placeholder="Search Alt Code (e.g. 0216, क्र, त्र, द्ध)..."
+                    className="w-full pl-9 pr-4 py-2 text-xs bg-bg-s3/50 border border-border rounded-xl focus:border-saffron focus:outline-none text-text"
+                  />
+                </div>
+              </div>
+
+              {/* Alt Codes Table Container */}
+              <div className="p-4 overflow-y-auto flex-1 flex flex-col gap-4">
+                
+                {/* 1. Alt Code Quick Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {KRUTIDEV_ALT_CODES.filter(item => 
+                    item.code.toLowerCase().includes(altCodeSearch.toLowerCase()) ||
+                    item.symbol.includes(altCodeSearch) ||
+                    item.example.includes(altCodeSearch)
+                  ).map((item, i) => (
+                    <div
+                      key={i}
+                      className="p-2.5 rounded-xl bg-bg-s3/30 border border-border/80 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span 
+                          className="text-lg font-black text-saffron w-8 text-center"
+                          style={{ fontFamily: 'KrutiDev010, serif' }}
+                        >
+                          {item.symbol}
+                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-mono font-black text-text bg-bg-s0/60 px-1.5 py-0.5 rounded border border-border/40 self-start">
+                            {item.code}
+                          </span>
+                          <span className="text-[9px] text-text-muted mt-0.5">{item.example}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 2. CG High Court Marking Scheme Info Box */}
+                <div className="p-4 rounded-2xl bg-saffron-dim/15 border border-saffron-border/40 flex flex-col gap-1.5 mt-2">
+                  <span className="text-xs font-black text-saffron uppercase flex items-center gap-1.5">
+                    <Scale className="w-4 h-4" />
+                    <span>CG High Court AG-III / DEO Examination Rules</span>
+                  </span>
+                  <ul className="text-[11px] text-text-muted leading-relaxed list-disc list-inside flex flex-col gap-1 mt-1">
+                    <li><strong>Exam Duration:</strong> 10 Minutes (250 Words Hindi Passage).</li>
+                    <li><strong>Required Speed:</strong> Minimum 25 WPM / 5,000 Key Depressions per hour.</li>
+                    <li><strong>Marking Scheme:</strong> Total 50 Marks. Deduction of 0.5 (1/2) mark for every mistake or omission.</li>
+                    <li><strong>Operating System:</strong> Ubuntu Linux using Vedmata m17n keyboard layout.</li>
+                  </ul>
+                </div>
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-border bg-bg-s3/20 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowAltCodeModal(false)}
+                  className="px-5 py-2 bg-saffron hover:bg-orange-500 text-bg-s0 rounded-xl text-xs font-black uppercase cursor-pointer"
+                >
+                  Close Reference
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };

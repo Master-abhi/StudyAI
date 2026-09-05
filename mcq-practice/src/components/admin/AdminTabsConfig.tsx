@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Sliders, Save, Loader2, CheckCircle, ShieldAlert, 
   Home, Trophy, MessageSquare, Newspaper, BookOpen, User, Eye, EyeOff,
-  BrainCircuit, RefreshCw, BarChart3, Lightbulb, Briefcase, Search, Layers, X
+  BrainCircuit, RefreshCw, BarChart3, Lightbulb, Briefcase, Search, Layers, X,
+  Keyboard
 } from 'lucide-react';
 
 interface AdminTabsConfigProps {
@@ -21,6 +22,7 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
   const [visibility, setVisibility] = useState<Record<string, boolean>>({
     home: true,
     practice: true,
+    typing: true,
     chat: true,
     news: true,
     jobs: true,
@@ -161,15 +163,16 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
   const tabDefs: TabDef[] = [
     // Main Navigation
     { id: 'home', label: 'Home', category: 'main', desc: 'Main student dashboard containing streak progress, target exam details, quick action shortcuts, and subject completion list cards.', icon: Home },
-    { id: 'practice', label: 'Practice', category: 'main', desc: 'Interactive practice sessions offering custom mock tests, daily speed quizzes, and previous year papers (PYQs).', icon: Trophy },
+    { id: 'practice', label: 'Tests', category: 'main', desc: 'Interactive test sessions offering custom mock tests, daily speed quizzes, and previous year papers (PYQs).', icon: Trophy },
+    { id: 'typing', label: 'Typing Test', category: 'main', desc: 'Official live typing test arena for CG High Court, CPCT KrutiDev, Mangal & English speed tests with real-time WPM calculation.', icon: Keyboard },
     { id: 'chat', label: 'AI Guru', category: 'main', desc: 'The AI Tutor Chat Bot interface offering instant doubt clearing, spaced repetition recall questions, and study assistance.', icon: MessageSquare },
     { id: 'news', label: 'News & Alerts', category: 'main', desc: 'Bilingual news feeds summarizing state notifications and current affairs updates.', icon: Newspaper },
     { id: 'jobs', label: 'Jobs & Vacancies', category: 'main', desc: 'Dedicated Sarkari Job alerts, recruitment notices, qualification requirements, and direct application links.', icon: Briefcase },
     { id: 'syllabus', label: 'Syllabus', category: 'main', desc: 'Detailed syllabus trackers featuring custom exam syllabi parsing, study material PDFs, and learning checklists.', icon: BookOpen },
     { id: 'profile', label: 'Profile', category: 'main', desc: 'User history panel displaying stats, rolling weekly MCQ charts, achievements, global leaderboards, and system settings.', icon: User },
 
-    // Practice Sub-Sections
-    { id: 'practice_pyq', label: 'Practice: PYQ Papers', category: 'practice', desc: 'Previous Year Question (PYQ) papers section inside the Practice tab. Displays preloaded exam papers and solutions.', icon: BookOpen },
+    // Practice / Tests Sub-Sections
+    { id: 'practice_pyq', label: 'Tests: PYQ Papers', category: 'practice', desc: 'Previous Year Question (PYQ) papers section inside the Tests tab. Displays preloaded exam papers and solutions.', icon: BookOpen },
 
     // Syllabus Sub-Tabs
     { id: 'syllabus_ai_planner', label: 'Syllabus: AI Study Planner', category: 'syllabus', desc: 'AI Study Planner tab inside the Syllabus tab. Provides personalized day-by-day study schedules and progress tracking.', icon: BrainCircuit },
@@ -180,7 +183,7 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
 
   const categoryMeta = {
     main: { title: 'Main App Navigation Tabs', desc: 'Primary navigation bar & sidebar links for students' },
-    practice: { title: 'Practice Section Sub-Tabs', desc: 'Sub-features and question banks inside Practice tab' },
+    practice: { title: 'Tests Section Sub-Tabs', desc: 'Sub-features and question banks inside Tests tab' },
     syllabus: { title: 'Syllabus Section Sub-Tabs', desc: 'Planner, Revision, Analytics, and Strategy sub-tabs' }
   };
 

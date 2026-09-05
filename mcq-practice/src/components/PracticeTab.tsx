@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, ChevronLeft, Zap, BookOpen, Search, SlidersHorizontal, X, Keyboard, Download, CheckCircle2, HardDriveDownload, Loader2, Share2, FolderOpen, Layers } from 'lucide-react';
+import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, ChevronLeft, Zap, BookOpen, Search, SlidersHorizontal, X, Download, CheckCircle2, HardDriveDownload, Loader2, Share2, FolderOpen, Layers } from 'lucide-react';
 import type { Question } from '../types';
-import { TypingTest } from './TypingTest';
 import { getCanonicalSubject } from '../utils/subjectUtils';
 
 interface ServerTest {
@@ -35,11 +34,9 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   bookmarkedQuestions = [],
   onToggleBookmark,
   testHistory = [],
-  currentUser,
-  onSaveTypingResults,
   tabVisibility
 }) => {
-  const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'offline' | 'typing' | 'saved'>('quiz');
+  const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'offline' | 'saved'>('quiz');
   const [tests, setTests] = useState<ServerTest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedSavedQuestion, setSelectedSavedQuestion] = useState<Question | null>(null);
@@ -457,20 +454,19 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
         <div className="flex items-center gap-2">
           <Trophy className="w-5.5 h-5.5 text-saffron" />
           <div className="flex flex-col">
-            <h3 className="text-sm font-black uppercase text-text leading-tight">Practice Tests</h3>
+            <h3 className="text-sm font-black uppercase text-text leading-tight">Tests</h3>
             <span className="text-[9px] text-text-muted font-bold tracking-wider">Mock Exams & Quizzes</span>
           </div>
         </div>
       </div>
 
       {/* 2. Unified Mode selectors */}
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 shrink-0">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 shrink-0">
         {[
           { id: 'quiz', label: 'Quizzes', icon: <Zap className="w-5 h-5 text-saffron" />, desc: 'Educator tests' },
           { id: 'mock', label: 'Mock Exams', icon: <Trophy className="w-5 h-5 text-saffron" />, desc: 'Full length tests' },
           { id: 'pyq', label: 'PYQ Papers', icon: <BookOpen className="w-5 h-5 text-saffron" />, desc: 'Previous papers', configKey: 'practice_pyq' },
           { id: 'offline', label: 'Offline Tests', icon: <HardDriveDownload className="w-5 h-5 text-saffron" />, desc: `Downloaded (${Object.keys(offlineTests).length})` },
-          { id: 'typing', label: 'Typing Test', icon: <Keyboard className="w-5 h-5 text-saffron" />, desc: 'Speed & Accuracy' },
           { id: 'saved', label: 'Saved MCQs', icon: <Bookmark className="w-5 h-5 text-saffron" />, desc: `Saved (${bookmarkedQuestions.length})` }
         ].filter(m => !m.configKey || (tabVisibility?.[m.configKey] !== false && tabVisibility?.[m.id] !== false)).map(m => (
           <button
@@ -497,8 +493,6 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
           <div className="h-28 bg-bg-s2 border border-border rounded-xl flex items-center justify-center animate-pulse text-xs text-text-muted">
             Loading tests...
           </div>
-        ) : activeMode === 'typing' ? (
-          <TypingTest currentUser={currentUser} onSaveResults={onSaveTypingResults} />
         ) : activeMode === 'pyq' ? (
           /* Uploaded PYQ list */
           <div className="flex flex-col gap-6">

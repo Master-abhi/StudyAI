@@ -1,0 +1,38 @@
+{
+  "rank": 3,
+  "totalUsers": 8,
+  "leaderboard": [
+    {
+      "uid": "qSO62CCE8Ff3YcdYtquWwAbrnOB2",
+      "displayName": "Abhishek",
+      "points": 1656,
+      "photoURL": ""
+    },
+    {
+      "uid": "nxsZuG3pGcUhiRuMjUbnuvmbGyJ2",
+      "displayName": "Sama",
+      "points": 841,
+      "photoURL": ""
+    },
+    {
+      "uid": "DeP1ODhuNYgsuvCLqMVQM7mJf8i2",
+      "displayName": "Abhishek",
+      "points": 314,
+      "photoURL": ""
+    },
+    {
+      "uid": "Gzw8l3phNQW4mjt5JwDB0e3CkQW2",
+      "displayName": "Adarsh sao",
+      "points": 0,
+      "photoURL": ""
+    },
+    {
+      "uid": "K1PZCcLoaHWgz2SQO1kpVxvJrAG3",
+      "displayName": "Anurag sao",
+      "points": 0,
+      "photoURL": ""
+    }
+  ],
+  "followersCount": 0,
+  "followingCount": 0
+}

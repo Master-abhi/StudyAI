@@ -241,6 +241,33 @@
   }
 }
 
+/* Typing Test Print Scorecard Styles */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  aside, nav, header, button:not(.print-include), .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .typing-scorecard-print {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 2px solid #1f2937 !important;
+    box-shadow: none !important;
+    border-radius: 8px !important;
+    padding: 24px !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+  }
+  .typing-scorecard-print * {
+    color: inherit !important;
+  }
+}
+
 /* Mobile Screen Orientation & Layout Lock Rules */
 @media screen and (max-device-width: 950px), screen and (max-height: 550px) {
   /* Prevent desktop sidebar from popping up on mobile devices in landscape mode or screen tilts */
@@ -257,4 +284,5 @@
     display: flex !important;
   }
 }
+
 

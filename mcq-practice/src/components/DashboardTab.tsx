@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Flame, BookOpen, ChevronRight, Trophy, Zap, Landmark, Home, Shield, Bot, Sparkles,
-  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target
+  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -316,11 +316,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         {/* 4. Quick Action Options Grid */}
         <div className="flex flex-col gap-3">
           <h4 className="text-[10px] font-black uppercase text-text-muted tracking-wider">Quick Shortcuts</h4>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {tabVisibility?.practice !== false && (
               <button
                 onClick={() => onStartPracticeMode('mock')}
-                className="p-3.5 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+                className="p-3 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
               >
                 <Trophy className="w-5 h-5 text-saffron" />
                 <span className="text-xs font-bold text-text mt-0.5">Mock Test</span>
@@ -328,10 +328,21 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               </button>
             )}
 
+            {tabVisibility?.typing !== false && (
+              <button
+                onClick={() => onNavigateToTab('typing')}
+                className="p-3 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+              >
+                <Keyboard className="w-5 h-5 text-saffron" />
+                <span className="text-xs font-bold text-text mt-0.5">Typing Test</span>
+                <span className="text-[9px] text-text-muted font-bold leading-tight truncate">Speed & Accuracy</span>
+              </button>
+            )}
+
             {tabVisibility?.chat !== false && (
               <button
                 onClick={() => onNavigateToTab('chat')}
-                className="p-3.5 bg-green-500/5 hover:bg-green-500/10 border border-green-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+                className="p-3 bg-green-500/5 hover:bg-green-500/10 border border-green-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
               >
                 <Bot className="w-5 h-5 text-saffron" />
                 <span className="text-xs font-bold text-text mt-0.5">AI Tutor</span>
@@ -342,7 +353,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             {tabVisibility?.syllabus !== false && (
               <button
                 onClick={() => onNavigateToTab('syllabus')}
-                className="p-3.5 bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+                className="p-3 bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
               >
                 <BookOpen className="w-5 h-5 text-saffron" />
                 <span className="text-xs font-bold text-text mt-0.5">Syllabus</span>
