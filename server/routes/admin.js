@@ -592,6 +592,10 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
       const details = art.details || art.job_details || art.description || art.description_hi || art.summary || art.summary_hi || '';
       const historyEn = art.history || art.historicalContext || art.history_en || '';
       const historyHi = art.history_hi || art.historicalContext_hi || art.history_hi || '';
+      const syllabus = art.syllabus || art.examPattern || art.exam_pattern || '';
+      const postDetails = art.postDetails || art.post_details || '';
+      const howToApply = art.howToApply || art.how_to_apply || '';
+      const examDate = art.examDate || art.exam_date || art.importantDates || '';
 
       const cleanArt = {
         title: cleanTitle,
@@ -616,6 +620,11 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
         mode: mode,
         selectionProcess: selection,
         details: details,
+        syllabus: syllabus,
+        examPattern: syllabus,
+        postDetails: postDetails,
+        howToApply: howToApply,
+        examDate: examDate,
         state: art.state || 'CG',
         pubDate: lDate || timestamp.split('T')[0],
         date: lDate || timestamp.split('T')[0],

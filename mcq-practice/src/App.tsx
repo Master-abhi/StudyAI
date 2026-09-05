@@ -351,13 +351,8 @@ export default function App() {
       } catch (e) {}
       setDeferredInstallPrompt(null);
     } else {
-      const apkUrl = '/cgguru.apk';
-      const a = document.createElement('a');
-      a.href = apkUrl;
-      a.download = 'CG_Guru_App.apk';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const apkUrl = 'https://drive.google.com/uc?export=download&id=1vLWHyisFtl3B7XEfOJDgWS56XZvHtyPY';
+      window.open(apkUrl, '_blank');
     }
   };
   const [reportModalOpen, setReportModalOpen] = useState<boolean>(false);
@@ -1090,10 +1085,12 @@ export default function App() {
                   setTopicProgress(prev => ({ ...prev, ...data.topicProgress }));
                 }
                 const todayKey = new Date().toISOString().split('T')[0];
-                if (data.readArticlesToday && Array.isArray(data.readArticlesToday)) {
+                if (data.readArticlesDate === todayKey && Array.isArray(data.readArticlesToday)) {
                   localStorage.setItem(`cg_read_articles_${todayKey}`, JSON.stringify(data.readArticlesToday));
+                } else if (data.readArticlesDate && data.readArticlesDate !== todayKey) {
+                  localStorage.setItem(`cg_read_articles_${todayKey}`, JSON.stringify([]));
                 }
-                if (data.completedTasksToday && typeof data.completedTasksToday === 'object') {
+                if (data.completedTasksDate === todayKey && data.completedTasksToday && typeof data.completedTasksToday === 'object') {
                   if (data.completedTasksToday.completedTopic) {
                     localStorage.setItem(`cg_topic_completed_${todayKey}`, 'true');
                   }
@@ -1204,12 +1201,13 @@ export default function App() {
           setTestHistory(profileData.testResults || []);
           setTypingResults(profileData.typingResults || []);
           setUserMobile(profileData.mobile || '');
-          if (profileData.readArticlesToday && Array.isArray(profileData.readArticlesToday)) {
-            const todayKey = new Date().toISOString().split('T')[0];
+          const todayKey = new Date().toISOString().split('T')[0];
+          if (profileData.readArticlesDate === todayKey && Array.isArray(profileData.readArticlesToday)) {
             localStorage.setItem(`cg_read_articles_${todayKey}`, JSON.stringify(profileData.readArticlesToday));
+          } else if (profileData.readArticlesDate && profileData.readArticlesDate !== todayKey) {
+            localStorage.setItem(`cg_read_articles_${todayKey}`, JSON.stringify([]));
           }
-          if (profileData.completedTasksToday && typeof profileData.completedTasksToday === 'object') {
-            const todayKey = new Date().toISOString().split('T')[0];
+          if (profileData.completedTasksDate === todayKey && profileData.completedTasksToday && typeof profileData.completedTasksToday === 'object') {
             if (profileData.completedTasksToday.completedTopic) {
               localStorage.setItem(`cg_topic_completed_${todayKey}`, 'true');
             }
@@ -2321,7 +2319,7 @@ export default function App() {
           />
         );
       case 'jobs':
-        return <JobsTab currentUser={currentUser} />;
+        return <JobsTab currentUser={currentUser} onNavigateToTab={(tabId) => setActiveTab(tabId as any)} />;
       case 'profile':
         return (
           <ProfileTab

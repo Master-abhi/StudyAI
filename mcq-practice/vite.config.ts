@@ -12,14 +12,28 @@ function syncRootIndexPlugin() {
       const src = path.resolve(__dirname, '../public/mcq-practice/index.html');
       const dest = path.resolve(__dirname, '../public/index.html');
       if (fs.existsSync(src)) {
-        fs.copyFileSync(src, dest);
-        console.log('[sync-root-index] Copied mcq-practice/index.html → public/index.html ✅');
+        try {
+          fs.copyFileSync(src, dest);
+          console.log('[sync-root-index] Copied mcq-practice/index.html → public/index.html ✅');
+        } catch (e: any) {
+          try {
+            const content = fs.readFileSync(src, 'utf-8');
+            fs.writeFileSync(dest, content, 'utf-8');
+            console.log('[sync-root-index] Written mcq-practice/index.html → public/index.html (via writeFileSync) ✅');
+          } catch (err: any) {
+            console.warn('[sync-root-index] Could not overwrite public/index.html:', err.message);
+          }
+        }
       }
       const apkSrc = path.resolve(__dirname, 'public/cgguru.apk');
       const apkDest = path.resolve(__dirname, '../public/cgguru.apk');
       if (fs.existsSync(apkSrc)) {
-        fs.copyFileSync(apkSrc, apkDest);
-        console.log('[sync-root-index] Synced cgguru.apk → public/cgguru.apk ✅');
+        try {
+          fs.copyFileSync(apkSrc, apkDest);
+          console.log('[sync-root-index] Synced cgguru.apk → public/cgguru.apk ✅');
+        } catch (e: any) {
+          console.warn('[sync-root-index] Could not sync cgguru.apk:', e.message);
+        }
       }
     }
   };

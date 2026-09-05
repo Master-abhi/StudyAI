@@ -1,0 +1,1 @@
+import{n as e}from"./index-K851-R2-.js";var t=class extends e{async show(e){}async hide(e){}};export{t as SplashScreenWeb};

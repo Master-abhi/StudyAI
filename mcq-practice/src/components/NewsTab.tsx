@@ -377,6 +377,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
           if (firebase && firebase.apps && firebase.apps.length > 0) {
             firebase.firestore().collection('users').doc(currentUser.uid).set({
               readArticlesToday: updated,
+              readArticlesDate: todayKey,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).catch((err: any) => console.warn('News sync error:', err));
           }

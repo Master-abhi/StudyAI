@@ -282,7 +282,7 @@ router.post('/sync', async (req, res) => {
     //   return res.status(403).json({ error: 'Please verify your email address before syncing data.' });
     // }
 
-    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email, username, photoURL, typingResults, topicProgress, bookmarks, readArticlesToday, completedTasksToday, savedNews, savedJobs, examTargetDates, appLanguage, theme, testProgress } = req.body;
+    const { testResults, points, mcqsSolved, streak, subjects, progress, selectedExam, mobile, displayName, email, username, photoURL, typingResults, topicProgress, bookmarks, readArticlesToday, readArticlesDate, completedTasksToday, savedNews, savedJobs, examTargetDates, appLanguage, theme, testProgress } = req.body;
 
     const update = {};
     const cleanTyping = cleanTypingResults(typingResults);
@@ -311,6 +311,7 @@ router.post('/sync', async (req, res) => {
     if (topicProgress && typeof topicProgress === 'object') update.topicProgress = topicProgress;
     if (Array.isArray(bookmarks)) update.bookmarks = bookmarks;
     if (readArticlesToday) update.readArticlesToday = readArticlesToday;
+    if (readArticlesDate) update.readArticlesDate = cleanString(readArticlesDate, 20);
     if (completedTasksToday) update.completedTasksToday = completedTasksToday;
     if (Array.isArray(savedNews)) update.savedNews = savedNews;
     if (Array.isArray(savedJobs)) update.savedJobs = savedJobs;

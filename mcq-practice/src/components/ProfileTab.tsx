@@ -82,8 +82,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   onUploadAvatar,
   onVisitProfile
 }) => {
-  const [showHistoryLimit, setShowHistoryLimit] = useState<number>(5);
-  const [showTypingLimit, setShowTypingLimit] = useState<number>(5);
   const [uploadingAvatar, setUploadingAvatar] = useState<boolean>(false);
 
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -593,8 +591,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         </div>
       </div>
 
-      {/* Left Column: Admin Entry, Core Stats, Meters, Diagnostics, Achievements, Settings */}
-      <div className="flex flex-col gap-6 md:col-span-7">
+      {/* Left Column: Admin Entry, Core Stats, Meters, Diagnostics, Test Logs */}
+      <div className="flex flex-col gap-6 md:col-span-6">
         
         {/* Admin Panel Entry Link */}
         {isAdmin && onOpenAdmin && (
@@ -771,64 +769,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
         </div>
 
-        {/* Achievements Card */}
-        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-4">
-          <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
-            <Award className="w-4 h-4 text-saffron" />
-            <span>Unlocked Badges & Achievements</span>
-          </h4>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-            {loadingBadges ? (
-              <div className="col-span-2 flex items-center justify-center py-6 gap-2 text-text-muted">
-                <Loader2 className="w-4 h-4 animate-spin text-saffron" />
-                <span className="text-[10px] font-black uppercase tracking-wider">Syncing Badges...</span>
-              </div>
-            ) : configuredBadges.length === 0 ? (
-              <div className="col-span-2 text-center py-6 text-xs text-text-muted italic">
-                No achievements configured.
-              </div>
-            ) : (
-              configuredBadges.map((ach) => {
-                const unlocked = isBadgeUnlocked(ach);
-                return (
-                  <div 
-                    key={ach.id}
-                    className={`p-3 border rounded-xl flex items-center gap-3 transition-all duration-300 relative overflow-hidden ${
-                      unlocked 
-                        ? `bg-gradient-to-br ${ach.color} hover:scale-[1.02] shadow` 
-                        : 'bg-bg-s3/40 border-border/30 opacity-40 grayscale select-none'
-                    }`}
-                  >
-                    {unlocked && (
-                      <div className="absolute -top-6 -right-6 w-12 h-12 bg-white/5 rounded-full blur-md" />
-                    )}
-                    
-                    <DynamicIcon name={ach.icon} className="w-6 h-6 shrink-0" />
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-black text-text uppercase tracking-wide truncate">{ach.name}</span>
-                      <span className="text-[9px] text-text-muted mt-0.5 leading-snug">{ach.desc}</span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
 
         {/* 6. Diagnostics: Strong & Weak Areas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Strong Areas */}
-          <div className="p-4.5 bg-greenL/5 border border-greenL/15 hover:border-greenL/30 rounded-xl shadow-md hover:shadow-greenL/5 flex flex-col gap-3 transition-all duration-300">
+          <div className="p-4.5 bg-greenL/5 border border-greenL/15 hover:border-greenL/30 rounded-xl shadow-md hover:shadow-greenL/5 flex flex-col gap-3 transition-all duration-300 min-h-[260px]">
             <h5 className="text-[10px] font-black uppercase text-greenL flex items-center gap-1.5 border-b border-greenL/10 pb-2 shrink-0 tracking-wider text-left">
               <CheckCircle2 className="w-4 h-4 text-greenL" />
               <span>Strong Subjects / मजबूत विषय</span>
             </h5>
-            <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 flex-1">
               {strongSubjects.length > 0 ? (
                 strongSubjects.map((sub, idx) => (
                   <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-greenL/5 border border-greenL/10 hover:border-greenL/25 hover:bg-greenL/10 transition-all duration-200 gap-2.5" title={sub.name}>
-                    <span className="text-xs font-bold text-text truncate max-w-[140px]">
+                    <span className="text-xs font-bold text-text truncate flex-1">
                       {sub.name}
                     </span>
                     <span className="text-[9px] font-black text-greenL bg-greenL/15 border border-greenL/20 px-2 py-0.5 rounded shrink-0 select-none">
@@ -837,22 +791,22 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                   </div>
                 ))
               ) : (
-                <span className="text-xs text-text-muted italic py-1.5 text-center">No strong subjects yet</span>
+                <span className="text-xs text-text-muted italic py-6 text-center my-auto">No strong subjects yet</span>
               )}
             </div>
           </div>
 
           {/* Focus Areas */}
-          <div className="p-4.5 bg-redL/5 border border-redL/15 hover:border-redL/30 rounded-xl shadow-md hover:shadow-redL/5 flex flex-col gap-3 transition-all duration-300">
+          <div className="p-4.5 bg-redL/5 border border-redL/15 hover:border-redL/30 rounded-xl shadow-md hover:shadow-redL/5 flex flex-col gap-3 transition-all duration-300 min-h-[260px]">
             <h5 className="text-[10px] font-black uppercase text-redL flex items-center gap-1.5 border-b border-redL/10 pb-2 shrink-0 tracking-wider text-left">
               <AlertCircle className="w-4 h-4 text-redL" />
               <span>Focus Subjects / ध्यान देने योग्य</span>
             </h5>
-            <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 flex-1">
               {focusSubjects.length > 0 ? (
                 focusSubjects.map((sub, idx) => (
                   <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-redL/5 border border-redL/10 hover:border-redL/25 hover:bg-redL/10 transition-all duration-200 gap-2.5" title={sub.name}>
-                    <span className="text-xs font-bold text-text truncate max-w-[140px]">
+                    <span className="text-xs font-bold text-text truncate flex-1">
                       {sub.name}
                     </span>
                     <span className="text-[9px] font-black text-redL bg-redL/15 border border-redL/20 px-2 py-0.5 rounded shrink-0 select-none">
@@ -861,15 +815,162 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                   </div>
                 ))
               ) : (
-                <span className="text-xs text-text-muted italic py-1.5 text-center">No focus subjects yet</span>
+                <span className="text-xs text-text-muted italic py-6 text-center my-auto">No focus subjects yet</span>
               )}
             </div>
           </div>
         </div>
+
+        {/* Detailed Performance Mock History */}
+        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-border pb-2.5">
+            <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5">
+              <History className="w-4 h-4 text-saffron" />
+              <span>Detailed Performance History</span>
+            </h4>
+            {normalizedHistory.length > 0 && (
+              <span className="text-[10px] font-bold text-text-muted">
+                {normalizedHistory.length} {normalizedHistory.length === 1 ? 'Test' : 'Tests'}
+              </span>
+            )}
+          </div>
+
+          {normalizedHistory.length === 0 ? (
+            <div className="text-center py-6 text-xs text-text-muted">
+              No test attempts completed yet. Take practice quizzes to populate history log.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1.5">
+              {normalizedHistory.map((log, idx) => {
+                const hasQuestions = log.questions && log.questions.length > 0;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      if (hasQuestions && onReviewTest) {
+                        onReviewTest(log.questions, log.userAnswers || [], log.subject, log.mode);
+                      } else if (!hasQuestions) {
+                        alert("This legacy test log does not have saved question data for review.");
+                      }
+                    }}
+                    disabled={!hasQuestions}
+                    className={`w-full text-left p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3 transition-all ${
+                      hasQuestions 
+                        ? 'hover:bg-bg-s2 hover:border-saffron-border/60 hover:scale-[1.01] cursor-pointer' 
+                        : 'opacity-60 cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="flex flex-col truncate">
+                      <span className="text-text truncate leading-tight flex items-center gap-1.5">
+                        {log.subject}
+                        {hasQuestions && (
+                          <span className="text-[8px] bg-saffron-dim/40 text-saffron border border-saffron-border/30 px-1 py-0.2 rounded font-black uppercase">
+                            Review
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
+                        {log.mode} • C:{log.correct} W:{log.wrong} S:{log.skipped}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`font-black ${
+                        log.percent >= 75 ? 'text-greenL' :
+                        log.percent >= 55 ? 'text-saffron' :
+                        'text-redL'
+                      }`}>
+                        {log.percent}%
+                      </span>
+                      <span className="text-[9px] text-text-muted font-normal">
+                        {new Date(log.timestamp).toLocaleDateString('en-IN', {
+                          day: 'numeric', month: 'short'
+                        })}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Typing Test Performance History */}
+        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-border pb-2.5">
+            <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5">
+              <LucideIcons.Keyboard className="w-4 h-4 text-saffron" />
+              <span>Typing Test Performance History</span>
+            </h4>
+            <div className="flex items-center gap-3">
+              {typingResults.length > 0 && (
+                <span className="text-[10px] font-bold text-text-muted">
+                  {typingResults.length} {typingResults.length === 1 ? 'Test' : 'Tests'}
+                </span>
+              )}
+              <button
+                onClick={() => onNavigateToTab && onNavigateToTab('typing')}
+                className="text-[10px] font-black uppercase text-saffron hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                Take Test <LucideIcons.ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+          {typingResults.length === 0 ? (
+            <div className="text-center py-6 text-xs text-text-muted flex flex-col items-center gap-2">
+              <span>No typing tests completed yet. Test your typing speed and accuracy.</span>
+              <button
+                onClick={() => onNavigateToTab && onNavigateToTab('typing')}
+                className="mt-1 px-3 py-1.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all"
+              >
+                Go to Typing Test
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 max-h-[380px] overflow-y-auto pr-1.5">
+              {[...typingResults].reverse().map((log, idx) => {
+                return (
+                  <div
+                    key={idx}
+                    className="w-full p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3"
+                  >
+                    <div className="flex flex-col truncate">
+                      <span className="text-text truncate leading-tight flex items-center gap-1.5">
+                        {log.topicTitle}
+                        <span className="text-[8px] bg-saffron-dim/40 text-saffron border border-saffron-border/30 px-1.5 py-0.5 rounded font-black uppercase">
+                          {log.language === 'krutidev' ? 'कृत्तिदेव 010' : 'English'}
+                        </span>
+                      </span>
+                      <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
+                        Net: {log.netWpm} WPM • Gross: {log.grossWpm} WPM • Accuracy: {log.accuracy}%
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`font-black ${
+                        log.accuracy >= 95 ? 'text-greenL' :
+                        log.accuracy >= 85 ? 'text-saffron' :
+                        'text-redL'
+                      }`}>
+                        {log.accuracy}% Acc
+                      </span>
+                      <span className="text-[9px] text-text-muted font-normal">
+                        {new Date(log.date).toLocaleDateString('en-IN', {
+                          day: 'numeric', month: 'short'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Right Column: Syllabus Progress, Chart, Leaderboard, Test History, AI Coach */}
-      <div className="flex flex-col gap-6 md:col-span-5">
+      {/* Right Column: Chart, Leaderboard, Syllabus Progress, Achievements */}
+      <div className="flex flex-col gap-6 md:col-span-6">
         
         {/* 3. Syllabus completion lists */}
         <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
@@ -1023,229 +1124,97 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
         </div>
 
-        {/* 7. Detailed Performance Mock History */}
-        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
+        {/* Unlocked Badges & Achievements */}
+        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-4">
           <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5 border-b border-border pb-2.5">
-            <History className="w-4 h-4 text-saffron" />
-            <span>Detailed Performance History</span>
+            <Award className="w-4 h-4 text-saffron" />
+            <span>Unlocked Badges & Achievements</span>
           </h4>
 
-          {normalizedHistory.length === 0 ? (
-            <div className="text-center py-6 text-xs text-text-muted">
-              No test attempts completed yet. Take practice quizzes to populate history log.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-2">
-                {normalizedHistory.slice(0, showHistoryLimit).map((log, idx) => {
-                  const hasQuestions = log.questions && log.questions.length > 0;
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        if (hasQuestions && onReviewTest) {
-                          onReviewTest(log.questions, log.userAnswers || [], log.subject, log.mode);
-                        } else if (!hasQuestions) {
-                          alert("This legacy test log does not have saved question data for review.");
-                        }
-                      }}
-                      disabled={!hasQuestions}
-                      className={`w-full text-left p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3 transition-all ${
-                        hasQuestions 
-                          ? 'hover:bg-bg-s2 hover:border-saffron-border/60 hover:scale-[1.01] cursor-pointer' 
-                          : 'opacity-60 cursor-not-allowed'
-                      }`}
-                    >
-                      <div className="flex flex-col truncate">
-                        <span className="text-text truncate leading-tight flex items-center gap-1.5">
-                          {log.subject}
-                          {hasQuestions && (
-                            <span className="text-[8px] bg-saffron-dim/40 text-saffron border border-saffron-border/30 px-1 py-0.2 rounded font-black uppercase">
-                              Review
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
-                          {log.mode} • C:{log.correct} W:{log.wrong} S:{log.skipped}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`font-black ${
-                          log.percent >= 75 ? 'text-greenL' :
-                          log.percent >= 55 ? 'text-saffron' :
-                          'text-redL'
-                        }`}>
-                          {log.percent}%
-                        </span>
-                        <span className="text-[9px] text-text-muted font-normal">
-                          {new Date(log.timestamp).toLocaleDateString('en-IN', {
-                            day: 'numeric', month: 'short'
-                          })}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+            {loadingBadges ? (
+              <div className="col-span-2 flex items-center justify-center py-6 gap-2 text-text-muted">
+                <Loader2 className="w-4 h-4 animate-spin text-saffron" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Syncing Badges...</span>
               </div>
-
-              {(normalizedHistory.length > showHistoryLimit || showHistoryLimit > 5) && (
-                <div className="flex gap-2 w-full">
-                  {normalizedHistory.length > showHistoryLimit && (
-                    <button
-                      onClick={() => setShowHistoryLimit(prev => prev + 5)}
-                      className="flex-1 text-center py-2 bg-bg-s3 border border-border text-[9px] font-black uppercase text-text-muted hover:text-text rounded cursor-pointer transition-colors"
-                    >
-                      Show More Logs
-                    </button>
-                  )}
-                  {showHistoryLimit > 5 && (
-                    <button
-                      onClick={() => setShowHistoryLimit(5)}
-                      className="flex-1 text-center py-2 bg-bg-s3 border border-border text-[9px] font-black uppercase text-text-muted hover:text-text rounded cursor-pointer transition-colors"
-                    >
-                      Show Less
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* 8. Typing Test Performance History */}
-        <div className="p-5 bg-bg-s2 border border-border rounded-xl shadow-md flex flex-col gap-3">
-          <div className="flex items-center justify-between border-b border-border pb-2.5">
-            <h4 className="text-xs font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5">
-              <LucideIcons.Keyboard className="w-4 h-4 text-saffron" />
-              <span>Typing Test Performance History</span>
-            </h4>
-            <button
-              onClick={() => onNavigateToTab && onNavigateToTab('typing')}
-              className="text-[10px] font-black uppercase text-saffron hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              Take Test <LucideIcons.ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-
-          {typingResults.length === 0 ? (
-            <div className="text-center py-6 text-xs text-text-muted flex flex-col items-center gap-2">
-              <span>No typing tests completed yet. Test your typing speed and accuracy.</span>
-              <button
-                onClick={() => onNavigateToTab && onNavigateToTab('typing')}
-                className="mt-1 px-3 py-1.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all"
-              >
-                Go to Typing Test
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-2">
-                {[...typingResults].reverse().slice(0, showTypingLimit).map((log, idx) => {
-                  return (
-                    <div
-                      key={idx}
-                      className="w-full p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3"
-                    >
-                      <div className="flex flex-col truncate">
-                        <span className="text-text truncate leading-tight flex items-center gap-1.5">
-                          {log.topicTitle}
-                          <span className="text-[8px] bg-saffron-dim/40 text-saffron border border-saffron-border/30 px-1.5 py-0.5 rounded font-black uppercase">
-                            {log.language === 'krutidev' ? 'कृत्तिदेव 010' : 'English'}
-                          </span>
-                        </span>
-                        <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
-                          Net: {log.netWpm} WPM • Gross: {log.grossWpm} WPM • Accuracy: {log.accuracy}%
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`font-black ${
-                          log.accuracy >= 95 ? 'text-greenL' :
-                          log.accuracy >= 85 ? 'text-saffron' :
-                          'text-redL'
-                        }`}>
-                          {log.accuracy}% Acc
-                        </span>
-                        <span className="text-[9px] text-text-muted font-normal">
-                          {new Date(log.date).toLocaleDateString('en-IN', {
-                            day: 'numeric', month: 'short'
-                          })}
-                        </span>
-                      </div>
+            ) : configuredBadges.length === 0 ? (
+              <div className="col-span-2 text-center py-6 text-xs text-text-muted italic">
+                No achievements configured.
+              </div>
+            ) : (
+              configuredBadges.map((ach) => {
+                const unlocked = isBadgeUnlocked(ach);
+                return (
+                  <div 
+                    key={ach.id}
+                    className={`p-3 border rounded-xl flex items-center gap-3 transition-all duration-300 relative overflow-hidden ${
+                      unlocked 
+                        ? `bg-gradient-to-br ${ach.color} hover:scale-[1.02] shadow` 
+                        : 'bg-bg-s3/40 border-border/30 opacity-40 grayscale select-none'
+                    }`}
+                  >
+                    {unlocked && (
+                      <div className="absolute -top-6 -right-6 w-12 h-12 bg-white/5 rounded-full blur-md" />
+                    )}
+                    
+                    <DynamicIcon name={ach.icon} className="w-6 h-6 shrink-0" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-black text-text uppercase tracking-wide truncate">{ach.name}</span>
+                      <span className="text-[9px] text-text-muted mt-0.5 leading-snug">{ach.desc}</span>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
 
-              {(typingResults.length > showTypingLimit || showTypingLimit > 5) && (
-                <div className="flex gap-2 w-full">
-                  {typingResults.length > showTypingLimit && (
-                    <button
-                      onClick={() => setShowTypingLimit(prev => prev + 5)}
-                      className="flex-1 text-center py-2 bg-bg-s3 border border-border text-[9px] font-black uppercase text-text-muted hover:text-text rounded cursor-pointer transition-colors"
-                    >
-                      Show More Logs
-                    </button>
-                  )}
-                  {showTypingLimit > 5 && (
-                    <button
-                      onClick={() => setShowTypingLimit(5)}
-                      className="flex-1 text-center py-2 bg-bg-s3 border border-border text-[9px] font-black uppercase text-text-muted hover:text-text rounded cursor-pointer transition-colors"
-                    >
-                      Show Less
-                    </button>
-                  )}
-                </div>
-              )}
+      {/* 8. AI Recommendations Coaching tips (Full-Width Bottom Section) */}
+      <div className="md:col-span-12 p-6 bg-bg-s2 border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-5 relative overflow-hidden transition-all duration-300 hover:border-saffron-border/60">
+        {/* Glowing background circles for modern premium appearance */}
+        <div className="absolute top-0 right-0 w-36 h-36 bg-saffron-dim/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
+        <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="flex justify-between items-center border-b border-border/60 pb-3.5 shrink-0">
+          <h4 className="text-xs font-black uppercase text-text tracking-wider flex items-center gap-2.5 text-left">
+            <div className="p-1.5 bg-saffron-dim/20 border border-saffron-border/25 rounded-lg text-saffron">
+              <Brain className="w-4.5 h-4.5 animate-pulse" />
             </div>
-          )}
+            <span>AI Study Intelligence Coach</span>
+          </h4>
+          <span className="text-[9px] font-black uppercase text-saffron bg-saffron/10 border border-saffron-border/25 px-2.5 py-0.5 rounded select-none">
+            Active Analysis
+          </span>
+        </div>
+        
+        {/* Main Persona Banner */}
+        <div className="p-4 bg-saffron-dim/15 border border-saffron-border/10 rounded-xl flex gap-3.5 relative shadow-inner text-left">
+          <div className="w-9 h-9 rounded-full bg-saffron-dim/20 border border-saffron-border/20 flex items-center justify-center text-saffron shrink-0 shadow-sm mt-0.5">
+            <Cpu className="w-4.5 h-4.5 animate-pulse" />
+          </div>
+          <div className="flex flex-col gap-1 min-w-0">
+            <span className="text-[9px] font-black uppercase text-saffron tracking-widest flex items-center gap-1 select-none">
+              <span>🤖</span>
+              <span>Personal Coach Insight</span>
+            </span>
+            <p className="leading-relaxed text-[11px] text-text-muted">
+              {normalizedHistory.length > 0 
+                ? `Your average score is ${overallAccuracy}%. Based on your recent responses, you show excellent dedication! However, to secure top ranks in ${activeExam?.name || 'CGPSC'}, focus on weak topics. We have created a custom list of study plans for you below.`
+                : `To start your personalized smart preparation path for ${activeExam?.name || 'CGPSC'}, take a quick practice quiz. This helps our AI tutor map your learning persona and design custom revision intervals for you.`
+              }
+            </p>
+          </div>
         </div>
 
-        {/* 8. AI Recommendations Coaching tips (Premium Glowing Overhaul) */}
-        <div className="p-6 bg-bg-s2 border border-saffron-border/30 rounded-2xl shadow-2xl flex flex-col gap-5 relative overflow-hidden transition-all duration-300 hover:border-saffron-border/60">
-          {/* Glowing background circles for modern premium appearance */}
-          <div className="absolute top-0 right-0 w-36 h-36 bg-saffron-dim/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
-          <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+        {/* Detailed Action Steps (Responsive 3-Column Grid) */}
+        <div className="flex flex-col gap-3.5 mt-1">
+          <span className="text-[9px] font-black uppercase text-text-muted tracking-wider border-b border-border/30 pb-1 text-left">Actionable Next Steps / अगला कदम</span>
           
-          <div className="flex justify-between items-center border-b border-border/60 pb-3.5 shrink-0">
-            <h4 className="text-xs font-black uppercase text-text tracking-wider flex items-center gap-2.5 text-left">
-              <div className="p-1.5 bg-saffron-dim/20 border border-saffron-border/25 rounded-lg text-saffron">
-                <Brain className="w-4.5 h-4.5 animate-pulse" />
-              </div>
-              <span>AI Study Intelligence Coach</span>
-            </h4>
-            <span className="text-[9px] font-black uppercase text-saffron bg-saffron/10 border border-saffron-border/25 px-2.5 py-0.5 rounded select-none">
-              Active Analysis
-            </span>
-          </div>
-          
-          {/* Main Persona Banner */}
-          <div className="p-4 bg-saffron-dim/15 border border-saffron-border/10 rounded-xl flex gap-3.5 relative shadow-inner text-left">
-            <div className="w-9 h-9 rounded-full bg-saffron-dim/20 border border-saffron-border/20 flex items-center justify-center text-saffron shrink-0 shadow-sm mt-0.5">
-              <Cpu className="w-4.5 h-4.5 animate-pulse" />
-            </div>
-            <div className="flex flex-col gap-1 min-w-0">
-              <span className="text-[9px] font-black uppercase text-saffron tracking-widest flex items-center gap-1 select-none">
-                <span>🤖</span>
-                <span>Personal Coach Insight</span>
-              </span>
-              <p className="leading-relaxed text-[11px] text-text-muted">
-                {normalizedHistory.length > 0 
-                  ? `Your average score is ${overallAccuracy}%. Based on your recent responses, you show excellent dedication! However, to secure top ranks in ${activeExam?.name || 'CGPSC'}, focus on weak topics. We have created a custom list of study plans for you below.`
-                  : `To start your personalized smart preparation path for ${activeExam?.name || 'CGPSC'}, take a quick practice quiz. This helps our AI tutor map your learning persona and design custom revision intervals for you.`
-                }
-              </p>
-            </div>
-          </div>
-
-          {/* Detailed Action Steps */}
-          <div className="flex flex-col gap-4 mt-1">
-            <span className="text-[9px] font-black uppercase text-text-muted tracking-wider border-b border-border/30 pb-1 text-left">Actionable Next Steps / अगला कदम</span>
-            
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Recommendation 1: Weak Subject Practice */}
             {focusSubjects.length > 0 && tabVisibility?.practice !== false && (
-              <div className="p-4 bg-[#201316]/10 hover:bg-[#201316]/20 border border-border hover:border-redL/30 rounded-xl transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group text-left">
+              <div className="p-4 bg-[#201316]/10 hover:bg-[#201316]/20 border border-border hover:border-redL/30 rounded-xl transition-all duration-200 flex flex-col justify-between gap-4 group text-left">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 bg-redL/15 border border-redL/20 rounded-lg flex items-center justify-center shrink-0 text-redL font-bold">
                     <Target className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -1263,7 +1232,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 {onNavigateToTab && (
                   <button 
                     onClick={() => onNavigateToTab('practice')}
-                    className="px-3.5 py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 shadow-md flex items-center justify-center gap-1 self-start sm:self-center shrink-0"
+                    className="w-full py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 shadow-md flex items-center justify-center gap-1"
                   >
                     <span>Practice Now</span>
                     <ArrowRight className="w-3.5 h-3.5 text-bg-s1" />
@@ -1274,7 +1243,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
             {/* Recommendation 2: Spaced Repetition */}
             {tabVisibility?.syllabus !== false && (
-              <div className="p-4 bg-[#131d2a]/15 hover:bg-[#131d2a]/25 border border-border hover:border-blue-400/30 rounded-xl transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group text-left">
+              <div className="p-4 bg-[#131d2a]/15 hover:bg-[#131d2a]/25 border border-border hover:border-blue-400/30 rounded-xl transition-all duration-200 flex flex-col justify-between gap-4 group text-left">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 bg-blue-500/15 border border-blue-500/20 rounded-lg flex items-center justify-center shrink-0 text-blue-400 font-bold">
                     <Clock className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -1292,7 +1261,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 {onNavigateToTab && (
                   <button 
                     onClick={() => onNavigateToTab('syllabus')}
-                    className="px-3.5 py-2.5 bg-bg-s1 hover:bg-bg-s1/90 border border-border hover:border-saffron-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1 self-start sm:self-center shrink-0"
+                    className="w-full py-2.5 bg-bg-s1 hover:bg-bg-s1/90 border border-border hover:border-saffron-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1"
                   >
                     <span>View Syllabus</span>
                     <ArrowRight className="w-3.5 h-3.5 text-saffron" />
@@ -1303,7 +1272,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
             {/* Recommendation 3: Daily Streak consistency */}
             {tabVisibility?.chat !== false && (
-              <div className="p-4 bg-[#201813]/15 hover:bg-[#201813]/25 border border-border hover:border-orange-500/30 rounded-xl transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group text-left">
+              <div className="p-4 bg-[#201813]/15 hover:bg-[#201813]/25 border border-border hover:border-orange-500/30 rounded-xl transition-all duration-200 flex flex-col justify-between gap-4 group text-left">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 bg-orange-500/15 border border-orange-500/20 rounded-lg flex items-center justify-center shrink-0 text-orange-400 font-bold">
                     <Flame className="w-5 h-5 fill-orange-500/10 group-hover:scale-110 transition-transform" />
@@ -1324,7 +1293,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 {onNavigateToTab && (
                   <button 
                     onClick={() => onNavigateToTab('chat')}
-                    className="px-3.5 py-2.5 bg-bg-s1 hover:bg-bg-s1/90 border border-border hover:border-saffron-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1 self-start sm:self-center shrink-0"
+                    className="w-full py-2.5 bg-bg-s1 hover:bg-bg-s1/90 border border-border hover:border-saffron-border text-text text-[10px] font-black uppercase rounded-lg cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1"
                   >
                     <span>Ask AI Guru</span>
                     <ArrowRight className="w-3.5 h-3.5 text-saffron" />
@@ -1332,7 +1301,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 )}
               </div>
             )}
-
           </div>
         </div>
       </div>

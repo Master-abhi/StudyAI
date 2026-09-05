@@ -422,60 +422,62 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             })}
           </div>
         </div>
+      </div>
 
-        {/* Current Affairs / GK Section */}
-        {tabVisibility?.news !== false && (
-          <div className="flex flex-col gap-3 mt-2">
-            <div className="flex justify-between items-center">
-              <h4 className="text-xs font-black uppercase text-text-muted tracking-wider">Current Affairs</h4>
-              <button 
-                onClick={() => onNavigateToTab('news')}
-                className="text-[9px] font-black uppercase text-saffron hover:text-orange-500 cursor-pointer transition-all border border-border bg-bg-s3/80 hover:bg-bg-s3 px-2.5 py-0.5 rounded shadow-sm"
-              >
-                Show More
-              </button>
+      {/* Current Affairs / GK Section - Full Width Bottom Section (3-Column Grid on Desktop) */}
+      {tabVisibility?.news !== false && (
+        <div className="flex flex-col gap-3.5 md:col-span-12 mt-2">
+          <div className="flex justify-between items-center">
+            <h4 className="text-xs font-black uppercase text-text-muted tracking-wider">Current Affairs</h4>
+            <button 
+              onClick={() => onNavigateToTab('news')}
+              className="text-[9px] font-black uppercase text-saffron hover:text-orange-500 cursor-pointer transition-all border border-border bg-bg-s3/80 hover:bg-bg-s3 px-2.5 py-0.5 rounded shadow-sm"
+            >
+              Show More
+            </button>
+          </div>
+
+          {loadingNews ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-28 bg-bg-s2 border border-border rounded-xl animate-pulse" />
+              ))}
             </div>
-
-            {loadingNews ? (
-              <div className="flex flex-col gap-2">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-16 bg-bg-s2 border border-border rounded-xl animate-pulse" />
-                ))}
-              </div>
-            ) : articles.length === 0 ? (
-              <div className="p-4 bg-bg-s2 border border-border rounded-xl text-center text-xs text-text-muted">
-                No current affairs articles found.
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2.5">
-                {articles.map((art, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => onSelectArticle ? onSelectArticle(art) : onNavigateToTab('news')}
-                    className="p-3 bg-bg-s2 hover:bg-bg-s2/90 border border-border rounded-xl text-left shadow-sm transition-all hover:scale-[1.005] cursor-pointer flex flex-col gap-1.5 relative overflow-hidden group"
-                  >
-                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-saffron" />
+          ) : articles.length === 0 ? (
+            <div className="p-4 bg-bg-s2 border border-border rounded-xl text-center text-xs text-text-muted">
+              No current affairs articles found.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              {articles.map((art, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => onSelectArticle ? onSelectArticle(art) : onNavigateToTab('news')}
+                  className="p-3.5 bg-bg-s2 hover:bg-bg-s2/90 border border-border rounded-xl text-left shadow-sm transition-all hover:scale-[1.01] cursor-pointer flex flex-col justify-between gap-2 relative overflow-hidden group h-full"
+                >
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-saffron" />
+                  <div className="flex flex-col gap-1.5 pl-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[8px] font-black uppercase text-saffron bg-saffron-dim/30 border border-saffron-border/30 px-1.5 py-0.2 rounded leading-none">
-                        {art.category}
+                      <span className="text-[8px] font-black uppercase text-saffron bg-saffron-dim/30 border border-saffron-border/30 px-1.5 py-0.5 rounded leading-none">
+                        {art.category || 'NEWS'}
                       </span>
                       <span className="text-[8px] text-text-muted font-bold">
                         {art.date || 'Today'}
                       </span>
                     </div>
-                    <h5 className="text-sm font-bold text-text group-hover:text-saffron transition-colors leading-snug line-clamp-1">
+                    <h5 className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-snug line-clamp-2">
                       {art.title_hi || art.title}
                     </h5>
-                    <p className="text-xs text-text-muted leading-normal">
+                    <p className="text-[11px] text-text-muted leading-relaxed line-clamp-3">
                       {art.description_hi || art.summary_hi || art.description || art.title}
                     </p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Exam Selector Drawer/Overlay Modal */}
       <AnimatePresence>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Newspaper, RefreshCw, Loader2, Calendar, 
   Search, ShieldAlert, CheckCircle, ExternalLink, UploadCloud,
-  Briefcase, Pencil, Trash2, X, Save, CheckSquare, Square, Eye
+  Briefcase, Pencil, Trash2, X, Save, CheckSquare, Square, Eye, Plus
 } from 'lucide-react';
 
 interface AdminNewsProps {
@@ -29,12 +29,18 @@ interface Article {
   department?: string;
   totalPosts?: string;
   qualification?: string;
+  qualification_hi?: string;
   lastDate?: string;
   salary?: string;
   ageLimit?: string;
   fee?: string;
   selectionProcess?: string;
   details?: string;
+  syllabus?: string;
+  examPattern?: string;
+  postDetails?: string;
+  howToApply?: string;
+  examDate?: string;
   bulletPoints?: string[];
   highlights?: string[];
   content?: string;
@@ -64,6 +70,29 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
 
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [loadingBulkDelete, setLoadingBulkDelete] = useState<boolean>(false);
+
+  // Add Job Modal state
+  const [showAddJobModal, setShowAddJobModal] = useState<boolean>(false);
+  const [loadingAddJob, setLoadingAddJob] = useState<boolean>(false);
+  const [newJob, setNewJob] = useState<Partial<Article>>({
+    title: '',
+    title_hi: '',
+    department: '',
+    totalPosts: '',
+    qualification: '',
+    lastDate: '',
+    salary: '',
+    ageLimit: '',
+    fee: '',
+    selectionProcess: '',
+    details: '',
+    syllabus: '',
+    postDetails: '',
+    howToApply: '',
+    source: 'Official Portal',
+    url: '',
+    category: 'jobs'
+  });
 
   const getApiUrl = (path: string) => {
     const hostname = window.location.hostname;
@@ -246,11 +275,19 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
         title: "Chhattisgarh Vyapam Patwari & Revenue Inspector Recruitment 2026",
         title_hi: "छत्तीसगढ़ व्यापम पटवारी एवं राजस्व निरीक्षक भर्ती 2026",
         category: "jobs",
-        department: "CG Revenue Department",
+        department: "CG Revenue & Disaster Management Department",
         totalPosts: "350 Posts",
-        qualification: "Graduation + DCA/PGDCA",
-        lastDate: "2026-08-30",
-        salary: "Level 6 (₹25,300 - ₹80,500)",
+        qualification: "Graduate from recognized University + 1 Year Computer Diploma (DCA / PGDCA)",
+        qualification_hi: "मान्यता प्राप्त विश्वविद्यालय से स्नातक + 1 वर्षीय कंप्यूटर डिप्लोमा (DCA/PGDCA)",
+        lastDate: "2026-09-30",
+        salary: "Level 6 (₹25,300 - ₹80,500) + 7th Pay Commission",
+        ageLimit: "18 to 35 Years (Up to 40/45 years for CG Domicile / Reserved categories)",
+        fee: "Exempted for Chhattisgarh Domicile Candidates",
+        selectionProcess: "Written Exam (150 Marks Objective OMR) -> Document Verification",
+        syllabus: "1. CG General Knowledge (20 Qs)\n2. Computer Awareness (20 Qs)\n3. General Hindi & English (20 Qs)\n4. Mathematics & Reasoning (40 Qs)\n5. National General Studies & Current Affairs (50 Qs)",
+        postDetails: "• Patwari: 250 Posts\n• Revenue Inspector (RI): 100 Posts\n(Category reservation as per CG Govt rules)",
+        howToApply: "1. Visit vyapam.cgstate.gov.in\n2. Complete Online Profile Registration with Aadhaar/Mobile.\n3. Fill post preferences, upload documents & submit.\n4. Save acknowledgement slip.",
+        details: "Official notification issued by CG Vyapam for 350 vacancies of Patwari and Revenue Inspector in various districts of Chhattisgarh.",
         source: "CG Vyapam",
         url: "https://vyapam.cgstate.gov.in"
       },
@@ -258,11 +295,19 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
         title: "CG Health Staff Nurse & Lab Technician Recruitment 2026",
         title_hi: "छत्तीसगढ़ स्वास्थ्य विभाग स्टाफ नर्स एवं लैब तकनीशियन भर्ती 2026",
         category: "jobs",
-        department: "CG Health Department",
+        department: "Directorate of Health Services, Chhattisgarh",
         totalPosts: "500 Posts",
-        qualification: "B.Sc Nursing / GNM",
-        lastDate: "2026-08-25",
+        qualification: "B.Sc Nursing / GNM + Live CG Nursing Council Registration",
+        qualification_hi: "बी.एससी नर्सिंग / जी.एन.एम + छत्तीसगढ़ नर्सिंग काउंसिल में जीवित पंजीयन",
+        lastDate: "2026-09-25",
         salary: "Level 7 (₹28,700 - ₹91,300)",
+        ageLimit: "18 to 40 Years",
+        fee: "Free for CG State Residents",
+        selectionProcess: "Written Competitive Exam + Merit List + Document Verification",
+        syllabus: "Nursing Subjects (80 Marks), General Knowledge & Chhattisgarh GK (20 Marks)",
+        postDetails: "• Staff Nurse: 400 Posts\n• Lab Technician: 100 Posts",
+        howToApply: "Apply online through cghealth.nic.in recruitment portal before last date.",
+        details: "Direct recruitment for regular paramedical staff across district hospitals in Chhattisgarh.",
         source: "CG Health Portal",
         url: "https://cghealth.nic.in"
       }
@@ -322,11 +367,19 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
         title: "Chhattisgarh Vyapam Patwari & Revenue Inspector Recruitment 2026",
         title_hi: "छत्तीसगढ़ व्यापम पटवारी एवं राजस्व निरीक्षक भर्ती 2026",
         category: "jobs",
-        department: "CG Revenue Department",
+        department: "CG Revenue & Disaster Management Department",
         totalPosts: "350 Posts",
         qualification: "Graduation + DCA/PGDCA",
-        lastDate: "2026-08-30",
+        qualification_hi: "स्नातक + 1 वर्षीय कंप्यूटर डिप्लोमा (DCA/PGDCA)",
+        lastDate: "2026-09-30",
         salary: "Level 6 (₹25,300 - ₹80,500)",
+        ageLimit: "18 to 35/40 Years",
+        fee: "Free for CG Domicile Candidates",
+        selectionProcess: "Written OMR Examination -> Merit List -> Document Verification",
+        syllabus: "CG GK (20 Qs), Computer (20 Qs), Math/Reasoning (40 Qs), Hindi/English (20 Qs), Indian GS (50 Qs)",
+        postDetails: "Patwari (250 Posts), Revenue Inspector (100 Posts)",
+        howToApply: "Apply online at vyapam.cgstate.gov.in before the deadline.",
+        details: "Recruitment for 350 revenue department posts across all districts.",
         source: "CG Vyapam",
         url: "https://vyapam.cgstate.gov.in"
       }
@@ -338,6 +391,84 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+  };
+
+  const handleCreateJob = async () => {
+    if (!newJob.title?.trim() && !newJob.title_hi?.trim()) {
+      setErrorMessage('Please enter at least a Job Title (English or Hindi).');
+      return;
+    }
+
+    setLoadingAddJob(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const jobArticle: Article = {
+        title: (newJob.title || newJob.title_hi || 'Job Opening').trim(),
+        title_hi: (newJob.title_hi || newJob.title || '').trim(),
+        category: 'jobs',
+        department: (newJob.department || 'Govt Department').trim(),
+        totalPosts: (newJob.totalPosts || '').trim(),
+        qualification: (newJob.qualification || '').trim(),
+        qualification_hi: (newJob.qualification_hi || '').trim(),
+        lastDate: (newJob.lastDate || '').trim(),
+        salary: (newJob.salary || '').trim(),
+        ageLimit: (newJob.ageLimit || '').trim(),
+        fee: (newJob.fee || '').trim(),
+        selectionProcess: (newJob.selectionProcess || '').trim(),
+        syllabus: (newJob.syllabus || '').trim(),
+        examPattern: (newJob.syllabus || '').trim(),
+        postDetails: (newJob.postDetails || '').trim(),
+        howToApply: (newJob.howToApply || '').trim(),
+        details: (newJob.details || '').trim(),
+        source: (newJob.source || 'Official Notification').trim(),
+        url: (newJob.url || '#').trim()
+      };
+
+      const token = await currentUser.getIdToken();
+      const res = await fetch(getApiUrl('/api/admin/news/upload'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ articles: [jobArticle] })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage('New Job Notification published successfully!');
+        setShowAddJobModal(false);
+        setNewJob({
+          title: '',
+          title_hi: '',
+          department: '',
+          totalPosts: '',
+          qualification: '',
+          lastDate: '',
+          salary: '',
+          ageLimit: '',
+          fee: '',
+          selectionProcess: '',
+          details: '',
+          syllabus: '',
+          postDetails: '',
+          howToApply: '',
+          source: 'Official Portal',
+          url: '',
+          category: 'jobs'
+        });
+        fetchNewsCache();
+      } else {
+        throw new Error(data.error || 'Server failed to save job notification.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Failed to create new job.');
+    } finally {
+      setLoadingAddJob(false);
+    }
   };
 
   const handleUploadJson = async () => {
@@ -682,25 +813,37 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
           </div>
         </div>
 
-        <button
-          onClick={handleRefreshNews}
-          disabled={loadingRefresh}
-          className={`px-5 py-3 text-bg-s1 text-xs font-black uppercase rounded-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md ${
-            activeAdminTab === 'jobs' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-saffron hover:bg-orange-500'
-          }`}
-        >
-          {loadingRefresh ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Fetching Live Updates...</span>
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh Feed Cache</span>
-            </>
+        <div className="flex items-center gap-2">
+          {activeAdminTab === 'jobs' && (
+            <button
+              onClick={() => setShowAddJobModal(true)}
+              className="px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-bg-s1 text-xs font-black uppercase rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98] shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Add New Job</span>
+            </button>
           )}
-        </button>
+
+          <button
+            onClick={handleRefreshNews}
+            disabled={loadingRefresh}
+            className={`px-5 py-3 text-bg-s1 text-xs font-black uppercase rounded-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-md ${
+              activeAdminTab === 'jobs' ? 'bg-bg-s3 border border-border text-text hover:bg-bg-s1' : 'bg-saffron hover:bg-orange-500'
+            }`}
+          >
+            {loadingRefresh ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Fetching Live Updates...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refresh Feed Cache</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Separate Upload / Paste JSON Section */}
@@ -1155,6 +1298,17 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
                     </div>
 
                     <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Qualification (Hindi)</label>
+                      <input
+                        type="text"
+                        placeholder="शैक्षणिक योग्यता (हिन्दी में)"
+                        value={editingArticle.qualification_hi || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, qualification_hi: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
                       <label className="text-[10px] font-black uppercase text-text-muted">Last Date / Deadline</label>
                       <input
                         type="text"
@@ -1181,6 +1335,74 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
                         value={editingArticle.ageLimit || ''}
                         onChange={(e) => setEditingArticle({ ...editingArticle, ageLimit: e.target.value })}
                         className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Application Fee</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. ₹0 for CG Domicile / Refer Notice"
+                        value={editingArticle.fee || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, fee: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black uppercase text-text-muted">Selection Process</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Written Exam -> Skill Test -> DV"
+                        value={editingArticle.selectionProcess || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, selectionProcess: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1 sm:col-span-2">
+                      <label className="text-[10px] font-black uppercase text-saffron flex items-center gap-1">
+                        <span>📚</span>
+                        <span>Syllabus & Exam Pattern / परीक्षा योजना व पाठ्यक्रम</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="Syllabus topics, marks distribution, question count..."
+                        value={editingArticle.syllabus || editingArticle.examPattern || ''}
+                        onChange={(e) => setEditingArticle({ 
+                          ...editingArticle, 
+                          syllabus: e.target.value,
+                          examPattern: e.target.value
+                        })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text font-sans"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1 sm:col-span-2">
+                      <label className="text-[10px] font-black uppercase text-text-muted flex items-center gap-1">
+                        <span>👥</span>
+                        <span>Post Details & Breakdown (पद विवरण)</span>
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="e.g. Patwari: 250 Posts, RI: 100 Posts..."
+                        value={editingArticle.postDetails || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, postDetails: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text font-sans"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1 sm:col-span-2">
+                      <label className="text-[10px] font-black uppercase text-text-muted flex items-center gap-1">
+                        <span>📝</span>
+                        <span>How To Apply (आवेदन कैसे करें)</span>
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Step by step application instructions..."
+                        value={editingArticle.howToApply || ''}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, howToApply: e.target.value })}
+                        className="bg-bg-s3 border border-border focus:border-saffron rounded-lg p-2.5 outline-none text-text font-sans"
                       />
                     </div>
                   </>
@@ -1395,10 +1617,30 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
                     <div><strong className="text-text">Department:</strong> {viewingArticle.department || (viewingArticle as any).dept || 'N/A'}</div>
                     <div><strong className="text-text">Total Posts:</strong> {viewingArticle.totalPosts || (viewingArticle as any).posts || 'N/A'}</div>
                     <div className="sm:col-span-2"><strong className="text-text">Qualification:</strong> {viewingArticle.qualification || 'N/A'}</div>
+                    {viewingArticle.qualification_hi && <div className="sm:col-span-2"><strong className="text-text">योग्यता (हिन्दी):</strong> {viewingArticle.qualification_hi}</div>}
                     <div><strong className="text-text">Last Date:</strong> {viewingArticle.lastDate || 'N/A'}</div>
                     <div><strong className="text-text">Salary:</strong> {viewingArticle.salary || 'N/A'}</div>
                     {viewingArticle.ageLimit && <div><strong className="text-text">Age Limit:</strong> {viewingArticle.ageLimit}</div>}
                     {viewingArticle.fee && <div><strong className="text-text">Application Fee:</strong> {viewingArticle.fee}</div>}
+                    {viewingArticle.selectionProcess && <div className="sm:col-span-2"><strong className="text-text">Selection Process:</strong> {viewingArticle.selectionProcess}</div>}
+                    {viewingArticle.syllabus && (
+                      <div className="sm:col-span-2 bg-bg-s2 p-2.5 rounded-lg border border-border">
+                        <strong className="text-saffron block mb-1">📚 Syllabus & Exam Pattern:</strong>
+                        <p className="whitespace-pre-line text-[11px] text-text-muted">{viewingArticle.syllabus}</p>
+                      </div>
+                    )}
+                    {viewingArticle.postDetails && (
+                      <div className="sm:col-span-2 bg-bg-s2 p-2.5 rounded-lg border border-border">
+                        <strong className="text-text block mb-1">👥 Post Breakdown:</strong>
+                        <p className="whitespace-pre-line text-[11px] text-text-muted">{viewingArticle.postDetails}</p>
+                      </div>
+                    )}
+                    {viewingArticle.howToApply && (
+                      <div className="sm:col-span-2 bg-bg-s2 p-2.5 rounded-lg border border-border">
+                        <strong className="text-text block mb-1">📝 How To Apply:</strong>
+                        <p className="whitespace-pre-line text-[11px] text-text-muted">{viewingArticle.howToApply}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1514,6 +1756,287 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Job Notification Modal */}
+      {showAddJobModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-bg-s2 border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-border/80 flex items-center justify-between bg-emerald-500/10 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Briefcase className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-text">
+                    Create & Publish New Job Notification
+                  </h3>
+                  <p className="text-[10px] text-text-muted">
+                    Fill in recruitment details, qualifications, vacancies, salary & syllabus.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddJobModal(false)}
+                className="text-text-muted hover:text-text p-1.5 rounded-lg hover:bg-bg-s3 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form Fields */}
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto custom-scrollbar text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Title EN */}
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text">
+                    Job Title (English) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CG Vyapam Patwari & Revenue Inspector Recruitment 2026"
+                    value={newJob.title || ''}
+                    onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Title HI */}
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text">
+                    Job Title (Hindi / हिन्दी)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="उदा. छत्तीसगढ़ व्यापम पटवारी एवं राजस्व निरीक्षक भर्ती 2026"
+                    value={newJob.title_hi || ''}
+                    onChange={(e) => setNewJob({ ...newJob, title_hi: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Department */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Department / संस्था</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CG Revenue Department / Police"
+                    value={newJob.department || ''}
+                    onChange={(e) => setNewJob({ ...newJob, department: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Total Posts */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Total Posts / कुल पद</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 350 Posts / 350 पद"
+                    value={newJob.totalPosts || ''}
+                    onChange={(e) => setNewJob({ ...newJob, totalPosts: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Qualification */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Qualification / योग्यता (English)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 12th Pass / Graduate + DCA"
+                    value={newJob.qualification || ''}
+                    onChange={(e) => setNewJob({ ...newJob, qualification: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Qualification Hindi */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">योग्यता (हिन्दी)</label>
+                  <input
+                    type="text"
+                    placeholder="उदा. स्नातक + 1 वर्ष DCA/PGDCA"
+                    value={newJob.qualification_hi || ''}
+                    onChange={(e) => setNewJob({ ...newJob, qualification_hi: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Salary */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Pay Scale / वेतनमान</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Level 6 (₹25,300 - ₹80,500)"
+                    value={newJob.salary || ''}
+                    onChange={(e) => setNewJob({ ...newJob, salary: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Age Limit */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Age Limit / आयु सीमा</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 18 to 35/40 Years"
+                    value={newJob.ageLimit || ''}
+                    onChange={(e) => setNewJob({ ...newJob, ageLimit: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Last Date */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Last Date / अंतिम तिथि</label>
+                  <input
+                    type="date"
+                    value={newJob.lastDate || ''}
+                    onChange={(e) => setNewJob({ ...newJob, lastDate: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Application Fee */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Application Fee / परीक्षा शुल्क</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Exempted for CG Domicile / ₹0"
+                    value={newJob.fee || ''}
+                    onChange={(e) => setNewJob({ ...newJob, fee: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Selection Process */}
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Selection Process / चयन प्रक्रिया</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Written Exam (OMR 150 Qs) -> Skill Test -> Document Verification"
+                    value={newJob.selectionProcess || ''}
+                    onChange={(e) => setNewJob({ ...newJob, selectionProcess: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Syllabus & Exam Pattern */}
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-emerald-400 flex items-center gap-1">
+                    <span>📚</span>
+                    <span>Syllabus & Exam Pattern / परीक्षा योजना व पाठ्यक्रम</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Enter exam syllabus subjects, marking scheme, question distribution..."
+                    value={newJob.syllabus || ''}
+                    onChange={(e) => setNewJob({ ...newJob, syllabus: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text font-sans"
+                  />
+                </div>
+
+                {/* Post Breakdown */}
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text-muted flex items-center gap-1">
+                    <span>👥</span>
+                    <span>Post Details & Breakdown (पद विवरण)</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Patwari: 250 Posts, RI: 100 Posts (UR: 120, OBC: 50, SC: 40, ST: 140)..."
+                    value={newJob.postDetails || ''}
+                    onChange={(e) => setNewJob({ ...newJob, postDetails: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text font-sans"
+                  />
+                </div>
+
+                {/* How to Apply */}
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text-muted flex items-center gap-1">
+                    <span>📝</span>
+                    <span>How to Apply / ऑनलाइन आवेदन प्रक्रिया</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Step-by-step application instructions for aspirants..."
+                    value={newJob.howToApply || ''}
+                    onChange={(e) => setNewJob({ ...newJob, howToApply: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text font-sans"
+                  />
+                </div>
+
+                {/* Source & Portal URL */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Source / Board</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CG Vyapam / CGPSC / Railway"
+                    value={newJob.source || ''}
+                    onChange={(e) => setNewJob({ ...newJob, source: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Official Portal / Apply URL</label>
+                  <input
+                    type="text"
+                    placeholder="https://vyapam.cgstate.gov.in"
+                    value={newJob.url || ''}
+                    onChange={(e) => setNewJob({ ...newJob, url: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text"
+                  />
+                </div>
+
+                {/* Overview & Details */}
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase text-text-muted">
+                    Full Job Overview / विवरण
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Complete notification summary, eligibility guidelines, and important notices..."
+                    value={newJob.details || ''}
+                    onChange={(e) => setNewJob({ ...newJob, details: e.target.value })}
+                    className="bg-bg-s3 border border-border focus:border-emerald-500 rounded-lg p-2.5 outline-none text-text font-sans"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="p-4 border-t border-border/80 flex items-center justify-end gap-3 bg-bg-s3/40 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowAddJobModal(false)}
+                className="px-4 py-2 bg-bg-s3 border border-border hover:bg-bg-s3/80 text-text-muted text-xs font-bold uppercase rounded-lg cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateJob}
+                disabled={loadingAddJob || (!newJob.title && !newJob.title_hi)}
+                className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-bg-s1 text-xs font-black uppercase rounded-lg flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-40"
+              >
+                {loadingAddJob ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Publishing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Publish Job Notification</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
