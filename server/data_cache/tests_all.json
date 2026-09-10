@@ -240,7 +240,7 @@
       "cgv_forest",
       "cgv_accountant"
     ],
-    "examName": "CGPSC SSE (Test 5)",
+    "examName": "CGPSC SSE",
     "examNames": [
       "CGPSC SSE",
       "CG VYAPAM BASICS",
@@ -263,7 +263,7 @@
       "Steno / Data Entry Operator",
       "Lab Technician / Radiographer"
     ],
-    "subject": "Mixed Subjects",
+    "subject": "Mixed Subjects II",
     "mode": "mock",
     "language": "hindi",
     "totalQuestions": 20,

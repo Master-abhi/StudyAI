@@ -35,6 +35,16 @@ function syncRootIndexPlugin() {
           console.warn('[sync-root-index] Could not sync cgguru.apk:', e.message);
         }
       }
+      const fontsSrc = path.resolve(__dirname, 'public/fonts');
+      const fontsDest = path.resolve(__dirname, '../public/fonts');
+      if (fs.existsSync(fontsSrc)) {
+        try {
+          fs.cpSync(fontsSrc, fontsDest, { recursive: true });
+          console.log('[sync-root-index] Synced fonts → public/fonts ✅');
+        } catch (e: any) {
+          console.warn('[sync-root-index] Could not sync fonts:', e.message);
+        }
+      }
     }
   };
 }

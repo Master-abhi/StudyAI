@@ -17,7 +17,6 @@ import {
   FileText,
   Search,
   X,
-  Sparkles,
   HelpCircle,
   Scale
 } from 'lucide-react';
@@ -158,26 +157,232 @@ export const TYPING_TOPICS: Topic[] = [
   }
 ];
 
-// KrutiDev Alt-Code Cheatsheet Database
-const KRUTIDEV_ALT_CODES = [
-  { code: 'Alt + 0161', symbol: '्र', example: 'प्रकाश, प्रकार, प्रयास' },
-  { code: 'Alt + 0216', symbol: 'क्र', example: 'क्रम, क्रिया, क्रमांक' },
-  { code: 'Alt + 0170', symbol: 'द्ध', example: 'बुद्ध, शुद्ध, युद्ध' },
-  { code: 'Alt + 0179', symbol: 'द्द', example: 'उद्देश्य, गद्दा, रद्दी' },
-  { code: 'Alt + 0163', symbol: 'त्र', example: 'छात्र, पत्र, मित्र' },
-  { code: 'Alt + 0204', symbol: 'द्व', example: 'द्वार, द्वितीय, विद्वान' },
-  { code: 'Alt + 0205', symbol: 'ट्र', example: 'ट्रक, ट्रेन, ट्रैफिक' },
-  { code: 'Alt + 0206', symbol: 'ड्र', example: 'ड्राइवर, ड्रम, ड्रेस' },
-  { code: 'Alt + 0217', symbol: 'फ्', example: 'दफ्तर, मुफ्त, हफ्ता' },
-  { code: 'Alt + 0188', symbol: '¼', example: 'छोटा कोष्ठक प्रारंभ (' },
-  { code: 'Alt + 0189', symbol: '½', example: 'छोटा कोष्ठक बंद )' },
-  { code: 'Alt + 0165', symbol: '¥', example: 'ह्य (सह्य, बाह्य)' },
-  { code: 'Alt + 0197', symbol: 'ऋ', example: 'ऋषि, ऋण, ऋतु' },
-  { code: 'Alt + 0227', symbol: 'क्त', example: 'भक्त, रक्त, शक्ति' },
-  { code: 'Alt + 0199', symbol: 'च्', example: 'बच्चा, सच्चा' },
-  { code: 'Alt + 0182', symbol: 'ध्', example: 'मध्य, ध्यान' },
-  { code: 'Alt + 0221', symbol: 'ह्न', example: 'चिह्न, अपराह्न' },
-  { code: 'Alt + 0226', symbol: 'ह्म', example: 'ब्रह्मा, ब्राह्मण' }
+// Comprehensive KrutiDev / Devlys 010 Alt-Codes Database (Official Exam Cheatsheet)
+export interface KrutiDevCode {
+  code: string;
+  symbol: string;
+  charName: string;
+  example: string;
+  category: 'conjunct' | 'matra' | 'symbol' | 'half' | 'number';
+}
+
+const KRUTIDEV_ALT_CODES: KrutiDevCode[] = [
+  // 1. Hindi Numbers (देवनागरी अंक: Alt + 0131 to 0140)
+  { code: 'Alt + 0131', symbol: '१', charName: 'हिंदी अंक १', example: 'संख्या १', category: 'number' },
+  { code: 'Alt + 0132', symbol: '२', charName: 'हिंदी अंक २', example: 'संख्या २', category: 'number' },
+  { code: 'Alt + 0133', symbol: '३', charName: 'हिंदी अंक ३', example: 'संख्या ३', category: 'number' },
+  { code: 'Alt + 0134', symbol: '४', charName: 'हिंदी अंक ४', example: 'संख्या ४', category: 'number' },
+  { code: 'Alt + 0135', symbol: '५', charName: 'हिंदी अंक ५', example: 'संख्या ५', category: 'number' },
+  { code: 'Alt + 0136', symbol: '६', charName: 'हिंदी अंक ६', example: 'संख्या ६', category: 'number' },
+  { code: 'Alt + 0137', symbol: '७', charName: 'हिंदी अंक ७', example: 'संख्या ७', category: 'number' },
+  { code: 'Alt + 0138', symbol: '८', charName: 'हिंदी अंक ८', example: 'संख्या ८', category: 'number' },
+  { code: 'Alt + 0139', symbol: '९', charName: 'हिंदी अंक ९', example: 'संख्या ९', category: 'number' },
+  { code: 'Alt + 0140', symbol: '०', charName: 'हिंदी अंक ०', example: 'संख्या ०', category: 'number' },
+
+  // 2. Sanyukt / Conjunct Characters (संयुक्त अक्षर)
+  { code: 'Alt + 0150', symbol: 'दृ', charName: 'दृ (द + ऋ)', example: 'दृष्टि, दृष्टिकोण, दृश्य', category: 'conjunct' },
+  { code: 'Alt + 0151', symbol: 'कृ', charName: 'कृ (क + ऋ)', example: 'कृपा, प्रकृति, कृष्ण', category: 'conjunct' },
+  { code: 'Alt + 0152', symbol: 'द्भ', charName: 'द्भ (द् + भ)', example: 'उद्भव, सद्भाव, उद्भासित', category: 'conjunct' },
+  { code: 'Alt + 0153', symbol: 'झ्', charName: 'आधा झ', example: 'झंकार', category: 'half' },
+  { code: 'Alt + 0155', symbol: 'ष्ट्र', charName: 'ष्ट्र', example: 'राष्ट्र, महाराष्ट्र', category: 'conjunct' },
+  { code: 'Alt + 0159', symbol: 'ट्', charName: 'आधा ट (हलंत ट)', example: 'खट्टा, पट्टी, मिट्टी', category: 'half' },
+  { code: 'Alt + 0161', symbol: '्र', charName: 'पदेन र (प्र)', example: 'प्रकाश, प्रकार, प्रयास, प्राचीन', category: 'conjunct' },
+  { code: 'Alt + 0163', symbol: 'त्र', charName: 'त्र', example: 'छात्र, पत्र, मित्र, त्रिभुज', category: 'conjunct' },
+  { code: 'Alt + 0165', symbol: 'ह्य', charName: 'ह्य (ह् + य)', example: 'सह्य, बाह्य', category: 'conjunct' },
+  { code: 'Alt + 0168', symbol: 'द्भ', charName: 'द्भ (द् + भ)', example: 'उद्भव, सद्भाव', category: 'conjunct' },
+  { code: 'Alt + 0169', symbol: 'ष्ट', charName: 'ष्ट (ष् + ट)', example: 'कष्ट, भ्रष्ट, दृष्टि', category: 'conjunct' },
+  { code: 'Alt + 0170', symbol: 'द्ध', charName: 'द्ध (द् + ध)', example: 'बुद्ध, शुद्ध, युद्ध, प्रसिद्धि', category: 'conjunct' },
+  { code: 'Alt + 0171', symbol: 'त्र', charName: 'त्र (वैकल्पिक)', example: 'त्रिशूल', category: 'conjunct' },
+  { code: 'Alt + 0179', symbol: 'द्द', charName: 'द्द (द् + द)', example: 'उद्देश्य, गद्दा, रद्दी, भद्दा', category: 'conjunct' },
+  { code: 'Alt + 0180', symbol: 'द्य', charName: 'द्य (द् + य)', example: 'विद्या, विद्यालय, विद्यापीठ', category: 'conjunct' },
+  { code: 'Alt + 0181', symbol: 'द्म', charName: 'द्म (द् + म)', example: 'पद्म, पद्मावत', category: 'conjunct' },
+  { code: 'Alt + 0182', symbol: 'ध्र', charName: 'ध्र (ध + र)', example: 'ध्रुव, आंध्र', category: 'conjunct' },
+  { code: 'Alt + 0186', symbol: 'ह्न', charName: 'ह्न (ह् + न)', example: 'अपराह्न, पूर्वाह्न', category: 'conjunct' },
+  { code: 'Alt + 0193', symbol: 'प्र', charName: 'प्र (प् + र)', example: 'प्रथम, प्रयास, प्रभाव', category: 'conjunct' },
+  { code: 'Alt + 0204', symbol: 'द्व', charName: 'द्व (द् + व)', example: 'द्वार, द्वितीय, विद्वान, द्वेष', category: 'conjunct' },
+  { code: 'Alt + 0205', symbol: 'ट्र', charName: 'ट्र (ट + र)', example: 'ट्रक, ट्रेन, ट्रैफिक, ट्रैक्टर', category: 'conjunct' },
+  { code: 'Alt + 0206', symbol: 'ड्र', charName: 'ड्र (ड + र)', example: 'ड्राइवर, ड्रम, ड्रेस, ड्राइंग', category: 'conjunct' },
+  { code: 'Alt + 0207', symbol: 'ड्ड', charName: 'ड्ड (ड + ड)', example: 'अड्डा, गुड्डा, लड़्डू', category: 'conjunct' },
+  { code: 'Alt + 0209', symbol: 'कृ', charName: 'कृ (क + ऋ)', example: 'कृषक, कृपा', category: 'conjunct' },
+  { code: 'Alt + 0210', symbol: 'त्त', charName: 'त्त (त् + त)', example: 'कुत्ता, पत्ता, उत्तर', category: 'conjunct' },
+  { code: 'Alt + 0212', symbol: 'ड्ढ', charName: 'ड्ढ (ड + ढ)', example: 'गड्ढा', category: 'conjunct' },
+  { code: 'Alt + 0216', symbol: 'क्र', charName: 'क्र (क् + र)', example: 'क्रम, क्रिया, क्रमांक, विक्रेता', category: 'conjunct' },
+  { code: 'Alt + 0221', symbol: 'फ्र', charName: 'फ्र (फ़ + र)', example: 'फ्रिज, फ्रांस, फ्रॉक', category: 'conjunct' },
+  { code: 'Alt + 0224', symbol: 'ह्ल', charName: 'ह्ल (ह् + ल)', example: 'प्रह्लाद', category: 'conjunct' },
+  { code: 'Alt + 0225', symbol: 'ह्य', charName: 'ह्य (ह् + य)', example: 'सह्य, बाह्य', category: 'conjunct' },
+  { code: 'Alt + 0226', symbol: 'हृ', charName: 'हृ (ह् + ऋ)', example: 'हृदय, हृषिकेश', category: 'conjunct' },
+  { code: 'Alt + 0227', symbol: 'ह्म', charName: 'ह्म (ह् + म)', example: 'ब्रह्मा, ब्राह्मण', category: 'conjunct' },
+  { code: 'Alt + 0228', symbol: 'क्त', charName: 'क्त (क् + त)', example: 'भक्त, रक्त, शक्ति, मुक्ति', category: 'conjunct' },
+  { code: 'Alt + 0230', symbol: 'द्र', charName: 'द्र (द् + र)', example: 'द्रव्य, चंद्रमा, रुद्र', category: 'conjunct' },
+  { code: 'Alt + 0231', symbol: 'प्र', charName: 'प्र वर्ण', example: 'प्रकृति, प्रवेश', category: 'conjunct' },
+  { code: 'Alt + 0233', symbol: 'न्न', charName: 'न्न (न् + न)', example: 'अन्न, प्रसन्न, पन्ना', category: 'conjunct' },
+  { code: 'Alt + 0234', symbol: 'ट्ट', charName: 'ट्ट (ट + ट)', example: 'खट्टा, पट्टी, मिट्टी', category: 'conjunct' },
+  { code: 'Alt + 0235', symbol: 'ट्ठ', charName: 'ट्ठ (ट + ठ)', example: 'चिट्ठी, मुट्ठी, लट्ठ', category: 'conjunct' },
+  { code: 'Alt + 0236', symbol: 'ड्ड', charName: 'ड्ड (ड + ड)', example: 'लड्डू, कबड्डी', category: 'conjunct' },
+  { code: 'Alt + 0237', symbol: 'द्द', charName: 'द्द (द् + द)', example: 'उद्देश्य, भद्दा', category: 'conjunct' },
+  { code: 'Alt + 0239', symbol: 'ङ्क', charName: 'ङ्क (ङ + क)', example: 'अङ्क, पङ्क्ति', category: 'conjunct' },
+  { code: 'Alt + 0240', symbol: 'ष्ट', charName: 'ष्ट (ष् + ट)', example: 'कष्ट, नष्ट, स्पष्ट', category: 'conjunct' },
+  { code: 'Alt + 0243', symbol: 'स्त्र', charName: 'स्त्र (स् + त + र)', example: 'अस्त्र, शस्त्र, स्त्री', category: 'conjunct' },
+  { code: 'Alt + 0246', symbol: 'द्ध', charName: 'द्ध (द् + ध)', example: 'बुद्ध, युद्ध', category: 'conjunct' },
+  { code: 'Alt + 0249', symbol: 'द्य', charName: 'द्य (द् + य)', example: 'विद्या, पद्य', category: 'conjunct' },
+
+  // 3. Half Characters (आधे अक्षर)
+  { code: 'Alt + 0147', symbol: 'भ्', charName: 'आधा भ', example: 'अभ्यास, सभ्यता', category: 'half' },
+  { code: 'Alt + 0162', symbol: '्', charName: 'हलंत चिह्न', example: 'क्, त्', category: 'half' },
+  { code: 'Alt + 0163', symbol: 'ख्', charName: 'आधा ख', example: 'संख्या, मुख्य, ख्याल', category: 'half' },
+  { code: 'Alt + 0165', symbol: 'ञ', charName: 'ञ वर्ण', example: 'व्यंजन, संजय', category: 'half' },
+  { code: 'Alt + 0182', symbol: 'फ्', charName: 'आधा फ', example: 'दफ्तर, मुफ्त, हफ्ता', category: 'half' },
+  { code: 'Alt + 0184', symbol: 'ध्', charName: 'आधा ध', example: 'मध्य, ध्यान, संध्या', category: 'half' },
+  { code: 'Alt + 0185', symbol: 'थ्', charName: 'आधा थ', example: 'स्थान, पृथ्वी, तथ्य', category: 'half' },
+  { code: 'Alt + 0196', symbol: 'घ', charName: 'घ वर्ण', example: 'घर, घड़ी', category: 'half' },
+  { code: 'Alt + 0198', symbol: 'ि', charName: 'छोटी इ की मात्रा (ि)', example: 'दिन, सिर', category: 'matra' },
+  { code: 'Alt + 0199', symbol: 'ि', charName: 'छोटी इ की मात्रा (वैकल्पिक)', example: 'किताब', category: 'matra' },
+  { code: 'Alt + 0200', symbol: 'ी', charName: 'बड़ी ई की मात्रा (ी)', example: 'नदी, पानी', category: 'matra' },
+  { code: 'Alt + 0201', symbol: 'ि', charName: 'ह्रस्व इ मात्रा', example: 'कवि', category: 'matra' },
+  { code: 'Alt + 0202', symbol: 'ी', charName: 'दीर्घ ई मात्रा', example: 'गीत', category: 'matra' },
+  { code: 'Alt + 0211', symbol: 'च', charName: 'च वर्ण', example: 'चम्मच', category: 'half' },
+  { code: 'Alt + 0217', symbol: 'त्', charName: 'आधा त (त्)', example: 'सत्य, पत्ता, आत्मा', category: 'half' },
+  { code: 'Alt + 0238', symbol: 'ञ्च', charName: 'ञ्च (ञ + च)', example: 'चञ्चल, पञ्च', category: 'half' },
+
+  // 4. Matras, Vowels & Modifiers (मात्राएं व स्वर)
+  { code: 'Alt + 0130', symbol: 'ॉ', charName: 'ऑ की मात्रा (ॅ)', example: 'डॉक्टर, कॉलेज, ऑफिस', category: 'matra' },
+  { code: 'Alt + 0164', symbol: 'ु', charName: 'छोटे उ की मात्रा (ु)', example: 'सुख, तुम, पुत्र', category: 'matra' },
+  { code: 'Alt + 0168', symbol: 'ो', charName: 'ओ की मात्रा (ो)', example: 'लोग, मोर, चोट', category: 'matra' },
+  { code: 'Alt + 0169', symbol: 'ौ', charName: 'औ की मात्रा (ौ)', example: 'कौआ, पौधा, मौसम', category: 'matra' },
+  { code: 'Alt + 0174', symbol: 'ो', charName: 'ओ की मात्रा (वैकल्पिक)', example: 'सोना', category: 'matra' },
+  { code: 'Alt + 0177', symbol: 'ु', charName: 'ह्रस्व उ मात्रा', example: 'गुरु', category: 'matra' },
+  { code: 'Alt + 0195', symbol: 'ई', charName: 'ई (स्वर)', example: 'ईश्वर, ईंट, ईमेल', category: 'matra' },
+  { code: 'Alt + 0197', symbol: 'ऊ', charName: 'ऊ (स्वर)', example: 'ऊपर, ऊन, ऊर्जा', category: 'matra' },
+  { code: 'Alt + 0203', symbol: '६', charName: 'अंक ६', example: '६', category: 'number' },
+  { code: 'Alt + 0214', symbol: 'इ', charName: 'इ (स्वर)', example: 'इधर, इसका, इतिहास', category: 'matra' },
+  { code: 'Alt + 0229', symbol: '॰', charName: 'लाघव चिह्न (संक्षेप बिंदी)', example: 'डॉ॰, पं॰, प्रो॰', category: 'symbol' },
+  { code: 'Alt + 0232', symbol: '६', charName: 'अंक ६', example: 'संख्या ६', category: 'number' },
+  { code: 'Alt + 0241', symbol: '°', charName: 'डिग्री चिह्न (°)', example: '45° सेल्सियस', category: 'symbol' },
+  { code: 'Alt + 0245', symbol: 'ॅ', charName: 'चंद्रबिंदी', example: 'गाँव, चाँद', category: 'matra' },
+  { code: 'Alt + 0247', symbol: 'इ', charName: 'इ (स्वर)', example: 'इनाम', category: 'matra' },
+  { code: 'Alt + 0248', symbol: '{', charName: 'मझला कोष्ठक प्रारंभ {', example: '{ कोष्ठक', category: 'symbol' },
+
+  // 5. Symbols & Special Characters (चिह्न व कोष्ठक: Alt + 0188-0192, 222-223 etc.)
+  { code: 'Alt + 0170', symbol: '^', charName: 'कैरेट चिह्न (^)', example: 'a^2', category: 'symbol' },
+  { code: 'Alt + 0183', symbol: 'S', charName: 'अवग्रह चिह्न (ऽ)', example: 'कोऽपि, शिवोऽहम्', category: 'symbol' },
+  { code: 'Alt + 0187', symbol: '÷', charName: 'भाग का चिह्न (÷)', example: '10 ÷ 2 = 5', category: 'symbol' },
+  { code: 'Alt + 0188', symbol: '(', charName: 'छोटा कोष्ठक प्रारंभ (', example: '( उदाहरण', category: 'symbol' },
+  { code: 'Alt + 0189', symbol: ')', charName: 'छोटा कोष्ठक बंद )', example: 'समाप्त )', category: 'symbol' },
+  { code: 'Alt + 0190', symbol: '=', charName: 'बराबर का चिह्न (=)', example: 'x = 10', category: 'symbol' },
+  { code: 'Alt + 0191', symbol: '{', charName: 'मझला कोष्ठक प्रारंभ {', example: '{ प्रारंभ', category: 'symbol' },
+  { code: 'Alt + 0192', symbol: '}', charName: 'मझला कोष्ठक बंद }', example: 'समाप्त }', category: 'symbol' },
+  { code: 'Alt + 0218', symbol: '-', charName: 'डैश / योजक चिह्न (-)', example: 'माता-पिता', category: 'symbol' },
+  { code: 'Alt + 0219', symbol: '•', charName: 'बुलेट पॉइंट बिंदु (•)', example: '• सूची', category: 'symbol' },
+  { code: 'Alt + 0220', symbol: '९', charName: 'अंक ९', example: 'संख्या ९', category: 'number' },
+  { code: 'Alt + 0222', symbol: '"', charName: 'डबल कोट प्रारंभ (")', example: '" वाक्य प्रारंभ', category: 'symbol' },
+  { code: 'Alt + 0223', symbol: '"', charName: 'डबल कोट बंद (")', example: 'वाक्य समाप्त "', category: 'symbol' },
+
+  // Special ASCII Codes (Alt + 15 to 36)
+  { code: 'Alt + 15', symbol: '☼', charName: 'सूर्य प्रतीक', example: 'प्रतीक', category: 'symbol' },
+  { code: 'Alt + 16', symbol: '†', charName: 'डैगर चिह्न', example: 'चिह्न †', category: 'symbol' },
+  { code: 'Alt + 17', symbol: '◄', charName: 'बायां तीर', example: '◄', category: 'symbol' },
+  { code: 'Alt + 18', symbol: '↕', charName: 'ऊपर-नीचे तीर', example: '↕', category: 'symbol' },
+  { code: 'Alt + 19', symbol: '‼', charName: 'दोहरा विस्मयादिबोधक', example: '‼', category: 'symbol' },
+  { code: 'Alt + 20', symbol: '¶', charName: 'पैराग्राफ चिह्न (Pilcrow)', example: '¶', category: 'symbol' },
+  { code: 'Alt + 21', symbol: '§', charName: 'सेक्शन चिह्न', example: 'धारा §', category: 'symbol' },
+  { code: 'Alt + 23', symbol: '↨', charName: 'वर्टिकल एरो', example: '↨', category: 'symbol' },
+  { code: 'Alt + 24', symbol: '↑', charName: 'ऊपर की ओर तीर', example: '↑', category: 'symbol' },
+  { code: 'Alt + 25', symbol: '↓', charName: 'नीचे की ओर तीर', example: '↓', category: 'symbol' },
+  { code: 'Alt + 26', symbol: '→', charName: 'दाएं तीर', example: '→', category: 'symbol' },
+  { code: 'Alt + 30', symbol: '▲', charName: 'त्रिभुज तीर', example: '▲', category: 'symbol' },
+  { code: 'Alt + 36', symbol: '+', charName: 'जोड़ का चिह्न (+)', example: '5 + 5', category: 'symbol' }
+];
+
+// Vedmata m17n Key Mapping Cheatsheet (CG High Court Ubuntu Linux Standard)
+export interface VedmataCode {
+  key: string;
+  hindiChar: string;
+  charType: string;
+  example: string;
+  category: 'consonant' | 'matra' | 'special' | 'number';
+}
+
+const VEDMATA_CODES: VedmataCode[] = [
+  // Special Conjuncts & Ligatures in Vedmata m17n
+  { key: 'Shift + 6 (^)', hindiChar: 'त्र', charType: 'संयुक्त व्यंजन (त्र)', example: 'छात्र, पत्र, मित्र', category: 'special' },
+  { key: 'Shift + - (_)', hindiChar: 'त्र', charType: 'संयुक्त व्यंजन (त्र)', example: 'त्रिभुज, पवित्र', category: 'special' },
+  { key: 'Shift + [ ({)', hindiChar: 'क्ष्', charType: 'आधा क्ष', example: 'क्षेत्र, रक्षा, क्षमा', category: 'special' },
+  { key: 'Shift + J', hindiChar: 'श्र', charType: 'श्र', example: 'श्रीमान, श्रम, विश्राम', category: 'special' },
+  { key: 'Shift + K', hindiChar: 'ज्ञ', charType: 'ज्ञ', example: 'ज्ञान, विज्ञान, अज्ञानी', category: 'special' },
+  { key: 'Shift + 0 ())', hindiChar: 'द्घ', charType: 'द्घ (द् + घ)', example: 'उद्घाटन', category: 'special' },
+  { key: 'Shift + ] (})', hindiChar: 'द्व', charType: 'द्व (द् + व)', example: 'द्वार, द्वितीय, विद्वान', category: 'special' },
+  { key: 'Shift + \\ (|)', hindiChar: 'द्य', charType: 'द्य (द् + य)', example: 'विद्या, विद्यालय, उद्योग', category: 'special' },
+  { key: 'Shift + 9 (())', hindiChar: '।', charType: 'पूर्णविराम (।)', example: 'वाक्य का अंत।', category: 'special' },
+  { key: 'Shift + 4 ($)', hindiChar: 'ङ', charType: 'ङ (पंचमाक्षर)', example: 'वाङ्मय, अङ्ग', category: 'special' },
+  { key: 'Shift + 8 (*)', hindiChar: 'ञ', charType: 'ञ (पंचमाक्षर)', example: 'सञ्चय, पञ्च', category: 'special' },
+  { key: 'z (लघु)', hindiChar: '्र', charType: 'पदेन र (्र)', example: 'क्रम, प्रकाश, तीव्र', category: 'special' },
+  { key: 'Shift + Z (Z)', hindiChar: 'र्', charType: 'रेफ (ऊपर र)', example: 'सूर्य, कार्य, धर्म, वर्ष', category: 'special' },
+  { key: 'Shift + = (+)', hindiChar: 'ऋ', charType: 'ऋ स्वर', example: 'ऋषि, ऋण, ऋतु', category: 'special' },
+  { key: '` (Tilde key)', hindiChar: '्', charType: 'हलंत (्)', example: 'क्, त्, म्', category: 'special' },
+  { key: 'Shift + 5 (%)', hindiChar: 'ः', charType: 'विसर्ग (ः)', example: 'अतः, प्रातः, क्रमशः', category: 'special' },
+  { key: 'Shift + ; (:)', hindiChar: 'ॐ', charType: 'ॐ (पवित्र ओंकार)', example: 'ॐ नमः शिवाय', category: 'special' },
+
+  // Matras in Vedmata
+  { key: 'f (कंसोनेंट से पहले)', hindiChar: 'ि', charType: 'छोटी इ की मात्रा', example: 'दिन (f + n), किसान (f + d + k + l)', category: 'matra' },
+  { key: 'h', hindiChar: 'ी', charType: 'बड़ी ई की मात्रा', example: 'पानी, नदी, चाबी', category: 'matra' },
+  { key: 'k', hindiChar: 'ा', charType: 'आ की मात्रा', example: 'काम, बात, खाना', category: 'matra' },
+  { key: 'q', hindiChar: 'ु', charType: 'छोटे उ की मात्रा', example: 'सुख, तुम, पुत्र', category: 'matra' },
+  { key: 'w', hindiChar: 'ू', charType: 'बड़े ऊ की मात्रा', example: 'फूल, दूर, भूमि', category: 'matra' },
+  { key: 's', hindiChar: 'े', charType: 'ए की मात्रा', example: 'देश, रेल, सेवा', category: 'matra' },
+  { key: 'Shift + S (S)', hindiChar: 'ै', charType: 'ऐ की मात्रा', example: 'पैसा, कैसा, सैनिक', category: 'matra' },
+  { key: 'k + s', hindiChar: 'ो', charType: 'ओ की मात्रा', example: 'लोग, चोट, मोर', category: 'matra' },
+  { key: 'k + Shift + S', hindiChar: 'ौ', charType: 'औ की मात्रा', example: 'कौआ, पौधा, मौसम', category: 'matra' },
+  { key: 'a', hindiChar: 'ं', charType: 'अनुस्वार (बिंदी)', example: 'संबंध, गंगा, अंत', category: 'matra' },
+  { key: 'Shift + A (A)', hindiChar: 'ँ', charType: 'अनुनासिक (चंद्रबिंदी)', example: 'आँख, चाँद, गाँव', category: 'matra' },
+  { key: 'Shift + 1 (!)', hindiChar: '?', charType: 'प्रश्नवाचक चिह्न (?)', example: 'क्या आप आएंगे?', category: 'matra' },
+  { key: '1 (बिना शिफ्ट)', hindiChar: '़', charType: 'नुक्ता (़)', example: 'ज़िला, फ़ैसला, क़ानून', category: 'matra' },
+  { key: '2 (बिना शिफ्ट)', hindiChar: 'ृ', charType: 'ऋ की मात्रा (ृ)', example: 'कृपा, प्रकृति, दृष्टि', category: 'matra' },
+  { key: 'Shift + W (W)', hindiChar: 'ॅ', charType: 'ऑ की मात्रा (ॅ)', example: 'कॉलेज, डॉक्टर, हॉस्पिटल', category: 'matra' },
+
+  // Key Consonants & Half Characters
+  { key: 'd + k', hindiChar: 'क', charType: 'क पूरा (d=क् + k=ा)', example: 'कलम, कागज', category: 'consonant' },
+  { key: 'd (Shift + d = D)', hindiChar: 'क्', charType: 'आधा क (Shift+D)', example: 'क्या, पक्का', category: 'consonant' },
+  { key: '[ (Shift + [)', hindiChar: 'ख्', charType: 'आधा ख (Shift+[)', example: 'ख्याति, मुख्य', category: 'consonant' },
+  { key: 'x (Shift + x = X)', hindiChar: 'ग्', charType: 'आधा ग (Shift+X)', example: 'ग्वाला, भाग्य', category: 'consonant' },
+  { key: 'Shift + ? (?)', hindiChar: 'घ्', charType: 'आधा घ', example: 'शीघ्र, विघ्न', category: 'consonant' },
+  { key: 'p (Shift + p = P)', hindiChar: 'च्', charType: 'आधा च (Shift+P)', example: 'बच्चा, सच्चा', category: 'consonant' },
+  { key: 'Shift + N', hindiChar: 'छ', charType: 'छ वर्ण', example: 'छाया, छात्र', category: 'consonant' },
+  { key: 't (Shift + t = T)', hindiChar: 'ज्', charType: 'आधा ज (Shift+T)', example: 'ज्वाला, राज्य', category: 'consonant' },
+  { key: 'Shift + > (>)', hindiChar: 'झ', charType: 'झ वर्ण', example: 'झरना, झंडा', category: 'consonant' },
+  { key: 'Shift + V (V)', hindiChar: 'ट', charType: 'ट वर्ण', example: 'टमाटर, टिकट', category: 'consonant' },
+  { key: 'Shift + B (B)', hindiChar: 'ठ', charType: 'ठ वर्ण', example: 'ठोस, पाठ', category: 'consonant' },
+  { key: 'Shift + M (M)', hindiChar: 'ड', charType: 'ड वर्ण', example: 'डमरू, डिब्बा', category: 'consonant' },
+  { key: 'Shift + < (<)', hindiChar: 'ढ', charType: 'ढ वर्ण', example: 'ढोलक, ढक्कन', category: 'consonant' },
+  { key: 'Shift + . (.)', hindiChar: 'ण्', charType: 'आधा ण', example: 'घंटा, कारण', category: 'consonant' },
+  { key: 'r (Shift + r = R)', hindiChar: 'त्', charType: 'आधा त (Shift+R)', example: 'सत्य, पत्ता', category: 'consonant' },
+  { key: 'Shift + F (F)', hindiChar: 'थ्', charType: 'आधा थ', example: 'स्थान, पथ्य', category: 'consonant' },
+  { key: 'n', hindiChar: 'द', charType: 'द वर्ण', example: 'देश, दीपक', category: 'consonant' },
+  { key: 'Shift + / (/)', hindiChar: 'ध्', charType: 'आधा ध', example: 'ध्यान, मध्य', category: 'consonant' },
+  { key: 'u (Shift + u = U)', hindiChar: 'न्', charType: 'आधा न (Shift+U)', example: 'न्याय, गन्ना', category: 'consonant' },
+  { key: 'i (Shift + i = I)', hindiChar: 'प्', charType: 'आधा प (Shift+I)', example: 'प्यार, चप्पल', category: 'consonant' },
+  { key: 'Shift + H (H)', hindiChar: 'भ्', charType: 'आधा भ', example: 'अभ्यास, सभ्यता', category: 'consonant' },
+  { key: 'e (Shift + e = E)', hindiChar: 'म्', charType: 'आधा म (Shift+E)', example: 'सम्मान, मुख्य', category: 'consonant' },
+  { key: ';', hindiChar: 'य', charType: 'य वर्ण', example: 'याद, योग्य', category: 'consonant' },
+  { key: 'j', hindiChar: 'र', charType: 'र वर्ण', example: 'रात, रंग', category: 'consonant' },
+  { key: 'y (Shift + y = Y)', hindiChar: 'ल्', charType: 'आधा ल (Shift+Y)', example: 'कल्याण, दिल्ली', category: 'consonant' },
+  { key: 'o (Shift + o = O)', hindiChar: 'व्', charType: 'आधा व (Shift+O)', example: 'व्यापार, विद्वान', category: 'consonant' },
+  { key: "Shift + ' (')", hindiChar: 'श्', charType: 'आधा श (तालव्य श)', example: 'श्याम, निश्चय', category: 'consonant' },
+  { key: 'Shift + " (")', hindiChar: 'ष्', charType: 'आधा ष (मूर्धन्य ष)', example: 'कष्ट, श्रेष्ठ', category: 'consonant' },
+  { key: 'l (Shift + l = L)', hindiChar: 'स्', charType: 'आधा स (दंत्य स)', example: 'स्थान, रास्ता', category: 'consonant' },
+  { key: 'g', hindiChar: 'ह', charType: 'ह वर्ण', example: 'हम, हाथ', category: 'consonant' },
+  { key: 'Shift + G (G)', hindiChar: 'ळ', charType: 'मराठी/वैदिक ळ', example: 'बाळ, टिळक', category: 'consonant' },
+
+  // Hindi Digits (CG High Court official)
+  { key: '3', hindiChar: '१', charType: 'हिंदी अंक १', example: 'संख्या १', category: 'number' },
+  { key: '4', hindiChar: '२', charType: 'हिंदी अंक २', example: 'संख्या २', category: 'number' },
+  { key: '5', hindiChar: '३', charType: 'हिंदी अंक ३', example: 'संख्या ३', category: 'number' },
+  { key: '6', hindiChar: '४', charType: 'हिंदी अंक ४', example: 'संख्या ४', category: 'number' },
+  { key: '7', hindiChar: '५', charType: 'हिंदी अंक ५', example: 'संख्या ५', category: 'number' },
+  { key: '8', hindiChar: '६', charType: 'हिंदी अंक ६', example: 'संख्या ६', category: 'number' },
+  { key: '9', hindiChar: '७', charType: 'हिंदी अंक ७', example: 'संख्या ७', category: 'number' },
+  { key: '0', hindiChar: '८', charType: 'हिंदी अंक ८', example: 'संख्या ८', category: 'number' },
+  { key: '-', hindiChar: '९', charType: 'हिंदी अंक ९', example: 'संख्या ९', category: 'number' },
+  { key: '=', hindiChar: '०', charType: 'हिंदी अंक ०', example: 'संख्या ०', category: 'number' }
 ];
 
 export type ExamProfileType = 'cg_high_court' | 'cpct_krutidev' | 'english_exam' | 'custom';
@@ -203,7 +408,6 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
   const candidateName = currentUser?.displayName || 'Guest Candidate';
 
   // Mode & Parameters
-  const [examProfile, setExamProfile] = useState<ExamProfileType>('cg_high_court');
   const [layoutMode, setLayoutMode] = useState<TypingFontLayout>('vedmata');
   const [duration, setDuration] = useState<number>(600); // 10 minutes default for CG High Court
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
@@ -238,6 +442,8 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
   // Review & Helper Modals
   const [reviewFilter, setReviewFilter] = useState<'all' | 'mistakes' | 'correct'>('all');
   const [showAltCodeModal, setShowAltCodeModal] = useState<boolean>(false);
+  const [altCodeModalTab, setAltCodeModalTab] = useState<'krutidev' | 'vedmata'>('krutidev');
+  const [altCodeCategory, setAltCodeCategory] = useState<string>('all');
   const [altCodeSearch, setAltCodeSearch] = useState<string>('');
   const [showUnicodeHelper, setShowUnicodeHelper] = useState<boolean>(true);
   const [shakeInput, setShakeInput] = useState<boolean>(false);
@@ -249,32 +455,6 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
   const displayContainerRef = useRef<HTMLDivElement>(null);
   const activeWordRef = useRef<HTMLSpanElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Preset switch helper
-  const applyPreset = (preset: ExamProfileType) => {
-    setExamProfile(preset);
-    if (preset === 'cg_high_court') {
-      setLayoutMode('vedmata');
-      setDuration(600); // 10 mins
-      setAllowBackspace(true);
-      setShowHighlight(true);
-      const courtTopic = topics.find(t => t.id === 'cg_court_judgment') || topics[0];
-      setSelectedTopic(courtTopic);
-    } else if (preset === 'cpct_krutidev') {
-      setLayoutMode('krutidev');
-      setDuration(900); // 15 mins
-      setAllowBackspace(true);
-      setShowHighlight(true);
-      const topic = topics.find(t => t.id === 'cg_revenue_admin') || topics[1];
-      setSelectedTopic(topic);
-    } else if (preset === 'english_exam') {
-      setLayoutMode('english');
-      setDuration(600); // 10 mins
-      setAllowBackspace(true);
-      setShowHighlight(true);
-      setSelectedTopic(topics[0]);
-    }
-  };
 
   // Load custom topics from Firestore
   useEffect(() => {
@@ -322,8 +502,8 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Filter topics by difficulty if in custom mode
-  const filteredTopics = topics.filter(t => examProfile !== 'custom' || t.difficulty === difficulty);
+  // Filter topics by difficulty
+  const filteredTopics = topics.filter(t => !difficulty || t.difficulty === difficulty);
 
   // Helper to extract text according to layoutMode
   const getTopicText = (topic: Topic, mode: TypingFontLayout): string => {
@@ -411,16 +591,29 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
     if (activeWordRef.current && displayContainerRef.current) {
       const container = displayContainerRef.current;
       const activeEl = activeWordRef.current;
+      
       const activeTop = activeEl.offsetTop;
       const activeHeight = activeEl.offsetHeight;
+      const containerScrollTop = container.scrollTop;
       const containerHeight = container.clientHeight;
 
-      // Scroll so active word stays roughly centered or within top 40%
-      const targetScroll = activeTop - (containerHeight / 2) + (activeHeight / 2);
-      container.scrollTo({
-        top: Math.max(0, targetScroll),
-        behavior: 'smooth'
-      });
+      // Only scroll if active element is moving near the bottom boundary or top boundary
+      const bottomThreshold = containerScrollTop + containerHeight - activeHeight - 30;
+      const topThreshold = containerScrollTop + 20;
+
+      if (activeTop > bottomThreshold) {
+        // Move view down gently so the new line is comfortably visible
+        container.scrollTo({
+          top: activeTop - 40,
+          behavior: 'smooth'
+        });
+      } else if (activeTop < topThreshold) {
+        // In case user backspaced back to earlier lines
+        container.scrollTo({
+          top: Math.max(0, activeTop - 20),
+          behavior: 'smooth'
+        });
+      }
     }
   }, [currentWordIndex, status]);
 
@@ -428,9 +621,12 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
   const syncTypedText = (text: string) => {
     setFullTypedText(text);
 
-    // Keep textarea auto-scrolled so cursor stays in view
+    // Keep textarea auto-scrolled without jarring jumps
     if (inputRef.current) {
-      inputRef.current.scrollTop = inputRef.current.scrollHeight;
+      const ta = inputRef.current;
+      if (ta.scrollHeight - ta.scrollTop > ta.clientHeight + 40) {
+        ta.scrollTop = ta.scrollHeight;
+      }
     }
 
     const parts = text.split(' ');
@@ -585,7 +781,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
 
   // Exam Qualification Verdict Assessment
   const evaluateExamPass = () => {
-    if (examProfile === 'cg_high_court') {
+    if (layoutMode === 'vedmata') {
       // CG High Court standard: 250 words in 10 mins = 25 WPM / 5000 KPH, accuracy >= 80%
       const speedPass = liveWpm >= 25;
       const accuracyPass = liveAccuracy >= 80;
@@ -602,7 +798,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
           ? 'Congratulations! You meet all official CG High Court skill test speed & accuracy benchmarks.'
           : 'Speed or accuracy fell below the 25 WPM / 80% cutoff. Focus on error reduction.'
       };
-    } else if (examProfile === 'cpct_krutidev') {
+    } else if (layoutMode === 'krutidev') {
       const isPass = liveWpm >= 20 && liveAccuracy >= 75;
       return {
         isPass,
@@ -706,60 +902,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
               </div>
             </div>
 
-            {/* Exam Presets Bar (Typing Warriors Style) */}
-            <div className="bg-bg-s2 border border-border rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
-              <span className="text-[10px] font-black uppercase text-text-muted tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-saffron" />
-                <span>Select Target Exam Preset / परीक्षा मोड चुनें</span>
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {[
-                  {
-                    id: 'cg_high_court',
-                    label: '⚖️ CG High Court',
-                    sub: 'Vedmata m17n Linux (10 Min)',
-                    badge: '25 WPM / 5k KPH'
-                  },
-                  {
-                    id: 'cpct_krutidev',
-                    label: '⌨️ MP CPCT',
-                    sub: 'KrutiDev 010 (15 Min)',
-                    badge: '20 WPM Hindi'
-                  },
-                  {
-                    id: 'english_exam',
-                    label: '🌐 English Exam',
-                    sub: 'General Standard (10 Min)',
-                    badge: '35 WPM Target'
-                  },
-                  {
-                    id: 'custom',
-                    label: '⚙️ Custom Mode',
-                    sub: 'Free Practice & Timers',
-                    badge: 'Flexible'
-                  }
-                ].map(p => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => applyPreset(p.id as ExamProfileType)}
-                    className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                      examProfile === p.id
-                        ? 'bg-saffron-dim/25 border-saffron text-saffron shadow-sm ring-1 ring-saffron/20'
-                        : 'bg-bg-s3/30 border-border hover:bg-bg-s3/60 text-text-muted'
-                    }`}
-                  >
-                    <div>
-                      <div className="text-xs font-black leading-snug">{p.label}</div>
-                      <div className="text-[10px] text-text-muted/80 leading-tight mt-0.5">{p.sub}</div>
-                    </div>
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-bg-s0/60 border border-border/60 self-start mt-2">
-                      {p.badge}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+
 
             {/* Config Form Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1049,7 +1192,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
                   className="px-3 py-1.5 bg-saffron-dim/20 hover:bg-saffron-dim/40 border border-saffron-border/30 text-saffron rounded-xl text-[10px] font-black uppercase flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
-                  <span>Alt Codes (F1)</span>
+                  <span>Codes Cheat Sheet (F1)</span>
                 </button>
               </div>
             </div>
@@ -1129,7 +1272,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
             {/* Dual Display: 1. Reference Passage Box (Top) */}
             <div
               ref={displayContainerRef}
-              className={`bg-bg-s2 border border-border rounded-2xl p-5 md:p-6 shadow-sm overflow-y-auto max-h-[220px] transition-all select-none leading-loose ${
+              className={`relative bg-bg-s2 border border-border rounded-2xl p-5 md:p-6 shadow-sm overflow-y-auto max-h-[220px] transition-all select-none leading-loose ${
                 fontSizeLevel === 'sm' ? 'text-base' : fontSizeLevel === 'lg' ? 'text-2xl' : 'text-xl'
               }`}
               style={getFontFamilyStyle()}
@@ -1176,7 +1319,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
                 value={fullTypedText}
                 onChange={handleInputChange}
                 onKeyDown={handleInputKeyDown}
-                placeholder="Start typing the passage here... Press SPACE after each word to proceed. / यहाँ पूरा पैसेज टाइप करें..."
+                placeholder={layoutMode === 'english' ? "Start typing the passage here... Press SPACE after each word to proceed." : "यहाँ से टाइप करना शुरू करें... (Type here...)"}
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -1567,21 +1710,23 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
         {showAltCodeModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg-s0/80 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-bg-s2 border border-border rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-bg-s2 border border-border rounded-3xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden"
             >
               {/* Modal Header */}
               <div className="p-5 border-b border-border flex items-center justify-between bg-bg-s3/20">
-                <div className="flex items-center gap-2.5">
-                  <BookOpen className="w-5 h-5 text-saffron" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-saffron-dim/25 border border-saffron-border/40 flex items-center justify-center text-saffron">
+                    <Keyboard className="w-5 h-5" />
+                  </div>
                   <div>
-                    <h3 className="text-sm font-black text-text uppercase">
-                      KrutiDev Alt Codes & Exam Guidelines
+                    <h3 className="text-sm md:text-base font-black text-text uppercase">
+                      Hindi Typing Codebook (F1 Shortcut)
                     </h3>
                     <p className="text-[10px] text-text-muted">
-                      Quick Reference Cheat Sheet for Remington Gail & CG High Court
+                      Official Reference for KrutiDev 010 (Alt Codes) & CG High Court Vedmata m17n
                     </p>
                   </div>
                 </div>
@@ -1594,76 +1739,271 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
                 </button>
               </div>
 
-              {/* Modal Search Bar */}
-              <div className="p-4 border-b border-border/60 bg-bg-s2">
-                <div className="relative">
-                  <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+              {/* Layout Switcher Tabs */}
+              <div className="px-5 pt-3 pb-2 border-b border-border/60 bg-bg-s2 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 bg-bg-s3/50 p-1 rounded-xl border border-border">
+                  <button
+                    type="button"
+                    onClick={() => { setAltCodeModalTab('krutidev'); setAltCodeCategory('all'); }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                      altCodeModalTab === 'krutidev'
+                        ? 'bg-saffron text-bg-s0 shadow-sm'
+                        : 'text-text-muted hover:text-text'
+                    }`}
+                  >
+                    <span>KrutiDev 010 (Alt Codes)</span>
+                    <span className="text-[9px] opacity-80">({KRUTIDEV_ALT_CODES.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAltCodeModalTab('vedmata'); setAltCodeCategory('all'); }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                      altCodeModalTab === 'vedmata'
+                        ? 'bg-saffron text-bg-s0 shadow-sm'
+                        : 'text-text-muted hover:text-text'
+                    }`}
+                  >
+                    <span>Vedmata m17n Linux</span>
+                    <span className="text-[9px] opacity-80">({VEDMATA_CODES.length})</span>
+                  </button>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative min-w-[220px] flex-1 sm:flex-initial">
+                  <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={altCodeSearch}
                     onChange={(e) => setAltCodeSearch(e.target.value)}
-                    placeholder="Search Alt Code (e.g. 0216, क्र, त्र, द्ध)..."
-                    className="w-full pl-9 pr-4 py-2 text-xs bg-bg-s3/50 border border-border rounded-xl focus:border-saffron focus:outline-none text-text"
+                    placeholder={altCodeModalTab === 'krutidev' ? "Search code (0216, क्र, द्ध)..." : "Search key (Shift+J, श्र, त्र)..."}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-bg-s3/50 border border-border rounded-xl focus:border-saffron focus:outline-none text-text"
                   />
                 </div>
               </div>
 
-              {/* Alt Codes Table Container */}
-              <div className="p-4 overflow-y-auto flex-1 flex flex-col gap-4">
-                
-                {/* 1. Alt Code Quick Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {KRUTIDEV_ALT_CODES.filter(item => 
-                    item.code.toLowerCase().includes(altCodeSearch.toLowerCase()) ||
-                    item.symbol.includes(altCodeSearch) ||
-                    item.example.includes(altCodeSearch)
-                  ).map((item, i) => (
-                    <div
-                      key={i}
-                      className="p-2.5 rounded-xl bg-bg-s3/30 border border-border/80 flex items-center justify-between"
+              {/* Category Pills */}
+              <div className="px-5 py-2 border-b border-border/40 bg-bg-s3/10 flex items-center gap-1.5 overflow-x-auto text-[11px]">
+                <span className="text-[10px] font-bold text-text-muted uppercase shrink-0 mr-1">Category:</span>
+                <button
+                  type="button"
+                  onClick={() => setAltCodeCategory('all')}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                    altCodeCategory === 'all' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                  }`}
+                >
+                  All
+                </button>
+                {altCodeModalTab === 'krutidev' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setAltCodeCategory('conjunct')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                        altCodeCategory === 'conjunct' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                      }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span 
-                          className="text-lg font-black text-saffron w-8 text-center"
-                          style={{ fontFamily: 'KrutiDev010, serif' }}
-                        >
-                          {item.symbol}
-                        </span>
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-mono font-black text-text bg-bg-s0/60 px-1.5 py-0.5 rounded border border-border/40 self-start">
-                            {item.code}
+                      संयुक्त अक्षर (द्व, द्ध, क्र...)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAltCodeCategory('half')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                        altCodeCategory === 'half' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                      }`}
+                    >
+                      आधे अक्षर (च्, फ्, ध्...)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAltCodeCategory('matra')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                        altCodeCategory === 'matra' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                      }`}
+                    >
+                      मात्राएं / स्वर (ऋ, र्, ॅ)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAltCodeCategory('symbol')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                        altCodeCategory === 'symbol' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                      }`}
+                    >
+                      विराम व कोष्ठक ((, ), :, “)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAltCodeCategory('number')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                        altCodeCategory === 'number' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                      }`}
+                    >
+                      हिंदी अंक (१, २, ३...)
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setAltCodeCategory('special')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                        altCodeCategory === 'special' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                      }`}
+                    >
+                      विशेष संयुक्त (त्र, क्ष, श्र, ज्ञ, द्घ, द्व...)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAltCodeCategory('matra')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                        altCodeCategory === 'matra' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                      }`}
+                    >
+                      मात्राएं व स्वर (ि, ी, ु, ू, े, ै, ो, ौ)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAltCodeCategory('consonant')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                        altCodeCategory === 'consonant' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                      }`}
+                    >
+                      व्यंजन व आधे वर्ण (क्, ख्, च्...)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAltCodeCategory('number')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                        altCodeCategory === 'number' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                      }`}
+                    >
+                      हिंदी अंक (१, २, ३...)
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Codes Grid / List */}
+              <div className="p-4 overflow-y-auto flex-1 flex flex-col gap-4">
+                {altCodeModalTab === 'krutidev' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                    {KRUTIDEV_ALT_CODES.filter(item => {
+                      const matchesCategory = altCodeCategory === 'all' || item.category === altCodeCategory;
+                      const q = altCodeSearch.toLowerCase().trim();
+                      const matchesSearch = !q || 
+                        item.code.toLowerCase().includes(q) ||
+                        item.symbol.includes(q) ||
+                        item.charName.toLowerCase().includes(q) ||
+                        item.example.toLowerCase().includes(q);
+                      return matchesCategory && matchesSearch;
+                    }).map((item, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-2xl bg-bg-s3/30 hover:bg-bg-s3/50 border border-border/70 flex items-center justify-between transition-colors group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span 
+                            className="text-2xl font-black text-saffron w-10 text-center shrink-0"
+                            style={{ fontFamily: 'KrutiDev010, serif' }}
+                          >
+                            {item.symbol}
                           </span>
-                          <span className="text-[9px] text-text-muted mt-0.5">{item.example}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[11px] font-mono font-black text-text bg-bg-s0/70 px-2 py-0.5 rounded border border-border/50 self-start">
+                              {item.code}
+                            </span>
+                            <span className="text-[10px] font-bold text-text mt-1 truncate">
+                              {item.charName}
+                            </span>
+                            <span className="text-[9px] text-text-muted mt-0.5 truncate">
+                              उदा: {item.example}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                    {VEDMATA_CODES.filter(item => {
+                      const matchesCategory = altCodeCategory === 'all' || item.category === altCodeCategory;
+                      const q = altCodeSearch.toLowerCase().trim();
+                      const matchesSearch = !q || 
+                        item.key.toLowerCase().includes(q) ||
+                        item.hindiChar.includes(q) ||
+                        item.charType.toLowerCase().includes(q) ||
+                        item.example.toLowerCase().includes(q);
+                      return matchesCategory && matchesSearch;
+                    }).map((item, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-2xl bg-bg-s3/30 hover:bg-bg-s3/50 border border-border/70 flex items-center justify-between transition-colors group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span 
+                            className="text-2xl font-black text-saffron w-10 text-center shrink-0"
+                            style={{ fontFamily: "'Noto Sans Devanagari', 'Mangal', sans-serif" }}
+                          >
+                            {item.hindiChar}
+                          </span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[11px] font-mono font-black text-text bg-bg-s0/70 px-2 py-0.5 rounded border border-border/50 self-start">
+                              {item.key}
+                            </span>
+                            <span className="text-[10px] font-bold text-text mt-1 truncate">
+                              {item.charType}
+                            </span>
+                            <span className="text-[9px] text-text-muted mt-0.5 truncate">
+                              उदा: {item.example}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-                {/* 2. CG High Court Marking Scheme Info Box */}
+                {/* Practical Notes & Guidelines */}
                 <div className="p-4 rounded-2xl bg-saffron-dim/15 border border-saffron-border/40 flex flex-col gap-1.5 mt-2">
-                  <span className="text-xs font-black text-saffron uppercase flex items-center gap-1.5">
-                    <Scale className="w-4 h-4" />
-                    <span>CG High Court AG-III / DEO Examination Rules</span>
-                  </span>
-                  <ul className="text-[11px] text-text-muted leading-relaxed list-disc list-inside flex flex-col gap-1 mt-1">
-                    <li><strong>Exam Duration:</strong> 10 Minutes (250 Words Hindi Passage).</li>
-                    <li><strong>Required Speed:</strong> Minimum 25 WPM / 5,000 Key Depressions per hour.</li>
-                    <li><strong>Marking Scheme:</strong> Total 50 Marks. Deduction of 0.5 (1/2) mark for every mistake or omission.</li>
-                    <li><strong>Operating System:</strong> Ubuntu Linux using Vedmata m17n keyboard layout.</li>
-                  </ul>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-saffron uppercase flex items-center gap-1.5">
+                      <Scale className="w-4 h-4" />
+                      <span>
+                        {altCodeModalTab === 'krutidev' 
+                          ? 'KrutiDev 010 (Remington Gail) Exam Rules' 
+                          : 'CG High Court (Ubuntu Linux Vedmata m17n) Rules'}
+                      </span>
+                    </span>
+                    <span className="text-[9px] font-mono font-bold text-text-muted">Press F1 anytime to toggle</span>
+                  </div>
+                  {altCodeModalTab === 'krutidev' ? (
+                    <ul className="text-[11px] text-text-muted leading-relaxed list-disc list-inside flex flex-col gap-1 mt-1">
+                      <li><strong>Alt Code Usage:</strong> NumPad ऑन करके <code>Alt</code> की दबाकर रखें और 4 अंकों का कोड टाइप करें।</li>
+                      <li><strong>CPCT & State Exams:</strong> MP CPCT, Rajasthan High Court, UPSSSC और CG व्यापम में KrutiDev 010 / Remington अनिवार्य होता है।</li>
+                      <li><strong>छोटा ब्रैकेट & कोष्ठक:</strong> Alt+0188 से <code>(</code> और Alt+0189 से <code>)</code> बनता है।</li>
+                    </ul>
+                  ) : (
+                    <ul className="text-[11px] text-text-muted leading-relaxed list-disc list-inside flex flex-col gap-1 mt-1">
+                      <li><strong>CG High Court OS:</strong> छत्तीसगढ़ उच्च न्यायालय (बिलासपुर) सहायक ग्रेड-3 एवं डाटा एंट्री ऑपरेटर परीक्षा Ubuntu Linux पर Vedmata m17n में होती है।</li>
+                      <li><strong>छोटी इ (ि) का नियम:</strong> Vedmata में <code>f</code> की पहले दबाएं, फिर वह वर्ण दबाएं जिस पर मात्रा लगानी है (जैसे <code>f + n = दि</code>)।</li>
+                      <li><strong>आधा अक्षर बनाना:</strong> पहले पूरा वर्ण दबाएं, फिर हलंत के लिए <code>`</code> (Tilde key) दबाएं या सीधे <code>Shift</code> के साथ वर्ण दबाएं।</li>
+                    </ul>
+                  )}
                 </div>
 
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 border-t border-border bg-bg-s3/20 flex justify-end">
+              <div className="p-4 border-t border-border bg-bg-s3/20 flex items-center justify-between">
+                <span className="text-[10px] text-text-muted">
+                  Showing {altCodeModalTab === 'krutidev' ? KRUTIDEV_ALT_CODES.length : VEDMATA_CODES.length} verified typing codes
+                </span>
                 <button
                   type="button"
                   onClick={() => setShowAltCodeModal(false)}
                   className="px-5 py-2 bg-saffron hover:bg-orange-500 text-bg-s0 rounded-xl text-xs font-black uppercase cursor-pointer"
                 >
-                  Close Reference
+                  Close Reference (Esc / F1)
                 </button>
               </div>
             </motion.div>

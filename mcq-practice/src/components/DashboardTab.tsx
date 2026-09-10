@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Flame, BookOpen, ChevronRight, Trophy, Zap, Landmark, Home, Shield, Bot, Sparkles,
-  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard
+  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard, Gift, Calendar
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -24,6 +24,7 @@ interface DashboardTabProps {
   currentUser?: any;
   getApiUrl: (path: string) => string;
   onSelectArticle?: (article: any) => void;
+  onClaimDailyBonus?: (amount: number) => void;
 }
 
 export const DashboardTab: React.FC<DashboardTabProps> = ({
@@ -43,7 +44,8 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   tabVisibility,
   currentUser,
   getApiUrl,
-  onSelectArticle
+  onSelectArticle,
+  onClaimDailyBonus
 }) => {
   const [showExamSelector, setShowExamSelector] = useState<boolean>(false);
   const [articles, setArticles] = useState<any[]>([]);
@@ -156,12 +158,27 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 
   const completedCount = dailyTasksList.filter(t => t.isDone).length;
   const allTasksCompleted = completedCount === 5;
+  const bonusClaimedKey = `cg_daily_bonus_claimed_${todayKey}`;
+  const [isBonusClaimed, setIsBonusClaimed] = useState<boolean>(() => {
+    return Boolean(localStorage.getItem(`cg_daily_bonus_claimed_${todayKey}`));
+  });
+
+  const handleClaimBonus = () => {
+    if (isBonusClaimed) return;
+    localStorage.setItem(bonusClaimedKey, 'true');
+    setIsBonusClaimed(true);
+    if (onClaimDailyBonus) {
+      onClaimDailyBonus(20);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full max-w-lg md:max-w-5xl mx-auto pb-10">
       
       {/* Left Column: Greet, Target Exam, Daily Tasks */}
       <div className="flex flex-col gap-6 md:col-span-7">
+
+
         {/* 1. Hero Greet Panel */}
         <div className="p-6 bg-gradient-to-br from-bg-s2 to-bg-s1 border border-border rounded-xl shadow-lg relative overflow-hidden flex flex-col gap-4">
           <div className="absolute top-0 right-0 w-32 h-32 bg-saffron-dim/10 rounded-full blur-2xl pointer-events-none" />
@@ -195,7 +212,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             </div>
 
             <div className="flex flex-col items-end">
-              <span className="text-sm font-black text-saffron">{xp + (allTasksCompleted ? 20 : 0)} XP</span>
+              <span className="text-sm font-black text-saffron">{xp} XP</span>
               <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Level {level}</span>
             </div>
           </div>
@@ -244,17 +261,35 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               </div>
             </div>
 
-            {/* Completion & Bonus XP Badge */}
-            <div className={`px-2.5 py-1 rounded-md border flex items-center gap-1.5 shrink-0 ${
-              allTasksCompleted 
-                ? 'bg-greenL/15 border-greenL/40 text-greenL font-black' 
-                : 'bg-saffron/10 border-saffron-border/30 text-saffron font-bold'
-            }`}>
-              <Award className="w-3.5 h-3.5" />
-              <span className="text-[10px] uppercase font-black">
-                {allTasksCompleted ? '+20 XP Claimed! 🎉' : `${completedCount}/5 Done (+20 XP)`}
-              </span>
-            </div>
+            {/* Completion & Bonus XP Badge / Button */}
+            {allTasksCompleted ? (
+              isBonusClaimed ? (
+                <div className="px-2.5 py-1 rounded-md border border-greenL/40 bg-greenL/15 text-greenL font-black flex items-center gap-1.5 shrink-0 shadow-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-greenL" />
+                  <span className="text-[10px] uppercase tracking-wide">
+                    +20 XP Claimed! 🎉
+                  </span>
+                </div>
+              ) : (
+                <button
+                  onClick={handleClaimBonus}
+                  className="px-3 py-1.5 rounded-lg border border-saffron bg-gradient-to-r from-saffron to-orange-500 text-bg-s1 font-black flex items-center gap-1.5 shrink-0 shadow-md animate-bounce cursor-pointer hover:opacity-90 active:scale-95 transition-all"
+                  title="Click to add +20 XP to your account"
+                >
+                  <Gift className="w-3.5 h-3.5 text-bg-s1 fill-bg-s1/30" />
+                  <span className="text-[11px] uppercase tracking-wider font-black">
+                    Claim +20 XP! 🎁
+                  </span>
+                </button>
+              )
+            ) : (
+              <div className="px-2.5 py-1 rounded-md border border-saffron-border/30 bg-saffron/10 text-saffron font-bold flex items-center gap-1.5 shrink-0">
+                <Award className="w-3.5 h-3.5" />
+                <span className="text-[10px] uppercase font-black">
+                  {completedCount}/5 Done (+20 XP)
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Progress Bar */}
@@ -479,61 +514,108 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         </div>
       )}
 
-      {/* Exam Selector Drawer/Overlay Modal */}
+      {/* Exam Selector Drawer/Overlay Modal - Big & 2 Columns */}
       <AnimatePresence>
         {showExamSelector && (
-          <div className="fixed inset-0 bg-bg-s0/85 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-bg-s0/85 backdrop-blur-md z-[999] flex items-center justify-center p-4 sm:p-6">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm bg-bg-s2 border border-border rounded-xl shadow-2xl p-5"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-3xl max-h-[90vh] flex flex-col bg-bg-s2 border border-border rounded-2xl shadow-2xl overflow-hidden relative"
             >
-              <div className="flex justify-between items-center border-b border-border pb-2.5 mb-3.5">
-                <h3 className="text-sm font-black uppercase text-text flex items-center gap-2">
-                  <Landmark className="w-5 h-5 text-saffron" />
-                  <span>Select Target Exam</span>
-                </h3>
+              {/* Modal Header */}
+              <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-bg-s2/90 shrink-0">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-saffron/15 border border-saffron-border/30 flex items-center justify-center text-saffron shrink-0">
+                    <Landmark className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black uppercase text-text tracking-wide">
+                      Select Target Exam / लक्ष्य परीक्षा चुनें
+                    </h3>
+                    <p className="text-xs font-semibold text-text-muted">
+                      Choose your primary target exam to align tests, syllabus & study schedules
+                    </p>
+                  </div>
+                </div>
                 <button
                   onClick={() => setShowExamSelector(false)}
-                  className="text-xs text-text-muted hover:text-text cursor-pointer"
+                  className="w-9 h-9 rounded-xl bg-bg-s3 hover:bg-bg-s1 border border-border flex items-center justify-center text-sm font-bold text-text-muted hover:text-text cursor-pointer transition-colors"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
-                {exams.map((ex: any) => (
-                  <button
-                    key={ex.id}
-                    onClick={() => {
-                      onSelectExam(ex.id);
-                      setShowExamSelector(false);
-                    }}
-                    className={`w-full p-3.5 rounded-lg border text-left transition-all flex items-center justify-between cursor-pointer group ${
-                      activeExam?.id === ex.id
-                        ? 'bg-saffron-dim/20 border-saffron text-saffron'
-                        : 'bg-bg-s3 border-border hover:bg-bg-s3/80 text-text'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="select-none flex items-center justify-center shrink-0">
-                        {getExamIcon(ex.icon)}
-                      </span>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold leading-tight group-hover:text-saffron transition-colors">
-                          {ex.name}
-                        </span>
-                        <span className="text-[9px] text-text-muted mt-0.5 uppercase font-bold tracking-wider">
-                          {ex.stage} • {ex.daysRemaining} days remaining
-                        </span>
-                      </div>
-                    </div>
-                    {activeExam?.id === ex.id && (
-                      <span className="text-xs font-black">✓</span>
-                    )}
-                  </button>
-                ))}
+              {/* Modal Content - 2 Columns Grid */}
+              <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {exams.map((ex: any) => {
+                    const isSelected = activeExam?.id === ex.id;
+                    return (
+                      <button
+                        key={ex.id}
+                        onClick={() => {
+                          onSelectExam(ex.id);
+                          setShowExamSelector(false);
+                        }}
+                        className={`p-4 rounded-xl border-2 text-left transition-all flex items-start justify-between gap-3 cursor-pointer group hover:scale-[1.01] ${
+                          isSelected
+                            ? 'bg-saffron-dim/25 border-saffron text-saffron shadow-md ring-1 ring-saffron/30'
+                            : 'bg-bg-s3/70 border-border hover:border-saffron/50 hover:bg-bg-s3 text-text'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3.5 min-w-0">
+                          <div className="w-12 h-12 rounded-xl bg-bg-s2 border border-border/80 flex items-center justify-center select-none shrink-0 group-hover:scale-105 transition-transform shadow-inner">
+                            <div className="scale-110">
+                              {getExamIcon(ex.icon)}
+                            </div>
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-sm font-black leading-tight group-hover:text-saffron transition-colors">
+                                {ex.name}
+                              </span>
+                              {ex.stage && (
+                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-bg-s2 text-text-muted border border-border/80">
+                                  {ex.stage}
+                                </span>
+                              )}
+                            </div>
+                            {ex.fullName && ex.fullName !== ex.name && (
+                              <span className="text-xs text-text-muted mt-1 font-medium line-clamp-2 leading-relaxed">
+                                {ex.fullName}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-[10px] text-saffron font-bold uppercase tracking-wider flex items-center gap-1 bg-saffron-dim/20 px-2 py-0.5 rounded-md border border-saffron-border/30">
+                                <Calendar className="w-3 h-3" />
+                                {ex.daysRemaining} days left
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {isSelected ? (
+                          <span className="w-7 h-7 rounded-full bg-saffron text-bg-s1 flex items-center justify-center font-black text-sm shadow-md shrink-0 mt-0.5">
+                            ✓
+                          </span>
+                        ) : (
+                          <span className="w-7 h-7 rounded-full border border-border/80 flex items-center justify-center text-xs text-text-muted group-hover:border-saffron/50 group-hover:text-saffron shrink-0 mt-0.5 transition-colors">
+                            ➔
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-3 border-t border-border bg-bg-s3/40 flex items-center justify-between text-xs text-text-muted shrink-0">
+                <span className="font-semibold">{exams.length} Exams Available</span>
+                <span className="text-[11px]">Settings se kabhi bhi badal sakte hain</span>
               </div>
             </motion.div>
           </div>

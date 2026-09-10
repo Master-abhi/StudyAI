@@ -173,6 +173,38 @@ PlotlyChart.displayName = 'PlotlyChart';
 
 
 
+// Convert raw expressions like x^2 = 4ay, y^2 = -4ax, (a+b)^2, 10^-5, etc. to KaTeX math or formatted superscripts
+const formatSuperscriptsAndMath = (text: string): string => {
+  if (!text) return '';
+
+  // 1. If text already contains explicit LaTeX delimiters ($...$ or $$...$$), don't break them
+  const parts = text.split(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g);
+
+  return parts.map((part, index) => {
+    // Odd index parts are delimited LaTeX blocks - preserve them as is
+    if (index % 2 === 1) {
+      return part;
+    }
+
+    let processed = part;
+
+    // Convert HTML <sup> and <sub> tags to unicode or markdown/math if present
+    processed = processed.replace(/<sup>(.*?)<\/sup>/gi, (_match, sup) => `^{${sup}}`);
+    processed = processed.replace(/<sub>(.*?)<\/sub>/gi, (_match, sub) => `_{${sub}}`);
+
+    // Match mathematical equations/expressions containing caret powers (^) e.g.:
+    // x^2 = -4ay, y^2 = 4ax, x^2 = 4ay, 10^-5, (x - h)^2 = 4a(y - k)
+    // If the entire line/clause looks like a math formula containing '=', wrap the formula in math:
+    // Otherwise wrap individual base^exp in math
+    processed = processed.replace(/([a-zA-Z0-9α-ωΑ-Ω\u0900-\u097F\(\)]+)\^(\{?[+-]?[a-zA-Z0-9α-ωΑ-Ω\u0900-\u097F]+\}?)/g, (_match, base, exp) => {
+      const cleanExp = exp.startsWith('{') && exp.endsWith('}') ? exp.slice(1, -1) : exp;
+      return `$${base}^{${cleanExp}}$`;
+    });
+
+    return processed;
+  }).join('');
+};
+
 const preserveSingleNewlines = (text: string): string => {
   if (!text) return '';
   const lines = text.split('\n');
@@ -241,7 +273,8 @@ const preserveSingleNewlines = (text: string): string => {
 
 export const MarkdownRenderer = React.memo(({ content, className = '', pClassName }: MarkdownRendererProps) => {
   const processedContent = React.useMemo(() => {
-    return preserveSingleNewlines(content);
+    const withPreservedNewlines = preserveSingleNewlines(content);
+    return formatSuperscriptsAndMath(withPreservedNewlines);
   }, [content]);
   return (
     <div className={`markdown-content select-text font-sans ${className}`}>

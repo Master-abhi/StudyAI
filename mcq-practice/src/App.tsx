@@ -28,7 +28,8 @@ import {
   Download,
   Keyboard,
   X,
-  BellRing
+  BellRing,
+  Gift
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -63,6 +64,7 @@ const ProfileTab = lazy(() => import('./components/ProfileTab').then(m => ({ def
 const SyllabusPage = lazy(() => import('./components/syllabus/SyllabusPage').then(m => ({ default: m.SyllabusPage })));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const StaffDashboard = lazy(() => import('./components/staff/StaffDashboard').then(m => ({ default: m.StaffDashboard })));
+const LandingTab = lazy(() => import('./components/LandingTab').then(m => ({ default: m.LandingTab })));
 
 // Lazy Loaded Modals
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
@@ -192,11 +194,11 @@ const MOCK_QUESTIONS: Question[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'typing' | 'chat' | 'news' | 'jobs' | 'profile' | 'syllabus' | 'admin' | 'staff'>(() => {
+  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'typing' | 'chat' | 'news' | 'jobs' | 'profile' | 'syllabus' | 'admin' | 'staff' | 'landing'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const urlTab = params.get('tab') || params.get('page');
-      if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff'].includes(urlTab)) {
+      if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff', 'landing'].includes(urlTab)) {
         return urlTab as any;
       }
       if (params.get('testId')) {
@@ -205,8 +207,10 @@ export default function App() {
       if (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) {
         return 'admin';
       }
+      // Opening main URL (e.g. cg-guru.web.app or localhost without ?tab) directly shows landing page!
+      return 'landing';
     }
-    return (localStorage.getItem('cg_active_tab') as any) || 'home';
+    return 'landing';
   });
   const [tabVisibility, setTabVisibility] = useState<Record<string, boolean>>({
     home: true,
@@ -235,6 +239,17 @@ export default function App() {
 
   const [activeTestId, setActiveTestId] = useState<string | null>(null);
   const isMountTestChecked = useRef(false);
+  const mainScrollRef = useRef<HTMLElement>(null);
+
+  // Always reset scroll to top on tab changes
+  useEffect(() => {
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTop = 0;
+    }
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
+  }, [activeTab]);
 
   const saveTestProgress = (testId: string | null, currentAnswers: (number | null)[], completed = false) => {
     if (!testId) return;
@@ -259,9 +274,9 @@ export default function App() {
     const url = new URL(window.location.href);
     let changed = false;
 
-    // Sync activeTab
+    // Sync activeTab (landing is the default root URL '/')
     const currentUrlTab = url.searchParams.get('tab') || url.searchParams.get('page');
-    if (activeTab === 'home') {
+    if (activeTab === 'landing') {
       if (currentUrlTab) {
         url.searchParams.delete('tab');
         url.searchParams.delete('page');
@@ -303,14 +318,14 @@ export default function App() {
       const urlTab = params.get('tab') || params.get('page');
       const urlTestId = params.get('testId');
 
-      if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff'].includes(urlTab)) {
+      if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff', 'landing'].includes(urlTab)) {
         setActiveTab(urlTab as any);
       } else if (!urlTab && window.location.pathname.startsWith('/admin')) {
         setActiveTab('admin');
       } else if (!urlTab && urlTestId) {
         setActiveTab('practice');
       } else if (!urlTab) {
-        setActiveTab('home');
+        setActiveTab('landing');
       }
 
       if (!urlTestId && isTestActive) {
@@ -2246,6 +2261,42 @@ export default function App() {
     (sum: number, sub: any) => sum + sub.chapters.reduce((s: number, chap: any) => s + chap.topics.length, 0), 0
   ) || 50;
 
+  const handleClaimDailyBonus = async (bonusAmount: number = 20) => {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const bonusClaimedKey = `cg_daily_bonus_claimed_${todayKey}`;
+    localStorage.setItem(bonusClaimedKey, 'true');
+
+    const newXp = Math.max(0, Math.round((xp + bonusAmount) * 100) / 100);
+    setXp(newXp);
+    localStorage.setItem('examprep_points', String(newXp));
+
+    // Direct Firestore update
+    syncUserDataDirectly({
+      points: newXp
+    });
+
+    // Sync to Express backend if logged in
+    if (currentUser) {
+      try {
+        const token = await currentUser.getIdToken();
+        await fetch(getApiUrl('/api/user/sync'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            points: newXp,
+            displayName: currentUser?.displayName || 'Aspirant',
+            email: currentUser?.email || ''
+          })
+        });
+      } catch (e) {
+        console.warn('[Daily Bonus Sync Error]:', e);
+      }
+    }
+  };
+
   // Render tab modules
   const renderTabContent = () => {
     switch (activeTab) {
@@ -2278,6 +2329,7 @@ export default function App() {
               setInitialSelectedArticle(art);
               setActiveTab('news');
             }}
+            onClaimDailyBonus={handleClaimDailyBonus}
           />
         );
       case 'practice':
@@ -2435,6 +2487,22 @@ export default function App() {
             onGoBack={() => setActiveTab('home')}
           />
         );
+      case 'landing':
+        return (
+          <LandingTab
+            onStartPractice={() => {
+              localStorage.setItem('cg_has_visited', 'true');
+              setActiveTab('practice');
+            }}
+            onOpenAuth={() => setAuthModalOpen(true)}
+            onNavigateToTab={(tabId) => {
+              localStorage.setItem('cg_has_visited', 'true');
+              setActiveTab(tabId as any);
+            }}
+            currentUser={currentUser}
+            userPlan={userPlan}
+          />
+        );
       default:
         return null;
     }
@@ -2446,33 +2514,14 @@ export default function App() {
     <div className="min-h-screen bg-bg-s0 text-text flex flex-col md:flex-row items-stretch select-none font-sans overflow-x-hidden relative">
       
       {/* Desktop Left Sidebar Navigation */}
-      {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
-        <aside className="hidden md:flex flex-col w-64 bg-bg-s2 border-r border-border/60 shrink-0 fixed top-0 left-0 h-screen z-30">
-          {/* Logo & Brand + Desktop Notification Bell */}
-          <div className="p-6 border-b border-border/60 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <GraduationCap className="w-7 h-7 text-saffron" />
-              <span className="text-base font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
-                CG Guru
-              </span>
-            </div>
-            {/* Desktop Quick Notification Bell (Always accessible) */}
-            <button
-              onClick={() => setNotificationsModalOpen(true)}
-              className={`p-2 rounded-xl border transition-all cursor-pointer relative ${
-                unreadNotificationsCount > 0
-                  ? 'bg-saffron/15 border-saffron text-saffron shadow-lg ring-2 ring-saffron/30'
-                  : 'bg-bg-s3/60 border-border text-text-muted hover:text-text hover:border-saffron-border/50'
-              }`}
-              title="Notifications & Announcements"
-            >
-              <Bell className={`w-4 h-4 text-saffron ${unreadNotificationsCount > 0 ? 'animate-bounce' : ''}`} />
-              {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-lg animate-pulse ring-2 ring-bg-s2">
-                  {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
-                </span>
-              )}
-            </button>
+      {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' && (
+        <aside className="hidden md:flex flex-col w-72 bg-bg-s2 border-r border-border/60 shrink-0 fixed top-0 left-0 h-screen z-30">
+          {/* Logo & Brand */}
+          <div className="p-6 border-b border-border/60 flex items-center gap-3">
+            <GraduationCap className="w-7 h-7 text-saffron" />
+            <span className="text-lg font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
+              CG Guru
+            </span>
           </div>
 
           {/* Navigation Links */}
@@ -2485,22 +2534,33 @@ export default function App() {
               { id: 'news', label: 'News', icon: Newspaper },
               { id: 'jobs', label: 'Jobs', icon: Briefcase },
               { id: 'syllabus', label: 'Syllabus', icon: BookOpen },
-              { id: 'profile', label: 'Profile', icon: User }
+              { id: 'profile', label: 'Profile', icon: User },
+              { id: 'landing', label: 'Features & Offers', icon: Gift, isOffer: true }
             ].filter(item => tabVisibility[item.id] !== false).map(item => {
               const Icon = item.icon;
               const isSelected = activeTab === item.id || (item.id === 'home' && activeTab === 'syllabus');
+              const isOffer = (item as any).isOffer;
               return (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id as any)}
-                  className={`flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider cursor-pointer ${
+                  className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider cursor-pointer ${
                     isSelected 
                       ? 'bg-saffron text-bg-s1 font-black shadow-md' 
-                      : 'text-text-muted hover:text-text hover:bg-bg-s3/55'
+                      : isOffer
+                        ? 'text-saffron bg-saffron/10 border border-saffron/30 hover:bg-saffron/20'
+                        : 'text-text-muted hover:text-text hover:bg-bg-s3/55'
                   }`}
                 >
-                  <Icon className="w-4.5 h-4.5" />
-                  <span>{item.label}</span>
+                  <div className="flex items-center gap-3.5">
+                    <Icon className="w-4.5 h-4.5" />
+                    <span>{item.label}</span>
+                  </div>
+                  {isOffer && !isSelected && (
+                    <span className="text-[9px] bg-redL text-white font-black px-1.5 py-0.5 rounded-full animate-pulse">
+                      60% OFF
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -2585,10 +2645,10 @@ export default function App() {
         activeTab === 'chat' 
           ? 'h-[100dvh] md:h-screen overflow-hidden' 
           : 'min-h-screen'
-      } ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' ? 'pb-16 md:pb-0 md:pl-64' : 'pb-0'}`}>
+      } ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' ? 'pb-16 md:pb-0 md:pl-72' : 'pb-0'}`}>
         
         {/* Mobile Sticky Top Header (Shown if test workspace is NOT active, hidden on desktop) */}
-        {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
+        {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' && (
           <header className="md:hidden sticky top-0 left-0 right-0 bg-bg-s1/90 backdrop-blur-md border-b border-border/60 px-5 py-4 flex items-center justify-between z-30 shadow-sm shrink-0">
             <div className="flex items-center gap-2">
               <GraduationCap className="w-6 h-6 text-saffron" />
@@ -2597,10 +2657,10 @@ export default function App() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              {/* App Download Button right next to Notification Bell */}
+              {/* App Download Button */}
               <button 
                 onClick={handleDownloadApp}
-                className="px-2 py-1.5 rounded-lg bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-bg-s1 font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer transition-all active:scale-[0.96]"
+                className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-bg-s1 font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer transition-all active:scale-[0.96]"
                 title="Download App / Install PWA"
               >
                 <Smartphone className="w-3.5 h-3.5 shrink-0" />
@@ -2608,22 +2668,6 @@ export default function App() {
                 <Download className="w-3 h-3 shrink-0" />
               </button>
 
-              <button 
-                onClick={() => setNotificationsModalOpen(true)}
-                className={`p-1.5 rounded-lg border transition-all cursor-pointer relative ${
-                  unreadNotificationsCount > 0
-                    ? 'bg-saffron/20 border-saffron text-saffron shadow-md ring-2 ring-saffron/30'
-                    : 'bg-bg-s2 border-border text-text-muted hover:text-text hover:border-saffron-border/50'
-                }`}
-                title="Notifications & Announcements"
-              >
-                <Bell className={`w-4 h-4 text-saffron ${unreadNotificationsCount > 0 ? 'animate-bounce' : ''}`} />
-                {unreadNotificationsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-0.5 bg-red-500 text-white text-[8.5px] font-black rounded-full flex items-center justify-center shadow-md animate-pulse ring-1 ring-bg-s1">
-                    {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
-                  </span>
-                )}
-              </button>
               <button 
                 onClick={() => setSettingsModalOpen(true)}
                 className="p-1.5 rounded-lg bg-bg-s2 border border-border text-text-muted hover:text-text cursor-pointer hover:border-saffron-border/50 transition-colors"
@@ -2636,14 +2680,19 @@ export default function App() {
         )}
 
         {/* Dynamic Body Router */}
-        <main className={`flex-1 flex flex-col min-h-0 ${
-          isWorkspaceActive
-            ? 'h-[100dvh] max-h-[100dvh] overflow-hidden w-full p-0 gap-0'
-            : (activeTab === 'chat' ? 'h-full max-h-full overflow-hidden ' : 'overflow-y-auto ') + 
-              (activeTab === 'admin' || activeTab === 'staff' 
-                ? 'px-4 py-4 md:px-8 gap-4 w-full' 
-                : 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40 px-4 py-4 gap-4')
-        }`}>
+        <main 
+          ref={mainScrollRef as any}
+          className={`flex-1 flex flex-col min-h-0 ${
+            isWorkspaceActive
+              ? 'h-[100dvh] max-h-[100dvh] overflow-hidden w-full p-0 gap-0'
+              : (activeTab === 'chat' ? 'h-full max-h-full overflow-hidden ' : 'overflow-y-auto ') + 
+                (activeTab === 'landing'
+                  ? 'w-full p-0 gap-0'
+                  : (activeTab === 'admin' || activeTab === 'staff' 
+                      ? 'px-4 py-4 md:px-8 gap-4 w-full' 
+                      : 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40 px-4 py-4 gap-4'))
+          }`}
+        >
           {/* 1-Tap Notification Permission Banner if permission not granted yet */}
           {notificationPermissionNeeded && !isTestActive && (
             <div className="w-full bg-gradient-to-r from-amber-500/15 via-saffron/15 to-orange-500/15 border border-saffron-border/60 rounded-xl p-3 mb-2 flex items-center justify-between gap-3 text-xs shadow-sm animate-fade-in">
@@ -3044,7 +3093,7 @@ export default function App() {
         </main>
 
         {/* Mobile Fixed Bottom Navigation Bar (Hidden on desktop) */}
-        {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && (
+        {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' && (
           <nav className="md:hidden fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-bg-s2/95 backdrop-blur-md border-t border-border px-3 py-2 flex items-center justify-around z-30 shadow-2xl shrink-0">
             {[
               { id: 'home', label: 'Home', icon: Home },
@@ -3079,11 +3128,17 @@ export default function App() {
           onSuccess={(user) => {
             setCurrentUser(user);
             setIsGuest(false);
+            if (activeTab === 'landing') {
+              setActiveTab('home');
+            }
           }}
           onGuest={() => {
             setIsGuest(true);
             setAuthModalOpen(false);
             localStorage.setItem('cg_is_guest', 'true');
+            if (activeTab === 'landing') {
+              setActiveTab('home');
+            }
           }}
         />
 
@@ -3235,45 +3290,47 @@ export default function App() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-md bg-bg-s2 border border-border rounded-xl shadow-2xl overflow-hidden"
+                className="w-full max-w-xl bg-bg-s2 border border-border rounded-2xl shadow-2xl overflow-hidden"
               >
                 {/* Header Banner */}
-                <div className="bg-gradient-to-r from-saffron to-orange-600 p-6 text-center text-bg-s1 relative">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                  <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 text-bg-s1 select-none animate-bounce shadow-inner">
-                    <Landmark className="w-7 h-7" />
+                <div className="bg-gradient-to-r from-saffron via-orange-500 to-orange-600 p-6 sm:p-7 text-center text-bg-s1 relative">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3 text-bg-s1 select-none shadow-inner">
+                    <Landmark className="w-8 h-8" />
                   </div>
-                  <h2 className="text-lg font-black uppercase tracking-wider">Choose Target Exam / लक्ष्य परीक्षा</h2>
-                  <p className="text-[10px] font-bold opacity-90 mt-1">Select your goal to build your personalized study plan</p>
+                  <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider">Choose Target Exam / लक्ष्य परीक्षा</h2>
+                  <p className="text-xs font-bold opacity-95 mt-1.5">Select your goal to build your personalized study plan</p>
                 </div>
 
-                <div className="p-6 flex flex-col gap-4">
-                  <p className="text-xs text-text-muted leading-relaxed text-center">
+                <div className="p-6 sm:p-7 flex flex-col gap-4">
+                  <p className="text-xs sm:text-sm text-text-muted leading-relaxed text-center font-medium">
                     Welcome to <strong>CG Guru</strong>! Please select your primary target exam. This will configure your syllabus trackers, AI study schedules, and practice test papers.
                   </p>
                   
-                  <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+                  <div className="flex flex-col gap-2.5 max-h-[380px] overflow-y-auto pr-1.5 custom-scrollbar">
                     {visibleExams.map((ex: any) => (
                       <button
                         key={ex.id}
                         onClick={() => handleFirstTimeSelectExam(ex.id)}
-                        className="w-full p-4 rounded-lg border border-border bg-bg-s3 hover:border-saffron hover:bg-saffron-dim/10 text-left transition-all flex items-center justify-between cursor-pointer group active:scale-[0.98]"
+                        className="w-full p-4 sm:p-4.5 rounded-xl border border-border bg-bg-s3 hover:border-saffron hover:bg-saffron-dim/15 text-left transition-all flex items-center justify-between cursor-pointer group active:scale-[0.98] shadow-sm"
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl select-none">{ex.icon}</span>
+                        <div className="flex items-center gap-3.5 sm:gap-4">
+                          <span className="text-3xl select-none">{ex.icon}</span>
                           <div className="flex flex-col">
-                            <span className="text-xs font-black leading-tight text-text group-hover:text-saffron transition-colors">
+                            <span className="text-sm sm:text-base font-black leading-tight text-text group-hover:text-saffron transition-colors">
                               {ex.name}
                             </span>
-                            <span className="text-[9px] text-text-muted mt-0.5 uppercase font-bold tracking-wider">
+                            <span className="text-[10px] sm:text-xs text-text-muted mt-0.5 uppercase font-bold tracking-wider">
                               {ex.fullName || ex.name}
                             </span>
-                            <span className="text-[8px] text-saffron font-bold mt-1 uppercase tracking-wider">
-                              {ex.stage} • {ex.daysRemaining} days remaining
+                            <span className="text-[9px] sm:text-[10px] text-saffron font-bold mt-1 uppercase tracking-wider flex items-center gap-1.5">
+                              <span>{ex.stage}</span>
+                              <span>•</span>
+                              <span>{ex.daysRemaining} days remaining</span>
                             </span>
                           </div>
                         </div>
-                        <span className="text-xs text-text-muted group-hover:text-saffron transition-colors font-black">➔</span>
+                        <span className="text-sm text-text-muted group-hover:text-saffron transition-colors font-black pr-1">➔</span>
                       </button>
                     ))}
                   </div>
