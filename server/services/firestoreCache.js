@@ -62,8 +62,31 @@ async function safeFirestoreQuery(key, queryFn, fallbackValue = null) {
   }
 }
 
+function invalidateCache(keyPattern) {
+  try {
+    for (const k of memoryCache.keys()) {
+      if (!keyPattern || k.includes(keyPattern)) {
+        memoryCache.delete(k);
+      }
+    }
+    if (fs.existsSync(cacheDir)) {
+      const files = fs.readdirSync(cacheDir);
+      files.forEach(file => {
+        if (!keyPattern || file.includes(keyPattern)) {
+          try {
+            fs.unlinkSync(path.join(cacheDir, file));
+          } catch (_) {}
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('[Cache Invalidation Warning]:', e.message);
+  }
+}
+
 module.exports = {
   saveCache,
   loadCache,
-  safeFirestoreQuery
+  safeFirestoreQuery,
+  invalidateCache
 };

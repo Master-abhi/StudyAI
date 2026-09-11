@@ -455,168 +455,173 @@ export const JobsTab: React.FC<JobsTabProps> = ({ onNavigateToTab }) => {
 
           return (
             <div 
-              className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto"
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 bg-black/80 backdrop-blur-sm overflow-hidden"
               onClick={() => setSelectedJob(null)}
             >
               <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 15 }}
+                initial={{ opacity: 0, scale: 0.97, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 15 }}
+                exit={{ opacity: 0, scale: 0.97, y: 20 }}
                 transition={{ duration: 0.2 }}
-                className="bg-bg-s1 border border-border/90 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto"
+                className="bg-bg-s1 border-t sm:border border-border/90 rounded-t-2xl sm:rounded-2xl w-full max-w-4xl h-[94vh] sm:h-[88vh] flex flex-col shadow-2xl overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Modal Header */}
-                <div className="p-4 sm:p-5 border-b border-border/80 bg-bg-s2 flex items-start justify-between gap-3 shrink-0">
-                  <div className="flex flex-col gap-2 flex-1 pr-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[11px] font-black uppercase text-saffron bg-saffron/10 border border-saffron-border/40 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                        <Building className="w-3.5 h-3.5" />
-                        <span>{dept}</span>
-                      </span>
-
-                      {posts && (
-                        <span className="text-[11px] font-black uppercase text-red-500 bg-red-500/15 border border-red-500/40 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                          <Users className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                          <span>{posts} Posts</span>
+                <div className="p-3.5 sm:p-5 border-b border-border/80 bg-bg-s2 flex flex-col gap-2 shrink-0">
+                  <div className="w-10 h-1 rounded-full bg-border/80 mx-auto -mt-1 sm:hidden" />
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-1.5 flex-1 pr-1 sm:pr-2">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="text-[10px] sm:text-[11px] font-black uppercase text-saffron bg-saffron/10 border border-saffron-border/40 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg flex items-center gap-1.5">
+                          <Building className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+                          <span className="truncate max-w-[140px] sm:max-w-none">{dept}</span>
                         </span>
-                      )}
 
-                      <span className="text-[10px] font-bold text-text-muted bg-bg-s3 border border-border px-2.5 py-1 rounded-lg">
-                        {selectedJob.source}
+                        {posts && (
+                          <span className="text-[10px] sm:text-[11px] font-black uppercase text-red-500 bg-red-500/15 border border-red-500/40 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg flex items-center gap-1">
+                            <Users className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-red-500 shrink-0" />
+                            <span>{posts} Posts</span>
+                          </span>
+                        )}
+
+                        <span className="text-[9px] sm:text-[10px] font-bold text-text-muted bg-bg-s3 border border-border px-2 py-0.5 rounded-lg">
+                          {selectedJob.source}
+                        </span>
+                      </div>
+
+                      <h2 className="text-sm sm:text-xl font-black text-text leading-snug line-clamp-2 sm:line-clamp-none">
+                        {selectedJob.title_hi || selectedJob.title}
+                      </h2>
+
+                      {selectedJob.title_hi && (
+                        <p className="text-[11px] sm:text-xs text-text-muted font-medium italic line-clamp-1 sm:line-clamp-none">
+                          {selectedJob.title}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Header Actions */}
+                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                      <button
+                        onClick={handleCopyShare}
+                        className="p-2 sm:p-2.5 rounded-xl bg-bg-s3 border border-border hover:bg-bg-s2 text-text-muted hover:text-text transition-colors cursor-pointer"
+                        title="Copy & Share Job Details"
+                      >
+                        {copiedLink ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
+                      </button>
+
+                      <button
+                        onClick={() => toggleSaveJob(selectedJob)}
+                        className={`p-2 sm:p-2.5 rounded-xl border transition-colors cursor-pointer ${
+                          isSaved
+                            ? 'bg-saffron/20 border-saffron-border/40 text-saffron'
+                            : 'bg-bg-s3 border-border text-text-muted hover:text-text'
+                        }`}
+                        title={isSaved ? 'Remove Bookmark' : 'Bookmark Job'}
+                      >
+                        <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-saffron' : ''}`} />
+                      </button>
+
+                      <button
+                        onClick={() => setSelectedJob(null)}
+                        className="p-2 sm:p-2.5 rounded-xl bg-bg-s3 border border-border hover:bg-red-500/20 hover:text-red-500 text-text-muted transition-colors cursor-pointer"
+                        title="Close"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Scrollable Body — Entire body scrolls smoothly without cramped heights */}
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col">
+                  {/* Quick Info Matrix - Clean 6 Badge Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5 p-3 sm:p-4 bg-bg-s2/50 border-b border-border/80 text-xs shrink-0">
+                    <div className="bg-bg-s1 p-2 sm:p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
+                        <GraduationCap className="w-3 h-3 text-saffron shrink-0" /> Qualification
+                      </span>
+                      <span className="text-[11px] sm:text-xs font-bold text-text line-clamp-2 leading-tight" title={qual || 'Refer Notice'}>
+                        {qual || 'Notice Check'}
                       </span>
                     </div>
 
-                    <h2 className="text-base sm:text-xl font-black text-text leading-snug">
-                      {selectedJob.title_hi || selectedJob.title}
-                    </h2>
+                    <div className="bg-bg-s1 p-2 sm:p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
+                        ⏳ Age Limit
+                      </span>
+                      <span className="text-[11px] sm:text-xs font-bold text-text line-clamp-2 leading-tight" title={age || '18-40 Yrs approx'}>
+                        {age || '18 - 35/40 Yrs'}
+                      </span>
+                    </div>
 
-                    {selectedJob.title_hi && (
-                      <p className="text-xs text-text-muted font-medium italic">
-                        {selectedJob.title}
-                      </p>
-                    )}
+                    <div className="bg-bg-s1 p-2 sm:p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
+                        <Coins className="w-3 h-3 text-saffron shrink-0" /> Pay Scale
+                      </span>
+                      <span className="text-[11px] sm:text-xs font-bold text-text line-clamp-2 leading-tight" title={salary || '7th Pay Matrix'}>
+                        {salary || 'Govt Pay Matrix'}
+                      </span>
+                    </div>
+
+                    <div className="bg-bg-s1 p-2 sm:p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
+                        <Users className="w-3 h-3 text-red-500 shrink-0" /> Total Posts
+                      </span>
+                      <span className="text-[11px] sm:text-xs font-bold text-red-500 line-clamp-2 leading-tight" title={posts || 'Check Notice'}>
+                        {posts || 'Check Notice'}
+                      </span>
+                    </div>
+
+                    <div className="bg-bg-s1 p-2 sm:p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-orange-400 shrink-0" /> Last Date
+                      </span>
+                      <span className="text-[11px] sm:text-xs font-bold text-orange-400 line-clamp-2 leading-tight" title={lastDate || 'Refer Portal'}>
+                        {lastDate || 'Active Now'}
+                      </span>
+                    </div>
+
+                    <div className="bg-bg-s1 p-2 sm:p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
+                      <span className="text-[9px] sm:text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
+                        💳 Fee
+                      </span>
+                      <span className="text-[11px] sm:text-xs font-bold text-text line-clamp-2 leading-tight" title={fee || '₹0 / As per Rules'}>
+                        {fee || '₹0 for CG Domicile'}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Header Actions */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={handleCopyShare}
-                      className="p-2.5 rounded-xl bg-bg-s3 border border-border hover:bg-bg-s2 text-text-muted hover:text-text transition-colors cursor-pointer"
-                      title="Copy & Share Job Details"
-                    >
-                      {copiedLink ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
-                    </button>
-
-                    <button
-                      onClick={() => toggleSaveJob(selectedJob)}
-                      className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
-                        isSaved
-                          ? 'bg-saffron/20 border-saffron-border/40 text-saffron'
-                          : 'bg-bg-s3 border-border text-text-muted hover:text-text'
-                      }`}
-                      title={isSaved ? 'Remove Bookmark' : 'Bookmark Job'}
-                    >
-                      <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-saffron' : ''}`} />
-                    </button>
-
-                    <button
-                      onClick={() => setSelectedJob(null)}
-                      className="p-2.5 rounded-xl bg-bg-s3 border border-border hover:bg-red-500/20 hover:text-red-500 text-text-muted transition-colors cursor-pointer"
-                      title="Close"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Quick Info Matrix - Clean 6 Badge Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 p-3.5 sm:p-4 bg-bg-s2/50 border-b border-border/80 text-xs shrink-0">
-                  <div className="bg-bg-s1 p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
-                    <span className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
-                      <GraduationCap className="w-3 h-3 text-saffron shrink-0" /> Qualification
-                    </span>
-                    <span className="text-xs font-bold text-text line-clamp-2 leading-tight" title={qual || 'Refer Notice'}>
-                      {qual || 'Notice Check'}
-                    </span>
+                  {/* Sub-Navigation Tabs - Sticky on scroll */}
+                  <div className="sticky top-0 z-10 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 pt-2.5 pb-0 border-b border-border bg-bg-s1/95 backdrop-blur-md shrink-0 overflow-x-auto no-scrollbar shadow-xs">
+                    {[
+                      { id: 'overview', label: 'Overview & Posts', icon: FileText },
+                      { id: 'eligibility', label: 'Eligibility & Age', icon: GraduationCap },
+                      { id: 'syllabus', label: 'Syllabus & Exam Pattern', icon: BookOpen },
+                      { id: 'selection', label: 'Selection & Apply', icon: CheckCircle2 },
+                    ].map(tab => {
+                      const Icon = tab.icon;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveModalTab(tab.id as any)}
+                          className={`px-3 py-2 sm:px-3.5 sm:py-2.5 text-xs font-bold rounded-t-xl border-b-2 transition-all cursor-pointer flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0 ${
+                            activeModalTab === tab.id
+                              ? 'border-saffron text-saffron bg-saffron/10'
+                              : 'border-transparent text-text-muted hover:text-text'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  <div className="bg-bg-s1 p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
-                    <span className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
-                      ⏳ Age Limit
-                    </span>
-                    <span className="text-xs font-bold text-text line-clamp-2 leading-tight" title={age || '18-40 Yrs approx'}>
-                      {age || '18 - 35/40 Yrs'}
-                    </span>
-                  </div>
-
-                  <div className="bg-bg-s1 p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
-                    <span className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
-                      <Coins className="w-3 h-3 text-saffron shrink-0" /> Pay Scale
-                    </span>
-                    <span className="text-xs font-bold text-text line-clamp-2 leading-tight" title={salary || '7th Pay Matrix'}>
-                      {salary || 'Govt Pay Matrix'}
-                    </span>
-                  </div>
-
-                  <div className="bg-bg-s1 p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
-                    <span className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
-                      <Users className="w-3 h-3 text-red-500 shrink-0" /> Total Posts
-                    </span>
-                    <span className="text-xs font-bold text-red-500 line-clamp-2 leading-tight" title={posts || 'Check Notice'}>
-                      {posts || 'Check Notice'}
-                    </span>
-                  </div>
-
-                  <div className="bg-bg-s1 p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
-                    <span className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-orange-400 shrink-0" /> Last Date
-                    </span>
-                    <span className="text-xs font-bold text-orange-400 line-clamp-2 leading-tight" title={lastDate || 'Refer Portal'}>
-                      {lastDate || 'Active Now'}
-                    </span>
-                  </div>
-
-                  <div className="bg-bg-s1 p-2.5 rounded-xl border border-border/80 flex flex-col gap-1 shadow-xs">
-                    <span className="text-[10px] uppercase font-bold text-text-muted flex items-center gap-1">
-                      💳 Fee
-                    </span>
-                    <span className="text-xs font-bold text-text line-clamp-2 leading-tight" title={fee || '₹0 / As per Rules'}>
-                      {fee || '₹0 for CG Domicile'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Sub-Navigation Tabs */}
-                <div className="flex items-center gap-2 px-4 pt-3 border-b border-border bg-bg-s2/20 shrink-0 overflow-x-auto no-scrollbar">
-                  {[
-                    { id: 'overview', label: 'Overview & Posts', icon: FileText },
-                    { id: 'eligibility', label: 'Eligibility & Age', icon: GraduationCap },
-                    { id: 'syllabus', label: 'Syllabus & Exam Pattern', icon: BookOpen },
-                    { id: 'selection', label: 'Selection & Apply', icon: CheckCircle2 },
-                  ].map(tab => {
-                    const Icon = tab.icon;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveModalTab(tab.id as any)}
-                        className={`px-3.5 py-2.5 text-xs font-bold rounded-t-xl border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-                          activeModalTab === tab.id
-                            ? 'border-saffron text-saffron bg-saffron/10'
-                            : 'border-transparent text-text-muted hover:text-text'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                        <span>{tab.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Modal Scrollable Content Area */}
-                <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-4 text-xs">
-                  {/* OVERVIEW & POST DETAILS TAB */}
-                  {activeModalTab === 'overview' && (
+                  {/* Modal Tab Content Area */}
+                  <div className="p-3.5 sm:p-6 flex flex-col gap-4 text-xs flex-1">
+                    {/* OVERVIEW & POST DETAILS TAB */}
+                    {activeModalTab === 'overview' && (
                     <div className="flex flex-col gap-4 animate-fade-in">
                       {/* Department & Notification Alert */}
                       <div className="p-4 rounded-xl bg-bg-s2 border border-border flex flex-col gap-2">
@@ -950,19 +955,20 @@ export const JobsTab: React.FC<JobsTabProps> = ({ onNavigateToTab }) => {
                       </div>
                     </div>
                   )}
+                  </div>
                 </div>
 
                 {/* Modal Footer Bar with Direct Action Links */}
-                <div className="p-4 border-t border-border bg-bg-s2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
-                  <div className="flex items-center gap-2 text-xs text-text-muted">
+                <div className="p-3 sm:p-4 border-t border-border bg-bg-s2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
+                  <div className="flex items-center gap-1.5 text-xs text-text-muted">
                     <Clock className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                    <span>Last Date to Apply: <strong className="text-text">{lastDate || 'As per notification'}</strong></span>
+                    <span>Last Date: <strong className="text-text">{lastDate || 'As per notification'}</strong></span>
                   </div>
 
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2 sm:gap-2.5">
                     <button
                       onClick={() => setSelectedJob(null)}
-                      className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-border bg-bg-s3 text-text hover:bg-bg-s1 text-xs font-bold transition-all cursor-pointer"
+                      className="px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-border bg-bg-s3 text-text hover:bg-bg-s1 text-xs font-bold transition-all cursor-pointer shrink-0"
                     >
                       Close
                     </button>
@@ -971,7 +977,7 @@ export const JobsTab: React.FC<JobsTabProps> = ({ onNavigateToTab }) => {
                       href={selectedJob.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 sm:flex-none px-5 py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 font-black uppercase text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+                      className="flex-1 sm:flex-none px-4 py-2 sm:px-5 sm:py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 font-black uppercase text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer whitespace-nowrap text-center"
                     >
                       <span>Apply on Official Portal</span>
                       <ExternalLink className="w-3.5 h-3.5" />

@@ -6,6 +6,7 @@ import { getCanonicalSubject } from '../utils/subjectUtils';
 
 interface ServerTest {
   id: string;
+  title?: string;
   examId: string;
   examIds?: string[];
   examName?: string;
@@ -321,6 +322,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
           const offlineMap = JSON.parse(storedOffline);
           const offlineList: ServerTest[] = Object.values(offlineMap).map((t: any) => ({
             id: t.id,
+            title: t.title || '',
             examId: t.examId || '',
             examIds: t.examIds || [],
             examName: t.examName || '',
@@ -509,8 +511,11 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredTests.map(test => {
+                  {filteredTests.map((test, idx) => {
                     const progress = getTestProgressInfo(test);
+                    const displayTitle = test.title?.trim()
+                      ? test.title
+                      : (test.examName?.includes('Paper') || test.examName?.includes('Test') ? test.examName : `${test.subject} - Paper ${idx + 1}`);
                     return (
                       <motion.div
                         key={test.id}
@@ -519,9 +524,11 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                         className="p-4 bg-bg-s2 border border-border rounded-xl flex items-center justify-between shadow-sm hover:border-saffron-border/30 transition-all duration-200 gap-3"
                       >
                         <div className="flex flex-col gap-0.5 truncate pr-2 flex-1">
-                          <h4 className="text-xs font-black text-text truncate leading-tight">{test.subject}</h4>
+                          <h4 className="text-xs font-black text-text truncate leading-tight" title={displayTitle}>
+                            {displayTitle}
+                          </h4>
                           <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider">
-                            {test.totalQuestions} questions • {test.language} • PYQ Paper
+                            {test.totalQuestions} questions • {test.language} • PYQ Paper{test.subject && displayTitle !== test.subject ? ` • ${test.subject}` : ''}
                           </span>
 
                           {progress && (
@@ -638,13 +645,15 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                     >
                       <div className="flex flex-col gap-0.5 truncate pr-2 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <h4 className="text-xs font-black text-text truncate leading-tight">{offTest.subject}</h4>
+                          <h4 className="text-xs font-black text-text truncate leading-tight" title={offTest.title || offTest.subject}>
+                            {offTest.title || offTest.subject}
+                          </h4>
                           <span className="text-[8px] font-bold text-greenL bg-greenL/10 border border-greenL/25 px-1.5 py-0.5 rounded uppercase">
                             Offline Ready
                           </span>
                         </div>
                         <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider">
-                          {offTest.questions?.length || offTest.totalQuestions} questions • {offTest.language || 'Hindi'} • {offTest.mode?.toUpperCase() || 'TEST'}
+                          {offTest.questions?.length || offTest.totalQuestions} questions • {offTest.language || 'Hindi'} • {offTest.mode?.toUpperCase() || 'TEST'}{offTest.title && offTest.title !== offTest.subject ? ` • ${offTest.subject}` : ''}
                         </span>
 
                         {progress && (
@@ -1046,8 +1055,11 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredTests.map(test => {
+                {filteredTests.map((test, idx) => {
                   const progress = getTestProgressInfo(test);
+                  const displayTitle = test.title?.trim() 
+                    ? test.title 
+                    : (test.examName?.includes('Test') ? test.examName : `${test.subject} - Test ${idx + 1}`);
                   return (
                     <motion.div
                       key={test.id}
@@ -1056,9 +1068,11 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                       className="p-4 bg-bg-s2 border border-border rounded-xl flex items-center justify-between shadow-sm hover:border-saffron-border/30 transition-all duration-200 gap-3"
                     >
                       <div className="flex flex-col gap-0.5 truncate pr-2 flex-1">
-                        <h4 className="text-xs font-black text-text truncate leading-tight">{test.subject}</h4>
+                        <h4 className="text-xs font-black text-text truncate leading-tight" title={displayTitle}>
+                          {displayTitle}
+                        </h4>
                         <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider">
-                          {test.totalQuestions} questions • {test.language} • {activeMode === 'quiz' ? 'Quiz' : 'Mock Exam'}
+                          {test.totalQuestions} questions • {test.language} • {activeMode === 'quiz' ? 'Quiz' : 'Mock Exam'}{test.subject && displayTitle !== test.subject ? ` • ${test.subject}` : ''}
                         </span>
                         
                         {progress && (

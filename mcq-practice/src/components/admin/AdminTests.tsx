@@ -63,6 +63,7 @@ interface AdminTestsProps {
 
 interface TestMeta {
   id: string;
+  title?: string;
   examId: string;
   examName: string;
   examIds?: string[];
@@ -1589,6 +1590,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         // Prepare editable data
         const editableTest = {
           ...data,
+          title: data.title || '',
           examIds: data.examIds || (data.examId ? [data.examId] : []),
           examNames: data.examNames || (data.examName ? [data.examName] : []),
           questions: data.questions || []
@@ -2837,54 +2839,68 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
-                 <thead>
-                   <tr className="border-b border-border/50 text-[10px] text-text-muted font-black uppercase tracking-wider">
-                     <th className="py-2.5 pr-2 w-8">#</th>
-                     <th className="py-2.5 px-3">Exam Target</th>
-                     <th className="py-2.5 px-3">Subject / Length</th>
-                     <th className="py-2.5 px-3">Language</th>
-                     <th className="py-2.5 px-3">Date</th>
-                     <th className="py-2.5 pl-3 text-right">Actions</th>
-                   </tr>
-                 </thead>
-                 <tbody className="divide-y divide-border/25">
-                   {filteredRegistryTests.map((test, idx) => (
-                     <tr key={test.id} className="hover:bg-bg-s3/20 transition-colors">
-                       <td className="py-3 pr-2 text-text-muted font-black w-8">{idx + 1}</td>
-                       <td className="py-3 px-3 font-bold text-text truncate max-w-[120px]" title={test.examNames ? test.examNames.join(', ') : test.examName}>
-                        {test.examNames && test.examNames.length > 1 ? (
-                          <div className="flex flex-col">
-                            <span className="truncate">{test.examName}</span>
-                            <span className="text-[9px] text-saffron font-bold">+{test.examNames.length - 1} more</span>
-                          </div>
-                        ) : (
-                          test.examName
-                        )}
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="flex flex-col truncate max-w-[160px]">
-                          <span className="font-semibold text-text-muted leading-tight truncate" title={test.subject}>
-                            {test.subject === 'all' ? 'All Subjects' : test.subject}
-                          </span>
-                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none ${
-                              test.mode === 'mock' 
-                                ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' 
-                                : test.mode === 'pyq'
-                                ? 'bg-green-500/10 border border-green-500/20 text-green-400'
-                                : 'bg-saffron-dim/20 border border-saffron-border/30 text-saffron'
-                            }`}>
-                              {test.mode} ({test.totalQuestions} Qs)
-                            </span>
-                            {test.pattern && (
-                              <span className="text-[7.5px] font-bold text-text-muted bg-bg-s3 px-1 py-0.5 rounded border border-border">
-                                {test.pattern.totalMarks}M • {test.pattern.durationMinutes}m
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3">
+                  <thead>
+                    <tr className="border-b border-border/50 text-[10px] text-text-muted font-black uppercase tracking-wider">
+                      <th className="py-2.5 pr-2 w-8">#</th>
+                      <th className="py-2.5 px-3">Exam Target</th>
+                      <th className="py-2.5 px-3">Subject / Length</th>
+                      <th className="py-2.5 px-3">Test Title (नाम)</th>
+                      <th className="py-2.5 px-3">Language</th>
+                      <th className="py-2.5 px-3">Date</th>
+                      <th className="py-2.5 pl-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/25">
+                    {filteredRegistryTests.map((test, idx) => (
+                      <tr key={test.id} className="hover:bg-bg-s3/20 transition-colors">
+                        <td className="py-3 pr-2 text-text-muted font-black w-8">{idx + 1}</td>
+                        <td className="py-3 px-3 font-bold text-text truncate max-w-[120px]" title={test.examNames ? test.examNames.join(', ') : test.examName}>
+                         {test.examNames && test.examNames.length > 1 ? (
+                           <div className="flex flex-col">
+                             <span className="truncate">{test.examName}</span>
+                             <span className="text-[9px] text-saffron font-bold">+{test.examNames.length - 1} more</span>
+                           </div>
+                         ) : (
+                           test.examName
+                         )}
+                       </td>
+                       <td className="py-3 px-3">
+                         <div className="flex flex-col truncate max-w-[150px]">
+                           <span className="font-bold text-text leading-tight truncate" title={test.subject}>
+                             {test.subject === 'all' ? 'All Subjects' : test.subject}
+                           </span>
+                           <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                             <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none ${
+                               test.mode === 'mock' 
+                                 ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' 
+                                 : test.mode === 'pyq'
+                                 ? 'bg-green-500/10 border border-green-500/20 text-green-400'
+                                 : 'bg-saffron-dim/20 border border-saffron-border/30 text-saffron'
+                             }`}>
+                               {test.mode} ({test.totalQuestions} Qs)
+                             </span>
+                             {test.pattern && (
+                               <span className="text-[7.5px] font-bold text-text-muted bg-bg-s3 px-1 py-0.5 rounded border border-border">
+                                 {test.pattern.totalMarks}M • {test.pattern.durationMinutes}m
+                               </span>
+                             )}
+                           </div>
+                         </div>
+                       </td>
+                       <td className="py-3 px-3">
+                         <div className="flex items-center gap-1.5 max-w-[200px]">
+                           {test.title?.trim() ? (
+                             <span className="text-xs font-black text-saffron truncate leading-tight" title={test.title}>
+                               {test.title}
+                             </span>
+                           ) : (
+                             <span className="text-xs font-bold text-text truncate leading-tight" title={test.examName?.includes('Test') ? test.examName : `${test.subject} - Test ${idx + 1}`}>
+                               {test.examName?.includes('Test') ? test.examName : `${test.subject} - Test ${idx + 1}`}
+                             </span>
+                           )}
+                         </div>
+                       </td>
+                       <td className="py-3 px-3">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-text bg-bg-s3 px-2 py-0.5 border border-border rounded flex items-center gap-1 w-max">
                           <Globe className="w-3 h-3 text-saffron" />
                           <span>{test.language === 'hindi' ? 'हिं' : 'EN'}</span>
@@ -3146,10 +3162,29 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                 </div>
               </div>
 
+              {/* Test Title / Name */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] font-black uppercase text-text-muted">
+                    Test Name / Title (टेस्ट का नाम)
+                  </label>
+                  <span className="text-[8px] text-text-muted">
+                    जैसे: "Mock Test 01 - CG History & Tribal Culture" या "PYQ 2024 Paper"
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={editingTest.title || ''}
+                  onChange={(e) => setEditingTest({ ...editingTest, title: e.target.value })}
+                  placeholder={`e.g. ${editingTest.subject || 'Subject'} - Mock Test 01`}
+                  className="w-full bg-bg-s3 text-xs font-bold text-text border border-border focus:border-saffron px-3 py-2 rounded-lg outline-none"
+                />
+              </div>
+
               {/* Subject, Mode, Language & Duration */}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-black uppercase text-text-muted">Subject / Scope</label>
+                  <label className="text-[9px] font-black uppercase text-text-muted">Subject / Scope (विषय / फोल्डर)</label>
                   <input
                     type="text"
                     value={editingTest.subject || ''}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Flame, BookOpen, ChevronRight, Trophy, Zap, Landmark, Home, Shield, Bot, Sparkles,
-  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard, Gift, Calendar
+  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard, Calendar
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -160,17 +160,19 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const allTasksCompleted = completedCount === 5;
   const bonusClaimedKey = `cg_daily_bonus_claimed_${todayKey}`;
   const [isBonusClaimed, setIsBonusClaimed] = useState<boolean>(() => {
-    return Boolean(localStorage.getItem(`cg_daily_bonus_claimed_${todayKey}`));
+    return Boolean(localStorage.getItem(bonusClaimedKey));
   });
 
-  const handleClaimBonus = () => {
-    if (isBonusClaimed) return;
-    localStorage.setItem(bonusClaimedKey, 'true');
-    setIsBonusClaimed(true);
-    if (onClaimDailyBonus) {
-      onClaimDailyBonus(20);
+  // Automatically award +20 XP as soon as all 5 tasks are completed
+  useEffect(() => {
+    if (allTasksCompleted && !isBonusClaimed) {
+      localStorage.setItem(bonusClaimedKey, 'true');
+      setIsBonusClaimed(true);
+      if (onClaimDailyBonus) {
+        onClaimDailyBonus(20);
+      }
     }
-  };
+  }, [allTasksCompleted, isBonusClaimed, bonusClaimedKey, onClaimDailyBonus]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full max-w-lg md:max-w-5xl mx-auto pb-10">
@@ -257,31 +259,20 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               </div>
               <div className="flex flex-col">
                 <h3 className="text-xs font-black uppercase text-text tracking-wider">Daily Tasks</h3>
-                <span className="text-[10px] text-text-muted font-bold">Complete all 5 daily goals to claim bonus XP</span>
+                <span className="text-[10px] text-text-muted font-bold">
+                  {allTasksCompleted ? 'All 5 tasks completed! +20 XP auto-added' : 'Complete all 5 daily goals to get +20 XP automatically'}
+                </span>
               </div>
             </div>
 
-            {/* Completion & Bonus XP Badge / Button */}
+            {/* Completion & Bonus XP Badge */}
             {allTasksCompleted ? (
-              isBonusClaimed ? (
-                <div className="px-2.5 py-1 rounded-md border border-greenL/40 bg-greenL/15 text-greenL font-black flex items-center gap-1.5 shrink-0 shadow-sm">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-greenL" />
-                  <span className="text-[10px] uppercase tracking-wide">
-                    +20 XP Claimed! 🎉
-                  </span>
-                </div>
-              ) : (
-                <button
-                  onClick={handleClaimBonus}
-                  className="px-3 py-1.5 rounded-lg border border-saffron bg-gradient-to-r from-saffron to-orange-500 text-bg-s1 font-black flex items-center gap-1.5 shrink-0 shadow-md animate-bounce cursor-pointer hover:opacity-90 active:scale-95 transition-all"
-                  title="Click to add +20 XP to your account"
-                >
-                  <Gift className="w-3.5 h-3.5 text-bg-s1 fill-bg-s1/30" />
-                  <span className="text-[11px] uppercase tracking-wider font-black">
-                    Claim +20 XP! 🎁
-                  </span>
-                </button>
-              )
+              <div className="px-2.5 py-1 rounded-md border border-greenL/40 bg-greenL/15 text-greenL font-black flex items-center gap-1.5 shrink-0 shadow-sm animate-fade-in">
+                <CheckCircle2 className="w-3.5 h-3.5 text-greenL" />
+                <span className="text-[10px] uppercase tracking-wide">
+                  +20 XP Added! 🎉
+                </span>
+              </div>
             ) : (
               <div className="px-2.5 py-1 rounded-md border border-saffron-border/30 bg-saffron/10 text-saffron font-bold flex items-center gap-1.5 shrink-0">
                 <Award className="w-3.5 h-3.5" />

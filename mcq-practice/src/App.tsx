@@ -196,6 +196,7 @@ const MOCK_QUESTIONS: Question[] = [
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'typing' | 'chat' | 'news' | 'jobs' | 'profile' | 'syllabus' | 'admin' | 'staff' | 'landing'>(() => {
     if (typeof window !== 'undefined') {
+      const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
       const params = new URLSearchParams(window.location.search);
       const urlTab = params.get('tab') || params.get('page');
       if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff', 'landing'].includes(urlTab)) {
@@ -207,10 +208,18 @@ export default function App() {
       if (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) {
         return 'admin';
       }
-      // Opening main URL (e.g. cg-guru.web.app or localhost without ?tab) directly shows landing page!
+      // If running inside Android/iOS native app, go straight to home or saved tab!
+      if (isNative) {
+        const savedTab = localStorage.getItem('cg_active_tab');
+        if (savedTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus'].includes(savedTab)) {
+          return savedTab as any;
+        }
+        return 'home';
+      }
+      // Opening main URL on web (e.g. cg-guru.web.app without ?tab) directly shows landing page
       return 'landing';
     }
-    return 'landing';
+    return 'home';
   });
   const [tabVisibility, setTabVisibility] = useState<Record<string, boolean>>({
     home: true,
@@ -345,31 +354,6 @@ export default function App() {
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [notificationsModalOpen, setNotificationsModalOpen] = useState<boolean>(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
-  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredInstallPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleDownloadApp = async () => {
-    if (deferredInstallPrompt) {
-      deferredInstallPrompt.prompt();
-      try {
-        await deferredInstallPrompt.userChoice;
-      } catch (e) {}
-      setDeferredInstallPrompt(null);
-    } else {
-      const apkUrl = 'https://drive.google.com/uc?export=download&id=1vLWHyisFtl3B7XEfOJDgWS56XZvHtyPY';
-      window.open(apkUrl, '_blank');
-    }
-  };
   const [reportModalOpen, setReportModalOpen] = useState<boolean>(false);
   const [reportingQuestion, setReportingQuestion] = useState<Question | null>(null);
   const [reportReason, setReportReason] = useState<string>('');
@@ -982,7 +966,8 @@ export default function App() {
         if (data.canGoBack) {
           window.history.back();
         } else {
-          import('@capacitor/app').then(({ App: CapApp }) => CapApp.exitApp());
+          // If on home/main screen, exit gracefully or prompt, do not crash
+          import('@capacitor/app').then(({ App: CapApp }) => CapApp.exitApp()).catch(() => {});
         }
       }
     };
@@ -2261,9 +2246,15 @@ export default function App() {
     (sum: number, sub: any) => sum + sub.chapters.reduce((s: number, chap: any) => s + chap.topics.length, 0), 0
   ) || 50;
 
+  const dailyBonusAwardedRef = useRef<string | null>(null);
+
   const handleClaimDailyBonus = async (bonusAmount: number = 20) => {
     const todayKey = new Date().toISOString().split('T')[0];
     const bonusClaimedKey = `cg_daily_bonus_claimed_${todayKey}`;
+    if (dailyBonusAwardedRef.current === todayKey || localStorage.getItem(bonusClaimedKey) === 'true') {
+      return;
+    }
+    dailyBonusAwardedRef.current = todayKey;
     localStorage.setItem(bonusClaimedKey, 'true');
 
     const newXp = Math.max(0, Math.round((xp + bonusAmount) * 100) / 100);
@@ -2296,6 +2287,42 @@ export default function App() {
       }
     }
   };
+
+  // Automatically award daily bonus XP when all 5 daily tasks are completed
+  useEffect(() => {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const bonusClaimedKey = `cg_daily_bonus_claimed_${todayKey}`;
+    if (dailyBonusAwardedRef.current === todayKey || localStorage.getItem(bonusClaimedKey) === 'true') {
+      return;
+    }
+
+    const todayQsSolved = Number(localStorage.getItem(`cg_qs_solved_${todayKey}`) || 0);
+    const todayQuizQsFromHistory = (testHistory || [])
+      .filter((h: any) => h.timestamp && h.timestamp.split('T')[0] === todayKey)
+      .reduce((sum: number, h: any) => sum + ((h.correct || 0) + (h.wrong || 0) + (h.skipped || 0)), 0);
+    const isTask1Done = Math.min(10, Math.max(todayQsSolved, todayQuizQsFromHistory)) >= 10;
+
+    const isTask2Done = Object.values(topicProgress || {}).some((tp: any) => 
+      (tp?.status === 'Completed' || tp?.notesRead || tp?.mcqCompleted) && 
+      (tp?.lastStudied?.startsWith(todayKey) || tp?.lastUpdated?.startsWith(todayKey))
+    ) || Boolean(localStorage.getItem(`cg_topic_completed_${todayKey}`));
+
+    const isTask3Done = (testHistory || []).some((h: any) => 
+      h.mode === 'mock' && h.timestamp && h.timestamp.split('T')[0] === todayKey
+    );
+
+    const readArticlesToday = JSON.parse(localStorage.getItem(`cg_read_articles_${todayKey}`) || '[]');
+    const isTask4Done = Array.isArray(readArticlesToday) && readArticlesToday.length >= 3;
+
+    const isTask5Done = Object.values(topicProgress || {}).some((tp: any) => 
+      tp?.status === 'Revised' && 
+      (tp?.lastStudied?.startsWith(todayKey) || tp?.lastUpdated?.startsWith(todayKey) || tp?.revisedDate?.startsWith(todayKey))
+    ) || Boolean(localStorage.getItem(`cg_topic_revised_${todayKey}`));
+
+    if (isTask1Done && isTask2Done && isTask3Done && isTask4Done && isTask5Done) {
+      handleClaimDailyBonus(20);
+    }
+  }, [testHistory, topicProgress, xp]);
 
   // Render tab modules
   const renderTabContent = () => {
@@ -2517,11 +2544,23 @@ export default function App() {
       {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' && (
         <aside className="hidden md:flex flex-col w-72 bg-bg-s2 border-r border-border/60 shrink-0 fixed top-0 left-0 h-screen z-30">
           {/* Logo & Brand */}
-          <div className="p-6 border-b border-border/60 flex items-center gap-3">
-            <GraduationCap className="w-7 h-7 text-saffron" />
-            <span className="text-lg font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
-              CG Guru
-            </span>
+          <div className="p-6 border-b border-border/60 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <GraduationCap className="w-7 h-7 text-saffron" />
+              <span className="text-lg font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
+                CG Guru
+              </span>
+            </div>
+            <a
+              href="/cgguru.apk"
+              download="CG_Guru_App.apk"
+              className="px-2.5 py-1 rounded-lg bg-bg-s3 hover:bg-bg-s1 border border-border text-text-muted hover:text-text text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all shadow-sm"
+              title="Download Android APK"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-greenL" />
+              <span>APK</span>
+              <Download className="w-3 h-3" />
+            </a>
           </div>
 
           {/* Navigation Links */}
@@ -2658,15 +2697,16 @@ export default function App() {
             </div>
             <div className="flex items-center gap-2">
               {/* App Download Button */}
-              <button 
-                onClick={handleDownloadApp}
+              <a 
+                href="/cgguru.apk"
+                download="CG_Guru_App.apk"
                 className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-bg-s1 font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer transition-all active:scale-[0.96]"
-                title="Download App / Install PWA"
+                title="Download Android App (APK)"
               >
                 <Smartphone className="w-3.5 h-3.5 shrink-0" />
                 <span className="font-extrabold text-[10px]">App</span>
                 <Download className="w-3 h-3 shrink-0" />
-              </button>
+              </a>
 
               <button 
                 onClick={() => setSettingsModalOpen(true)}

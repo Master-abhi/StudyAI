@@ -6,6 +6,7 @@ const { verifyAdmin, verifyStaffOrAdmin } = require('../middleware/verifyFirebas
 const { extractTextFromPDF } = require('../services/syllabusParser');
 const { getActiveAI, setActiveAI, getGeminiConfig, updateAIConfig, generateTest, summarizeNews, translateAndSummarizeNews, generateNewsIntelligence } = require('../services/aiManager');
 const { fetchExamSyllabusContext } = require('../services/syllabusHelper');
+const { invalidateCache } = require('../services/firestoreCache');
 
 const logStaffActivity = async (req, action, details) => {
   try {
@@ -2286,11 +2287,57 @@ router.get('/subjects/renames', async (req, res) => {
   }
 });
 
+// GET /api/admin/tests - List all generated tests for admin registry
+router.get('/tests', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { examId } = req.query;
+    const cacheKey = `tests_${examId || 'all'}`;
+
+    const tests = await safeFirestoreQuery(cacheKey, async () => {
+      const snapshot = await db.collection('tests').get();
+      let list = snapshot.docs.map(doc => {
+        const d = doc.data();
+        return {
+          id: d.id,
+          title: d.title || '',
+          examId: d.examId,
+          examIds: d.examIds || (d.examId ? [d.examId] : []),
+          examName: d.examName,
+          examNames: d.examNames || (d.examName ? [d.examName] : []),
+          subject: d.subject,
+          mode: d.mode,
+          language: d.language,
+          totalQuestions: d.questions ? d.questions.length : (d.totalQuestions || 0),
+          pattern: d.pattern,
+          createdAt: d.createdAt
+        };
+      });
+
+      if (examId && examId !== 'all') {
+        list = list.filter(t => t.examId === examId || (Array.isArray(t.examIds) && t.examIds.includes(examId)));
+      }
+
+      list.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt) : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt) : 0;
+        return dateB - dateA;
+      });
+
+      return list;
+    }, []);
+
+    res.json(tests || []);
+  } catch (err) {
+    console.error('[Admin Get Tests Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve test registry.' });
+  }
+});
+
 // Edit a generated test (questions, metadata, options, explanation)
 router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { examId, examName, examIds, examNames, subject, mode, language, pattern, questions } = req.body;
+    const { title, examId, examName, examIds, examNames, subject, mode, language, pattern, questions } = req.body;
 
     if (!examId || !examName || !questions || !Array.isArray(questions)) {
       return res.status(400).json({ error: 'examId, examName, and questions array are required' });
@@ -2348,6 +2395,7 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
 
     const updatedTest = {
       ...doc.data(),
+      title: title !== undefined ? title.trim() : (doc.data().title || ''),
       examId,
       examName,
       examIds: Array.isArray(examIds) ? examIds : [examId],
@@ -2399,6 +2447,9 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
     });
     await batch.commit();
     console.log(`[Admin Test Update] Updated individual questions in questions collection ✅`);
+
+    // Invalidate tests cache so changes reflect immediately across app
+    invalidateCache('tests');
 
     await logStaffActivity(req, 'edit_test', { testId: id, examName, subject, mode, language });
 

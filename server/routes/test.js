@@ -19,6 +19,7 @@ router.get('/', async (req, res) => {
         const d = doc.data();
         return {
           id: d.id,
+          title: d.title || '',
           examId: d.examId,
           examIds: d.examIds || (d.examId ? [d.examId] : []),
           examName: d.examName,

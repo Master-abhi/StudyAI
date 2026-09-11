@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.studyai.app',
-  appName: 'StudyAI',
+  appName: 'CG Guru',
   webDir: '../public',
   server: {
     url: 'https://cg-guru.web.app',

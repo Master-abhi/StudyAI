@@ -18,7 +18,8 @@ import {
   Search,
   X,
   HelpCircle,
-  Scale
+  Scale,
+  Sparkles
 } from 'lucide-react';
 import {
   createInitialTypingState,
@@ -166,130 +167,328 @@ export interface KrutiDevCode {
   category: 'conjunct' | 'matra' | 'symbol' | 'half' | 'number';
 }
 
+export interface DevlysCell {
+  glyph: string;
+  code: string;
+  name?: string;
+}
+
+// Exact 16 rows × 6 column pairs from user's Devlys 010 reference sheet
+export const DEVLYS_TABLE_ROWS: DevlysCell[][] = [
+  // Row 1
+  [
+    { glyph: 'ॉ', code: '130', name: 'चंद्र ऑ / ॅ' },
+    { glyph: 'झ्', code: '153', name: 'आधा झ' },
+    { glyph: 'ड्.', code: '179', name: 'ड्.' },
+    { glyph: 'ऊ', code: '197', name: 'ऊ स्वर' },
+    { glyph: 'क्र', code: '216', name: 'क्र (क्+र)' },
+    { glyph: '६', code: '232', name: 'अंक ६' }
+  ],
+  // Row 2
+  [
+    { glyph: '१', code: '131', name: 'अंक १' },
+    { glyph: 'ष्ट्र', code: '155', name: 'ष्ट्र' },
+    { glyph: 'ञ', code: '180', name: 'ञ वर्ण' },
+    { glyph: 'ि', code: '198', name: 'छोटी इ की मात्रा' },
+    { glyph: 'त्', code: '217', name: 'आधा त' },
+    { glyph: 'न्न', code: '233', name: 'न्न (न्+न)' }
+  ],
+  // Row 3
+  [
+    { glyph: '२', code: '132', name: 'अंक २' },
+    { glyph: 'ट्', code: '159', name: 'आधा ट' },
+    { glyph: 'फ्', code: '182', name: 'आधा फ' },
+    { glyph: 'ि', code: '199', name: 'छोटी इ की मात्रा' },
+    { glyph: '–', code: '218', name: 'योजक चिह्न (–)' },
+    { glyph: 'ट्ट', code: '234', name: 'ट्ट' }
+  ],
+  // Row 4
+  [
+    { glyph: '३', code: '133', name: 'अंक ३' },
+    { glyph: 'ँ', code: '161', name: 'चंद्रबिंदु (ँ)' },
+    { glyph: 'ऽ', code: '183', name: 'अवग्रह (ऽ)' },
+    { glyph: 'ी', code: '200', name: 'बड़ी ई की मात्रा' },
+    { glyph: '•', code: '219', name: 'बुलेट (•)' },
+    { glyph: 'ठ्ठ', code: '235', name: 'ठ्ठ' }
+  ],
+  // Row 5
+  [
+    { glyph: '४', code: '134', name: 'अंक ४' },
+    { glyph: '्', code: '162', name: 'हलंत (्)' },
+    { glyph: 'र', code: '184', name: 'र वर्ण' },
+    { glyph: 'ि', code: '201', name: 'छोटी इ की मात्रा' },
+    { glyph: '९', code: '220', name: 'अंक ९' },
+    { glyph: 'ड्ड', code: '236', name: 'ड्ड' }
+  ],
+  // Row 6
+  [
+    { glyph: '५', code: '135', name: 'अंक ५' },
+    { glyph: 'ख', code: '163', name: 'ख वर्ण' },
+    { glyph: 'ह्', code: '186', name: 'आधा ह' },
+    { glyph: 'ी', code: '202', name: 'बड़ी ई की मात्रा' },
+    { glyph: 'फ्र', code: '221', name: 'फ्र (फ़+र)' },
+    { glyph: 'द्द', code: '237', name: 'द्द (द्+द)' }
+  ],
+  // Row 7
+  [
+    { glyph: '६', code: '136', name: 'अंक ६' },
+    { glyph: 'ु', code: '164', name: 'छोटे उ की मात्रा' },
+    { glyph: '÷', code: '187', name: 'भाग चिह्न (÷)' },
+    { glyph: '६', code: '203', name: 'अंक ६' },
+    { glyph: '”', code: '222', name: 'दोहरा उद्धरण बंद (”)' },
+    { glyph: 'ञ्च', code: '238', name: 'ञ्च (ञ+च)' }
+  ],
+  // Row 8
+  [
+    { glyph: '७', code: '137', name: 'अंक ७' },
+    { glyph: 'ञ', code: '165', name: 'ञ वर्ण' },
+    { glyph: '(', code: '188', name: 'कोष्ठक शुरू (' },
+    { glyph: 'द्व', code: '204', name: 'द्व (द्+व)' },
+    { glyph: '“', code: '223', name: 'दोहरा उद्धरण शुरू (“)' },
+    { glyph: 'ड्ढ', code: '239', name: 'ड्ढ' }
+  ],
+  // Row 9
+  [
+    { glyph: '८', code: '138', name: 'अंक ८' },
+    { glyph: 'ु', code: '167', name: 'छोटे उ की मात्रा' },
+    { glyph: ')', code: '189', name: 'कोष्ठक बंद )' },
+    { glyph: 'ट्ट', code: '205', name: 'ट्ट' },
+    { glyph: 'ह्ल', code: '224', name: 'ह्ल (ह्+ल)' },
+    { glyph: 'ठ', code: '240', name: 'ठ वर्ण' }
+  ],
+  // Row 10
+  [
+    { glyph: '९', code: '139', name: 'अंक ९' },
+    { glyph: 'ो', code: '168', name: 'ओ की मात्रा' },
+    { glyph: '=', code: '190', name: 'बराबर (=)' },
+    { glyph: 'ट्ठ', code: '206', name: 'ट्ठ' },
+    { glyph: 'ह्य', code: '225', name: 'ह्य (ह्+य)' },
+    { glyph: '॰', code: '241', name: 'लाघव चिह्न (॰)' }
+  ],
+  // Row 11
+  [
+    { glyph: '०', code: '140', name: 'अंक ०' },
+    { glyph: 'ौ', code: '169', name: 'औ की मात्रा' },
+    { glyph: '{', code: '191', name: 'मझला कोष्ठक शुरू {' },
+    { glyph: 'ड्ड', code: '207', name: 'ड्ड' },
+    { glyph: 'हृ', code: '226', name: 'हृ (ह्+ऋ)' },
+    { glyph: 'स्त्र', code: '243', name: 'स्त्र' }
+  ],
+  // Row 12
+  [
+    { glyph: 'भ', code: '147', name: 'भ वर्ण' },
+    { glyph: '^', code: '170', name: 'कैरेट (^)' },
+    { glyph: '}', code: '192', name: 'मझला कोष्ठक बंद }' },
+    { glyph: 'कृ', code: '209', name: 'कृ (क+ऋ)' },
+    { glyph: 'ह्म', code: '227', name: 'ह्म (ह्+म)' },
+    { glyph: 'ॅ', code: '245', name: 'चंद्र (ॅ)' }
+  ],
+  // Row 13
+  [
+    { glyph: 'दृ', code: '150', name: 'दृ (द+ऋ)' },
+    { glyph: 'त्र', code: '171', name: 'त्र वर्ण' },
+    { glyph: 'प्र', code: '193', name: 'प्र (प्+र)' },
+    { glyph: 'भ', code: '210', name: 'भ वर्ण' },
+    { glyph: 'क्त', code: '228', name: 'क्त (क्+त)' },
+    { glyph: 'द्ध', code: '246', name: 'द्ध (द्+ध)' }
+  ],
+  // Row 14
+  [
+    { glyph: 'कृ', code: '151', name: 'कृ (क+ऋ)' },
+    { glyph: 'ो', code: '174', name: 'ओ की मात्रा' },
+    { glyph: 'ई', code: '195', name: 'ई स्वर' },
+    { glyph: 'च', code: '211', name: 'च वर्ण' },
+    { glyph: '०', code: '229', name: 'शून्य / लाघव वृत्त' },
+    { glyph: 'इ', code: '247', name: 'इ स्वर' }
+  ],
+  // Row 15
+  [
+    { glyph: 'द्ब', code: '152', name: 'द्व / द्ब' },
+    { glyph: 'ु', code: '177', name: 'छोटे उ की मात्रा' },
+    { glyph: 'घ', code: '196', name: 'घ वर्ण' },
+    { glyph: 'ड्ढ', code: '212', name: 'ड्ढ' },
+    { glyph: 'द्र', code: '230', name: 'द्र (द्+र)' },
+    { glyph: '{', code: '248', name: 'कोष्ठक {' }
+  ],
+  // Row 16
+  [
+    { glyph: '', code: '' },
+    { glyph: '', code: '' },
+    { glyph: '', code: '' },
+    { glyph: 'इ', code: '214', name: 'इ स्वर' },
+    { glyph: 'प्र', code: '231', name: 'प्र वर्ण' },
+    { glyph: 'द्य', code: '249', name: 'द्य (द्+य)' }
+  ]
+];
+
+// Special Characters bottom table from user's image
+export const DEVLYS_SPECIAL_CHARS: { glyph: string; code: string; name: string }[][] = [
+  [
+    { glyph: '☼', code: '15', name: 'सूर्य' },
+    { glyph: '‼', code: '19', name: 'दोहरा विस्मयादिबोधक' },
+    { glyph: '↨', code: '23', name: 'वर्टिकल एरो' },
+    { glyph: '.', code: '30', name: 'बिंदु / डॉट' }
+  ],
+  [
+    { glyph: '†', code: '16', name: 'डैगर' },
+    { glyph: '¶', code: '20', name: 'पैराग्राफ' },
+    { glyph: '↑', code: '24', name: 'ऊपर तीर' },
+    { glyph: '+', code: '36', name: 'जोड़ (+)' }
+  ],
+  [
+    { glyph: '◄', code: '17', name: 'बायां तीर' },
+    { glyph: '┴', code: '21', name: 'बॉटम टी' },
+    { glyph: '↓', code: '25', name: 'नीचे तीर' },
+    { glyph: '', code: '', name: '' }
+  ],
+  [
+    { glyph: '↕', code: '18', name: 'ऊपर-नीचे तीर' },
+    { glyph: '┬', code: '22', name: 'टॉप टी' },
+    { glyph: '→', code: '26', name: 'दाएं तीर' },
+    { glyph: '', code: '', name: '' }
+  ]
+];
+
 const KRUTIDEV_ALT_CODES: KrutiDevCode[] = [
-  // 1. Hindi Numbers (देवनागरी अंक: Alt + 0131 to 0140)
-  { code: 'Alt + 0131', symbol: '१', charName: 'हिंदी अंक १', example: 'संख्या १', category: 'number' },
-  { code: 'Alt + 0132', symbol: '२', charName: 'हिंदी अंक २', example: 'संख्या २', category: 'number' },
-  { code: 'Alt + 0133', symbol: '३', charName: 'हिंदी अंक ३', example: 'संख्या ३', category: 'number' },
-  { code: 'Alt + 0134', symbol: '४', charName: 'हिंदी अंक ४', example: 'संख्या ४', category: 'number' },
-  { code: 'Alt + 0135', symbol: '५', charName: 'हिंदी अंक ५', example: 'संख्या ५', category: 'number' },
-  { code: 'Alt + 0136', symbol: '६', charName: 'हिंदी अंक ६', example: 'संख्या ६', category: 'number' },
-  { code: 'Alt + 0137', symbol: '७', charName: 'हिंदी अंक ७', example: 'संख्या ७', category: 'number' },
-  { code: 'Alt + 0138', symbol: '८', charName: 'हिंदी अंक ८', example: 'संख्या ८', category: 'number' },
-  { code: 'Alt + 0139', symbol: '९', charName: 'हिंदी अंक ९', example: 'संख्या ९', category: 'number' },
-  { code: 'Alt + 0140', symbol: '०', charName: 'हिंदी अंक ०', example: 'संख्या ०', category: 'number' },
-
-  // 2. Sanyukt / Conjunct Characters (संयुक्त अक्षर)
-  { code: 'Alt + 0150', symbol: 'दृ', charName: 'दृ (द + ऋ)', example: 'दृष्टि, दृष्टिकोण, दृश्य', category: 'conjunct' },
-  { code: 'Alt + 0151', symbol: 'कृ', charName: 'कृ (क + ऋ)', example: 'कृपा, प्रकृति, कृष्ण', category: 'conjunct' },
-  { code: 'Alt + 0152', symbol: 'द्भ', charName: 'द्भ (द् + भ)', example: 'उद्भव, सद्भाव, उद्भासित', category: 'conjunct' },
+  // Row 1
+  { code: 'Alt + 0130', symbol: 'ॅ', charName: 'चंद्र की मात्रा (ॅ)', example: 'डॉक्टर, कॉलेज, ऑफिस', category: 'matra' },
   { code: 'Alt + 0153', symbol: 'झ्', charName: 'आधा झ', example: 'झंकार', category: 'half' },
+  { code: 'Alt + 0179', symbol: 'ड्ड', charName: 'ड्ड', example: 'अड्डा, गुड्डा', category: 'conjunct' },
+  { code: 'Alt + 0197', symbol: 'ऊ', charName: 'ऊ स्वर', example: 'ऊपर, ऊर्जा, ऊन', category: 'matra' },
+  { code: 'Alt + 0216', symbol: 'क्र', charName: 'क्र (क् + र)', example: 'क्रम, क्रिया, क्रमांक', category: 'conjunct' },
+  { code: 'Alt + 0232', symbol: '६', charName: 'हिंदी अंक ६', example: 'संख्या ६', category: 'number' },
+
+  // Row 2
+  { code: 'Alt + 0131', symbol: '१', charName: 'हिंदी अंक १', example: 'संख्या १', category: 'number' },
   { code: 'Alt + 0155', symbol: 'ष्ट्र', charName: 'ष्ट्र', example: 'राष्ट्र, महाराष्ट्र', category: 'conjunct' },
-  { code: 'Alt + 0159', symbol: 'ट्', charName: 'आधा ट (हलंत ट)', example: 'खट्टा, पट्टी, मिट्टी', category: 'half' },
-  { code: 'Alt + 0161', symbol: '्र', charName: 'पदेन र (प्र)', example: 'प्रकाश, प्रकार, प्रयास, प्राचीन', category: 'conjunct' },
-  { code: 'Alt + 0163', symbol: 'त्र', charName: 'त्र', example: 'छात्र, पत्र, मित्र, त्रिभुज', category: 'conjunct' },
-  { code: 'Alt + 0165', symbol: 'ह्य', charName: 'ह्य (ह् + य)', example: 'सह्य, बाह्य', category: 'conjunct' },
-  { code: 'Alt + 0168', symbol: 'द्भ', charName: 'द्भ (द् + भ)', example: 'उद्भव, सद्भाव', category: 'conjunct' },
-  { code: 'Alt + 0169', symbol: 'ष्ट', charName: 'ष्ट (ष् + ट)', example: 'कष्ट, भ्रष्ट, दृष्टि', category: 'conjunct' },
-  { code: 'Alt + 0170', symbol: 'द्ध', charName: 'द्ध (द् + ध)', example: 'बुद्ध, शुद्ध, युद्ध, प्रसिद्धि', category: 'conjunct' },
-  { code: 'Alt + 0171', symbol: 'त्र', charName: 'त्र (वैकल्पिक)', example: 'त्रिशूल', category: 'conjunct' },
-  { code: 'Alt + 0179', symbol: 'द्द', charName: 'द्द (द् + द)', example: 'उद्देश्य, गद्दा, रद्दी, भद्दा', category: 'conjunct' },
-  { code: 'Alt + 0180', symbol: 'द्य', charName: 'द्य (द् + य)', example: 'विद्या, विद्यालय, विद्यापीठ', category: 'conjunct' },
-  { code: 'Alt + 0181', symbol: 'द्म', charName: 'द्म (द् + म)', example: 'पद्म, पद्मावत', category: 'conjunct' },
-  { code: 'Alt + 0182', symbol: 'ध्र', charName: 'ध्र (ध + र)', example: 'ध्रुव, आंध्र', category: 'conjunct' },
-  { code: 'Alt + 0186', symbol: 'ह्न', charName: 'ह्न (ह् + न)', example: 'अपराह्न, पूर्वाह्न', category: 'conjunct' },
-  { code: 'Alt + 0193', symbol: 'प्र', charName: 'प्र (प् + र)', example: 'प्रथम, प्रयास, प्रभाव', category: 'conjunct' },
-  { code: 'Alt + 0204', symbol: 'द्व', charName: 'द्व (द् + व)', example: 'द्वार, द्वितीय, विद्वान, द्वेष', category: 'conjunct' },
-  { code: 'Alt + 0205', symbol: 'ट्र', charName: 'ट्र (ट + र)', example: 'ट्रक, ट्रेन, ट्रैफिक, ट्रैक्टर', category: 'conjunct' },
-  { code: 'Alt + 0206', symbol: 'ड्र', charName: 'ड्र (ड + र)', example: 'ड्राइवर, ड्रम, ड्रेस, ड्राइंग', category: 'conjunct' },
-  { code: 'Alt + 0207', symbol: 'ड्ड', charName: 'ड्ड (ड + ड)', example: 'अड्डा, गुड्डा, लड़्डू', category: 'conjunct' },
-  { code: 'Alt + 0209', symbol: 'कृ', charName: 'कृ (क + ऋ)', example: 'कृषक, कृपा', category: 'conjunct' },
-  { code: 'Alt + 0210', symbol: 'त्त', charName: 'त्त (त् + त)', example: 'कुत्ता, पत्ता, उत्तर', category: 'conjunct' },
-  { code: 'Alt + 0212', symbol: 'ड्ढ', charName: 'ड्ढ (ड + ढ)', example: 'गड्ढा', category: 'conjunct' },
-  { code: 'Alt + 0216', symbol: 'क्र', charName: 'क्र (क् + र)', example: 'क्रम, क्रिया, क्रमांक, विक्रेता', category: 'conjunct' },
-  { code: 'Alt + 0221', symbol: 'फ्र', charName: 'फ्र (फ़ + र)', example: 'फ्रिज, फ्रांस, फ्रॉक', category: 'conjunct' },
-  { code: 'Alt + 0224', symbol: 'ह्ल', charName: 'ह्ल (ह् + ल)', example: 'प्रह्लाद', category: 'conjunct' },
-  { code: 'Alt + 0225', symbol: 'ह्य', charName: 'ह्य (ह् + य)', example: 'सह्य, बाह्य', category: 'conjunct' },
-  { code: 'Alt + 0226', symbol: 'हृ', charName: 'हृ (ह् + ऋ)', example: 'हृदय, हृषिकेश', category: 'conjunct' },
-  { code: 'Alt + 0227', symbol: 'ह्म', charName: 'ह्म (ह् + म)', example: 'ब्रह्मा, ब्राह्मण', category: 'conjunct' },
-  { code: 'Alt + 0228', symbol: 'क्त', charName: 'क्त (क् + त)', example: 'भक्त, रक्त, शक्ति, मुक्ति', category: 'conjunct' },
-  { code: 'Alt + 0230', symbol: 'द्र', charName: 'द्र (द् + र)', example: 'द्रव्य, चंद्रमा, रुद्र', category: 'conjunct' },
-  { code: 'Alt + 0231', symbol: 'प्र', charName: 'प्र वर्ण', example: 'प्रकृति, प्रवेश', category: 'conjunct' },
-  { code: 'Alt + 0233', symbol: 'न्न', charName: 'न्न (न् + न)', example: 'अन्न, प्रसन्न, पन्ना', category: 'conjunct' },
-  { code: 'Alt + 0234', symbol: 'ट्ट', charName: 'ट्ट (ट + ट)', example: 'खट्टा, पट्टी, मिट्टी', category: 'conjunct' },
-  { code: 'Alt + 0235', symbol: 'ट्ठ', charName: 'ट्ठ (ट + ठ)', example: 'चिट्ठी, मुट्ठी, लट्ठ', category: 'conjunct' },
-  { code: 'Alt + 0236', symbol: 'ड्ड', charName: 'ड्ड (ड + ड)', example: 'लड्डू, कबड्डी', category: 'conjunct' },
-  { code: 'Alt + 0237', symbol: 'द्द', charName: 'द्द (द् + द)', example: 'उद्देश्य, भद्दा', category: 'conjunct' },
-  { code: 'Alt + 0239', symbol: 'ङ्क', charName: 'ङ्क (ङ + क)', example: 'अङ्क, पङ्क्ति', category: 'conjunct' },
-  { code: 'Alt + 0240', symbol: 'ष्ट', charName: 'ष्ट (ष् + ट)', example: 'कष्ट, नष्ट, स्पष्ट', category: 'conjunct' },
-  { code: 'Alt + 0243', symbol: 'स्त्र', charName: 'स्त्र (स् + त + र)', example: 'अस्त्र, शस्त्र, स्त्री', category: 'conjunct' },
-  { code: 'Alt + 0246', symbol: 'द्ध', charName: 'द्ध (द् + ध)', example: 'बुद्ध, युद्ध', category: 'conjunct' },
-  { code: 'Alt + 0249', symbol: 'द्य', charName: 'द्य (द् + य)', example: 'विद्या, पद्य', category: 'conjunct' },
-
-  // 3. Half Characters (आधे अक्षर)
-  { code: 'Alt + 0147', symbol: 'भ्', charName: 'आधा भ', example: 'अभ्यास, सभ्यता', category: 'half' },
-  { code: 'Alt + 0162', symbol: '्', charName: 'हलंत चिह्न', example: 'क्, त्', category: 'half' },
-  { code: 'Alt + 0163', symbol: 'ख्', charName: 'आधा ख', example: 'संख्या, मुख्य, ख्याल', category: 'half' },
-  { code: 'Alt + 0165', symbol: 'ञ', charName: 'ञ वर्ण', example: 'व्यंजन, संजय', category: 'half' },
-  { code: 'Alt + 0182', symbol: 'फ्', charName: 'आधा फ', example: 'दफ्तर, मुफ्त, हफ्ता', category: 'half' },
-  { code: 'Alt + 0184', symbol: 'ध्', charName: 'आधा ध', example: 'मध्य, ध्यान, संध्या', category: 'half' },
-  { code: 'Alt + 0185', symbol: 'थ्', charName: 'आधा थ', example: 'स्थान, पृथ्वी, तथ्य', category: 'half' },
-  { code: 'Alt + 0196', symbol: 'घ', charName: 'घ वर्ण', example: 'घर, घड़ी', category: 'half' },
-  { code: 'Alt + 0198', symbol: 'ि', charName: 'छोटी इ की मात्रा (ि)', example: 'दिन, सिर', category: 'matra' },
-  { code: 'Alt + 0199', symbol: 'ि', charName: 'छोटी इ की मात्रा (वैकल्पिक)', example: 'किताब', category: 'matra' },
-  { code: 'Alt + 0200', symbol: 'ी', charName: 'बड़ी ई की मात्रा (ी)', example: 'नदी, पानी', category: 'matra' },
-  { code: 'Alt + 0201', symbol: 'ि', charName: 'ह्रस्व इ मात्रा', example: 'कवि', category: 'matra' },
-  { code: 'Alt + 0202', symbol: 'ी', charName: 'दीर्घ ई मात्रा', example: 'गीत', category: 'matra' },
-  { code: 'Alt + 0211', symbol: 'च', charName: 'च वर्ण', example: 'चम्मच', category: 'half' },
+  { code: 'Alt + 0180', symbol: 'ञ', charName: 'ञ वर्ण', example: 'व्यंजन, संजय', category: 'half' },
+  { code: 'Alt + 0198', symbol: 'ि', charName: 'छोटी इ की मात्रा (ि)', example: 'किताब, दिन', category: 'matra' },
   { code: 'Alt + 0217', symbol: 'त्', charName: 'आधा त (त्)', example: 'सत्य, पत्ता, आत्मा', category: 'half' },
-  { code: 'Alt + 0238', symbol: 'ञ्च', charName: 'ञ्च (ञ + च)', example: 'चञ्चल, पञ्च', category: 'half' },
+  { code: 'Alt + 0233', symbol: 'न्न', charName: 'न्न (न् + न)', example: 'अन्न, प्रसन्न, पन्ना', category: 'conjunct' },
 
-  // 4. Matras, Vowels & Modifiers (मात्राएं व स्वर)
-  { code: 'Alt + 0130', symbol: 'ॉ', charName: 'ऑ की मात्रा (ॅ)', example: 'डॉक्टर, कॉलेज, ऑफिस', category: 'matra' },
+  // Row 3
+  { code: 'Alt + 0132', symbol: '२', charName: 'हिंदी अंक २', example: 'संख्या २', category: 'number' },
+  { code: 'Alt + 0159', symbol: 'ट्', charName: 'आधा ट (हलंत ट)', example: 'खट्टा, पट्टी', category: 'half' },
+  { code: 'Alt + 0182', symbol: 'फ्', charName: 'आधा फ', example: 'दफ्तर, मुफ्त, हफ्ता', category: 'half' },
+  { code: 'Alt + 0199', symbol: 'ि', charName: 'छोटी इ मात्रा (ि)', example: 'सिर, कवि', category: 'matra' },
+  { code: 'Alt + 0218', symbol: '–', charName: 'डैश / योजक चिह्न (–)', example: 'माता–पिता', category: 'symbol' },
+  { code: 'Alt + 0234', symbol: 'ट्', charName: 'ट् वर्ण', example: 'पट्टी', category: 'half' },
+
+  // Row 4
+  { code: 'Alt + 0133', symbol: '३', charName: 'हिंदी अंक ३', example: 'संख्या ३', category: 'number' },
+  { code: 'Alt + 0161', symbol: 'ँ', charName: 'चंद्रबिंदु (ँ)', example: 'गाँव, चाँद, आँख', category: 'matra' },
+  { code: 'Alt + 0183', symbol: 'ऽ', charName: 'अवग्रह चिह्न (ऽ)', example: 'कोऽपि, शिवोऽहम्', category: 'symbol' },
+  { code: 'Alt + 0200', symbol: 'ी', charName: 'बड़ी ई की मात्रा (ी)', example: 'नदी, पानी, गीत', category: 'matra' },
+  { code: 'Alt + 0219', symbol: '•', charName: 'बुलेट बिंदु (•)', example: '• सूची बिन्दु', category: 'symbol' },
+  { code: 'Alt + 0235', symbol: 'ठ्ठ', charName: 'ठ्ठ (ठ + ठ)', example: 'चिट्ठा, लट्ठ', category: 'conjunct' },
+
+  // Row 5
+  { code: 'Alt + 0134', symbol: '४', charName: 'हिंदी अंक ४', example: 'संख्या ४', category: 'number' },
+  { code: 'Alt + 0162', symbol: '्', charName: 'हलंत चिह्न (्)', example: 'क्, त्, म्', category: 'half' },
+  { code: 'Alt + 0184', symbol: 'र', charName: 'र वर्ण', example: 'राम, राजा', category: 'half' },
+  { code: 'Alt + 0201', symbol: 'ि', charName: 'छोटी इ की मात्रा', example: 'इतिहास', category: 'matra' },
+  { code: 'Alt + 0220', symbol: '९', charName: 'हिंदी अंक ९', example: 'संख्या ९', category: 'number' },
+  { code: 'Alt + 0236', symbol: 'ड्', charName: 'आधा ड (हलंत ड)', example: 'लड्डू, गड्ढा', category: 'half' },
+
+  // Row 6
+  { code: 'Alt + 0135', symbol: '५', charName: 'हिंदी अंक ५', example: 'संख्या ५', category: 'number' },
+  { code: 'Alt + 0163', symbol: 'ख', charName: 'ख वर्ण', example: 'खरगोश, खाना', category: 'half' },
+  { code: 'Alt + 0186', symbol: 'ह्', charName: 'आधा ह (ह्)', example: 'अपराह्न, ब्रह्मा', category: 'half' },
+  { code: 'Alt + 0202', symbol: 'ी', charName: 'दीर्घ ई मात्रा (ी)', example: 'सीता, मीता', category: 'matra' },
+  { code: 'Alt + 0221', symbol: 'फ्र', charName: 'फ्र (फ़ + र)', example: 'फ्रिज, फ्रांस, फ्रॉक', category: 'conjunct' },
+  { code: 'Alt + 0237', symbol: 'द्द', charName: 'द्द (द् + द)', example: 'उद्देश्य, भद्दा, रद्दी', category: 'conjunct' },
+
+  // Row 7
+  { code: 'Alt + 0136', symbol: '६', charName: 'हिंदी अंक ६', example: 'संख्या ६', category: 'number' },
   { code: 'Alt + 0164', symbol: 'ु', charName: 'छोटे उ की मात्रा (ु)', example: 'सुख, तुम, पुत्र', category: 'matra' },
+  { code: 'Alt + 0187', symbol: '÷', charName: 'भाग का चिह्न (÷)', example: '10 ÷ 2 = 5', category: 'symbol' },
+  { code: 'Alt + 0203', symbol: '६', charName: 'अंक ६', example: 'संख्या ६', category: 'number' },
+  { code: 'Alt + 0222', symbol: '”', charName: 'दोहरा उद्धरण चिह्न बंद (”)', example: 'उद्धरण समाप्त ”', category: 'symbol' },
+  { code: 'Alt + 0238', symbol: 'ञ्च', charName: 'ञ्च (ञ + च)', example: 'चञ्चल, पञ्च, मञ्च', category: 'conjunct' },
+
+  // Row 8
+  { code: 'Alt + 0137', symbol: '७', charName: 'हिंदी अंक ७', example: 'संख्या ७', category: 'number' },
+  { code: 'Alt + 0165', symbol: 'ञ', charName: 'ञ वर्ण', example: 'संजय, कुञ्ज', category: 'half' },
+  { code: 'Alt + 0188', symbol: '(', charName: 'छोटा कोष्ठक प्रारंभ (', example: '( कोष्ठक शुरू', category: 'symbol' },
+  { code: 'Alt + 0204', symbol: 'द्व', charName: 'द्व (द् + व)', example: 'द्वार, द्वितीय, विद्वान', category: 'conjunct' },
+  { code: 'Alt + 0223', symbol: '“', charName: 'दोहरा उद्धरण चिह्न प्रारंभ (“)', example: '“ उद्धरण शुरू', category: 'symbol' },
+  { code: 'Alt + 0239', symbol: 'ड्ढ', charName: 'ड्ढ (ड + ढ)', example: 'गड्ढा', category: 'conjunct' },
+
+  // Row 9
+  { code: 'Alt + 0138', symbol: '८', charName: 'हिंदी अंक ८', example: 'संख्या ८', category: 'number' },
+  { code: 'Alt + 0167', symbol: 'ु', charName: 'छोटे उ की मात्रा', example: 'अनुराग', category: 'matra' },
+  { code: 'Alt + 0189', symbol: ')', charName: 'छोटा कोष्ठक बंद )', example: 'कोष्ठक बंद )', category: 'symbol' },
+  { code: 'Alt + 0205', symbol: 'ट्ट', charName: 'ट्ट (ट + ट)', example: 'मिट्टी, पट्टी, खट्टा', category: 'conjunct' },
+  { code: 'Alt + 0224', symbol: 'ह्ल', charName: 'ह्ल (ह् + ल)', example: 'प्रह्लाद', category: 'conjunct' },
+  { code: 'Alt + 0240', symbol: 'ठ', charName: 'ठ वर्ण', example: 'ठठेरा, ठीक', category: 'half' },
+
+  // Row 10
+  { code: 'Alt + 0139', symbol: '९', charName: 'हिंदी अंक ९', example: 'संख्या ९', category: 'number' },
   { code: 'Alt + 0168', symbol: 'ो', charName: 'ओ की मात्रा (ो)', example: 'लोग, मोर, चोट', category: 'matra' },
+  { code: 'Alt + 0190', symbol: '=', charName: 'बराबर का चिह्न (=)', example: 'x = 10', category: 'symbol' },
+  { code: 'Alt + 0206', symbol: 'ट्ठ', charName: 'ट्ठ (ट + ठ)', example: 'चिट्ठी', category: 'conjunct' },
+  { code: 'Alt + 0225', symbol: 'ह्य', charName: 'ह्य (ह् + य)', example: 'सह्य, बाह्य', category: 'conjunct' },
+  { code: 'Alt + 0241', symbol: '॰', charName: 'लाघव चिह्न (॰)', example: 'डॉ॰, पं॰, प्रो॰', category: 'symbol' },
+
+  // Row 11
+  { code: 'Alt + 0140', symbol: '०', charName: 'हिंदी अंक ०', example: 'संख्या ०', category: 'number' },
   { code: 'Alt + 0169', symbol: 'ौ', charName: 'औ की मात्रा (ौ)', example: 'कौआ, पौधा, मौसम', category: 'matra' },
-  { code: 'Alt + 0174', symbol: 'ो', charName: 'ओ की मात्रा (वैकल्पिक)', example: 'सोना', category: 'matra' },
-  { code: 'Alt + 0177', symbol: 'ु', charName: 'ह्रस्व उ मात्रा', example: 'गुरु', category: 'matra' },
-  { code: 'Alt + 0195', symbol: 'ई', charName: 'ई (स्वर)', example: 'ईश्वर, ईंट, ईमेल', category: 'matra' },
-  { code: 'Alt + 0197', symbol: 'ऊ', charName: 'ऊ (स्वर)', example: 'ऊपर, ऊन, ऊर्जा', category: 'matra' },
-  { code: 'Alt + 0203', symbol: '६', charName: 'अंक ६', example: '६', category: 'number' },
-  { code: 'Alt + 0214', symbol: 'इ', charName: 'इ (स्वर)', example: 'इधर, इसका, इतिहास', category: 'matra' },
-  { code: 'Alt + 0229', symbol: '॰', charName: 'लाघव चिह्न (संक्षेप बिंदी)', example: 'डॉ॰, पं॰, प्रो॰', category: 'symbol' },
-  { code: 'Alt + 0232', symbol: '६', charName: 'अंक ६', example: 'संख्या ६', category: 'number' },
-  { code: 'Alt + 0241', symbol: '°', charName: 'डिग्री चिह्न (°)', example: '45° सेल्सियस', category: 'symbol' },
-  { code: 'Alt + 0245', symbol: 'ॅ', charName: 'चंद्रबिंदी', example: 'गाँव, चाँद', category: 'matra' },
-  { code: 'Alt + 0247', symbol: 'इ', charName: 'इ (स्वर)', example: 'इनाम', category: 'matra' },
+  { code: 'Alt + 0191', symbol: '{', charName: 'मझला कोष्ठक प्रारंभ {', example: '{ कोष्ठक', category: 'symbol' },
+  { code: 'Alt + 0207', symbol: 'ड्ड', charName: 'ड्ड (ड + ड)', example: 'लड्डू, गुड्डा', category: 'conjunct' },
+  { code: 'Alt + 0226', symbol: 'हृ', charName: 'हृ (ह् + ऋ)', example: 'हृदय, हृषिकेश', category: 'conjunct' },
+  { code: 'Alt + 0243', symbol: 'स्त्र', charName: 'स्त्र (स् + त + र)', example: 'अस्त्र, शस्त्र, स्त्री', category: 'conjunct' },
+
+  // Row 12
+  { code: 'Alt + 0147', symbol: 'भ', charName: 'भ वर्ण', example: 'भारत, भवन', category: 'half' },
+  { code: 'Alt + 0170', symbol: '^', charName: 'कैरेट चिह्न (^)', example: 'घातांक ^', category: 'symbol' },
+  { code: 'Alt + 0192', symbol: '}', charName: 'मझला कोष्ठक बंद }', example: 'कोष्ठक बंद }', category: 'symbol' },
+  { code: 'Alt + 0209', symbol: 'कृ', charName: 'कृ (क + ऋ)', example: 'कृपा, प्रकृति, कृष्ण', category: 'conjunct' },
+  { code: 'Alt + 0227', symbol: 'ह्म', charName: 'ह्म (ह् + म)', example: 'ब्रह्मा, ब्राह्मण', category: 'conjunct' },
+  { code: 'Alt + 0245', symbol: 'ॅ', charName: 'चंद्रबिंदी (ॅ)', example: 'आँख, चाँद', category: 'matra' },
+
+  // Row 13
+  { code: 'Alt + 0150', symbol: 'दृ', charName: 'दृ (द + ऋ)', example: 'दृष्टि, दृष्टिकोण, दृश्य', category: 'conjunct' },
+  { code: 'Alt + 0171', symbol: 'त्र', charName: 'त्र वर्ण', example: 'छात्र, पत्र, मित्र', category: 'conjunct' },
+  { code: 'Alt + 0193', symbol: 'प्र', charName: 'प्र (प् + र)', example: 'प्रथम, प्रयास, प्रभाव', category: 'conjunct' },
+  { code: 'Alt + 0210', symbol: 'भ', charName: 'भ वर्ण', example: 'भगवान', category: 'half' },
+  { code: 'Alt + 0228', symbol: 'क्त', charName: 'क्त (क् + त)', example: 'भक्त, रक्त, शक्ति, मुक्ति', category: 'conjunct' },
+  { code: 'Alt + 0246', symbol: 'द्ध', charName: 'द्ध (द् + ध)', example: 'बुद्ध, शुद्ध, युद्ध', category: 'conjunct' },
+
+  // Row 14
+  { code: 'Alt + 0151', symbol: 'कृ', charName: 'कृ (क + ऋ)', example: 'कृषक, कृपा', category: 'conjunct' },
+  { code: 'Alt + 0174', symbol: 'ो', charName: 'ओ की मात्रा (ो)', example: 'सोना, रोना', category: 'matra' },
+  { code: 'Alt + 0195', symbol: 'ई', charName: 'ई स्वर', example: 'ईश्वर, ईंट, ईमेल', category: 'matra' },
+  { code: 'Alt + 0211', symbol: 'च', charName: 'च वर्ण', example: 'चम्मच, चरखा', category: 'half' },
+  { code: 'Alt + 0229', symbol: '०', charName: 'लाघव / शून्य वृत्त (०)', example: 'डॉ०, पं०', category: 'symbol' },
+  { code: 'Alt + 0247', symbol: 'इ', charName: 'इ स्वर', example: 'इधर, इसका, इनाम', category: 'matra' },
+
+  // Row 15
+  { code: 'Alt + 0152', symbol: 'द्ब', charName: 'द्ब (द् + ब)', example: 'सद्बुद्धि', category: 'conjunct' },
+  { code: 'Alt + 0177', symbol: 'ु', charName: 'छोटे उ की मात्रा', example: 'गुरु, कुशल', category: 'matra' },
+  { code: 'Alt + 0196', symbol: 'घ', charName: 'घ वर्ण', example: 'घ', category: 'half' },
+  { code: 'Alt + 0212', symbol: 'ड्ढ', charName: 'ड्ढ (ड + ढ)', example: 'गड्ढा', category: 'conjunct' },
+  { code: 'Alt + 0230', symbol: 'द्र', charName: 'द्र (द् + र)', example: 'द्रव्य, चंद्रमा, रुद्र', category: 'conjunct' },
   { code: 'Alt + 0248', symbol: '{', charName: 'मझला कोष्ठक प्रारंभ {', example: '{ कोष्ठक', category: 'symbol' },
 
-  // 5. Symbols & Special Characters (चिह्न व कोष्ठक: Alt + 0188-0192, 222-223 etc.)
-  { code: 'Alt + 0170', symbol: '^', charName: 'कैरेट चिह्न (^)', example: 'a^2', category: 'symbol' },
-  { code: 'Alt + 0183', symbol: 'S', charName: 'अवग्रह चिह्न (ऽ)', example: 'कोऽपि, शिवोऽहम्', category: 'symbol' },
-  { code: 'Alt + 0187', symbol: '÷', charName: 'भाग का चिह्न (÷)', example: '10 ÷ 2 = 5', category: 'symbol' },
-  { code: 'Alt + 0188', symbol: '(', charName: 'छोटा कोष्ठक प्रारंभ (', example: '( उदाहरण', category: 'symbol' },
-  { code: 'Alt + 0189', symbol: ')', charName: 'छोटा कोष्ठक बंद )', example: 'समाप्त )', category: 'symbol' },
-  { code: 'Alt + 0190', symbol: '=', charName: 'बराबर का चिह्न (=)', example: 'x = 10', category: 'symbol' },
-  { code: 'Alt + 0191', symbol: '{', charName: 'मझला कोष्ठक प्रारंभ {', example: '{ प्रारंभ', category: 'symbol' },
-  { code: 'Alt + 0192', symbol: '}', charName: 'मझला कोष्ठक बंद }', example: 'समाप्त }', category: 'symbol' },
-  { code: 'Alt + 0218', symbol: '-', charName: 'डैश / योजक चिह्न (-)', example: 'माता-पिता', category: 'symbol' },
-  { code: 'Alt + 0219', symbol: '•', charName: 'बुलेट पॉइंट बिंदु (•)', example: '• सूची', category: 'symbol' },
-  { code: 'Alt + 0220', symbol: '९', charName: 'अंक ९', example: 'संख्या ९', category: 'number' },
-  { code: 'Alt + 0222', symbol: '"', charName: 'डबल कोट प्रारंभ (")', example: '" वाक्य प्रारंभ', category: 'symbol' },
-  { code: 'Alt + 0223', symbol: '"', charName: 'डबल कोट बंद (")', example: 'वाक्य समाप्त "', category: 'symbol' },
+  // Row 16
+  { code: 'Alt + 0214', symbol: 'इ', charName: 'इ स्वर', example: 'इतिहास, इशारा', category: 'matra' },
+  { code: 'Alt + 0231', symbol: 'प्र', charName: 'प्र वर्ण', example: 'प्रकृति, प्रवेश', category: 'conjunct' },
+  { code: 'Alt + 0249', symbol: 'द्य', charName: 'द्य (द् + य)', example: 'विद्या, विद्यालय, पद्य', category: 'conjunct' },
 
-  // Special ASCII Codes (Alt + 15 to 36)
-  { code: 'Alt + 15', symbol: '☼', charName: 'सूर्य प्रतीक', example: 'प्रतीक', category: 'symbol' },
+  // Special Characters (Image Bottom Table)
+  { code: 'Alt + 15', symbol: '☼', charName: 'सूर्य प्रतीक', example: 'प्रतीक ☼', category: 'symbol' },
   { code: 'Alt + 16', symbol: '†', charName: 'डैगर चिह्न', example: 'चिह्न †', category: 'symbol' },
-  { code: 'Alt + 17', symbol: '◄', charName: 'बायां तीर', example: '◄', category: 'symbol' },
-  { code: 'Alt + 18', symbol: '↕', charName: 'ऊपर-नीचे तीर', example: '↕', category: 'symbol' },
-  { code: 'Alt + 19', symbol: '‼', charName: 'दोहरा विस्मयादिबोधक', example: '‼', category: 'symbol' },
-  { code: 'Alt + 20', symbol: '¶', charName: 'पैराग्राफ चिह्न (Pilcrow)', example: '¶', category: 'symbol' },
-  { code: 'Alt + 21', symbol: '§', charName: 'सेक्शन चिह्न', example: 'धारा §', category: 'symbol' },
-  { code: 'Alt + 23', symbol: '↨', charName: 'वर्टिकल एरो', example: '↨', category: 'symbol' },
-  { code: 'Alt + 24', symbol: '↑', charName: 'ऊपर की ओर तीर', example: '↑', category: 'symbol' },
-  { code: 'Alt + 25', symbol: '↓', charName: 'नीचे की ओर तीर', example: '↓', category: 'symbol' },
-  { code: 'Alt + 26', symbol: '→', charName: 'दाएं तीर', example: '→', category: 'symbol' },
-  { code: 'Alt + 30', symbol: '▲', charName: 'त्रिभुज तीर', example: '▲', category: 'symbol' },
+  { code: 'Alt + 17', symbol: '◄', charName: 'बायां तीर', example: 'तीर ◄', category: 'symbol' },
+  { code: 'Alt + 18', symbol: '↕', charName: 'ऊपर-नीचे तीर', example: 'तीर ↕', category: 'symbol' },
+  { code: 'Alt + 19', symbol: '‼', charName: 'दोहरा विस्मयादिबोधक', example: 'चिह्न ‼', category: 'symbol' },
+  { code: 'Alt + 20', symbol: '¶', charName: 'पैराग्राफ चिह्न (Pilcrow)', example: 'अनुच्छेद ¶', category: 'symbol' },
+  { code: 'Alt + 21', symbol: '┴', charName: 'बॉटम टी', example: '┴', category: 'symbol' },
+  { code: 'Alt + 22', symbol: '┬', charName: 'टॉप टी', example: '┬', category: 'symbol' },
+  { code: 'Alt + 23', symbol: '↨', charName: 'वर्टिकल एरो', example: 'तीर ↨', category: 'symbol' },
+  { code: 'Alt + 24', symbol: '↑', charName: 'ऊपर की ओर तीर', example: 'तीर ↑', category: 'symbol' },
+  { code: 'Alt + 25', symbol: '↓', charName: 'नीचे की ओर तीर', example: 'तीर ↓', category: 'symbol' },
+  { code: 'Alt + 26', symbol: '→', charName: 'दाएं तीर', example: 'तीर →', category: 'symbol' },
+  { code: 'Alt + 30', symbol: '.', charName: 'डॉट / बिंदु', example: '.', category: 'symbol' },
   { code: 'Alt + 36', symbol: '+', charName: 'जोड़ का चिह्न (+)', example: '5 + 5', category: 'symbol' }
 ];
 
@@ -441,11 +640,14 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
 
   // Review & Helper Modals
   const [reviewFilter, setReviewFilter] = useState<'all' | 'mistakes' | 'correct'>('all');
+  const [auditFontSize, setAuditFontSize] = useState<'md' | 'lg' | 'xl'>('lg');
   const [showAltCodeModal, setShowAltCodeModal] = useState<boolean>(false);
   const [altCodeModalTab, setAltCodeModalTab] = useState<'krutidev' | 'vedmata'>('krutidev');
+  const [krutidevViewMode, setKrutidevViewMode] = useState<'table' | 'cards'>('table');
   const [altCodeCategory, setAltCodeCategory] = useState<string>('all');
   const [altCodeSearch, setAltCodeSearch] = useState<string>('');
-  const [showUnicodeHelper, setShowUnicodeHelper] = useState<boolean>(true);
+  const [enableCodeHelper, setEnableCodeHelper] = useState<boolean>(true);
+  const [showUnicodeHelper, setShowUnicodeHelper] = useState<boolean>(false);
   const [shakeInput, setShakeInput] = useState<boolean>(false);
   const [hindiEngineState, setHindiEngineState] = useState<TypingEngineState>(createInitialTypingState());
   const [enableVirtualHindiKeyboard, setEnableVirtualHindiKeyboard] = useState<boolean>(true);
@@ -531,6 +733,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
     setLiveGrossWpm(0);
     setLiveKph(0);
     setLiveAccuracy(100);
+    setShowUnicodeHelper(false);
     setStatus('running');
 
     setTimeout(() => {
@@ -847,11 +1050,136 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
     return { fontFamily: "'Inter', sans-serif" };
   };
 
+  // Live Code Helper extraction function
+  const getWordCodeHelper = (targetWord: string, unicodeWord: string, layout: TypingFontLayout) => {
+    const altCodes: Array<{ code: string; symbol: string; charName: string }> = [];
+    const vedmataKeys: Array<{ key: string; hindiChar: string; charType: string }> = [];
+    const matraRules: string[] = [];
+
+    const uWord = unicodeWord || '';
+    const tWord = targetWord || '';
+
+    // 1. KrutiDev Alt-Code detection
+    if (layout === 'krutidev') {
+      KRUTIDEV_ALT_CODES.forEach(item => {
+        if (!item.symbol) return;
+        if (item.symbol.length > 1 || ['ऋ', 'ॐ', '॰', '°', '–', '"', '÷'].includes(item.symbol)) {
+          if (uWord.includes(item.symbol)) {
+            if (!altCodes.some(a => a.code === item.code)) {
+              altCodes.push({ code: item.code, symbol: item.symbol, charName: item.charName });
+            }
+          }
+        }
+      });
+
+      // Match ASCII charCodes in KrutiDev word (e.g. Ù, Ø, Í, etc.)
+      for (let i = 0; i < tWord.length; i++) {
+        const codeNum = tWord.charCodeAt(i);
+        if (codeNum > 127) {
+          const paddedCode = `Alt + 0${codeNum}`;
+          const found = KRUTIDEV_ALT_CODES.find(k => k.code === paddedCode);
+          if (found) {
+            if (!altCodes.some(a => a.code === found.code)) {
+              altCodes.push({ code: found.code, symbol: found.symbol, charName: found.charName });
+            }
+          } else {
+            if (!altCodes.some(a => a.code === paddedCode)) {
+              altCodes.push({ code: paddedCode, symbol: tWord[i], charName: `विशेष चिह्न (${codeNum})` });
+            }
+          }
+        }
+      }
+
+      if (uWord.includes('र्') || tWord.includes('Z')) {
+        matraRules.push("रेफ (र्) → Shift + Z ('Z')");
+      }
+      if (uWord.includes('ि') || tWord.includes('f')) {
+        matraRules.push("छोटी इ (ि) → अक्षर से पहले 'f' दबाएं");
+      }
+    }
+
+    // 2. Vedmata m17n Keys detection
+    if (layout === 'vedmata' || layout === 'mangal') {
+      VEDMATA_CODES.forEach(item => {
+        if (!item.hindiChar) return;
+        if (item.hindiChar.length > 1 || ['ऋ', 'ॐ', '।', '?', 'ङ', 'ञ', 'क्ष्', 'श्र', 'ज्ञ', 'द्घ', 'द्व', 'द्य'].includes(item.hindiChar)) {
+          if (uWord.includes(item.hindiChar)) {
+            if (!vedmataKeys.some(v => v.key === item.key)) {
+              vedmataKeys.push({ key: item.key, hindiChar: item.hindiChar, charType: item.charType });
+            }
+          }
+        }
+      });
+
+      if (uWord.includes('र्')) {
+        matraRules.push("रेफ (र्) → Shift + Z (Z)");
+      }
+      if (uWord.includes('्र') || /[\u0915-\u0939]\u094d\u0930/.test(uWord)) {
+        if (!vedmataKeys.some(v => v.hindiChar === '्र')) {
+          vedmataKeys.push({ key: 'z', hindiChar: '्र', charType: 'पदेन र' });
+        }
+      }
+      if (uWord.includes('ि')) {
+        matraRules.push("छोटी इ (ि) → अक्षर से पहले 'f' दबाएं");
+      }
+      if (uWord.includes('्') && !vedmataKeys.some(v => v.hindiChar === '्')) {
+        vedmataKeys.push({ key: '` (Tilde)', hindiChar: '्', charType: 'हलंत' });
+      }
+    }
+
+    // 3. Keystroke guide
+    const REMINGTON_KEYS: Record<string, string> = {
+      'क': 'd+k', 'क्': 'D', 'ख': '[+k', 'ख्': '{', 'ग': 'x+k', 'ग्': 'X', 'घ': '?+k', 'घ्': '?',
+      'च': 'p+k', 'च्': 'P', 'छ': 'N', 'ज': 't+k', 'ज्': 'T', 'झ': '>+k', 'ञ': '*',
+      'ट': 'V', 'ठ': 'B', 'ड': 'M', 'ढ': '<', 'ण': '.',
+      'त': 'r+k', 'त्': 'R', 'थ': 'F+k', 'थ्': 'F', 'द': 'n', 'ध': '/+k', 'ध्': '/', 'न': 'u+k', 'न्': 'U',
+      'प': 'i+k', 'प्': 'I', 'फ': 'Q+k', 'फ्': 'Q', 'ब': 'c+k', 'ब्': 'C', 'भ': 'H+k', 'भ्': 'H', 'म': 'e+k', 'म्': 'E',
+      'य': ';+k', 'र': 'j', 'ल': 'y+k', 'ल्': 'Y', 'व': 'o+k', 'व्': 'O',
+      'श': "'+k", 'श्': "'", 'ष': '"+k', 'ष्': '"', 'स': 'l+k', 'स्': 'L', 'ह': 'g',
+      'ा': 'k', 'ि': 'f', 'ी': 'h', 'ु': 'q', 'ू': 'w', 'े': 's', 'ै': 'S',
+      'ो': 'k+s', 'ौ': 'k+S', 'ं': 'a', 'ँ': 'A', 'ः': '%', 'ृ': '2', '्': '`',
+      'अ': 'v', 'आ': 'v+k', 'इ': 'b', 'ई': 'b+Z', 'उ': 'm', 'ऊ': 'Q', 'ए': ',', 'ऐ': ',+s',
+      '।': layout === 'krutidev' ? 'A' : '(', 'त्र': '_', 'ज्ञ': 'K', 'श्र': 'J', 'द्य': '|', 'द्व': '}'
+    };
+
+    let sequence = '';
+    if (layout === 'krutidev' && tWord) {
+      sequence = tWord.split('').map(c => {
+        const code = c.charCodeAt(0);
+        if (code > 127) {
+          const found = KRUTIDEV_ALT_CODES.find(k => k.code === `Alt + 0${code}`);
+          return found ? `${found.code} (${found.symbol})` : `Alt+0${code}`;
+        }
+        return c;
+      }).join(' ');
+    } else if (uWord) {
+      const tokens: string[] = [];
+      for (let i = 0; i < uWord.length; i++) {
+        const ch = uWord[i];
+        if (REMINGTON_KEYS[ch]) {
+          tokens.push(REMINGTON_KEYS[ch]);
+        }
+      }
+      sequence = tokens.join(' → ');
+    }
+
+    return { altCodes, vedmataKeys, matraRules, keystrokeSequence: sequence };
+  };
+
   // Current active word comparison check
   const typedWordsList = fullTypedText.split(' ');
   const currentWordTyping = typedWordsList[currentWordIndex] || '';
   const currentTargetWord = targetWords[currentWordIndex] || '';
   const isCurrentInputError = currentWordTyping.length > 0 && !currentTargetWord.startsWith(currentWordTyping);
+
+  // Derive Unicode words for live helper & preview
+  const unicodeWords = (selectedTopic.hindiUnicodeText || '').trim().split(/\s+/).filter(w => w.length > 0);
+  const currentUnicodeWord = unicodeWords[currentWordIndex] || '';
+  const nextUnicodeWord = unicodeWords[currentWordIndex + 1] || '';
+  const nextTargetWord = targetWords[currentWordIndex + 1] || '';
+
+  const currentWordCodes = getWordCodeHelper(currentTargetWord, currentUnicodeWord, layoutMode);
+  const nextWordCodes = nextTargetWord ? getWordCodeHelper(nextTargetWord, nextUnicodeWord, layoutMode) : null;
 
   return (
     <div className="w-full max-w-5xl mx-auto pb-10 font-sans text-text">
@@ -1036,6 +1364,30 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
                       }`}
                     >
                       {instantErrorAlert ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  {/* Live Code Helper Toggle (KrutiDev & Vedmata) */}
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-bg-s3/30 border border-border/60">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-text">Live Code Helper</span>
+                        <span className="text-[8px] bg-saffron-dim/40 text-saffron font-black px-1.5 py-0.5 rounded border border-saffron-border/30 uppercase">
+                          Kruti / Vedmata
+                        </span>
+                      </div>
+                      <span className="text-[9px] text-text-muted">Auto-shows Alt-Codes & shortcuts as you type</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEnableCodeHelper(!enableCodeHelper)}
+                      className={`px-2.5 py-1 text-[10px] font-black rounded-md border transition-all cursor-pointer ${
+                        enableCodeHelper 
+                          ? 'bg-saffron-dim/20 border-saffron/40 text-saffron' 
+                          : 'bg-bg-s3 border-border text-text-muted'
+                      }`}
+                    >
+                      {enableCodeHelper ? 'ON' : 'OFF'}
                     </button>
                   </div>
 
@@ -1312,6 +1664,114 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
               })}
             </div>
 
+            {/* Live Code Helper Bar for KrutiDev & Vedmata */}
+            {enableCodeHelper && (layoutMode === 'krutidev' || layoutMode === 'vedmata' || layoutMode === 'mangal') && (
+              <div className="bg-gradient-to-r from-bg-s2 via-bg-s3/80 to-bg-s2 border border-saffron-border/50 rounded-2xl p-3 sm:p-4 shadow-sm flex flex-col gap-2 relative overflow-hidden transition-all">
+                <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-saffron-dim/30 border border-saffron-border/40 text-saffron font-black text-[10px] uppercase tracking-wider">
+                      <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                      <span>Code Helper</span>
+                    </div>
+
+                    <div className="text-xs font-bold text-text flex items-center gap-1.5 flex-wrap">
+                      <span className="text-text-muted text-[11px]">Active Word:</span>
+                      <span className="px-2 py-0.5 rounded-md bg-bg-s1 border border-border font-black text-saffron shadow-xs text-sm" style={getFontFamilyStyle()}>
+                        {currentTargetWord || '...'}
+                      </span>
+                      {layoutMode === 'krutidev' && currentUnicodeWord && currentUnicodeWord !== currentTargetWord && (
+                        <span className="text-xs text-text-muted font-semibold">
+                          ({currentUnicodeWord})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowAltCodeModal(true)}
+                      className="text-[10px] font-black uppercase text-saffron hover:text-orange-400 bg-saffron/10 border border-saffron-border/30 px-2 py-1 rounded-lg flex items-center gap-1 cursor-pointer transition-all"
+                      title="Open complete Alt-Codes list (F1)"
+                    >
+                      <BookOpen className="w-3 h-3" />
+                      <span className="hidden sm:inline">All Codes (F1)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEnableCodeHelper(false)}
+                      className="p-1 rounded-lg hover:bg-bg-s3 text-text-muted hover:text-text cursor-pointer transition-colors"
+                      title="Turn off Code Helper (re-enable anytime in Exam Controls)"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Detected Codes & Badges */}
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  {/* If Alt codes found */}
+                  {currentWordCodes.altCodes.length > 0 && currentWordCodes.altCodes.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-orange-500/15 border border-orange-500/40 text-text shadow-xs">
+                      <span className="text-xs font-black text-orange-400 font-mono bg-bg-s1/90 px-1.5 py-0.5 rounded border border-orange-500/30">
+                        {item.code}
+                      </span>
+                      <span className="text-sm font-black text-text font-serif">
+                        {item.symbol}
+                      </span>
+                      <span className="text-[10px] text-text-muted font-semibold">
+                        ({item.charName})
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* If Vedmata keys found */}
+                  {currentWordCodes.vedmataKeys.length > 0 && currentWordCodes.vedmataKeys.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-saffron/15 border border-saffron-border/40 text-text shadow-xs">
+                      <span className="text-xs font-black text-saffron font-mono bg-bg-s1/90 px-1.5 py-0.5 rounded border border-saffron-border/30">
+                        {item.key}
+                      </span>
+                      <span className="text-sm font-black text-text">
+                        {item.hindiChar}
+                      </span>
+                      <span className="text-[10px] text-text-muted font-semibold">
+                        ({item.charType})
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* If Matra / Reph rules found */}
+                  {currentWordCodes.matraRules.map((rule, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[11px] font-bold">
+                      <span className="text-xs">💡</span>
+                      <span>{rule}</span>
+                    </div>
+                  ))}
+
+                  {/* Keystroke Sequence Guide */}
+                  {currentWordCodes.keystrokeSequence && (
+                    <div className="flex items-center gap-1.5 text-xs text-text-muted flex-wrap">
+                      <span className="font-bold text-text text-[11px]">Keys:</span>
+                      <span className="font-mono text-saffron font-black bg-bg-s1/70 px-2 py-0.5 rounded-lg border border-border text-[11px]">
+                        {currentWordCodes.keystrokeSequence}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Upcoming Word Hint if available */}
+                  {nextWordCodes && (nextWordCodes.altCodes.length > 0 || nextWordCodes.vedmataKeys.length > 0) && (
+                    <div className="ml-auto text-[10px] text-text-muted font-medium hidden md:flex items-center gap-1.5 bg-bg-s3/40 px-2.5 py-1 rounded-lg border border-border/50">
+                      <span>Next:</span>
+                      <strong className="text-text">{nextUnicodeWord || nextTargetWord}</strong>
+                      <span className="text-saffron font-mono font-bold">
+                        ({nextWordCodes.altCodes[0]?.code || nextWordCodes.vedmataKeys[0]?.key})
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Dual Display: 2. Interactive Typing Box (Bottom) */}
             <div className="relative flex flex-col gap-2">
               <textarea
@@ -1374,6 +1834,21 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
                         </span>
                       )}
                     </div>
+                  )}
+                  {(layoutMode === 'krutidev' || layoutMode === 'vedmata' || layoutMode === 'mangal') && (
+                    <button
+                      type="button"
+                      onClick={() => setEnableCodeHelper(!enableCodeHelper)}
+                      className={`text-[9px] font-black px-2.5 py-0.5 rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
+                        enableCodeHelper
+                          ? 'bg-saffron-dim/30 border-saffron/50 text-saffron'
+                          : 'bg-bg-s3/40 border-border text-text-muted hover:text-text'
+                      }`}
+                      title="Toggle Live Code Helper on/off"
+                    >
+                      <Sparkles className="w-2.5 h-2.5" />
+                      <span>Code Helper {enableCodeHelper ? 'ON' : 'OFF'}</span>
+                    </button>
                   )}
                 </div>
 
@@ -1609,47 +2084,72 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
 
               {/* Word-by-Word Interactive Error Audit (Typing Warriors Style) */}
               <div className="flex flex-col gap-3 pt-3 border-t border-border">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-saffron" />
-                    <span className="text-xs font-black uppercase text-text">Word-by-Word Passage Audit</span>
+                    <span className="text-xs font-black uppercase text-text tracking-wide">Word-by-Word Passage Audit</span>
                   </div>
 
-                  {/* Filter Pills */}
-                  <div className="flex items-center gap-1.5 no-print">
-                    <button
-                      type="button"
-                      onClick={() => setReviewFilter('all')}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors ${
-                        reviewFilter === 'all' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted'
-                      }`}
-                    >
-                      All ({targetWords.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setReviewFilter('mistakes')}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors ${
-                        reviewFilter === 'mistakes' ? 'bg-redL text-white' : 'bg-bg-s3/40 text-text-muted'
-                      }`}
-                    >
-                      Mistakes ({mistakesCount})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setReviewFilter('correct')}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors ${
-                        reviewFilter === 'correct' ? 'bg-greenL text-bg-s0' : 'bg-bg-s3/40 text-text-muted'
-                      }`}
-                    >
-                      Correct ({userTypedWords.length - mistakesCount})
-                    </button>
+                  <div className="flex items-center gap-3 flex-wrap no-print">
+                    {/* Font Size Selector */}
+                    <div className="flex items-center gap-1 bg-bg-s3/50 p-1 rounded-xl border border-border">
+                      <span className="text-[9px] font-bold text-text-muted px-1 uppercase">Font:</span>
+                      {(['md', 'lg', 'xl'] as const).map(sz => (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => setAuditFontSize(sz)}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer ${
+                            auditFontSize === sz ? 'bg-saffron text-bg-s0 shadow-xs' : 'text-text-muted hover:text-text'
+                          }`}
+                        >
+                          {sz === 'md' ? 'Normal' : sz === 'lg' ? 'Large' : 'XL'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Filter Pills */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setReviewFilter('all')}
+                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase transition-colors cursor-pointer ${
+                          reviewFilter === 'all' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                        }`}
+                      >
+                        All ({targetWords.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReviewFilter('mistakes')}
+                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase transition-colors cursor-pointer ${
+                          reviewFilter === 'mistakes' ? 'bg-redL text-white' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                        }`}
+                      >
+                        Mistakes ({mistakesCount})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReviewFilter('correct')}
+                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase transition-colors cursor-pointer ${
+                          reviewFilter === 'correct' ? 'bg-greenL text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                        }`}
+                      >
+                        Correct ({userTypedWords.length - mistakesCount})
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Interactive Word Audit Box */}
+                {/* Interactive Word Audit Box with Large, Legible Typography */}
                 <div 
-                  className="p-4 rounded-2xl bg-bg-s3/20 border border-border max-h-[260px] overflow-y-auto leading-relaxed flex flex-wrap gap-1.5"
+                  className={`p-5 md:p-6 rounded-2xl bg-bg-s3/30 border border-border/80 max-h-[380px] overflow-y-auto flex flex-wrap gap-2 items-center shadow-inner ${
+                    auditFontSize === 'xl' 
+                      ? 'text-xl md:text-2xl leading-loose' 
+                      : auditFontSize === 'lg' 
+                      ? 'text-lg md:text-xl leading-loose' 
+                      : 'text-base md:text-lg leading-relaxed'
+                  }`}
                   style={getFontFamilyStyle()}
                 >
                   {targetWords.map((targetWord, idx) => {
@@ -1665,11 +2165,11 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
                       return (
                         <span
                           key={idx}
-                          className="inline-flex flex-col items-center bg-redL/15 border border-redL/40 px-2 py-0.5 rounded text-xs text-redL font-bold"
+                          className="inline-flex flex-col items-center bg-redL/15 border-2 border-redL/40 px-2.5 sm:px-3 py-1 rounded-xl text-redL font-bold gap-0.5 shadow-xs"
                           title={`Target: "${targetWord}" | Typed: "${typed || ''}"`}
                         >
-                          <span className="line-through opacity-70">{typed || '∅'}</span>
-                          <span className="text-[10px] text-text font-normal">[{targetWord}]</span>
+                          <span className="line-through opacity-75 text-sm md:text-base font-medium leading-tight">{typed || '∅'}</span>
+                          <span className="text-xs md:text-sm text-text font-bold bg-bg-s1/95 px-2 py-0.5 rounded-md border border-border/80">[{targetWord}]</span>
                         </span>
                       );
                     }
@@ -1678,7 +2178,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
                       return (
                         <span
                           key={idx}
-                          className="inline-block bg-greenL/15 border border-greenL/30 px-1.5 py-0.5 rounded text-xs text-greenL font-medium"
+                          className="inline-block bg-greenL/15 border border-greenL/30 px-2.5 py-1 rounded-xl text-greenL font-bold shadow-xs tracking-wide"
                         >
                           {targetWord}
                         </span>
@@ -1688,7 +2188,7 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
                     return (
                       <span
                         key={idx}
-                        className="inline-block px-1.5 py-0.5 text-xs text-text-muted/40 italic"
+                        className="inline-block px-2 py-1 text-text-muted/50 italic tracking-wide"
                       >
                         {targetWord}
                       </span>
@@ -1708,12 +2208,12 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
       {/* ============================================================== */}
       <AnimatePresence>
         {showAltCodeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg-s0/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-bg-s0/80 backdrop-blur-sm">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              className="bg-bg-s2 border border-border rounded-3xl w-full max-w-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden"
+              className="bg-bg-s2 border border-border rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
             >
               {/* Modal Header */}
               <div className="p-5 border-b border-border flex items-center justify-between bg-bg-s3/20">
@@ -1781,18 +2281,19 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
                 </div>
               </div>
 
-              {/* Category Pills */}
-              <div className="px-5 py-2 border-b border-border/40 bg-bg-s3/10 flex items-center gap-1.5 overflow-x-auto text-[11px]">
-                <span className="text-[10px] font-bold text-text-muted uppercase shrink-0 mr-1">Category:</span>
-                <button
-                  type="button"
-                  onClick={() => setAltCodeCategory('all')}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
-                    altCodeCategory === 'all' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
-                  }`}
-                >
-                  All
-                </button>
+              {/* Category Pills & View Switcher */}
+              <div className="px-5 py-2 border-b border-border/40 bg-bg-s3/10 flex items-center justify-between gap-3 overflow-x-auto text-[11px]">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] font-bold text-text-muted uppercase shrink-0 mr-1">Category:</span>
+                  <button
+                    type="button"
+                    onClick={() => setAltCodeCategory('all')}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer ${
+                      altCodeCategory === 'all' ? 'bg-saffron text-bg-s0' : 'bg-bg-s3/40 text-text-muted hover:text-text'
+                    }`}
+                  >
+                    All
+                  </button>
                 {altCodeModalTab === 'krutidev' ? (
                   <>
                     <button
@@ -1881,48 +2382,197 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
                     </button>
                   </>
                 )}
+                </div>
+
+                {altCodeModalTab === 'krutidev' && (
+                  <div className="flex items-center gap-1 bg-bg-s3/50 p-0.5 rounded-lg border border-border shrink-0 ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => setKrutidevViewMode('table')}
+                      className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase transition-all cursor-pointer ${
+                        krutidevViewMode === 'table'
+                          ? 'bg-saffron text-bg-s0 shadow-xs'
+                          : 'text-text-muted hover:text-text'
+                      }`}
+                    >
+                      Exact Image Sheet (तालिका)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setKrutidevViewMode('cards')}
+                      className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase transition-all cursor-pointer ${
+                        krutidevViewMode === 'cards'
+                          ? 'bg-saffron text-bg-s0 shadow-xs'
+                          : 'text-text-muted hover:text-text'
+                      }`}
+                    >
+                      Cards List
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Codes Grid / List */}
               <div className="p-4 overflow-y-auto flex-1 flex flex-col gap-4">
                 {altCodeModalTab === 'krutidev' ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                    {KRUTIDEV_ALT_CODES.filter(item => {
-                      const matchesCategory = altCodeCategory === 'all' || item.category === altCodeCategory;
-                      const q = altCodeSearch.toLowerCase().trim();
-                      const matchesSearch = !q || 
-                        item.code.toLowerCase().includes(q) ||
-                        item.symbol.includes(q) ||
-                        item.charName.toLowerCase().includes(q) ||
-                        item.example.toLowerCase().includes(q);
-                      return matchesCategory && matchesSearch;
-                    }).map((item, i) => (
-                      <div
-                        key={i}
-                        className="p-3 rounded-2xl bg-bg-s3/30 hover:bg-bg-s3/50 border border-border/70 flex items-center justify-between transition-colors group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span 
-                            className="text-2xl font-black text-saffron w-10 text-center shrink-0"
-                            style={{ fontFamily: 'KrutiDev010, serif' }}
-                          >
-                            {item.symbol}
+                  krutidevViewMode === 'table' ? (
+                    <div className="flex flex-col gap-6">
+                      {/* Image Header replica */}
+                      <div className="text-center py-2 border-b border-border/60 bg-bg-s3/20 rounded-2xl">
+                        <h4 className="text-base sm:text-lg font-black text-text tracking-wide uppercase">
+                          Devlys 010 Font
+                        </h4>
+                        <p className="text-xs font-bold text-saffron">
+                          (Alt +0 num pad keys)
+                        </p>
+                        <p className="text-[11px] text-text-muted mt-0.5 underline decoration-saffron/40 underline-offset-4">
+                          Characters to be typed with the help of Alt + numbers key of num keys pad
+                        </p>
+                      </div>
+
+                      {/* Exact 6-column pairs Main Table */}
+                      <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
+                        <table className="w-full text-center border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-bg-s3/80 text-text font-black text-[11px] border-b border-border">
+                              <th className="py-2.5 px-2 border-r border-border w-[8%]">अक्षर</th>
+                              <th className="py-2.5 px-2 border-r border-border/80 w-[8%] text-saffron">Alt + 0...</th>
+                              <th className="py-2.5 px-2 border-r border-border w-[8%]">अक्षर</th>
+                              <th className="py-2.5 px-2 border-r border-border/80 w-[8%] text-saffron">Alt + 0...</th>
+                              <th className="py-2.5 px-2 border-r border-border w-[8%]">अक्षर</th>
+                              <th className="py-2.5 px-2 border-r border-border/80 w-[8%] text-saffron">Alt + 0...</th>
+                              <th className="py-2.5 px-2 border-r border-border w-[8%]">अक्षर</th>
+                              <th className="py-2.5 px-2 border-r border-border/80 w-[8%] text-saffron">Alt + 0...</th>
+                              <th className="py-2.5 px-2 border-r border-border w-[8%]">अक्षर</th>
+                              <th className="py-2.5 px-2 border-r border-border/80 w-[8%] text-saffron">Alt + 0...</th>
+                              <th className="py-2.5 px-2 border-r border-border w-[8%]">अक्षर</th>
+                              <th className="py-2.5 px-2 w-[8%] text-saffron">Alt + 0...</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {DEVLYS_TABLE_ROWS.map((row, rIdx) => (
+                              <tr
+                                key={rIdx}
+                                className={`border-b border-border/60 transition-colors ${
+                                  rIdx % 2 === 0 ? 'bg-bg-s2/50' : 'bg-bg-s3/20'
+                                } hover:bg-saffron-dim/20`}
+                              >
+                                {row.map((cell, cIdx) => (
+                                  <React.Fragment key={cIdx}>
+                                    {/* अक्षर Cell */}
+                                    <td className="py-2 px-1 border-r border-border font-bold text-text align-middle">
+                                      {cell.glyph ? (
+                                        <div className="flex flex-col items-center justify-center min-h-[30px] leading-tight">
+                                          <span 
+                                            className="text-lg sm:text-xl font-black text-saffron drop-shadow-xs"
+                                            style={{ fontFamily: 'KrutiDev010, serif' }}
+                                          >
+                                            {cell.glyph}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-text-muted/30 select-none">-</span>
+                                      )}
+                                    </td>
+                                    {/* Alt + 0... Code Cell */}
+                                    <td className={`py-2 px-1 font-mono font-black text-xs tabular-nums align-middle ${
+                                      cIdx < 5 ? 'border-r border-border/80' : ''
+                                    } ${cell.code ? 'text-text' : 'text-text-muted/30 select-none'}`}>
+                                      {cell.code || '-'}
+                                    </td>
+                                  </React.Fragment>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Special Characters Sub-table Header */}
+                      <div className="flex flex-col gap-2 pt-1">
+                        <div className="text-center py-1.5 bg-bg-s3/60 rounded-xl border border-border">
+                          <span className="text-xs sm:text-sm font-black text-text uppercase tracking-wider">
+                            Special Characters
                           </span>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-[11px] font-mono font-black text-text bg-bg-s0/70 px-2 py-0.5 rounded border border-border/50 self-start">
-                              {item.code}
-                            </span>
-                            <span className="text-[10px] font-bold text-text mt-1 truncate">
-                              {item.charName}
-                            </span>
-                            <span className="text-[9px] text-text-muted mt-0.5 truncate">
-                              उदा: {item.example}
-                            </span>
-                          </div>
+                        </div>
+
+                        {/* Special Characters Table Grid */}
+                        <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
+                          <table className="w-full text-center border-collapse text-xs">
+                            <tbody>
+                              {DEVLYS_SPECIAL_CHARS.map((sRow, sIdx) => (
+                                <tr 
+                                  key={sIdx} 
+                                  className={`border-b border-border/60 transition-colors ${
+                                    sIdx % 2 === 0 ? 'bg-bg-s2/50' : 'bg-bg-s3/20'
+                                  } hover:bg-saffron-dim/20`}
+                                >
+                                  {sRow.map((sCell, scIdx) => (
+                                    <React.Fragment key={scIdx}>
+                                      {/* Symbol glyph */}
+                                      <td className="py-2.5 px-2 border-r border-border font-bold text-text w-[12.5%] align-middle">
+                                        {sCell.glyph ? (
+                                          <span className="text-lg sm:text-xl font-black text-saffron">
+                                            {sCell.glyph}
+                                          </span>
+                                        ) : (
+                                          <span className="text-text-muted/30 select-none">-</span>
+                                        )}
+                                      </td>
+                                      {/* Code */}
+                                      <td className={`py-2.5 px-2 font-mono font-black text-xs text-text tabular-nums w-[12.5%] align-middle ${
+                                        scIdx < sRow.length - 1 ? 'border-r border-border' : ''
+                                      }`}>
+                                        {sCell.code || '-'}
+                                      </td>
+                                    </React.Fragment>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {KRUTIDEV_ALT_CODES.filter(item => {
+                        const matchesCategory = altCodeCategory === 'all' || item.category === altCodeCategory;
+                        const q = altCodeSearch.toLowerCase().trim();
+                        const matchesSearch = !q || 
+                          item.code.toLowerCase().includes(q) ||
+                          item.symbol.includes(q) ||
+                          item.charName.toLowerCase().includes(q) ||
+                          item.example.toLowerCase().includes(q);
+                        return matchesCategory && matchesSearch;
+                      }).map((item, i) => (
+                        <div
+                          key={i}
+                          className="p-3 rounded-2xl bg-bg-s3/30 hover:bg-bg-s3/50 border border-border/70 flex items-center justify-between transition-colors group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span 
+                              className="text-2xl font-black text-saffron w-10 text-center shrink-0"
+                              style={{ fontFamily: 'KrutiDev010, serif' }}
+                            >
+                              {item.symbol}
+                            </span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[11px] font-mono font-black text-text bg-bg-s0/70 px-2 py-0.5 rounded border border-border/50 self-start">
+                                {item.code}
+                              </span>
+                              <span className="text-[10px] font-bold text-text mt-1 truncate">
+                                {item.charName}
+                              </span>
+                              <span className="text-[9px] text-text-muted mt-0.5 truncate">
+                                उदा: {item.example}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                     {VEDMATA_CODES.filter(item => {
