@@ -213,7 +213,7 @@ export const AdminStaffs: React.FC<AdminStaffsProps> = ({ currentUser }) => {
   };
 
   const availableRoles = [
-    { key: 'tests', label: 'AI MCQ Tests' },
+    { key: 'tests', label: 'MCQ Tests' },
     { key: 'news', label: 'News & Alerts' },
     { key: 'syllabus', label: 'Syllabus & PDF' }
   ];

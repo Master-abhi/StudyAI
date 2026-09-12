@@ -28,7 +28,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
 
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, requiredRole: null },
-    { id: 'tests', label: 'AI MCQ Tests', icon: Trophy, requiredRole: 'tests' },
+    { id: 'tests', label: 'MCQ Tests', icon: Trophy, requiredRole: 'tests' },
     { id: 'news', label: 'News & Alerts', icon: Newspaper, requiredRole: 'news' },
     { id: 'syllabus', label: 'Syllabus & PDF', icon: BookOpen, requiredRole: 'syllabus' }
   ];
@@ -131,7 +131,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
   const availableRolesInfo = [
     { 
       key: 'tests', 
-      label: 'AI MCQ Tests', 
+      label: 'MCQ Tests', 
       description: 'Allows generating practice quiz papers (5 questions) or full mock mock tests (25 questions) for student exams. Provides editing capability for test structures, options, and explanations.' 
     },
     { 

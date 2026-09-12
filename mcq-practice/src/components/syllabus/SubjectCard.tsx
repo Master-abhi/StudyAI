@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Layers } from 'lucide-react';
 import { TopicList } from './TopicList';
-import type { Subject, TopicProgress } from './syllabusData';
+import type { Subject, TopicProgress, Topic } from './syllabusData';
 
 interface SubjectCardProps {
   subject: Subject;
@@ -11,6 +11,9 @@ interface SubjectCardProps {
   onToggleExpand: () => void;
   onToggleActivity: (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => void;
   onMarkRevised: (topicId: string) => void;
+  onOpenPdf?: (topic: Topic) => void;
+  onOpenLectures?: (topic: Topic, subjectName: string) => void;
+  onOpenPracticeMcqs?: (topic: Topic, subjectName: string) => void;
 }
 
 export const SubjectCard: React.FC<SubjectCardProps> = ({
@@ -19,7 +22,10 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
   isExpanded,
   onToggleExpand,
   onToggleActivity,
-  onMarkRevised
+  onMarkRevised,
+  onOpenPdf,
+  onOpenLectures,
+  onOpenPracticeMcqs
 }) => {
   // Count total topics and completed topics in this subject
   let totalTopics = 0;
@@ -144,6 +150,9 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
                     topicProgress={topicProgress}
                     onToggleActivity={onToggleActivity}
                     onMarkRevised={onMarkRevised}
+                    onOpenPdf={onOpenPdf}
+                    onOpenLectures={(t) => onOpenLectures && onOpenLectures(t, subject.name)}
+                    onOpenPracticeMcqs={(t) => onOpenPracticeMcqs && onOpenPracticeMcqs(t, subject.name)}
                   />
 
                 </div>

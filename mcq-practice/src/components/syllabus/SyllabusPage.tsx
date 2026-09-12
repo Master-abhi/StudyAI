@@ -12,6 +12,10 @@ import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { RevisionPlanner } from './RevisionPlanner';
 import { ExamStrategyCard } from './ExamStrategyCard';
 import { MilestoneTracker } from './MilestoneTracker';
+import { PdfViewerModal } from './PdfViewerModal';
+import { LecturesModal } from './LecturesModal';
+import { TopicTestsModal } from './TopicTestsModal';
+import type { Topic } from './syllabusData';
 
 import type { Exam } from './syllabusData';
 
@@ -29,6 +33,8 @@ interface SyllabusPageProps {
   tabVisibility?: Record<string, boolean>;
   targetExamDate: string;
   onTargetDateChange: (date: string) => void;
+  currentUser?: any;
+  onOpenAuth?: () => void;
 }
 
 type ActiveTab = 'tracker' | 'ai_planner' | 'revision' | 'analytics' | 'strategy';
@@ -46,12 +52,85 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   onGoBack,
   tabVisibility,
   targetExamDate,
-  onTargetDateChange
+  onTargetDateChange,
+  currentUser,
+  onOpenAuth
 }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('tracker');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Completed' | 'In Progress' | 'Weak Area' | 'Not Started'>('all');
   const [expandedSubjectId, setExpandedSubjectId] = useState<string | null>(null);
+  // Topic Practice Tests State
+  const [selectedTopicForTests, setSelectedTopicForTests] = useState<{ topic: Topic; subjectName: string } | null>(null);
+
+  // Lectures State
+  const [selectedLectureTopic, setSelectedLectureTopic] = useState<{ topic: Topic; subjectName: string } | null>(null);
+
+  // PDF Notes State
+  const [selectedPdfTopic, setSelectedPdfTopic] = useState<Topic | null>(null);
+  const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
+
+  const getApiUrl = (p: string) => {
+    const hostname = window.location.hostname;
+    const isLocal = hostname === 'localhost' || 
+                    hostname === '127.0.0.1' || 
+                    hostname === '[::1]' ||
+                    hostname.startsWith('192.168.');
+    if (isLocal && window.location.port !== '3000') {
+      return `http://localhost:3000${p}`;
+    }
+    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
+      return `https://study-ai-olive.vercel.app${p}`;
+    }
+    return p;
+  };
+
+  const handleOpenPracticeMcqs = (topic: Topic, subjectName: string) => {
+    setSelectedTopicForTests({ topic, subjectName });
+  };
+
+  const handleOpenLectures = (topic: Topic, subjectName: string) => {
+    setSelectedLectureTopic({ topic, subjectName });
+  };
+
+  const handleOpenPdf = async (topic: Topic) => {
+    // Check prop currentUser or window.firebase currentUser
+    const fbUser = currentUser || (window as any).firebase?.auth()?.currentUser;
+    if (!fbUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in to read topic PDF notes.');
+      return;
+    }
+
+    try {
+      // loading
+      
+      setSelectedPdfTopic(topic);
+
+      const token = await fbUser.getIdToken();
+      const res = await fetch(getApiUrl(`/api/syllabus/topic-pdf-url?examId=${encodeURIComponent(activeExamId)}&topicId=${encodeURIComponent(topic.id)}`), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+      if (res.ok && data.signedUrl) {
+        setPdfSignedUrl(data.signedUrl);
+      } else {
+        throw new Error(data.error || 'Failed to load PDF notes.');
+      }
+    } catch (err: any) {
+      console.error('[Open PDF Error]:', err);
+      
+      alert(err.message || 'Could not load PDF notes.');
+      setSelectedPdfTopic(null);
+      setPdfSignedUrl(null);
+    } finally {
+      // done
+    }
+  };
+
   
   const [showTip, setShowTip] = useState<boolean>(() => {
     try {
@@ -159,16 +238,30 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
         onTargetDateChange={onTargetDateChange}
       />
 
-      {/* 3. Modern Premium Sub-Tabs */}
+      {/* 3. Modern Premium Sub-Tabs (Rendered only if extra AI/revision tabs are enabled) */}
+      {[
+        { id: 'ai_planner', label: 'AI Study Planner', shortLabel: 'AI Planner', icon: BrainCircuit, configKey: 'syllabus_ai_planner' },
+        { id: 'revision', label: 'Spaced Revision', shortLabel: 'Revision', icon: RefreshCw, configKey: 'syllabus_revision' },
+        { id: 'analytics', label: 'Analytics Dashboard', shortLabel: 'Analytics', icon: BarChart3, configKey: 'syllabus_analytics' },
+        { id: 'strategy', label: 'Exam Strategy', shortLabel: 'Strategy', icon: Lightbulb, configKey: 'syllabus_strategy' }
+      ].some(tab => !tab.configKey || tabVisibility?.[tab.configKey] !== false) && (
       <div className="relative border-b border-border/80 pb-0.5">
-        {/* Left fade indicator */}
         <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-bg-s1 to-transparent pointer-events-none z-10 sm:hidden" />
-        {/* Right fade indicator */}
         <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg-s1 to-transparent pointer-events-none z-10 sm:hidden" />
         
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-4 sm:px-0">
+          <button
+            onClick={() => setActiveTab('tracker')}
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer whitespace-nowrap shrink-0 ${
+              resolvedActiveTab === 'tracker'
+                ? 'border-saffron text-saffron bg-saffron-dim/30' 
+                : 'border-transparent text-text-muted hover:text-text hover:border-border'
+            }`}
+          >
+            <BookOpen className={`w-3.5 h-3.5 ${resolvedActiveTab === 'tracker' ? 'text-saffron' : 'text-text-muted'}`} />
+            <span>Topics</span>
+          </button>
           {[
-            { id: 'tracker', label: 'Syllabus Tracker', shortLabel: 'Tracker', icon: BookOpen },
             { id: 'ai_planner', label: 'AI Study Planner', shortLabel: 'AI Planner', icon: BrainCircuit, configKey: 'syllabus_ai_planner' },
             { id: 'revision', label: 'Spaced Revision', shortLabel: 'Revision', icon: RefreshCw, configKey: 'syllabus_revision' },
             { id: 'analytics', label: 'Analytics Dashboard', shortLabel: 'Analytics', icon: BarChart3, configKey: 'syllabus_analytics' },
@@ -194,6 +287,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
           })}
         </div>
       </div>
+      )}
 
       {/* 4. Tab Views Panel */}
       <div className="min-h-[400px]">
@@ -295,6 +389,9 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
                         onToggleExpand={() => setExpandedSubjectId(expandedSubjectId === subject.id ? null : subject.id)}
                         onToggleActivity={onToggleActivity}
                         onMarkRevised={onMarkRevised}
+                        onOpenPdf={handleOpenPdf}
+                        onOpenLectures={handleOpenLectures}
+                        onOpenPracticeMcqs={handleOpenPracticeMcqs}
                       />
                     ))
                   ) : (
@@ -357,6 +454,58 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Topic Practice Tests Modal (Quiz / Mock list & Coming Soon) */}
+      <TopicTestsModal
+        isOpen={Boolean(selectedTopicForTests)}
+        onClose={() => setSelectedTopicForTests(null)}
+        topicName={selectedTopicForTests?.topic.name || ''}
+        topicNameHi={selectedTopicForTests?.topic.nameHi}
+        subjectName={selectedTopicForTests?.subjectName}
+        examId={activeExamId}
+        onStartTest={(testId, _mode, subject) => {
+          onStartPractice(subject, testId);
+        }}
+        onMarkComplete={() => {
+          if (selectedTopicForTests) {
+            onToggleActivity(selectedTopicForTests.topic.id, 'mcqCompleted');
+          }
+        }}
+        isCompleted={Boolean(selectedTopicForTests && topicProgress[selectedTopicForTests.topic.id]?.mcqCompleted)}
+      />
+
+      {/* Curated YouTube Video Lectures Modal */}
+      <LecturesModal
+        isOpen={Boolean(selectedLectureTopic)}
+        onClose={() => setSelectedLectureTopic(null)}
+        topicName={selectedLectureTopic?.topic.name || ''}
+        topicNameHi={selectedLectureTopic?.topic.nameHi}
+        subjectName={selectedLectureTopic?.subjectName}
+        onMarkComplete={() => {
+          if (selectedLectureTopic) {
+            onToggleActivity(selectedLectureTopic.topic.id, 'videoWatched');
+          }
+        }}
+        isCompleted={Boolean(selectedLectureTopic && topicProgress[selectedLectureTopic.topic.id]?.videoWatched)}
+      />
+
+      {/* Secure Supabase PDF Notes Viewer Modal */}
+      <PdfViewerModal
+        isOpen={Boolean(selectedPdfTopic && pdfSignedUrl)}
+        onClose={() => {
+          setSelectedPdfTopic(null);
+          setPdfSignedUrl(null);
+        }}
+        pdfUrl={pdfSignedUrl}
+        title={selectedPdfTopic ? (selectedPdfTopic.nameHi || selectedPdfTopic.name) : 'Study Material'}
+        fileName={selectedPdfTopic?.pdfName}
+        onMarkComplete={() => {
+          if (selectedPdfTopic) {
+            onToggleActivity(selectedPdfTopic.id, 'notesRead');
+          }
+        }}
+        isCompleted={Boolean(selectedPdfTopic && topicProgress[selectedPdfTopic.id]?.notesRead)}
+      />
 
     </div>
   );

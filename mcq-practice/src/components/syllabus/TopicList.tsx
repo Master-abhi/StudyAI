@@ -1,23 +1,29 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  BookOpen, Play, CheckCircle, RefreshCcw, 
-  ChevronDown, ChevronUp, CheckSquare, Square 
+  Play, CheckCircle, RefreshCcw, 
+  ChevronDown, ChevronUp, CheckSquare, Square, FileText
 } from 'lucide-react';
-import type { Chapter, TopicProgress } from './syllabusData';
+import type { Chapter, TopicProgress, Topic } from './syllabusData';
 
 interface TopicListProps {
   chapter: Chapter;
   topicProgress: Record<string, TopicProgress>;
   onToggleActivity: (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => void;
   onMarkRevised: (topicId: string) => void;
+  onOpenPdf?: (topic: Topic) => void;
+  onOpenLectures?: (topic: Topic) => void;
+  onOpenPracticeMcqs?: (topic: Topic) => void;
 }
 
 export const TopicList: React.FC<TopicListProps> = ({
   chapter,
   topicProgress,
   onToggleActivity,
-  onMarkRevised
+  onMarkRevised,
+  onOpenPdf,
+  onOpenLectures,
+  onOpenPracticeMcqs
 }) => {
   const [expandedTopicId, setExpandedTopicId] = useState<string | null>(null);
 
@@ -103,6 +109,12 @@ export const TopicList: React.FC<TopicListProps> = ({
                       <span className={`w-1 h-1 rounded-full ${stateConfig.indicator}`} />
                       <span>{stateConfig.label}</span>
                     </span>
+                    {topic.pdfPath && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-saffron/15 text-saffron border border-saffron/30 flex items-center gap-1 shrink-0 shadow-sm">
+                        <FileText className="w-2.5 h-2.5" />
+                        <span>PDF NOTES</span>
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -148,55 +160,79 @@ export const TopicList: React.FC<TopicListProps> = ({
                       <span className="text-[10px] font-black uppercase text-saffron tracking-wider">Required Tasks</span>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3.5 mt-1.5">
                         
-                        {/* Task 1: Notes */}
+                        {/* Task 1: Notes (Opens Supabase PDF if attached) */}
                         <button
-                          onClick={() => onToggleActivity(topic.id, 'notesRead')}
+                          onClick={() => {
+                            if (topic.pdfPath && onOpenPdf) {
+                              onOpenPdf(topic);
+                            } else {
+                              onToggleActivity(topic.id, 'notesRead');
+                            }
+                          }}
                           className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                             progress.notesRead
                               ? 'bg-saffron-dim/10 border-saffron/30 text-saffron'
-                              : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80'
+                              : topic.pdfPath 
+                                ? 'bg-saffron/10 border-saffron/40 text-text hover:bg-saffron/20'
+                                : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80'
                           }`}
                         >
-                          <BookOpen className="w-4 h-4 shrink-0" />
-                          <div className="flex flex-col items-start leading-tight">
-                            <span>Read PDF Notes</span>
-                            <span className="text-[8px] font-normal opacity-75">Study Material</span>
+                          <FileText className={`w-4 h-4 shrink-0 ${topic.pdfPath ? 'text-saffron' : ''}`} />
+                          <div className="flex flex-col items-start leading-tight min-w-0">
+                            <span className="truncate">{topic.pdfPath ? 'Read PDF Notes' : 'Mark Notes Read'}</span>
+                            <span className="text-[8px] font-normal opacity-75 truncate">
+                              {topic.pdfPath ? (topic.pdfName || 'Attached PDF') : 'Study Material'}
+                            </span>
                           </div>
-                          <span className="ml-auto text-xs">{progress.notesRead ? '✓' : '○'}</span>
+                          <span className="ml-auto text-xs shrink-0">
+                            {progress.notesRead ? '✓' : topic.pdfPath ? '📖' : '○'}
+                          </span>
                         </button>
 
-                        {/* Task 2: Video */}
+                        {/* Task 2: Video Lectures (Curated YouTube Classes) */}
                         <button
-                          onClick={() => onToggleActivity(topic.id, 'videoWatched')}
+                          onClick={() => {
+                            if (onOpenLectures) {
+                              onOpenLectures(topic);
+                            } else {
+                              onToggleActivity(topic.id, 'videoWatched');
+                            }
+                          }}
                           className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                             progress.videoWatched
-                              ? 'bg-saffron-dim/10 border-saffron/30 text-saffron'
-                              : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80'
+                              ? 'bg-red-500/10 border-red-500/30 text-red-500'
+                              : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80 hover:border-red-500/30'
                           }`}
                         >
-                          <Play className="w-4 h-4 shrink-0" />
-                          <div className="flex flex-col items-start leading-tight">
+                          <Play className={`w-4 h-4 shrink-0 ${progress.videoWatched ? 'text-red-500' : 'text-red-500/80'}`} />
+                          <div className="flex flex-col items-start leading-tight min-w-0">
                             <span>Watch Lectures</span>
-                            <span className="text-[8px] font-normal opacity-75">Video Class</span>
+                            <span className="text-[8px] font-normal opacity-75">YouTube Video Class</span>
                           </div>
-                          <span className="ml-auto text-xs">{progress.videoWatched ? '✓' : '○'}</span>
+                          <span className="ml-auto text-xs shrink-0">{progress.videoWatched ? '✓' : '▶'}</span>
                         </button>
 
-                        {/* Task 3: MCQs */}
+                        {/* Task 3: Topic Practice MCQs */}
                         <button
-                          onClick={() => onToggleActivity(topic.id, 'mcqCompleted')}
+                          onClick={() => {
+                            if (onOpenPracticeMcqs) {
+                              onOpenPracticeMcqs(topic);
+                            } else {
+                              onToggleActivity(topic.id, 'mcqCompleted');
+                            }
+                          }}
                           className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                             progress.mcqCompleted
                               ? 'bg-saffron-dim/10 border-saffron/30 text-saffron'
-                              : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80'
+                              : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80 hover:border-saffron/40'
                           }`}
                         >
-                          <CheckCircle className="w-4 h-4 shrink-0" />
-                          <div className="flex flex-col items-start leading-tight">
+                          <CheckCircle className={`w-4 h-4 shrink-0 ${progress.mcqCompleted ? 'text-saffron' : ''}`} />
+                          <div className="flex flex-col items-start leading-tight min-w-0">
                             <span>Solve Practice MCQs</span>
-                            <span className="text-[8px] font-normal opacity-75">Practice Test</span>
+                            <span className="text-[8px] font-normal opacity-75">Topic Tests & Quizzes</span>
                           </div>
-                          <span className="ml-auto text-xs">{progress.mcqCompleted ? '✓' : '○'}</span>
+                          <span className="ml-auto text-xs shrink-0">{progress.mcqCompleted ? '✓' : '🎯'}</span>
                         </button>
 
                       </div>

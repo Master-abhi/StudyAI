@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Flame, BookOpen, ChevronRight, Trophy, Zap, Landmark, Home, Shield, Bot, Sparkles,
-  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard, Calendar
+  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -236,7 +236,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 {activeExam?.name || 'Select Target Exam'}
               </span>
               <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">
-                {activeExam ? `${activeExam.daysRemaining} days remaining` : 'Tap to select'}
+                {activeExam ? (activeExam.stage || 'Official Syllabus') : 'Tap to select'}
               </span>
             </div>
           </div>
@@ -579,12 +579,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                                 {ex.fullName}
                               </span>
                             )}
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-[10px] text-saffron font-bold uppercase tracking-wider flex items-center gap-1 bg-saffron-dim/20 px-2 py-0.5 rounded-md border border-saffron-border/30">
-                                <Calendar className="w-3 h-3" />
-                                {ex.daysRemaining} days left
-                              </span>
-                            </div>
+
                           </div>
                         </div>
 

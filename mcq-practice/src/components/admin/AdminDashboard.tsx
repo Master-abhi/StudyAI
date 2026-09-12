@@ -111,7 +111,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     { id: 'feedbacks', label: 'Feedbacks', icon: MessageSquare },
     { id: 'reports', label: 'Reported Questions', icon: AlertTriangle },
     { id: 'staffs', label: 'Staff Accounts', icon: ShieldCheck },
-    { id: 'tests', label: 'AI MCQ Tests', icon: Trophy },
+    { id: 'tests', label: 'MCQ Tests', icon: Trophy },
     { id: 'news', label: 'News & Alerts', icon: Newspaper },
     { id: 'syllabus', label: 'Syllabus & PDF', icon: BookOpen },
     { id: 'badges', label: 'Badges Config', icon: Award },
@@ -270,7 +270,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
             <div className="p-4 bg-bg-s3 border border-border/80 rounded-lg text-xs leading-relaxed flex flex-col gap-2">
               <span className="text-[8px] font-black uppercase text-saffron tracking-wider">AI TEST CREATOR</span>
               <p className="text-text-muted text-[11px] leading-normal">
-                Use the **AI MCQ Tests** tab to generate exam papers. The AI creates full mock sets (25 Qs) or daily quizzes (5 Qs) targeting specific subjects. Shuffling is enabled automatically.
+                Use the **MCQ Tests** tab to generate exam papers. The AI creates full mock sets (25 Qs) or daily quizzes (5 Qs) targeting specific subjects. Shuffling is enabled automatically.
               </p>
             </div>
 

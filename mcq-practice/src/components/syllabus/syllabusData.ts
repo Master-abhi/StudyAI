@@ -8,6 +8,10 @@ export interface Topic {
   nameHi: string;
   subtopics: string[];
   importanceScore: number; // 1 to 10
+  pdfPath?: string;
+  pdfName?: string;
+  pdfSize?: number;
+  pdfUpdatedAt?: string;
 }
 
 export interface Chapter {

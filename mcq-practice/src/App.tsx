@@ -2512,6 +2512,8 @@ export default function App() {
               );
             }}
             onGoBack={() => setActiveTab('home')}
+            currentUser={currentUser}
+            onOpenAuth={() => setAuthModalOpen(true)}
           />
         );
       case 'landing':
@@ -2544,23 +2546,11 @@ export default function App() {
       {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' && (
         <aside className="hidden md:flex flex-col w-72 bg-bg-s2 border-r border-border/60 shrink-0 fixed top-0 left-0 h-screen z-30">
           {/* Logo & Brand */}
-          <div className="p-6 border-b border-border/60 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <GraduationCap className="w-7 h-7 text-saffron" />
-              <span className="text-lg font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
-                CG Guru
-              </span>
-            </div>
-            <a
-              href="/cgguru.apk"
-              download="CG_Guru_App.apk"
-              className="px-2.5 py-1 rounded-lg bg-bg-s3 hover:bg-bg-s1 border border-border text-text-muted hover:text-text text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all shadow-sm"
-              title="Download Android APK"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-greenL" />
-              <span>APK</span>
-              <Download className="w-3 h-3" />
-            </a>
+          <div className="p-6 border-b border-border/60 flex items-center gap-3">
+            <GraduationCap className="w-7 h-7 text-saffron" />
+            <span className="text-lg font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
+              CG Guru
+            </span>
           </div>
 
           {/* Navigation Links */}
@@ -2707,6 +2697,24 @@ export default function App() {
                 <span className="font-extrabold text-[10px]">App</span>
                 <Download className="w-3 h-3 shrink-0" />
               </a>
+
+              {/* Notifications Button */}
+              <button
+                onClick={() => setNotificationsModalOpen(true)}
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer relative ${
+                  unreadNotificationsCount > 0
+                    ? 'bg-saffron/15 border-saffron text-saffron shadow-sm'
+                    : 'bg-bg-s2 border-border text-text-muted hover:text-text hover:border-saffron-border/50'
+                }`}
+                title="Notifications & Announcements"
+              >
+                <Bell className={`w-4 h-4 text-saffron ${unreadNotificationsCount > 0 ? 'animate-bounce' : ''}`} />
+                {unreadNotificationsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow">
+                    {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                  </span>
+                )}
+              </button>
 
               <button 
                 onClick={() => setSettingsModalOpen(true)}
@@ -3363,11 +3371,11 @@ export default function App() {
                             <span className="text-[10px] sm:text-xs text-text-muted mt-0.5 uppercase font-bold tracking-wider">
                               {ex.fullName || ex.name}
                             </span>
-                            <span className="text-[9px] sm:text-[10px] text-saffron font-bold mt-1 uppercase tracking-wider flex items-center gap-1.5">
-                              <span>{ex.stage}</span>
-                              <span>•</span>
-                              <span>{ex.daysRemaining} days remaining</span>
-                            </span>
+                            {ex.stage && (
+                              <span className="text-[9px] sm:text-[10px] text-saffron font-bold mt-1 uppercase tracking-wider">
+                                {ex.stage}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <span className="text-sm text-text-muted group-hover:text-saffron transition-colors font-black pr-1">➔</span>

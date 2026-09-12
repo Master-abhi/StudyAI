@@ -724,7 +724,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ currentUser }) => {
               <span className="text-[10px] font-black text-text-muted uppercase tracking-wider">Access Scope Checkboxes</span>
               <div className="flex flex-col gap-2.5 bg-bg-s3/60 border border-border/80 p-4 rounded-xl">
                 {[
-                  { key: 'tests', label: 'AI MCQ Tests', desc: 'Allows generating practice quiz papers (5 questions) or full mock mock tests (25 questions)' },
+                  { key: 'tests', label: 'MCQ Tests', desc: 'Allows generating practice quiz papers (5 questions) or full mock mock tests (25 questions)' },
                   { key: 'news', label: 'News & Alerts', desc: 'Allows refreshing general board news and translation caches.' },
                   { key: 'syllabus', label: 'Syllabus & PDF', desc: 'Allows uploading text-extracted reference notes and syllabus configs.' }
                 ].map(role => {

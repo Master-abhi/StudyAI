@@ -56,7 +56,7 @@ const SAMPLE_SYLLABUS_JSON = {
 };
 
 export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams, onRefreshExams }) => {
-  const [subTab, setSubTab] = useState<'materials' | 'upload_json' | 'edit_syllabus' | 'sandbox'>('materials');
+  const [subTab, setSubTab] = useState<'topic_pdfs' | 'materials' | 'upload_json' | 'edit_syllabus' | 'sandbox'>('topic_pdfs');
   
   // Dynamic custom syllabus registry from database to check deletability/status
   const [customSyllabusIds, setCustomSyllabusIds] = useState<string[]>([]);
@@ -84,6 +84,12 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
   const [sandboxText, setSandboxText] = useState<string>('');
   const [parsedOutput, setParsedOutput] = useState<any | null>(null);
 
+
+  // Topic PDF Manager State
+  const [selectedExamId, setSelectedExamId] = useState<string>(exams[0]?.id || '');
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
+  const [uploadingTopicId, setUploadingTopicId] = useState<string | null>(null);
+  const [deletingTopicId, setDeletingTopicId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
 
@@ -100,6 +106,86 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
       return `https://study-ai-olive.vercel.app${path}`;
     }
     return path;
+  };
+
+
+  const handleTopicPdfUpload = async (examId: string, topicId: string, file: File) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+      setErrorMessage('Please select a valid PDF file.');
+      return;
+    }
+
+    try {
+      setUploadingTopicId(topicId);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      const token = await currentUser.getIdToken();
+      const formData = new FormData();
+      formData.append('pdfFile', file);
+      formData.append('examId', examId);
+      formData.append('topicId', topicId);
+
+      const targetExam = exams.find(e => e.id === examId);
+      if (targetExam) {
+        formData.append('examData', JSON.stringify(targetExam));
+      }
+
+      const res = await fetch(getApiUrl('/api/admin/syllabus/topic-pdf'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage(`Attached "${file.name}" to topic successfully! 📄`);
+        onRefreshExams();
+      } else {
+        throw new Error(data.error || 'Failed to attach PDF notes to topic.');
+      }
+    } catch (err: any) {
+      console.error('[Upload Topic PDF Error]:', err);
+      setErrorMessage(err.message || 'Failed to upload PDF.');
+    } finally {
+      setUploadingTopicId(null);
+    }
+  };
+
+  const handleTopicPdfDelete = async (examId: string, topicId: string, topicName: string) => {
+    if (!window.confirm(`Remove attached PDF notes from "${topicName}"?`)) return;
+
+    try {
+      setDeletingTopicId(topicId);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      const token = await currentUser.getIdToken();
+      const res = await fetch(getApiUrl('/api/admin/syllabus/topic-pdf'), {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ examId, topicId })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage(`Removed PDF notes from "${topicName}".`);
+        onRefreshExams();
+      } else {
+        throw new Error(data.error || 'Failed to remove topic PDF.');
+      }
+    } catch (err: any) {
+      console.error('[Delete Topic PDF Error]:', err);
+      setErrorMessage(err.message || 'Failed to remove PDF notes.');
+    } finally {
+      setDeletingTopicId(null);
+    }
   };
 
   const sanitizeJsonString = (str: string) => {
@@ -532,7 +618,8 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
       {/* Sub-Tabs Navigation */}
       <div className="flex items-center gap-1 border-b border-border/80 pb-0.5 overflow-x-auto no-scrollbar">
         {[
-          { id: 'materials', label: 'Study Materials (PDF)', icon: BookOpen },
+          { id: 'topic_pdfs', label: 'Attach Topic Notes (PDF)', icon: BookOpen },
+          { id: 'materials', label: 'General Materials', icon: FileText },
           { id: 'upload_json', label: 'JSON Syllabus Manager', icon: Database },
           { id: 'edit_syllabus', label: 'Edit Active Syllabi', icon: Edit },
           { id: 'sandbox', label: 'AI Parser Sandbox', icon: Sparkles }
@@ -578,6 +665,199 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
 
       {/* Main viewport panels */}
       <div className="w-full">
+
+        {/* SUB TAB: Attach Topic Notes (Supabase Storage) */}
+        {subTab === 'topic_pdfs' && (() => {
+          const currentExam = exams.find(e => e.id === (selectedExamId || exams[0]?.id)) || exams[0];
+          const currentSubject = currentExam?.subjects?.find(s => s.id === selectedSubjectId) || currentExam?.subjects?.[0];
+
+          return (
+            <div className="flex flex-col gap-5">
+              {/* Header Info Banner */}
+              <div className="bg-gradient-to-r from-saffron/15 via-bg-s2 to-bg-s2 border border-saffron-border/40 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-saffron text-bg-s1 flex items-center justify-center font-black shadow-md">
+                    📄
+                  </div>
+                  <div className="flex flex-col">
+                    <h3 className="text-xs sm:text-sm font-black text-text uppercase tracking-wider flex items-center gap-2">
+                      <span>Attach Topic PDF Notes (Supabase Storage)</span>
+                      <span className="text-[9px] bg-greenL/15 text-greenL border border-greenL/30 px-1.5 py-0.5 rounded font-black">
+                        Private Bucket
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-text-muted mt-0.5">
+                      Upload study PDFs for individual syllabus topics. Only logged-in students can view them via secure signed URLs.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Selectors: Exam & Subject */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-bg-s2 border border-border p-4 rounded-xl shadow-sm">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Select Examination</label>
+                  <select
+                    value={currentExam?.id || ''}
+                    onChange={(e) => {
+                      setSelectedExamId(e.target.value);
+                      const targetEx = exams.find(ex => ex.id === e.target.value);
+                      if (targetEx && targetEx.subjects?.[0]) {
+                        setSelectedSubjectId(targetEx.subjects[0].id);
+                      }
+                    }}
+                    className="w-full bg-bg-s3 text-xs text-text font-bold border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                  >
+                    {exams.map(exam => (
+                      <option key={exam.id} value={exam.id}>
+                        {exam.name} ({exam.stage || 'Exam'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black uppercase text-text-muted">Select Subject</label>
+                  <select
+                    value={currentSubject?.id || ''}
+                    onChange={(e) => setSelectedSubjectId(e.target.value)}
+                    className="w-full bg-bg-s3 text-xs text-text font-bold border border-border focus:border-saffron px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                  >
+                    {currentExam?.subjects?.map(sub => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.name} ({sub.chapters?.reduce((acc, c) => acc + (c.topics?.length || 0), 0) || 0} Topics)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Chapters & Topics List for Selected Subject */}
+              {currentSubject ? (
+                <div className="flex flex-col gap-4">
+                  {currentSubject.chapters?.map((chapter, cIdx) => (
+                    <div key={chapter.id || cIdx} className="bg-bg-s2 border border-border rounded-xl p-4 shadow-sm flex flex-col gap-3">
+                      <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                        <h4 className="text-xs font-black uppercase text-saffron tracking-wider flex items-center gap-2">
+                          <span>Chapter {cIdx + 1}:</span>
+                          <span>{chapter.name}</span>
+                        </h4>
+                        <span className="text-[10px] font-bold text-text-muted">
+                          {chapter.topics?.length || 0} Topics
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        {chapter.topics?.map(topic => {
+                          const isUploading = uploadingTopicId === topic.id;
+                          const isDeleting = deletingTopicId === topic.id;
+                          const hasPdf = Boolean(topic.pdfPath);
+
+                          return (
+                            <div 
+                              key={topic.id}
+                              className={`p-3 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                                hasPdf 
+                                  ? 'bg-saffron/5 border-saffron/30' 
+                                  : 'bg-bg-s3/40 border-border/80 hover:bg-bg-s3/70'
+                              }`}
+                            >
+                              {/* Topic Details */}
+                              <div className="flex flex-col gap-1 min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-bold text-text leading-tight">
+                                    {topic.nameHi || topic.name}
+                                  </span>
+                                  {hasPdf && (
+                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-greenL/15 text-greenL border border-greenL/30 flex items-center gap-1 shrink-0">
+                                      ✓ PDF Attached
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-text-muted">
+                                  <span>{topic.name}</span>
+                                  {topic.pdfName && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-saffron font-medium truncate max-w-[200px]" title={topic.pdfName}>
+                                        {topic.pdfName}
+                                      </span>
+                                    </>
+                                  )}
+                                  {topic.pdfSize && (
+                                    <span className="opacity-75">
+                                      ({(topic.pdfSize / (1024 * 1024)).toFixed(2)} MB)
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Action Buttons: Upload PDF / Replace / Remove */}
+                              <div className="flex items-center gap-2 shrink-0">
+                                <label className={`px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase flex items-center gap-1.5 cursor-pointer transition-all shadow-sm ${
+                                  isUploading
+                                    ? 'bg-bg-s3 border-border text-text-muted cursor-wait'
+                                    : hasPdf
+                                      ? 'bg-bg-s3 hover:bg-bg-s2 border-border text-text'
+                                      : 'bg-saffron hover:bg-orange-500 border-saffron text-bg-s1'
+                                }`}>
+                                  {isUploading ? (
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      <span>Uploading...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UploadCloud className="w-3.5 h-3.5" />
+                                      <span>{hasPdf ? 'Replace PDF' : 'Upload PDF'}</span>
+                                    </>
+                                  )}
+                                  <input
+                                    type="file"
+                                    accept=".pdf"
+                                    className="hidden"
+                                    disabled={isUploading || isDeleting}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        handleTopicPdfUpload(currentExam.id, topic.id, file);
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                  />
+                                </label>
+
+                                {hasPdf && (
+                                  <button
+                                    onClick={() => handleTopicPdfDelete(currentExam.id, topic.id, topic.nameHi || topic.name)}
+                                    disabled={isUploading || isDeleting}
+                                    title="Remove PDF notes"
+                                    className="p-1.5 rounded-lg border border-redL/30 bg-redL/10 text-redL hover:bg-redL/20 cursor-pointer disabled:opacity-40 transition-colors"
+                                  >
+                                    {isDeleting ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-bg-s2 border border-border p-8 rounded-xl text-center text-xs text-text-muted">
+                  No subjects found for this examination.
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* SUB TAB: Study Materials */}
         {subTab === 'materials' && (
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">

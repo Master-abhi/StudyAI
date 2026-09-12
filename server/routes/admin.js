@@ -6,7 +6,8 @@ const { verifyAdmin, verifyStaffOrAdmin } = require('../middleware/verifyFirebas
 const { extractTextFromPDF } = require('../services/syllabusParser');
 const { getActiveAI, setActiveAI, getGeminiConfig, updateAIConfig, generateTest, summarizeNews, translateAndSummarizeNews, generateNewsIntelligence } = require('../services/aiManager');
 const { fetchExamSyllabusContext } = require('../services/syllabusHelper');
-const { invalidateCache } = require('../services/firestoreCache');
+const { safeFirestoreQuery, invalidateCache } = require('../services/firestoreCache');
+const { uploadTopicPdf, deleteTopicPdf } = require('../services/supabaseStorage');
 
 const logStaffActivity = async (req, action, details) => {
   try {
@@ -2079,32 +2080,7 @@ router.post('/tests/generate-multiple-from-pool', verifyStaffOrAdmin('tests'), a
   }
 });
 
-// List all generated tests
-router.get('/tests', verifyStaffOrAdmin('tests'), async (req, res) => {
-  try {
-    const snapshot = await db.collection('tests').orderBy('createdAt', 'desc').get();
-    const tests = snapshot.docs.map(doc => {
-      const d = doc.data();
-      return {
-        id: d.id,
-        examId: d.examId,
-        examName: d.examName,
-        examIds: d.examIds || (d.examId ? [d.examId] : []),
-        examNames: d.examNames || (d.examName ? [d.examName] : []),
-        subject: d.subject,
-        mode: d.mode,
-        language: d.language,
-        totalQuestions: d.questions ? d.questions.length : 0,
-        pattern: d.pattern || null,
-        createdAt: d.createdAt
-      };
-    });
-    res.json(tests);
-  } catch (err) {
-    console.error('[Admin Get Tests Error]:', err.message);
-    res.status(500).json({ error: 'Failed to retrieve generated tests.' });
-  }
-});
+
 
 // Delete a generated test
 router.delete('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
@@ -2291,45 +2267,70 @@ router.get('/subjects/renames', async (req, res) => {
 router.get('/tests', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
     const { examId } = req.query;
-    const cacheKey = `tests_${examId || 'all'}`;
 
-    const tests = await safeFirestoreQuery(cacheKey, async () => {
-      const snapshot = await db.collection('tests').get();
-      let list = snapshot.docs.map(doc => {
-        const d = doc.data();
-        return {
-          id: d.id,
-          title: d.title || '',
-          examId: d.examId,
-          examIds: d.examIds || (d.examId ? [d.examId] : []),
-          examName: d.examName,
-          examNames: d.examNames || (d.examName ? [d.examName] : []),
-          subject: d.subject,
-          mode: d.mode,
-          language: d.language,
-          totalQuestions: d.questions ? d.questions.length : (d.totalQuestions || 0),
-          pattern: d.pattern,
-          createdAt: d.createdAt
-        };
-      });
+    const snapshot = await db.collection('tests').get();
+    let list = snapshot.docs.map(doc => {
+      const d = doc.data() || {};
+      return {
+        id: d.id || doc.id,
+        title: d.title || '',
+        examId: d.examId || (d.examIds && d.examIds[0]) || '',
+        examIds: d.examIds || (d.examId ? [d.examId] : []),
+        examName: d.examName || (d.examNames && d.examNames[0]) || '',
+        examNames: d.examNames || (d.examName ? [d.examName] : []),
+        subject: d.subject,
+        mode: d.mode,
+        language: d.language,
+        totalQuestions: d.questions ? d.questions.length : (d.totalQuestions || 0),
+        pattern: d.pattern,
+        createdAt: d.createdAt
+      };
+    });
 
-      if (examId && examId !== 'all') {
-        list = list.filter(t => t.examId === examId || (Array.isArray(t.examIds) && t.examIds.includes(examId)));
-      }
+    if (examId && examId !== 'all') {
+      list = list.filter(t => t.examId === examId || (Array.isArray(t.examIds) && t.examIds.includes(examId)));
+    }
 
-      list.sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt) : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt) : 0;
-        return dateB - dateA;
-      });
+    list.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt) : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt) : 0;
+      return dateB - dateA;
+    });
 
-      return list;
-    }, []);
-
-    res.json(tests || []);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.json(list || []);
   } catch (err) {
     console.error('[Admin Get Tests Error]:', err.message);
     res.status(500).json({ error: 'Failed to retrieve test registry.' });
+  }
+});
+
+// Quick rename/update test title
+router.patch('/tests/:id/title', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title } = req.body;
+
+    const testRef = db.collection('tests').doc(id);
+    const doc = await testRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Test not found' });
+    }
+
+    const cleanTitle = typeof title === 'string' ? title.trim() : '';
+    await testRef.set({
+      title: cleanTitle,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    // Invalidate tests cache so registry reflects immediately
+    invalidateCache('tests');
+    await logStaffActivity(req, 'rename_test_title', { testId: id, title: cleanTitle });
+
+    res.json({ success: true, title: cleanTitle, message: 'Test title updated successfully! 🎉' });
+  } catch (err) {
+    console.error('[Admin Rename Test Title Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to update test title.' });
   }
 });
 
@@ -2339,54 +2340,58 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
     const { id } = req.params;
     const { title, examId, examName, examIds, examNames, subject, mode, language, pattern, questions } = req.body;
 
-    if (!examId || !examName || !questions || !Array.isArray(questions)) {
-      return res.status(400).json({ error: 'examId, examName, and questions array are required' });
-    }
-
     const testRef = db.collection('tests').doc(id);
     const doc = await testRef.get();
     if (!doc.exists) {
       return res.status(404).json({ error: 'Test not found' });
     }
 
+    const existing = doc.data() || {};
     const timestamp = new Date().toISOString();
-    
-    // Enrich questions
-    const enrichedQuestions = questions.map((q, index) => {
-      let questionId = '';
-      if (q.id !== undefined && q.id !== null && q.id !== '') {
-        questionId = String(q.id).trim();
-      }
-      if (!questionId) {
-        questionId = `q_${id}_${index}`;
-      }
 
-      return {
-        id: questionId,
-        question: q.question,
-        options: q.options,
-        correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : 0,
-        explanation: q.explanation || '',
-        subject: q.subject || subject || 'General Knowledge',
-        difficulty: q.difficulty || 'medium',
-        weightage: q.weightage || 'medium',
-        timestamp: q.timestamp || timestamp,
-        qType: q.qType || 'standard',
-        assertion: q.assertion || '',
-        reason: q.reason || '',
-        columnI: q.columnI || [],
-        columnII: q.columnII || [],
-        statements: q.statements || [],
-        statementLabels: q.statementLabels || [],
-        topic: q.topic || '',
-        sourcePattern: q.sourcePattern || '',
-        yearTrend: q.yearTrend || '',
-        expectedIn2026: q.expectedIn2026 === true
-      };
-    });
+    const resolvedExamId = examId || (Array.isArray(examIds) && examIds[0]) || existing.examId || (existing.examIds && existing.examIds[0]) || '';
+    const resolvedExamName = examName || (Array.isArray(examNames) && examNames[0]) || existing.examName || (existing.examNames && existing.examNames[0]) || '';
+    const resolvedExamIds = Array.isArray(examIds) && examIds.length > 0 ? examIds : (existing.examIds || (resolvedExamId ? [resolvedExamId] : []));
+    const resolvedExamNames = Array.isArray(examNames) && examNames.length > 0 ? examNames : (existing.examNames || (resolvedExamName ? [resolvedExamName] : []));
 
-    const testMode = mode || doc.data().mode || 'quiz';
-    const testPattern = pattern || doc.data().pattern || {
+    let enrichedQuestions = existing.questions || [];
+    if (Array.isArray(questions)) {
+      enrichedQuestions = questions.map((q, index) => {
+        let questionId = '';
+        if (q.id !== undefined && q.id !== null && q.id !== '') {
+          questionId = String(q.id).trim();
+        }
+        if (!questionId) {
+          questionId = `q_${id}_${index}`;
+        }
+
+        return {
+          id: questionId,
+          question: q.question,
+          options: q.options,
+          correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : 0,
+          explanation: q.explanation || '',
+          subject: q.subject || subject || existing.subject || 'General Knowledge',
+          difficulty: q.difficulty || 'medium',
+          weightage: q.weightage || 'medium',
+          timestamp: q.timestamp || timestamp,
+          qType: q.qType || 'standard',
+          assertion: q.assertion || '',
+          reason: q.reason || '',
+          columnI: q.columnI || [],
+          columnII: q.columnII || [],
+          statements: q.statements || [],
+          statementLabels: q.statementLabels || [],
+          topic: q.topic || '',
+          sourcePattern: q.sourcePattern || '',
+          yearTrend: q.yearTrend || '',
+          expectedIn2026: q.expectedIn2026 === true
+        };
+      });
+    }
+
+    const testMode = mode || existing.mode || 'quiz';
+    const testPattern = pattern || existing.pattern || {
       totalQuestions: enrichedQuestions.length,
       totalMarks: enrichedQuestions.length,
       durationMinutes: (testMode === 'mock' || testMode === 'pyq') ? 120 : 10,
@@ -2394,66 +2399,69 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
     };
 
     const updatedTest = {
-      ...doc.data(),
-      title: title !== undefined ? title.trim() : (doc.data().title || ''),
-      examId,
-      examName,
-      examIds: Array.isArray(examIds) ? examIds : [examId],
-      examNames: Array.isArray(examNames) ? examNames : [examName],
-      subject: subject || 'General',
+      ...existing,
+      id: existing.id || id,
+      title: title !== undefined ? String(title).trim() : (existing.title || ''),
+      examId: resolvedExamId,
+      examName: resolvedExamName,
+      examIds: resolvedExamIds,
+      examNames: resolvedExamNames,
+      subject: subject || existing.subject || 'General',
       mode: testMode,
-      language: language || 'hindi',
+      language: language || existing.language || 'hindi',
       questions: enrichedQuestions,
       pattern: testPattern,
       updatedAt: timestamp
     };
 
     // Update in Firestore tests collection
-    await testRef.set(updatedTest);
+    await testRef.set(updatedTest, { merge: true });
     console.log(`[Admin Test Update] Updated test ${id} ✅`);
 
-    // Write updated questions to questions collection
-    const batch = db.batch();
-    enrichedQuestions.forEach((q) => {
-      const qRef = db.collection('questions').doc(q.id);
-      batch.set(qRef, {
-        id: q.id,
-        question: q.question,
-        options: q.options,
-        correctIndex: q.correctIndex,
-        explanation: q.explanation,
-        subject: q.subject,
-        difficulty: q.difficulty || 'medium',
-        timestamp: q.timestamp || timestamp,
-        examId,
-        examName,
-        examIds: updatedTest.examIds,
-        examNames: updatedTest.examNames,
-        testId: id,
-        mode: testMode,
-        language: language || 'hindi',
-        qType: q.qType || 'standard',
-        assertion: q.assertion || '',
-        reason: q.reason || '',
-        columnI: q.columnI || [],
-        columnII: q.columnII || [],
-        statements: q.statements || [],
-        statementLabels: q.statementLabels || [],
-        topic: q.topic || '',
-        sourcePattern: q.sourcePattern || '',
-        yearTrend: q.yearTrend || '',
-        expectedIn2026: q.expectedIn2026 === true
-      }, { merge: true });
-    });
-    await batch.commit();
-    console.log(`[Admin Test Update] Updated individual questions in questions collection ✅`);
+    // Write updated questions to questions collection if provided
+    if (Array.isArray(questions) && enrichedQuestions.length > 0) {
+      const batch = db.batch();
+      enrichedQuestions.forEach((q) => {
+        const qRef = db.collection('questions').doc(q.id);
+        batch.set(qRef, {
+          id: q.id,
+          question: q.question,
+          options: q.options,
+          correctIndex: q.correctIndex,
+          explanation: q.explanation,
+          subject: q.subject,
+          difficulty: q.difficulty || 'medium',
+          timestamp: q.timestamp || timestamp,
+          examId: resolvedExamId,
+          examName: resolvedExamName,
+          examIds: updatedTest.examIds,
+          examNames: updatedTest.examNames,
+          testId: id,
+          mode: testMode,
+          language: language || existing.language || 'hindi',
+          qType: q.qType || 'standard',
+          assertion: q.assertion || '',
+          reason: q.reason || '',
+          columnI: q.columnI || [],
+          columnII: q.columnII || [],
+          statements: q.statements || [],
+          statementLabels: q.statementLabels || [],
+          topic: q.topic || '',
+          sourcePattern: q.sourcePattern || '',
+          yearTrend: q.yearTrend || '',
+          expectedIn2026: q.expectedIn2026 === true
+        }, { merge: true });
+      });
+      await batch.commit();
+      console.log(`[Admin Test Update] Updated individual questions in questions collection ✅`);
+    }
 
     // Invalidate tests cache so changes reflect immediately across app
     invalidateCache('tests');
 
-    await logStaffActivity(req, 'edit_test', { testId: id, examName, subject, mode, language });
+    await logStaffActivity(req, 'edit_test', { testId: id, title: updatedTest.title, examName: resolvedExamName, subject: updatedTest.subject, mode: testMode, language: updatedTest.language });
 
-    res.json({ success: true, message: 'Test updated successfully' });
+    res.json({ success: true, message: 'Test updated successfully', test: updatedTest });
   } catch (err) {
     console.error('[Admin Update Test Error]:', err.message);
     res.status(500).json({ error: err.message || 'Failed to update test.' });
@@ -2669,6 +2677,158 @@ router.delete('/syllabus/:id', verifyStaffOrAdmin('syllabus'), async (req, res) 
   } catch (err) {
     console.error('[Admin Delete Syllabus Error]:', err.message);
     res.status(500).json({ error: 'Failed to delete custom syllabus.' });
+  }
+});
+
+// POST /api/admin/syllabus/topic-pdf - Upload and attach PDF notes to a topic in Supabase Storage
+router.post('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), upload.single('pdfFile'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'PDF file is required' });
+    const { examId, topicId, examData } = req.body;
+    if (!examId || !topicId) return res.status(400).json({ error: 'examId and topicId are required' });
+
+    // Verify PDF format
+    const isPdf = req.file.mimetype === 'application/pdf' || req.file.originalname.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      return res.status(400).json({ error: 'Only PDF files are allowed' });
+    }
+
+    // 1. Upload file buffer to Supabase Storage
+    const cleanFileName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `topics/${examId}/${topicId}_${Date.now()}_${cleanFileName}`;
+    await uploadTopicPdf(storagePath, req.file.buffer, 'application/pdf');
+
+    // 2. Fetch or initialize syllabus document in Firestore
+    const docRef = db.collection('syllabi').doc(examId);
+    const docSnap = await docRef.get();
+    let examObj = null;
+
+    if (docSnap.exists) {
+      examObj = docSnap.data();
+    } else if (examData) {
+      try {
+        examObj = typeof examData === 'string' ? JSON.parse(examData) : examData;
+      } catch (parseErr) {
+        console.warn('[Parse ExamData Error]:', parseErr.message);
+      }
+    }
+
+    if (!examObj) {
+      // Clean up uploaded file if exam not found
+      try { await deleteTopicPdf(storagePath); } catch (_) {}
+      return res.status(404).json({ error: 'Exam syllabus configuration not found. Please provide examData.' });
+    }
+
+    // 3. Find target topic and attach PDF metadata
+    let topicFound = false;
+    let oldPdfPath = null;
+
+    if (Array.isArray(examObj.subjects)) {
+      examObj.subjects.forEach(sub => {
+        if (Array.isArray(sub.chapters)) {
+          sub.chapters.forEach(chap => {
+            if (Array.isArray(chap.topics)) {
+              chap.topics.forEach(top => {
+                if (top.id === topicId) {
+                  topicFound = true;
+                  oldPdfPath = top.pdfPath;
+                  top.pdfPath = storagePath;
+                  top.pdfName = req.file.originalname;
+                  top.pdfSize = req.file.size;
+                  top.pdfUpdatedAt = new Date().toISOString();
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    if (!topicFound) {
+      try { await deleteTopicPdf(storagePath); } catch (_) {}
+      return res.status(404).json({ error: `Topic "${topicId}" not found in syllabus for exam "${examId}".` });
+    }
+
+    // 4. Clean up old PDF if replacing
+    if (oldPdfPath && oldPdfPath !== storagePath) {
+      try { await deleteTopicPdf(oldPdfPath); } catch (_) {}
+    }
+
+    // 5. Save updated syllabus config in Firestore
+    examObj.updatedAt = new Date().toISOString();
+    await docRef.set(examObj, { merge: true });
+
+    await logStaffActivity(req, 'upload_topic_pdf', { examId, topicId, pdfName: req.file.originalname, storagePath });
+
+    res.json({
+      success: true,
+      message: 'PDF notes uploaded to Supabase and attached successfully! 📄',
+      topicId,
+      pdfPath: storagePath,
+      pdfName: req.file.originalname,
+      pdfSize: req.file.size,
+      exam: examObj
+    });
+  } catch (err) {
+    console.error('[Upload Topic PDF Error]:', err);
+    res.status(500).json({ error: err.message || 'Failed to upload topic PDF notes' });
+  }
+});
+
+// DELETE /api/admin/syllabus/topic-pdf - Detach and remove topic PDF from Supabase and Firestore
+router.delete('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), async (req, res) => {
+  try {
+    const { examId, topicId } = req.body;
+    if (!examId || !topicId) return res.status(400).json({ error: 'examId and topicId are required' });
+
+    const docRef = db.collection('syllabi').doc(examId);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      return res.status(404).json({ error: 'Exam syllabus not found in Firestore.' });
+    }
+
+    const examObj = docSnap.data();
+    let topicFound = false;
+    let oldPdfPath = null;
+
+    if (Array.isArray(examObj.subjects)) {
+      examObj.subjects.forEach(sub => {
+        if (Array.isArray(sub.chapters)) {
+          sub.chapters.forEach(chap => {
+            if (Array.isArray(chap.topics)) {
+              chap.topics.forEach(top => {
+                if (top.id === topicId) {
+                  topicFound = true;
+                  oldPdfPath = top.pdfPath;
+                  delete top.pdfPath;
+                  delete top.pdfName;
+                  delete top.pdfSize;
+                  delete top.pdfUpdatedAt;
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    if (!topicFound) {
+      return res.status(404).json({ error: `Topic "${topicId}" not found in syllabus.` });
+    }
+
+    if (oldPdfPath) {
+      try { await deleteTopicPdf(oldPdfPath); } catch (_) {}
+    }
+
+    examObj.updatedAt = new Date().toISOString();
+    await docRef.set(examObj, { merge: true });
+
+    await logStaffActivity(req, 'delete_topic_pdf', { examId, topicId });
+
+    res.json({ success: true, message: 'PDF notes detached from topic successfully.', exam: examObj });
+  } catch (err) {
+    console.error('[Delete Topic PDF Error]:', err);
+    res.status(500).json({ error: err.message || 'Failed to delete topic PDF.' });
   }
 });
 

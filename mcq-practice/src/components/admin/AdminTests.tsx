@@ -558,6 +558,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [editingTest, setEditingTest] = useState<any | null>(null);
   const [editLoading, setEditLoading] = useState<boolean>(false);
 
+  // Inline Title Editing in Registry
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [inlineTitleValue, setInlineTitleValue] = useState<string>('');
+  const [savingTitleId, setSavingTitleId] = useState<string | null>(null);
+
   // Find active exam data
   const activeExam = exams.find(e => e.id === selectedExamId) || exams[0];
 
@@ -1590,7 +1595,9 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         // Prepare editable data
         const editableTest = {
           ...data,
+          id: data.id || testId,
           title: data.title || '',
+          examId: data.examId || (data.examIds && data.examIds[0]) || '',
           examIds: data.examIds || (data.examId ? [data.examId] : []),
           examNames: data.examNames || (data.examName ? [data.examName] : []),
           questions: data.questions || []
@@ -1624,11 +1631,21 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         question: getFormattedQuestionString(q)
       }));
 
+      const resolvedExamId = editingTest.examId || (editingTest.examIds && editingTest.examIds[0]) || selectedExamsData[0]?.id || '';
+      const resolvedExamName = selectedExamsData[0]?.name || editingTest.examName || (editingTest.examNames && editingTest.examNames[0]) || '';
+      const resolvedExamIds = editingTest.examIds && editingTest.examIds.length > 0 ? editingTest.examIds : (resolvedExamId ? [resolvedExamId] : []);
+      const resolvedExamNames = selectedExamsData.length > 0 ? selectedExamsData.map(ex => ex.name) : (resolvedExamName ? [resolvedExamName] : []);
+      const cleanTitle = (editingTest.title || '').trim();
+
       const payload = {
         ...editingTest,
-        questions: compiledQuestions,
-        examName: selectedExamsData[0]?.name || editingTest.examName,
-        examNames: selectedExamsData.map(ex => ex.name)
+        id: editingTest.id,
+        title: cleanTitle,
+        examId: resolvedExamId,
+        examName: resolvedExamName,
+        examIds: resolvedExamIds,
+        examNames: resolvedExamNames,
+        questions: compiledQuestions
       };
 
       const res = await fetch(getApiUrl(`/api/admin/tests/${editingTest.id}`), {
@@ -1644,6 +1661,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       if (res.ok) {
         setSuccessMessage('Test paper updated successfully!');
         setEditingTest(null);
+        // Immediately update in local state for instant responsiveness
+        setTests(prev => prev.map(t => (t.id === editingTest.id ? { ...t, ...payload, totalQuestions: compiledQuestions.length } : t)));
         fetchTestsList();
       } else {
         throw new Error(data.error || 'Server rejected the test update request.');
@@ -1653,6 +1672,39 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       setErrorMessage(err.message || 'Failed to save edits to test paper.');
     } finally {
       setEditLoading(false);
+    }
+  };
+
+  const handleInlineSaveTitle = async (testId: string) => {
+    if (!testId) return;
+    setSavingTitleId(testId);
+    setErrorMessage('');
+    try {
+      const token = await currentUser.getIdToken();
+      const cleanTitle = inlineTitleValue.trim();
+      
+      const res = await fetch(getApiUrl(`/api/admin/tests/${testId}/title`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title: cleanTitle })
+      });
+
+      if (res.ok) {
+        setTests(prev => prev.map(t => (t.id === testId ? { ...t, title: cleanTitle } : t)));
+        setEditingTitleId(null);
+        setSuccessMessage(`Test title updated to "${cleanTitle || 'Default'}"! 🎉`);
+      } else {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update title');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Error updating test title');
+    } finally {
+      setSavingTitleId(null);
     }
   };
 
@@ -2888,17 +2940,73 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                          </div>
                        </td>
                        <td className="py-3 px-3">
-                         <div className="flex items-center gap-1.5 max-w-[200px]">
-                           {test.title?.trim() ? (
-                             <span className="text-xs font-black text-saffron truncate leading-tight" title={test.title}>
-                               {test.title}
-                             </span>
-                           ) : (
-                             <span className="text-xs font-bold text-text truncate leading-tight" title={test.examName?.includes('Test') ? test.examName : `${test.subject} - Test ${idx + 1}`}>
-                               {test.examName?.includes('Test') ? test.examName : `${test.subject} - Test ${idx + 1}`}
-                             </span>
-                           )}
-                         </div>
+                          {editingTitleId === test.id ? (
+                            <div className="flex items-center gap-1.5 min-w-[200px] max-w-[280px]">
+                              <input
+                                type="text"
+                                autoFocus
+                                value={inlineTitleValue}
+                                onChange={(e) => setInlineTitleValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleInlineSaveTitle(test.id);
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setEditingTitleId(null);
+                                  }
+                                }}
+                                placeholder="Enter test title..."
+                                className="bg-bg-s3 text-xs font-bold text-text border border-saffron px-2 py-1 rounded outline-none w-full"
+                                disabled={savingTitleId === test.id}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleInlineSaveTitle(test.id)}
+                                disabled={savingTitleId === test.id}
+                                className="p-1 bg-greenL/20 hover:bg-greenL text-greenL hover:text-black rounded border border-greenL/30 cursor-pointer transition-colors shrink-0"
+                                title="Save Title"
+                              >
+                                {savingTitleId === test.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingTitleId(null)}
+                                disabled={savingTitleId === test.id}
+                                className="p-1 bg-bg-s3 hover:bg-bg-s1 text-text-muted hover:text-text rounded border border-border cursor-pointer transition-colors shrink-0"
+                                title="Cancel"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 group max-w-[220px]">
+                              {test.title?.trim() ? (
+                                <span className="text-xs font-black text-saffron truncate leading-tight" title={test.title}>
+                                  {test.title}
+                                </span>
+                              ) : (
+                                <span className="text-xs font-bold text-text truncate leading-tight" title={test.examName?.includes('Test') ? test.examName : `${test.subject} - Test ${idx + 1}`}>
+                                  {test.examName?.includes('Test') ? test.examName : `${test.subject} - Test ${idx + 1}`}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingTitleId(test.id);
+                                  setInlineTitleValue(test.title || (test.examName?.includes('Test') ? test.examName : `${test.subject} - Test ${idx + 1}`));
+                                }}
+                                className="opacity-60 group-hover:opacity-100 p-1 text-text-muted hover:text-saffron cursor-pointer rounded transition-all hover:bg-saffron/10 shrink-0"
+                                title="Quick Edit Title (नाम बदलें)"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
                        </td>
                        <td className="py-3 px-3">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-text bg-bg-s3 px-2 py-0.5 border border-border rounded flex items-center gap-1 w-max">
