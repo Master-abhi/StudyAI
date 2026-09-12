@@ -3,6 +3,7 @@
     "rules": "firestore.rules"
   },
   "hosting": {
+    "site": "cg-guru",
     "public": "public",
     "ignore": [
       "firebase.json",

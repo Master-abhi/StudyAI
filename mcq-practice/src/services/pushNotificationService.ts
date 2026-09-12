@@ -1,5 +1,4 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { PushNotifications } from '@capacitor/push-notifications';
 
 export const isCapacitorNative = (): boolean => {
   return typeof window !== 'undefined' && 
@@ -37,17 +36,13 @@ export const requestPushNotificationPermission = async (): Promise<boolean> => {
   try {
     if (isCapacitorNative()) {
       await ensureNotificationChannel();
-      const localPerm = await LocalNotifications.requestPermissions();
-      if (localPerm.display === 'granted') {
-        try {
-          await PushNotifications.requestPermissions();
-          await PushNotifications.register();
-        } catch (e) {
-          console.warn('[Capacitor Push Register Warning]:', e);
-        }
-        return true;
+      try {
+        const localPerm = await LocalNotifications.requestPermissions();
+        return localPerm.display === 'granted';
+      } catch (permErr) {
+        console.warn('[LocalNotifications requestPermissions Warning]:', permErr);
+        return false;
       }
-      return false;
     } else if (typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'granted') {
         return true;
