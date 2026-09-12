@@ -2,7 +2,7 @@ if (typeof global.File === 'undefined') {
   global.File = class File {};
 }
 
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 
 const express = require('express');
 const cors = require('cors');
