@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, CheckCircle, RefreshCcw, 
-  ChevronDown, ChevronUp, CheckSquare, Square, FileText
+  ChevronDown, ChevronUp, CheckSquare, Square, FileText, BookOpen
 } from 'lucide-react';
 import type { Chapter, TopicProgress, Topic } from './syllabusData';
 
@@ -12,6 +12,7 @@ interface TopicListProps {
   onToggleActivity: (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => void;
   onMarkRevised: (topicId: string) => void;
   onOpenPdf?: (topic: Topic) => void;
+  onOpenNotes?: (topic: Topic) => void;
   onOpenLectures?: (topic: Topic) => void;
   onOpenPracticeMcqs?: (topic: Topic) => void;
 }
@@ -22,6 +23,7 @@ export const TopicList: React.FC<TopicListProps> = ({
   onToggleActivity,
   onMarkRevised,
   onOpenPdf,
+  onOpenNotes,
   onOpenLectures,
   onOpenPracticeMcqs
 }) => {
@@ -31,9 +33,11 @@ export const TopicList: React.FC<TopicListProps> = ({
     setExpandedTopicId(expandedTopicId === topicId ? null : topicId);
   };
 
+  const topics = Array.isArray(chapter?.topics) ? chapter.topics : [];
+
   return (
     <div className="flex flex-col gap-3 pl-3 border-l border-border/80">
-      {chapter.topics.map(topic => {
+      {topics.map(topic => {
         const progress = topicProgress[topic.id] || {
           topicId: topic.id,
           status: 'Not Started',
@@ -109,11 +113,32 @@ export const TopicList: React.FC<TopicListProps> = ({
                       <span className={`w-1 h-1 rounded-full ${stateConfig.indicator}`} />
                       <span>{stateConfig.label}</span>
                     </span>
-                    {topic.pdfPath && (
-                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-saffron/15 text-saffron border border-saffron/30 flex items-center gap-1 shrink-0 shadow-sm">
+                    {(topic.hasStudyNotes || topic.studyNotes) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onOpenNotes) onOpenNotes(topic);
+                          else if (topic.pdfPath && onOpenPdf) onOpenPdf(topic);
+                        }}
+                        className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 flex items-center gap-1 shrink-0 shadow-sm cursor-pointer"
+                        title="Open Interactive Study Notes"
+                      >
+                        <BookOpen className="w-2.5 h-2.5" />
+                        <span>STUDY NOTES</span>
+                      </button>
+                    )}
+                    {topic.pdfPath && !topic.hasStudyNotes && !topic.studyNotes && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onOpenPdf) onOpenPdf(topic);
+                        }}
+                        className="text-[8px] font-black px-1.5 py-0.5 rounded bg-saffron/15 text-saffron border border-saffron/30 hover:bg-saffron/25 flex items-center gap-1 shrink-0 shadow-sm cursor-pointer"
+                        title="Open Attached PDF Notes"
+                      >
                         <FileText className="w-2.5 h-2.5" />
                         <span>PDF NOTES</span>
-                      </span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -160,11 +185,16 @@ export const TopicList: React.FC<TopicListProps> = ({
                       <span className="text-[10px] font-black uppercase text-saffron tracking-wider">Required Tasks</span>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3.5 mt-1.5">
                         
-                        {/* Task 1: Notes (Opens Supabase PDF if attached) */}
+                        {/* Task 1: Notes (Opens Interactive Notes Reader Modal or PDF) */}
                         <button
                           onClick={() => {
-                            if (topic.pdfPath && onOpenPdf) {
+                            if ((topic.hasStudyNotes || topic.studyNotes) && onOpenNotes) {
+                              onOpenNotes(topic);
+                            } else if (topic.pdfPath && onOpenPdf) {
                               onOpenPdf(topic);
+                            } else if (onOpenNotes) {
+                              // If notes reader available, open it directly so user can read or see guidance
+                              onOpenNotes(topic);
                             } else {
                               onToggleActivity(topic.id, 'notesRead');
                             }
@@ -172,20 +202,28 @@ export const TopicList: React.FC<TopicListProps> = ({
                           className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                             progress.notesRead
                               ? 'bg-saffron-dim/10 border-saffron/30 text-saffron'
-                              : topic.pdfPath 
-                                ? 'bg-saffron/10 border-saffron/40 text-text hover:bg-saffron/20'
-                                : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80'
+                              : (topic.hasStudyNotes || topic.studyNotes)
+                                ? 'bg-emerald-500/10 border-emerald-500/40 text-text hover:bg-emerald-500/20'
+                                : topic.pdfPath 
+                                  ? 'bg-saffron/10 border-saffron/40 text-text hover:bg-saffron/20'
+                                  : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80'
                           }`}
                         >
-                          <FileText className={`w-4 h-4 shrink-0 ${topic.pdfPath ? 'text-saffron' : ''}`} />
+                          {topic.hasStudyNotes || topic.studyNotes ? (
+                            <BookOpen className="w-4 h-4 shrink-0 text-emerald-400" />
+                          ) : (
+                            <FileText className={`w-4 h-4 shrink-0 ${topic.pdfPath ? 'text-saffron' : ''}`} />
+                          )}
                           <div className="flex flex-col items-start leading-tight min-w-0">
-                            <span className="truncate">{topic.pdfPath ? 'Read PDF Notes' : 'Mark Notes Read'}</span>
+                            <span className="truncate">
+                              {(topic.hasStudyNotes || topic.studyNotes) ? 'Read Study Notes' : topic.pdfPath ? 'Read PDF Notes' : 'Mark Notes Read'}
+                            </span>
                             <span className="text-[8px] font-normal opacity-75 truncate">
-                              {topic.pdfPath ? (topic.pdfName || 'Attached PDF') : 'Study Material'}
+                              {(topic.hasStudyNotes || topic.studyNotes) ? 'Interactive Reader' : topic.pdfPath ? (topic.pdfName || 'Attached PDF') : 'Study Material'}
                             </span>
                           </div>
                           <span className="ml-auto text-xs shrink-0">
-                            {progress.notesRead ? '✓' : topic.pdfPath ? '📖' : '○'}
+                            {progress.notesRead ? '✓' : (topic.hasStudyNotes || topic.studyNotes || topic.pdfPath) ? '📖' : '○'}
                           </span>
                         </button>
 

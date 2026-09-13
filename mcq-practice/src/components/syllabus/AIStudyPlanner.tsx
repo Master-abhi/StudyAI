@@ -40,9 +40,12 @@ export const AIStudyPlanner: React.FC<AIStudyPlannerProps> = ({
       let matchedTopic: any = null;
       let matchedSubject: any = null;
       
-      exam.subjects.forEach(sub => {
-        sub.chapters.forEach(chap => {
-          const t = chap.topics.find(top => top.id === sr.topicId);
+      const safeSubjects = Array.isArray(exam?.subjects) ? exam.subjects : [];
+      safeSubjects.forEach(sub => {
+        const safeChapters = Array.isArray(sub?.chapters) ? sub.chapters : [];
+        safeChapters.forEach(chap => {
+          const safeTopics = Array.isArray(chap?.topics) ? chap.topics : [];
+          const t = safeTopics.find(top => top?.id === sr.topicId);
           if (t) {
             matchedTopic = t;
             matchedSubject = sub;
@@ -72,9 +75,13 @@ export const AIStudyPlanner: React.FC<AIStudyPlannerProps> = ({
 
   const today = new Date();
 
-  exam.subjects.forEach(subject => {
-    subject.chapters.forEach(chapter => {
-      chapter.topics.forEach(topic => {
+  const examSubjects = Array.isArray(exam?.subjects) ? exam.subjects : [];
+  examSubjects.forEach(subject => {
+    const chapters = Array.isArray(subject?.chapters) ? subject.chapters : [];
+    chapters.forEach(chapter => {
+      const topics = Array.isArray(chapter?.topics) ? chapter.topics : [];
+      topics.forEach(topic => {
+        if (!topic) return;
         const progress = topicProgress[topic.id];
         
         if (progress) {
@@ -183,15 +190,18 @@ export const AIStudyPlanner: React.FC<AIStudyPlannerProps> = ({
     status: 'strong' | 'weak' | 'revision';
   }[] = [];
 
-  exam.subjects.forEach(subject => {
+  examSubjects.forEach(subject => {
     let subTotal = 0;
     let subCompleted = 0;
     let subAccuracySum = 0;
     let subAccuracyCount = 0;
     let subWeakCount = 0;
 
-    subject.chapters.forEach(chapter => {
-      chapter.topics.forEach(topic => {
+    const chapters = Array.isArray(subject?.chapters) ? subject.chapters : [];
+    chapters.forEach(chapter => {
+      const topics = Array.isArray(chapter?.topics) ? chapter.topics : [];
+      topics.forEach(topic => {
+        if (!topic) return;
         subTotal++;
         const progress = topicProgress[topic.id];
         if (progress) {

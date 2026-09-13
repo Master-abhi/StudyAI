@@ -12,6 +12,7 @@ interface SubjectCardProps {
   onToggleActivity: (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => void;
   onMarkRevised: (topicId: string) => void;
   onOpenPdf?: (topic: Topic) => void;
+  onOpenNotes?: (topic: Topic, subjectName: string) => void;
   onOpenLectures?: (topic: Topic, subjectName: string) => void;
   onOpenPracticeMcqs?: (topic: Topic, subjectName: string) => void;
 }
@@ -24,6 +25,7 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
   onToggleActivity,
   onMarkRevised,
   onOpenPdf,
+  onOpenNotes,
   onOpenLectures,
   onOpenPracticeMcqs
 }) => {
@@ -32,8 +34,12 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
   let completedTopics = 0;
   let remainingTopics = 0;
 
-  subject.chapters.forEach(chapter => {
-    chapter.topics.forEach(topic => {
+  const chapters = Array.isArray(subject?.chapters) ? subject.chapters : [];
+
+  chapters.forEach(chapter => {
+    const topics = Array.isArray(chapter?.topics) ? chapter.topics : [];
+    topics.forEach(topic => {
+      if (!topic) return;
       totalTopics++;
       const progress = topicProgress[topic.id];
       if (progress && (progress.status === 'Completed' || progress.status === 'Revised')) {
@@ -135,7 +141,7 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
             className="overflow-hidden border-t border-border/60 bg-bg-s3/40"
           >
             <div className="p-3.5 sm:p-5 flex flex-col gap-4 sm:gap-5">
-              {subject.chapters.map(chapter => (
+              {chapters.map(chapter => (
                 <div key={chapter.id} className="flex flex-col gap-2">
                   
                   {/* Chapter Header */}
@@ -151,6 +157,7 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
                     onToggleActivity={onToggleActivity}
                     onMarkRevised={onMarkRevised}
                     onOpenPdf={onOpenPdf}
+                    onOpenNotes={(t) => onOpenNotes && onOpenNotes(t, subject.name)}
                     onOpenLectures={(t) => onOpenLectures && onOpenLectures(t, subject.name)}
                     onOpenPracticeMcqs={(t) => onOpenPracticeMcqs && onOpenPracticeMcqs(t, subject.name)}
                   />

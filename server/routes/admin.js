@@ -9,6 +9,29 @@ const { fetchExamSyllabusContext } = require('../services/syllabusHelper');
 const { safeFirestoreQuery, invalidateCache } = require('../services/firestoreCache');
 const { uploadTopicPdf, deleteTopicPdf } = require('../services/supabaseStorage');
 
+// Helper to sanitize data for Firestore (Firestore strictly forbids nested arrays like table rows: [['a','b'],['c','d']])
+function sanitizeForFirestore(val) {
+  if (val === null || val === undefined) return null;
+  if (Array.isArray(val)) {
+    return val.map(item => {
+      if (Array.isArray(item)) {
+        return { __isRow: true, cells: item.map(c => (c === undefined || c === null ? '' : String(c))) };
+      }
+      return sanitizeForFirestore(item);
+    });
+  }
+  if (typeof val === 'object') {
+    const res = {};
+    for (const [k, v] of Object.entries(val)) {
+      if (v !== undefined) {
+        res[k] = sanitizeForFirestore(v);
+      }
+    }
+    return res;
+  }
+  return val;
+}
+
 const logStaffActivity = async (req, action, details) => {
   try {
     const staffRef = db.collection('staff_logs').doc();
@@ -997,7 +1020,7 @@ router.post('/tests/generate', verifyStaffOrAdmin('tests'), async (req, res) => 
 // Upload JSON test and save to Firestore
 router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
-    const { examId, examName, examIds, examNames, subject, mode, language, pattern, questions } = req.body;
+    const { title, examId, examName, examIds, examNames, subject, mode, language, pattern, questions } = req.body;
 
     if (!examId || !examName || !questions || !Array.isArray(questions)) {
       return res.status(400).json({ error: 'examId, examName, and questions array are required' });
@@ -1047,8 +1070,11 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
       markingScheme: (testMode === 'mock' || testMode === 'pyq') ? '+1 for correct, -0.25 for incorrect' : '+1 for correct, 0 for incorrect'
     };
 
+    const cleanTitle = typeof title === 'string' && title.trim() ? title.trim() : (req.body.title ? String(req.body.title).trim() : '');
+
     const newTest = {
       id: testId,
+      title: cleanTitle,
       examId,
       examName,
       examIds: Array.isArray(examIds) ? examIds : [examId],
@@ -1100,12 +1126,13 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
     await batch.commit();
     console.log(`[Admin Test Upload] Saved ${enrichedQuestions.length} individual questions to questions collection ✅`);
 
-    await logStaffActivity(req, 'upload_test', { testId, examName, subject: newTest.subject, mode: testMode, language: newTest.language });
+    await logStaffActivity(req, 'upload_test', { testId, title: newTest.title, examName, subject: newTest.subject, mode: testMode, language: newTest.language });
 
     res.json({
       success: true,
       test: {
         id: testId,
+        title: newTest.title,
         examId,
         examName,
         examIds: newTest.examIds,
@@ -2648,10 +2675,11 @@ router.post('/syllabus/save', verifyStaffOrAdmin('syllabus'), async (req, res) =
     }
 
     // Save to firestore collection 'syllabi'
-    await db.collection('syllabi').doc(exam.id).set({
+    const cleanExam = sanitizeForFirestore({
       ...exam,
       updatedAt: new Date().toISOString()
     });
+    await db.collection('syllabi').doc(exam.id).set(cleanExam);
 
     console.log(`[Admin Syllabus Save] Saved/updated syllabus config ${exam.id} ✅`);
 
@@ -2677,6 +2705,31 @@ router.delete('/syllabus/:id', verifyStaffOrAdmin('syllabus'), async (req, res) 
   } catch (err) {
     console.error('[Admin Delete Syllabus Error]:', err.message);
     res.status(500).json({ error: 'Failed to delete custom syllabus.' });
+  }
+});
+
+// POST /api/admin/syllabus/generate-notes - Generate structured CG GURU premium study notes from educator raw material
+router.post('/syllabus/generate-notes', verifyStaffOrAdmin('syllabus'), async (req, res) => {
+  try {
+    const { topicName, topicNameHi, subjectName, examName, targetExams, rawMaterial } = req.body;
+    if (!topicName && !rawMaterial) {
+      return res.status(400).json({ error: 'topicName or rawMaterial is required' });
+    }
+
+    const { generatePdfStudyNotes } = require('../services/aiManager');
+    const result = await generatePdfStudyNotes({
+      topicName: topicName || topicNameHi,
+      topicNameHi: topicNameHi || topicName,
+      subjectName,
+      examName,
+      targetExams: Array.isArray(targetExams) ? targetExams : ['CGPSC', 'CG Vyapam', 'Chhattisgarh Police', 'SI', 'Patwari', 'Teacher', 'State Exams'],
+      rawMaterial: rawMaterial || ''
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('[Admin Generate Study Notes Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to generate study notes' });
   }
 });
 
@@ -2829,6 +2882,143 @@ router.delete('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), async (req,
   } catch (err) {
     console.error('[Delete Topic PDF Error]:', err);
     res.status(500).json({ error: err.message || 'Failed to delete topic PDF.' });
+  }
+});
+
+// POST /api/admin/syllabus/topic-notes - Save formatted interactive study notes (JSON) directly to topic
+router.post('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (req, res) => {
+  try {
+    const { examId, topicId, studyNotes, examData } = req.body;
+    if (!examId || !topicId || !studyNotes) {
+      return res.status(400).json({ error: 'examId, topicId, and studyNotes are required' });
+    }
+
+    const docRef = db.collection('syllabi').doc(examId);
+    const docSnap = await docRef.get();
+    let examObj = null;
+
+    if (docSnap.exists) {
+      examObj = docSnap.data();
+    } else if (examData) {
+      try {
+        examObj = typeof examData === 'string' ? JSON.parse(examData) : examData;
+      } catch (parseErr) {
+        console.warn('[Parse ExamData Error]:', parseErr.message);
+      }
+    }
+
+    if (!examObj) {
+      return res.status(404).json({ error: 'Exam syllabus configuration not found.' });
+    }
+
+    let topicFound = false;
+    if (Array.isArray(examObj.subjects)) {
+      examObj.subjects.forEach(sub => {
+        if (Array.isArray(sub.chapters)) {
+          sub.chapters.forEach(chap => {
+            if (Array.isArray(chap.topics)) {
+              chap.topics.forEach(top => {
+                if (top.id === topicId) {
+                  topicFound = true;
+                  top.studyNotes = studyNotes;
+                  top.hasStudyNotes = true;
+                  top.notesUpdatedAt = new Date().toISOString();
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    if (!topicFound) {
+      return res.status(404).json({ error: `Topic "${topicId}" not found in syllabus.` });
+    }
+
+    examObj.updatedAt = new Date().toISOString();
+    const cleanExamObj = sanitizeForFirestore(examObj);
+    await docRef.set(cleanExamObj, { merge: true });
+
+    // Also store directly in a separate dedicated collection for fast single-topic retrieval & caching
+    try {
+      const cleanNotes = sanitizeForFirestore(studyNotes);
+      await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).set({
+        examId,
+        topicId,
+        studyNotes: cleanNotes,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (cacheErr) {
+      console.warn('[Topic Notes Cache Store]:', cacheErr.message);
+    }
+
+    await logStaffActivity(req, 'save_topic_study_notes', { examId, topicId });
+
+    res.json({
+      success: true,
+      message: 'Formatted study notes saved to topic successfully! 📖✨',
+      topicId,
+      exam: examObj
+    });
+  } catch (err) {
+    console.error('[Save Topic Notes Error]:', err);
+    res.status(500).json({ error: err.message || 'Failed to save study notes to topic' });
+  }
+});
+
+// DELETE /api/admin/syllabus/topic-notes - Remove formatted study notes from topic
+router.delete('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (req, res) => {
+  try {
+    const { examId, topicId } = req.body;
+    if (!examId || !topicId) {
+      return res.status(400).json({ error: 'examId and topicId are required' });
+    }
+
+    const docRef = db.collection('syllabi').doc(examId);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      return res.status(404).json({ error: 'Exam syllabus not found.' });
+    }
+
+    const examObj = docSnap.data();
+    let topicFound = false;
+
+    if (Array.isArray(examObj.subjects)) {
+      examObj.subjects.forEach(sub => {
+        if (Array.isArray(sub.chapters)) {
+          sub.chapters.forEach(chap => {
+            if (Array.isArray(chap.topics)) {
+              chap.topics.forEach(top => {
+                if (top.id === topicId) {
+                  topicFound = true;
+                  delete top.studyNotes;
+                  delete top.hasStudyNotes;
+                  delete top.notesUpdatedAt;
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    if (!topicFound) {
+      return res.status(404).json({ error: `Topic "${topicId}" not found in syllabus.` });
+    }
+
+    examObj.updatedAt = new Date().toISOString();
+    await docRef.set(examObj, { merge: true });
+
+    try {
+      await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).delete();
+    } catch (_) {}
+
+    await logStaffActivity(req, 'delete_topic_study_notes', { examId, topicId });
+
+    res.json({ success: true, message: 'Study notes removed from topic.', exam: examObj });
+  } catch (err) {
+    console.error('[Delete Topic Notes Error]:', err);
+    res.status(500).json({ error: err.message || 'Failed to delete study notes.' });
   }
 });
 

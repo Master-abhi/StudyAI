@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Flame, BookOpen, ChevronRight, Trophy, Zap, Landmark, Home, Shield, Bot, Sparkles,
-  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard
+  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard, Loader2
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -18,7 +18,7 @@ interface DashboardTabProps {
   exams: any[];
   onSelectExam: (examId: string) => void;
   onNavigateToTab: (tabId: string) => void;
-  onStartPracticeMode: (mode: 'quiz' | 'mock' | 'pyq') => void;
+  onStartPracticeMode: (mode: 'quiz' | 'mock' | 'pyq') => void | Promise<void>;
   topicProgress: Record<string, any>;
   tabVisibility?: Record<string, boolean>;
   currentUser?: any;
@@ -162,6 +162,20 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const [isBonusClaimed, setIsBonusClaimed] = useState<boolean>(() => {
     return Boolean(localStorage.getItem(bonusClaimedKey));
   });
+
+  const [startingTaskId, setStartingTaskId] = useState<string | null>(null);
+  const [startingQuickMode, setStartingQuickMode] = useState<string | null>(null);
+
+  const handleTaskAction = async (task: { id: string; action: () => void | Promise<void> }) => {
+    try {
+      setStartingTaskId(task.id);
+      await task.action();
+    } catch (err) {
+      console.error('[Dashboard task action error]:', err);
+    } finally {
+      setStartingTaskId(null);
+    }
+  };
 
   // Automatically award +20 XP as soon as all 5 tasks are completed
   useEffect(() => {
@@ -327,11 +341,21 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   </div>
 
                   <button
-                    onClick={task.action}
-                    className="px-2.5 py-1 bg-bg-s2 hover:bg-saffron hover:text-bg-s1 border border-border rounded text-[10px] font-black uppercase text-saffron tracking-wider shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                    disabled={Boolean(startingTaskId)}
+                    onClick={() => handleTaskAction(task)}
+                    className="px-2.5 py-1 bg-bg-s2 hover:bg-saffron hover:text-bg-s1 disabled:opacity-60 border border-border rounded text-[10px] font-black uppercase text-saffron tracking-wider shrink-0 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
                   >
-                    <span>Start</span>
-                    <ChevronRight className="w-3 h-3" />
+                    {startingTaskId === task.id ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin text-saffron" />
+                        <span>Starting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Start</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </>
+                    )}
                   </button>
                 </div>
               );
@@ -345,12 +369,30 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {tabVisibility?.practice !== false && (
               <button
-                onClick={() => onStartPracticeMode('mock')}
-                className="p-3 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
+                disabled={Boolean(startingQuickMode)}
+                onClick={async () => {
+                  try {
+                    setStartingQuickMode('mock');
+                    await onStartPracticeMode('mock');
+                  } catch (err) {
+                    console.error('[Quick mock error]:', err);
+                  } finally {
+                    setStartingQuickMode(null);
+                  }
+                }}
+                className="p-3 bg-blue-500/5 hover:bg-blue-500/10 disabled:opacity-70 border border-blue-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
               >
-                <Trophy className="w-5 h-5 text-saffron" />
-                <span className="text-xs font-bold text-text mt-0.5">Mock Test</span>
-                <span className="text-[9px] text-text-muted font-bold leading-tight truncate">Full Pattern</span>
+                {startingQuickMode === 'mock' ? (
+                  <Loader2 className="w-5 h-5 text-saffron animate-spin" />
+                ) : (
+                  <Trophy className="w-5 h-5 text-saffron" />
+                )}
+                <span className="text-xs font-bold text-text mt-0.5">
+                  {startingQuickMode === 'mock' ? 'Starting...' : 'Mock Test'}
+                </span>
+                <span className="text-[9px] text-text-muted font-bold leading-tight truncate">
+                  {startingQuickMode === 'mock' ? 'Loading questions...' : 'Full Pattern'}
+                </span>
               </button>
             )}
 

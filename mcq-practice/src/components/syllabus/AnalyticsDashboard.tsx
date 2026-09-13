@@ -81,12 +81,16 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 }) => {
   // Extract all topics from the exam subjects
   const allTopics: { topicId: string; subjectImportance: string }[] = [];
-  exam.subjects.forEach(subject => {
-    subject.chapters.forEach(chapter => {
-      chapter.topics.forEach(topic => {
+  const subjects = Array.isArray(exam?.subjects) ? exam.subjects : [];
+  subjects.forEach(subject => {
+    const chapters = Array.isArray(subject?.chapters) ? subject.chapters : [];
+    chapters.forEach(chapter => {
+      const topics = Array.isArray(chapter?.topics) ? chapter.topics : [];
+      topics.forEach(topic => {
+        if (!topic) return;
         allTopics.push({
           topicId: topic.id,
-          subjectImportance: subject.importance
+          subjectImportance: subject.importance || 'Medium'
         });
       });
     });

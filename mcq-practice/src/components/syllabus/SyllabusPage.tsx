@@ -15,9 +15,8 @@ import { MilestoneTracker } from './MilestoneTracker';
 import { PdfViewerModal } from './PdfViewerModal';
 import { LecturesModal } from './LecturesModal';
 import { TopicTestsModal } from './TopicTestsModal';
-import type { Topic } from './syllabusData';
-
-import type { Exam } from './syllabusData';
+import { TopicNotesReaderModal } from './TopicNotesReaderModal';
+import type { Exam, Subject, Chapter, Topic } from './syllabusData';
 
 interface SyllabusPageProps {
   exams: Exam[];
@@ -28,7 +27,7 @@ interface SyllabusPageProps {
   onToggleActivity: (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => void;
   onMarkRevised: (topicId: string) => void;
   streak: number;
-  onStartPractice: (subjectName: string, testId?: string) => void;
+  onStartPractice: (subjectName: string, testId?: string, mode?: 'quiz' | 'mock' | 'pyq') => void | Promise<void>;
   onGoBack: () => void;
   tabVisibility?: Record<string, boolean>;
   targetExamDate: string;
@@ -70,6 +69,9 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   const [selectedPdfTopic, setSelectedPdfTopic] = useState<Topic | null>(null);
   const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
 
+  // Formatted In-App Study Notes Reader State
+  const [selectedNotesTopic, setSelectedNotesTopic] = useState<{ topic: Topic; subjectName: string } | null>(null);
+
   const getApiUrl = (p: string) => {
     const hostname = window.location.hostname;
     const isLocal = hostname === 'localhost' || 
@@ -91,6 +93,10 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
 
   const handleOpenLectures = (topic: Topic, subjectName: string) => {
     setSelectedLectureTopic({ topic, subjectName });
+  };
+
+  const handleOpenStudyNotes = (topic: Topic, subjectName: string) => {
+    setSelectedNotesTopic({ topic, subjectName });
   };
 
   const handleOpenPdf = async (topic: Topic) => {
@@ -158,11 +164,23 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
 
   const resolvedActiveTab = isTabVisible(activeTab) ? activeTab : 'tracker';
 
-  const activeExam = exams.find(e => e.id === activeExamId) || exams[0];
+  const fallbackExam: Exam = {
+    id: activeExamId || '',
+    name: 'Syllabus',
+    fullName: 'Exam Syllabus',
+    icon: '📚',
+    stage: 'Prelims',
+    daysRemaining: 0,
+    totalMarks: 0,
+    subjects: []
+  };
+
+  const activeExam = (exams && exams.length > 0 ? exams.find(e => e.id === activeExamId) || exams[0] : null) || fallbackExam;
 
   const handleQuickAction = (actionText: string, subjectId: string, topicId: string) => {
-    const subject = activeExam.subjects.find(s => s.id === subjectId);
-    const subjectName = subject ? subject.name : activeExam.name;
+    const subjects = Array.isArray(activeExam?.subjects) ? activeExam.subjects : [];
+    const subject = subjects.find((s: Subject) => s.id === subjectId);
+    const subjectName = subject ? subject.name : (activeExam?.name || '');
     
     if (actionText === 'Practice MCQs' || actionText === 'Start MCQ Practice') {
       onStartPractice(subjectName, topicId || undefined);
@@ -175,15 +193,23 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   };
 
   const getFilteredSubjects = () => {
-    return activeExam.subjects.map(subject => {
-      const filteredChapters = subject.chapters.map(chapter => {
-        const filteredTopics = chapter.topics.filter(topic => {
+    if (!activeExam || !Array.isArray(activeExam.subjects)) return [];
+    return activeExam.subjects.map((subject: Subject) => {
+      const chapters = Array.isArray(subject?.chapters) ? subject.chapters : [];
+      const filteredChapters = chapters.map((chapter: Chapter) => {
+        const topics = Array.isArray(chapter?.topics) ? chapter.topics : [];
+        const filteredTopics = topics.filter((topic: Topic) => {
+          if (!topic) return false;
           const progress = topicProgress[topic.id];
           const status = progress ? progress.status : 'Not Started';
           
+          const topicName = (topic.name || '').toLowerCase();
+          const topicNameHi = (topic.nameHi || '').toLowerCase();
+          const query = (searchQuery || '').toLowerCase();
+
           const matchesSearch = 
-            topic.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            topic.nameHi.toLowerCase().includes(searchQuery.toLowerCase());
+            topicName.includes(query) ||
+            topicNameHi.includes(query);
 
           const matchesFilter = statusFilter === 'all' || status === statusFilter;
 
@@ -191,10 +217,10 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
         });
 
         return { ...chapter, topics: filteredTopics };
-      }).filter(chapter => chapter.topics.length > 0);
+      }).filter((chapter: Chapter) => (chapter.topics?.length || 0) > 0);
 
       return { ...subject, chapters: filteredChapters };
-    }).filter(subject => subject.chapters.length > 0);
+    }).filter((subject: Subject) => (subject.chapters?.length || 0) > 0);
   };
 
   const filteredSubjects = getFilteredSubjects();
@@ -205,23 +231,30 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   let accuracySum = 0;
   let accuracyCount = 0;
 
-  activeExam.subjects.forEach(subject => {
-    subject.chapters.forEach(chapter => {
-      chapter.topics.forEach(topic => {
-        totalTopicsCount++;
-        const progress = topicProgress[topic.id];
-        if (progress) {
-          if (progress.status === 'Completed' || progress.status === 'Revised') {
-            completedTopicsCount++;
+  if (activeExam && Array.isArray(activeExam.subjects)) {
+    activeExam.subjects.forEach((subject: Subject) => {
+      if (Array.isArray(subject?.chapters)) {
+        subject.chapters.forEach((chapter: Chapter) => {
+          if (Array.isArray(chapter?.topics)) {
+            chapter.topics.forEach((topic: Topic) => {
+              if (!topic) return;
+              totalTopicsCount++;
+              const progress = topicProgress[topic.id];
+              if (progress) {
+                if (progress.status === 'Completed' || progress.status === 'Revised') {
+                  completedTopicsCount++;
+                }
+                if (progress.accuracy > 0) {
+                  accuracySum += progress.accuracy;
+                  accuracyCount++;
+                }
+              }
+            });
           }
-          if (progress.accuracy > 0) {
-            accuracySum += progress.accuracy;
-            accuracyCount++;
-          }
-        }
-      });
+        });
+      }
     });
-  });
+  }
 
   const averageAccuracy = accuracyCount > 0 ? Math.round(accuracySum / accuracyCount) : 70;
 
@@ -380,7 +413,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
                 {/* List of Subjects */}
                 <div className="flex flex-col gap-4">
                   {filteredSubjects.length > 0 ? (
-                    filteredSubjects.map(subject => (
+                    filteredSubjects.map((subject: Subject) => (
                       <SubjectCard
                         key={subject.id}
                         subject={subject}
@@ -390,6 +423,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
                         onToggleActivity={onToggleActivity}
                         onMarkRevised={onMarkRevised}
                         onOpenPdf={handleOpenPdf}
+                        onOpenNotes={handleOpenStudyNotes}
                         onOpenLectures={handleOpenLectures}
                         onOpenPracticeMcqs={handleOpenPracticeMcqs}
                       />
@@ -463,8 +497,8 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
         topicNameHi={selectedTopicForTests?.topic.nameHi}
         subjectName={selectedTopicForTests?.subjectName}
         examId={activeExamId}
-        onStartTest={(testId, _mode, subject) => {
-          onStartPractice(subject, testId);
+        onStartTest={async (testId, mode, subject) => {
+          await onStartPractice(subject, testId, mode);
         }}
         onMarkComplete={() => {
           if (selectedTopicForTests) {
@@ -505,6 +539,24 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
           }
         }}
         isCompleted={Boolean(selectedPdfTopic && topicProgress[selectedPdfTopic.id]?.notesRead)}
+      />
+
+      {/* Interactive Formatted Study Notes Reader Modal */}
+      <TopicNotesReaderModal
+        isOpen={Boolean(selectedNotesTopic)}
+        onClose={() => setSelectedNotesTopic(null)}
+        topic={selectedNotesTopic?.topic || null}
+        subjectName={selectedNotesTopic?.subjectName}
+        examName={activeExam?.name}
+        examId={activeExamId}
+        getApiUrl={getApiUrl}
+        onMarkComplete={() => {
+          if (selectedNotesTopic) {
+            onToggleActivity(selectedNotesTopic.topic.id, 'notesRead');
+          }
+        }}
+        isCompleted={Boolean(selectedNotesTopic && topicProgress[selectedNotesTopic.topic.id]?.notesRead)}
+        onOpenPdf={handleOpenPdf}
       />
 
     </div>

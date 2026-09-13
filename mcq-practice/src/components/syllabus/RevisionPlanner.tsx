@@ -40,9 +40,13 @@ export const RevisionPlanner: React.FC<RevisionPlannerProps> = ({
   const overdueTasks: RevisionTask[] = [];
   const upcomingTasks: RevisionTask[] = [];
 
-  exam.subjects.forEach(subject => {
-    subject.chapters.forEach(chapter => {
-      chapter.topics.forEach(topic => {
+  const subjects = Array.isArray(exam?.subjects) ? exam.subjects : [];
+  subjects.forEach(subject => {
+    const chapters = Array.isArray(subject?.chapters) ? subject.chapters : [];
+    chapters.forEach(chapter => {
+      const topics = Array.isArray(chapter?.topics) ? chapter.topics : [];
+      topics.forEach(topic => {
+        if (!topic) return;
         const progress = topicProgress[topic.id];
         
         // Only completed or revised topics participate in spaced repetition

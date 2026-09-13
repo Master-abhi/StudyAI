@@ -12,6 +12,9 @@ export interface Topic {
   pdfName?: string;
   pdfSize?: number;
   pdfUpdatedAt?: string;
+  studyNotes?: any;
+  hasStudyNotes?: boolean;
+  notesUpdatedAt?: string;
 }
 
 export interface Chapter {
@@ -608,9 +611,13 @@ export const getInitialProgress = (examId: string): ExamProgressState => {
   // Seed status with a realistic distribution: some completed, some weak, some in progress
   let topicIndex = 0;
   
-  exam.subjects.forEach(subject => {
-    subject.chapters.forEach(chapter => {
-      chapter.topics.forEach(topic => {
+  const subjects = Array.isArray(exam?.subjects) ? exam.subjects : [];
+  subjects.forEach(subject => {
+    const chapters = Array.isArray(subject?.chapters) ? subject.chapters : [];
+    chapters.forEach(chapter => {
+      const topics = Array.isArray(chapter?.topics) ? chapter.topics : [];
+      topics.forEach(topic => {
+        if (!topic) return;
         let status: TopicProgress['status'] = 'Not Started';
         let notesRead = false;
         let mcqCompleted = false;

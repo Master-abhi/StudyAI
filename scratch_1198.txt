@@ -1,0 +1,149 @@
+Created At: 2026-09-13T22:48:54+05:30
+Completed At: 2026-09-13T22:48:54+05:30
+File Path: `file:///e:/Drive%20D/abhi%27s%20coding/New%20start/mcq-practice/src/components/admin/TopicPdfStudioModal.tsx`
+Total Lines: 1517
+Total Bytes: 74168
+Showing lines 1060 to 1200
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1060:               </div>
+1061: 
+1062:               {/* PDF Document Canvas */}
+1063:               <div className="p-4 sm:p-8 flex justify-center overflow-x-auto bg-[#2b2f38]">
+1064:                 <div 
+1065:                   ref={printAreaRef}
+1066:                   id="cg-guru-pdf-root"
+1067:                   className="w-full max-w-[820px] bg-[#F5F7FA] text-[#202938] p-8 sm:p-12 shadow-2xl rounded-lg font-sans flex flex-col gap-10 leading-relaxed print:p-0 print:shadow-none print:w-full print:max-w-none"
+1068:                   style={{ fontFamily: "'Noto Sans Devanagari', Inter, sans-serif" }}
+1069:                 >
+1070:                   
+1071:                   {/* Print Stylesheet */}
+1072:                   <style>{`
+1073:                     @media print {
+1074:                       @page {
+1075:                         size: A4 portrait;
+1076:                         margin: 14mm 14mm 14mm 14mm;
+1077:                       }
+1078:                       body {
+1079:                         background: #F5F7FA !important;
+1080:                         -webkit-print-color-adjust: exact !important;
+1081:                         print-color-adjust: exact !important;
+1082:                       }
+1083:                       #cg-guru-pdf-root {
+1084:                         padding: 0 !important;
+1085:                         box-shadow: none !important;
+1086:                         width: 100% !important;
+1087:                       }
+1088:                       .page-break {
+1089:                         page-break-after: always !important;
+1090:                         break-after: page !important;
+1091:                       }
+1092:                       .avoid-break {
+1093:                         page-break-inside: avoid !important;
+1094:                         break-inside: avoid !important;
+1095:                       }
+1096:                     }
+1097:                   `}</style>
+1098: 
+1099:                   {/* PAGE 1: COVER PAGE */}
+1100:                   <div className="min-h-[920px] flex flex-col justify-between p-8 sm:p-12 bg-white rounded-2xl border border-[#D9E0E8] shadow-sm relative overflow-hidden page-break">
+1101:                     <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-[#17375E] via-[#E88A00] to-[#17375E]" />
+1102:                     
+1103:                     <div className="flex items-center justify-between pt-4">
+1104:                       <div className="flex items-center gap-3">
+1105:                         <div className="w-12 h-12 rounded-xl bg-[#E88A00] text-white flex items-center justify-center font-black text-2xl shadow-md">
+1106:                           🎓
+1107:                         </div>
+1108:                         <div className="flex flex-col">
+1109:                           <h1 className="text-2xl font-black text-[#17375E] tracking-wider">
+1110:                             CG GURU
+1111:                           </h1>
+1112:                           <span className="text-[11px] font-bold text-[#E88A00] tracking-wide">
+1113:                             छत्तीसगढ़ की तैयारी, एक जगह
+1114:                           </span>
+1115:                         </div>
+1116:                       </div>
+1117: 
+1118:                       <span className="text-[10px] font-black uppercase px-3 py-1 bg-[#EEF4FA] text-[#17375E] rounded-full border border-[#D9E0E8]">
+1119:                         Exclusive Study Notes
+1120:                       </span>
+1121:                     </div>
+1122: 
+1123:                     <div className="flex flex-col gap-4 my-auto py-12 text-center items-center">
+1124:                       <span className="text-xs font-black uppercase text-[#E88A00] tracking-widest bg-[#FFF4E5] px-3.5 py-1.5 rounded-md border border-[#E88A00]/30">
+1125:                         {studyData?.subject || subjectName}
+1126:                       </span>
+1127: 
+1128:                       <h2 className="text-3xl sm:text-4xl font-black text-[#17375E] leading-tight max-w-xl">
+1129:                         {studyData?.titleHi || topicNameHi || studyData?.title || topicName}
+1130:                       </h2>
+1131: 
+1132:                       {studyData?.title && studyData?.title !== studyData?.titleHi && (
+1133:                         <span className="text-base font-semibold text-[#667085]">
+1134:                           {studyData.title}
+1135:                         </span>
+1136:                       )}
+1137: 
+1138:                       <div className="w-24 h-1 bg-[#E88A00] rounded-full my-2" />
+1139: 
+1140:                       <span className="text-sm font-bold text-[#17375E] uppercase tracking-wider">
+1141:                         छत्तीसगढ़ प्रतियोगी परीक्षा अध्ययन सामग्री
+1142:                       </span>
+1143: 
+1144:                       <div className="flex flex-wrap items-center justify-center gap-2 mt-4 max-w-lg">
+1145:                         {(studyData?.targetExams || targetExams.join(' • ')).split('•').map((ex: string, idx: number) => (
+1146:                           <span key={idx} className="text-[10px] font-bold bg-[#EEF4FA] text-[#17375E] border border-[#D9E0E8] px-2.5 py-1 rounded-md">
+1147:                             {ex.trim()}
+1148:                           </span>
+1149:                         ))}
+1150:                       </div>
+1151:                     </div>
+1152: 
+1153:                     <div className="border-t border-[#D9E0E8] pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#667085] gap-2">
+1154:                       <span className="font-bold text-[#17375E]">
+1155:                         Concept • Facts • Revision • MCQs
+1156:                       </span>
+1157:                       <span>
+1158:                         Designed for Serious Aspirants • CG GURU
+1159:                       </span>
+1160:                     </div>
+1161:                   </div>
+1162: 
+1163:                   {/* PAGE 2: TOPIC OVERVIEW & QUICK FACTS */}
+1164:                   <div className="flex flex-col gap-6 bg-white p-8 rounded-2xl border border-[#D9E0E8] shadow-sm page-break avoid-break">
+1165:                     <div className="flex items-center justify-between border-b border-[#D9E0E8] pb-3">
+1166:                       <div className="flex items-center gap-2">
+1167:                         <BookOpen className="w-5 h-5 text-[#E88A00]" />
+1168:                         <h3 className="text-base font-black text-[#17375E] uppercase tracking-wider">
+1169:                           Topic Overview & Significance
+1170:                         </h3>
+1171:                       </div>
+1172:                       <span className="text-[10px] font-bold text-[#667085]">
+1173:                         CG GURU • Page 02
+1174:                       </span>
+1175:                     </div>
+1176: 
+1177:                     <div className="flex flex-col gap-3 text-sm text-[#202938] leading-relaxed">
+1178:                       <p className="font-medium">
+1179:                         {studyData?.overview?.introduction}
+1180:                       </p>
+1181:                       {studyData?.overview?.examRelevance && (
+1182:                         <div className="p-3 bg-[#EEF4FA] border border-[#D9E0E8] rounded-xl text-xs text-[#17375E] flex items-center gap-2 font-semibold">
+1183:                           <Award className="w-4 h-4 text-[#E88A00] shrink-0" />
+1184:                           <span><strong>परीक्षा प्रासंगिकता:</strong> {studyData.overview.examRelevance}</span>
+1185:                         </div>
+1186:                       )}
+1187:                     </div>
+1188: 
+1189:                     {Array.isArray(studyData?.overview?.quickFacts) && studyData.overview.quickFacts.length > 0 && (
+1190:                       <div className="p-5 bg-[#FFF4E5] border border-[#E88A00]/40 rounded-xl flex flex-col gap-3 shadow-sm">
+1191:                         <div className="flex items-center gap-2 text-[#E88A00] font-black text-xs uppercase tracking-wider">
+1192:                           <Sparkles className="w-4 h-4" />
+1193:                           <span>⚡ Quick Facts • परीक्षा उपयोगी महत्वपूर्ण तथ्य</span>
+1194:                         </div>
+1195:                         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#202938]">
+1196:                           {studyData.overview.quickFacts.map((fact: string, fIdx: number) => (
+1197:                             <li key={fIdx} className="flex items-start gap-2 bg-white/80 p-2.5 rounded-lg border border-[#E88A00]/20 font-medium">
+1198:                               <span className="text-[#E88A00] font-black">✓</span>
+1199:                               <span>{fact}</span>
+1200:                             </li>
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

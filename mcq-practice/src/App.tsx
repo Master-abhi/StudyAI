@@ -2341,9 +2341,9 @@ export default function App() {
             exams={visibleExams}
             onSelectExam={handleSelectExam}
             onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
-            onStartPracticeMode={(modeType) => {
+            onStartPracticeMode={async (modeType) => {
               if (modeType === 'quiz' || modeType === 'mock') {
-                handleStartRandomPractice(modeType);
+                await handleStartRandomPractice(modeType);
               } else {
                 setActiveTab('practice');
               }
@@ -2499,13 +2499,74 @@ export default function App() {
             onToggleActivity={onToggleActivity}
             onMarkRevised={onMarkRevised}
             streak={streak}
-            onStartPractice={(subject, _topicId) => {
-              // Find matching questions or fallback
+            onStartPractice={async (subject, testId, mode) => {
+              const testMode = mode || 'quiz';
+              if (testId) {
+                // 1. Check internal app offline storage first
+                try {
+                  const rawOffline = localStorage.getItem('examprep_offline_tests_v1');
+                  if (rawOffline) {
+                    const offlineMap = JSON.parse(rawOffline);
+                    if (offlineMap[testId] && Array.isArray(offlineMap[testId].questions) && offlineMap[testId].questions.length > 0) {
+                      const offItem = offlineMap[testId];
+                      startTestPractice(
+                        offItem.questions,
+                        offItem.mode || testMode,
+                        offItem.title || offItem.subject || `${subject} Practice`,
+                        offItem.pattern?.durationMinutes || offItem.durationMinutes || (testMode === 'mock' ? 120 : 15),
+                        testId
+                      );
+                      return;
+                    }
+                  }
+                } catch (_) {}
+
+                // 2. Check shared tests cache
+                try {
+                  const rawShared = localStorage.getItem('examprep_shared_tests_v1');
+                  if (rawShared) {
+                    const sharedMap = JSON.parse(rawShared);
+                    if (sharedMap[testId] && Array.isArray(sharedMap[testId].questions) && sharedMap[testId].questions.length > 0) {
+                      const sharedItem = sharedMap[testId];
+                      startTestPractice(
+                        sharedItem.questions,
+                        sharedItem.mode || testMode,
+                        sharedItem.title || sharedItem.subject || `${subject} Practice`,
+                        sharedItem.pattern?.durationMinutes || sharedItem.durationMinutes || (testMode === 'mock' ? 120 : 15),
+                        testId
+                      );
+                      return;
+                    }
+                  }
+                } catch (_) {}
+
+                // 3. Fetch from Server API
+                try {
+                  const res = await fetch(getApiUrl(`/api/tests/${encodeURIComponent(testId)}`));
+                  if (res.ok) {
+                    const data = await res.json();
+                    if (data && Array.isArray(data.questions) && data.questions.length > 0) {
+                      startTestPractice(
+                        data.questions,
+                        data.mode || testMode,
+                        data.title || data.subject || `${subject} Practice Test`,
+                        data.pattern?.durationMinutes || data.durationMinutes || (testMode === 'mock' ? 120 : 15),
+                        testId
+                      );
+                      return;
+                    }
+                  }
+                } catch (fetchErr) {
+                  console.error('[Syllabus onStartPractice fetch error]:', fetchErr);
+                }
+              }
+
+              // Fallback if testId was not a server test or had no questions
               const filtered = MOCK_QUESTIONS.filter(q => q.subject?.includes(subject) || q.explanation?.includes(subject));
-              const testSubjectId = `syllabus-${encodeURIComponent(subject)}`;
+              const testSubjectId = testId || `syllabus-${encodeURIComponent(subject)}`;
               startTestPractice(
                 filtered.length > 0 ? filtered : MOCK_QUESTIONS.slice(0, 3),
-                'quiz',
+                testMode,
                 `${subject} MCQ Practice`,
                 15,
                 testSubjectId

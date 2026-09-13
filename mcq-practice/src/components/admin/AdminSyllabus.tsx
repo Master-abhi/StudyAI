@@ -5,6 +5,7 @@ import {
   Database, Edit, Trash2
 } from 'lucide-react';
 import type { Exam } from '../syllabus/syllabusData';
+import { TopicPdfStudioModal } from './TopicPdfStudioModal';
 
 interface AdminSyllabusProps {
   currentUser: any;
@@ -92,6 +93,7 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
   const [deletingTopicId, setDeletingTopicId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [studioTopic, setStudioTopic] = useState<{ topic: any; subjectName: string; examId: string; examName: string } | null>(null);
 
     const getApiUrl = (path: string) => {
     const hostname = window.location.hostname;
@@ -183,6 +185,70 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
     } catch (err: any) {
       console.error('[Delete Topic PDF Error]:', err);
       setErrorMessage(err.message || 'Failed to remove PDF notes.');
+    } finally {
+      setDeletingTopicId(null);
+    }
+  };
+
+  const handleTopicNotesSave = async (examId: string, topicId: string, studyNotes: any) => {
+    try {
+      const token = await currentUser.getIdToken();
+      const currentExam = exams.find(e => e.id === examId);
+      const res = await fetch(getApiUrl('/api/admin/syllabus/topic-notes'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          examId,
+          topicId,
+          studyNotes,
+          examData: currentExam
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage('Formatted study notes saved to topic successfully! 📖✨');
+        onRefreshExams();
+      } else {
+        throw new Error(data.error || 'Failed to save formatted study notes.');
+      }
+    } catch (err: any) {
+      console.error('[Save Topic Notes Error]:', err);
+      throw err;
+    }
+  };
+
+  const handleTopicNotesDelete = async (examId: string, topicId: string, topicName: string) => {
+    if (!window.confirm(`Remove formatted study notes from "${topicName}"?`)) return;
+
+    try {
+      setDeletingTopicId(topicId);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      const token = await currentUser.getIdToken();
+      const res = await fetch(getApiUrl('/api/admin/syllabus/topic-notes'), {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ examId, topicId })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMessage(`Removed formatted study notes from "${topicName}".`);
+        onRefreshExams();
+      } else {
+        throw new Error(data.error || 'Failed to remove study notes.');
+      }
+    } catch (err: any) {
+      console.error('[Delete Topic Notes Error]:', err);
+      setErrorMessage(err.message || 'Failed to remove study notes.');
     } finally {
       setDeletingTopicId(null);
     }
@@ -773,6 +839,11 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
                                       ✓ PDF Attached
                                     </span>
                                   )}
+                                  {(topic.hasStudyNotes || topic.studyNotes) && (
+                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shrink-0">
+                                      📖 Formatted Notes Saved
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-2 text-[10px] text-text-muted">
                                   <span>{topic.name}</span>
@@ -792,8 +863,19 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
                                 </div>
                               </div>
 
-                              {/* Action Buttons: Upload PDF / Replace / Remove */}
+                              {/* Action Buttons: Notes Studio / Upload PDF / Replace / Remove */}
                               <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setStudioTopic({ topic, subjectName: currentSubject.name, examId: currentExam.id, examName: currentExam.name })}
+                                  disabled={isUploading || isDeleting}
+                                  className="px-3 py-1.5 rounded-lg border border-saffron/40 bg-saffron/10 hover:bg-saffron hover:text-bg-s1 text-saffron text-[11px] font-black uppercase flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-40"
+                                  title="Paste study material and generate CG GURU formatted notes"
+                                >
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                  <span>Notes Studio</span>
+                                </button>
+
                                 <label className={`px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase flex items-center gap-1.5 cursor-pointer transition-all shadow-sm ${
                                   isUploading
                                     ? 'bg-bg-s3 border-border text-text-muted cursor-wait'
@@ -826,6 +908,17 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
                                     }}
                                   />
                                 </label>
+
+                                {(topic.hasStudyNotes || topic.studyNotes) && (
+                                  <button
+                                    onClick={() => handleTopicNotesDelete(currentExam.id, topic.id, topic.nameHi || topic.name)}
+                                    disabled={isUploading || isDeleting}
+                                    title="Remove formatted study notes"
+                                    className="px-2 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-redL/20 hover:text-redL hover:border-redL/30 text-[10px] font-bold cursor-pointer disabled:opacity-40 transition-colors"
+                                  >
+                                    Clear Notes
+                                  </button>
+                                )}
 
                                 {hasPdf && (
                                   <button
@@ -1266,6 +1359,27 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
           </div>
         )}
       </div>
+
+      {studioTopic && (
+        <TopicPdfStudioModal
+          isOpen={Boolean(studioTopic)}
+          onClose={() => setStudioTopic(null)}
+          examId={studioTopic.examId}
+          examName={studioTopic.examName}
+          subjectName={studioTopic.subjectName}
+          topic={studioTopic.topic}
+          currentUser={currentUser}
+          getApiUrl={getApiUrl}
+          onAttachPdf={async (examId, topicId, file) => {
+            await handleTopicPdfUpload(examId, topicId, file);
+            setStudioTopic(null);
+          }}
+          onSaveNotes={async (examId, topicId, studyNotes) => {
+            await handleTopicNotesSave(examId, topicId, studyNotes);
+            setStudioTopic(null);
+          }}
+        />
+      )}
     </div>
   );
 };

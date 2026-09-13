@@ -1,26 +1,35 @@
 require('dotenv').config();
-const geminiService = require('./services/gemini.js');
+const { generatePdfStudyNotes } = require('./services/aiManager');
 
 async function runTest() {
-  console.log("Starting News Intelligence Test using gemini-3.1-flash-lite...");
-  const testTitle = "Chhattisgarh launches new Krishi Unnati Scheme to support farmers";
-  const testDesc = "The government of Chhattisgarh has announced the launch of the Krishi Unnati Scheme, aimed at boosting crop yields, providing financial assistance, and improving the overall welfare of farmers across the state. Under this scheme, farmers will receive input subsidies and technical training.";
-  const testCategory = "Chhattisgarh Current Affairs";
-  const testSource = "DPR CG";
+  console.log("Testing generatePdfStudyNotes with user raw material...");
+  const raw = `1. विषय परिचय (Introduction & Overview)
+प्रागैतिहासिक काल (Prehistoric Period) मानव सभ्यता के विकास का वह कालखंड है जिसके अध्ययन के लिए कोई लिखित अभिलेख (Written Records) उपलब्ध नहीं हैं।
+छत्तीसगढ़ की प्रमुख गुफाएं:
+सिंघनपुर (रायगढ़): 1910 में सी. डब्ल्यू. एंडरसन द्वारा खोजा गया।
+कबरा पहाड़ (रायगढ़): मध्य पाषाण काल का सबसे प्रमुख केंद्र।
+चितवा डोंगरी (बालोद): चीनी शैली मानवाकृति, ड्रैगन सदृश शैलचित्र।
+धनोरा (बालोद): लगभग 500 पाषाण घेरे।`;
 
   try {
-    const result = await geminiService.generateNewsIntelligence(testTitle, testDesc, testCategory, testSource, 'gemini-3.1-flash-lite');
-    console.log("Success with gemini-3.1-flash-lite!");
-    let jsonText = result.trim();
-    const match = jsonText.match(/\{[\s\S]*\}/);
-    if (match) {
-      jsonText = match[0].trim();
+    const res = await generatePdfStudyNotes({
+      topicName: 'प्रागैतिहासिक छत्तीसगढ़',
+      topicNameHi: 'प्रागैतिहासिक छत्तीसगढ़',
+      subjectName: 'छत्तीसगढ़ का इतिहास एवं पुरातत्व',
+      examName: 'CGPSC',
+      rawMaterial: raw
+    });
+    console.log("Success! Has structured:", Boolean(res.structured));
+    if (res.structured) {
+      console.log("Structured keys:", Object.keys(res.structured));
+      console.log("Chapters count:", (res.structured.chapters || []).length);
+      console.log("OneLiner count:", (res.structured.oneLinerRevision || []).length);
+      console.log("MCQ count:", (res.structured.mcqs || []).length);
+    } else {
+      console.log("RawText length:", (res.rawText || '').length);
     }
-    const parsed = JSON.parse(jsonText);
-    console.log("Valid JSON parsed!");
-    console.log("Title (Hi):", parsed.title_hi);
   } catch (e) {
-    console.error("gemini-3.1-flash-lite failed:", e.message);
+    console.error("Error:", e.message);
   }
 }
 

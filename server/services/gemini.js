@@ -605,4 +605,27 @@ Respond with the exact requested JSON format. Include exactly 5 high-quality MCQ
   return response.response.text().trim();
 }
 
-module.exports = { chat, chatStream, generateTest, parseSyllabus, translateAndSummarizeNews, generateNewsIntelligence };
+async function generatePdfNotesJson(systemInstruction, prompt, modelName = MODEL) {
+  const model = genAI.getGenerativeModel({
+    model: resolveModelName(modelName),
+    systemInstruction,
+    generationConfig: {
+      responseMimeType: "application/json",
+      maxOutputTokens: 16384,
+      temperature: 0.2
+    }
+  });
+
+  const response = await model.generateContent(prompt);
+  return response.response.text().trim();
+}
+
+module.exports = { 
+  chat, 
+  chatStream, 
+  generateTest, 
+  parseSyllabus, 
+  translateAndSummarizeNews, 
+  generateNewsIntelligence,
+  generatePdfNotesJson
+};

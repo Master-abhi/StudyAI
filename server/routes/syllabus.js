@@ -10,6 +10,30 @@ const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 const { aiRateLimiter } = require('../middleware/rateLimiter');
 const { createSignedPdfUrl } = require('../services/supabaseStorage');
 
+// Helper to restore sanitized Firestore data (reconstructing table rows: { __isRow: true, cells: [...] } back to raw arrays)
+function desanitizeFromFirestore(val) {
+  if (val === null || val === undefined) return val;
+  if (Array.isArray(val)) {
+    return val.map(item => {
+      if (item && typeof item === 'object' && item.__isRow === true && Array.isArray(item.cells)) {
+        return item.cells;
+      }
+      return desanitizeFromFirestore(item);
+    });
+  }
+  if (typeof val === 'object') {
+    if (val.__isRow === true && Array.isArray(val.cells)) {
+      return val.cells;
+    }
+    const res = {};
+    for (const [k, v] of Object.entries(val)) {
+      res[k] = desanitizeFromFirestore(v);
+    }
+    return res;
+  }
+  return val;
+}
+
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
@@ -156,6 +180,114 @@ router.get('/topic-pdf-url', verifyFirebaseToken, async (req, res) => {
   }
 });
 
+// GET /api/syllabus/topic-notes - Get formatted interactive study notes for a topic
+router.get('/topic-notes', async (req, res) => {
+  try {
+    const { examId, topicId } = req.query;
+    if (!topicId) {
+      return res.status(400).json({ error: 'topicId is required' });
+    }
+
+    // 1. Try fast lookup from dedicated topic_study_notes cache collection
+    if (examId) {
+      const cachedSnap = await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).get();
+      if (cachedSnap.exists) {
+        const data = cachedSnap.data();
+        if (data && data.studyNotes) {
+          return res.json({
+            success: true,
+            studyNotes: desanitizeFromFirestore(data.studyNotes),
+            topicId,
+            examId
+          });
+        }
+      }
+    }
+
+    // 1b. Fallback: Search topic_study_notes by topicId across all exams
+    try {
+      const topicNotesQuery = await db.collection('topic_study_notes').where('topicId', '==', topicId).limit(1).get();
+      if (!topicNotesQuery.empty) {
+        const data = topicNotesQuery.docs[0].data();
+        if (data && data.studyNotes) {
+          return res.json({
+            success: true,
+            studyNotes: desanitizeFromFirestore(data.studyNotes),
+            topicId,
+            examId: data.examId || examId
+          });
+        }
+      }
+    } catch (qErr) {
+      console.warn('[topic_study_notes query warn]:', qErr.message);
+    }
+
+    // 2. Fallback to syllabus collection
+    let examData = null;
+    if (examId) {
+      const docSnap = await db.collection('syllabi').doc(examId).get();
+      if (docSnap.exists) examData = docSnap.data();
+    }
+
+    if (!examData) {
+      const allSyllabiSnap = await db.collection('syllabi').get();
+      allSyllabiSnap.forEach(doc => {
+        const d = doc.data();
+        if (d && Array.isArray(d.subjects)) {
+          for (const sub of d.subjects) {
+            if (Array.isArray(sub.chapters)) {
+              for (const chap of sub.chapters) {
+                if (Array.isArray(chap.topics) && chap.topics.some(t => t.id === topicId)) {
+                  examData = d;
+                  break;
+                }
+              }
+            }
+            if (examData) break;
+          }
+        }
+      });
+    }
+
+    if (!examData) {
+      return res.status(404).json({ error: 'Syllabus or topic not found' });
+    }
+
+    let targetTopic = null;
+    if (Array.isArray(examData.subjects)) {
+      for (const sub of examData.subjects) {
+        if (Array.isArray(sub.chapters)) {
+          for (const chap of sub.chapters) {
+            if (Array.isArray(chap.topics)) {
+              for (const top of chap.topics) {
+                if (top.id === topicId) {
+                  targetTopic = top;
+                  break;
+                }
+              }
+            }
+            if (targetTopic) break;
+          }
+        }
+        if (targetTopic) break;
+      }
+    }
+
+    if (!targetTopic || !targetTopic.studyNotes) {
+      return res.status(404).json({ error: 'No formatted study notes found for this topic.' });
+    }
+
+    res.json({
+      success: true,
+      studyNotes: desanitizeFromFirestore(targetTopic.studyNotes),
+      topicId,
+      examId: examData.id
+    });
+  } catch (err) {
+    console.error('[Get Topic Study Notes Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to retrieve study notes.' });
+  }
+});
 
 // GET /api/syllabus/topic-lectures - Curated precision YouTube search for exact topics
 router.get('/topic-lectures', async (req, res) => {
@@ -306,8 +438,9 @@ router.get('/topic-tests', async (req, res) => {
         for (const q of t.questions) {
           const qText = (q.question || '').toLowerCase();
           const qExp = (q.explanation || '').toLowerCase();
+          const qTopic = (q.topic || '').toLowerCase();
           for (const kw of keywords) {
-            if (qText.includes(kw) || qExp.includes(kw)) {
+            if (qText.includes(kw) || qExp.includes(kw) || qTopic.includes(kw)) {
               matched = true;
               matchScore += 3;
               break;
@@ -319,7 +452,7 @@ router.get('/topic-tests', async (req, res) => {
 
       if (matched && examMatch) {
         matchingTests.push({
-          id: t.id,
+          id: t.id || doc.id,
           title: t.title || `${t.subject || 'Practice'} ${t.mode === 'mock' ? 'Mock Test' : t.mode === 'pyq' ? 'PYQ Paper' : 'Quiz'}`,
           subject: t.subject || 'General Knowledge',
           mode: t.mode || 'quiz',

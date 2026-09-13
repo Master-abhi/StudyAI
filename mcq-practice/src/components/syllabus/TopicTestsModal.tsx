@@ -23,7 +23,7 @@ interface TopicTestsModalProps {
   topicNameHi?: string;
   subjectName?: string;
   examId?: string;
-  onStartTest: (testId: string, mode: 'quiz' | 'mock' | 'pyq', subject: string) => void;
+  onStartTest: (testId: string, mode: 'quiz' | 'mock' | 'pyq', subject: string) => void | Promise<void>;
   onMarkComplete?: () => void;
   isCompleted?: boolean;
 }
@@ -42,6 +42,7 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
   const [tests, setTests] = useState<TopicTestItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [startingTestId, setStartingTestId] = useState<string | null>(null);
 
   const getApiUrl = (p: string) => {
     const hostname = window.location.hostname;
@@ -220,14 +221,32 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
                     </div>
 
                     <button
-                      onClick={() => {
-                        onStartTest(test.id, test.mode, test.subject);
-                        onClose();
+                      disabled={Boolean(startingTestId)}
+                      onClick={async () => {
+                        try {
+                          setStartingTestId(test.id);
+                          await onStartTest(test.id, test.mode, test.subject);
+                          onClose();
+                        } catch (err) {
+                          console.error('[Start Test Error]:', err);
+                          onClose();
+                        } finally {
+                          setStartingTestId(null);
+                        }
                       }}
-                      className="px-4 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
+                      className="px-4 py-2 bg-saffron hover:bg-orange-500 disabled:opacity-60 text-bg-s1 text-xs font-black uppercase rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
                     >
-                      <Play className="w-3.5 h-3.5 fill-bg-s1" />
-                      <span>Start Test</span>
+                      {startingTestId === test.id ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Starting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3.5 h-3.5 fill-bg-s1" />
+                          <span>Start Test</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 ))}

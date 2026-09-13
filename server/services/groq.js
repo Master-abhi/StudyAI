@@ -31,7 +31,32 @@ function cleanGroqResponse(text, originalMessage) {
   return cleaned.trim();
 }
 
-const MODEL = 'llama-3.3-70b-versatile';
+const PREFERRED_GROQ_MODELS = [
+  process.env.GROQ_MODEL,
+  'openai/gpt-oss-120b',
+  'qwen/qwen3.6-27b',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant'
+].filter(Boolean);
+
+let cachedGroqModel = null;
+async function getGroqModel() {
+  if (cachedGroqModel) return cachedGroqModel;
+  try {
+    const list = await client.models.list();
+    const available = new Set((list.data || []).map(m => m.id));
+    for (const m of PREFERRED_GROQ_MODELS) {
+      if (available.has(m)) {
+        cachedGroqModel = m;
+        return m;
+      }
+    }
+  } catch (err) {
+    console.warn('[groq] Failed to list models, using fallback:', err.message);
+  }
+  cachedGroqModel = 'openai/gpt-oss-120b';
+  return cachedGroqModel;
+}
 
 function getLanguageInstruction(language) {
   const instructions = {
@@ -77,7 +102,7 @@ ${getLanguageInstruction(language)}
 `;
 }
 
-async function chat(message, examName, language, history = []) {
+async function chat(message, examName, language, history = [], maxTokens = 4000) {
   const allTrainingData = await getTrainingData();
   const relevantData = getRelevantTrainingData(message, allTrainingData);
   const systemPrompt = getExamSystemPrompt(examName, language) + relevantData;
@@ -101,8 +126,8 @@ async function chat(message, examName, language, history = []) {
   messages.push({ role: 'user', content: promptMessage });
 
   const response = await client.chat.completions.create({
-    model: MODEL,
-    max_tokens: 2000,
+    model: await getGroqModel(),
+    max_tokens: maxTokens || 4000,
     messages: messages
   });
 
@@ -137,8 +162,8 @@ async function chatStream(message, examName, language, history = []) {
 
   // Streamed responses will be processed chunk‑by‑chunk for cleaning
   const stream = await client.chat.completions.create({
-    model: MODEL,
-    max_tokens: 2000,
+    model: await getGroqModel(),
+    max_tokens: 4000,
     messages: messages,
     stream: true
   });
@@ -196,7 +221,7 @@ The JSON format must be exactly:
 }`;
 
   const response = await client.chat.completions.create({
-    model: MODEL,
+    model: await getGroqModel(),
     max_tokens: 4000,
     messages: [
       { role: 'system', content: `You are an expert question paper setter and chief examiner for ${examName} exam. You generate high-quality MCQs that strictly match the official exam syllabus and pattern. Every question must be factually accurate, verified against standard textbook sources, and free of ambiguity. You ONLY respond with valid JSON, never any other format.` },
@@ -292,7 +317,7 @@ Syllabus text:
 ${text}`;
 
   const response = await client.chat.completions.create({
-    model: MODEL,
+    model: await getGroqModel(),
     max_tokens: 4000,
     messages: [
       { role: 'system', content: 'You are an expert at parsing educational syllabi into structured formats. You ONLY respond with valid JSON.' },
@@ -334,7 +359,7 @@ Respond with only this JSON format:
 }`;
 
   const response = await client.chat.completions.create({
-    model: MODEL,
+    model: await getGroqModel(),
     max_tokens: 2048,
     response_format: { type: "json_object" },
     messages: [
@@ -435,7 +460,7 @@ Source: "${source || ''}"
 Respond with the exact requested JSON format. Include exactly 5 high-quality MCQs based on the content. Make sure all array fields contain real educational connections and have at least 1-3 entries.`;
 
   const response = await client.chat.completions.create({
-    model: MODEL,
+    model: await getGroqModel(),
     max_tokens: 4096,
     response_format: { type: "json_object" },
     messages: [

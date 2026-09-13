@@ -312,6 +312,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [jsonSyntaxError, setJsonSyntaxError] = useState<string>('');
   const [questionErrors, setQuestionErrors] = useState<{[key: number]: string[]}>({});
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [parsedTestTitle, setParsedTestTitle] = useState<string>('');
 
   // States for inline question editor
   const [editQId, setEditQId] = useState<string>('');
@@ -800,10 +801,17 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         const sanitized = sanitizeJsonString(uploadJsonText);
         if (!sanitized.startsWith('{') && !sanitized.startsWith('[')) {
           setParsedPreviewQuestions([]);
+          setParsedTestTitle('');
           return;
         }
         
         const parsed = JSON.parse(sanitized);
+        if (parsed && !Array.isArray(parsed) && parsed.title) {
+          setParsedTestTitle(String(parsed.title).trim());
+        } else {
+          setParsedTestTitle('');
+        }
+
         const questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || []);
         
         if (Array.isArray(questionsArray)) {
@@ -850,9 +858,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         }
       } else {
         setParsedPreviewQuestions([]);
+        setParsedTestTitle('');
       }
     } catch (e: any) {
       setParsedPreviewQuestions([]);
+      setParsedTestTitle('');
       const sanitized = sanitizeJsonString(uploadJsonText);
       const contextualError = e.message + getJsonErrorContext(sanitized, e.message);
       setJsonSyntaxError(contextualError);
@@ -898,16 +908,24 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
         {/* Live Preview List */}
         {parsedPreviewQuestions.length > 0 && (
           <div className="flex flex-col gap-3.5 border border-border p-5 rounded-xl bg-bg-s2/40 shadow-md max-h-[450px] overflow-y-auto w-full select-text">
-            <span className="text-xs font-black uppercase text-saffron tracking-wider flex items-center justify-between gap-1.5 select-none border-b border-border/40 pb-2.5">
-              <span className="flex items-center gap-1.5">
-                <Eye className="w-4 h-4 animate-pulse" /> Pasted JSON Live Preview ({parsedPreviewQuestions.length} Qs)
-              </span>
-              {totalErrors > 0 && (
-                <span className="text-[9px] bg-redL/20 text-redL px-2 py-0.5 rounded-full border border-redL/30 font-bold uppercase tracking-wider">
-                  {totalErrors} Mistake{totalErrors > 1 ? 's' : ''} found
+            <div className="flex flex-col gap-1 border-b border-border/40 pb-2.5">
+              <div className="text-xs font-black uppercase text-saffron tracking-wider flex items-center justify-between gap-1.5 select-none">
+                <span className="flex items-center gap-1.5">
+                  <Eye className="w-4 h-4 animate-pulse" /> Pasted JSON Live Preview ({parsedPreviewQuestions.length} Qs)
                 </span>
+                {totalErrors > 0 && (
+                  <span className="text-[9px] bg-redL/20 text-redL px-2 py-0.5 rounded-full border border-redL/30 font-bold uppercase tracking-wider">
+                    {totalErrors} Mistake{totalErrors > 1 ? 's' : ''} found
+                  </span>
+                )}
+              </div>
+              {parsedTestTitle && (
+                <div className="text-[11px] text-text-muted flex items-center gap-1.5 mt-0.5">
+                  <span className="font-bold text-text uppercase text-[9px] tracking-wider bg-bg-s3 px-1.5 py-0.5 rounded border border-border">Title:</span>
+                  <span className="text-saffron font-bold truncate">{parsedTestTitle}</span>
+                </div>
               )}
-            </span>
+            </div>
             
             <div className="flex flex-col gap-5">
               {parsedPreviewQuestions.map((pq: any, pIdx: number) => {
@@ -1301,6 +1319,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
       const payload = {
         ...parsed,
+        title: parsed.title ? String(parsed.title).trim() : '',
         questions: compiledQuestions,
         examId: parsed.examId || selectedExamId,
         examName: parsed.examName || activeExam.name,
@@ -1319,7 +1338,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setSuccessMessage(`Successfully uploaded and saved exam/paper questions!`);
+        const testTitle = parsed.title ? String(parsed.title).trim() : '';
+        setSuccessMessage(`Successfully uploaded and saved exam/paper questions${testTitle ? ` ("${testTitle}")` : ''}!`);
         setUploadJsonText('');
         fetchTestsList();
       } else {
@@ -1966,6 +1986,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                       <button
                         type="button"
                         onClick={() => setUploadJsonText(JSON.stringify({
+                          title: "CGPSC SSE Mock Test 2026 - Paper 1",
                           examId: "cgpsc_sse",
                           examName: "CGPSC SSE",
                           subject: "All Subjects",
@@ -2001,7 +2022,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                     <textarea
                       value={uploadJsonText}
                       onChange={(e) => setUploadJsonText(e.target.value)}
-                      placeholder='{"examId": "...", "questions": [...]}'
+                      placeholder='{"title": "CGPSC SSE Mock Test 2026 - Paper 1", "examId": "...", "questions": [...]}'
                       className="w-full h-36 bg-bg-s3 text-[10px] font-mono text-text border border-border focus:border-saffron p-3 rounded-lg outline-none resize-none"
                       disabled={uploadLoading}
                     />

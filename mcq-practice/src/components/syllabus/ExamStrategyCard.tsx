@@ -72,7 +72,7 @@ export const ExamStrategyCard: React.FC<ExamStrategyCardProps> = ({ exam }) => {
               </tr>
             </thead>
             <tbody>
-              {exam.subjects.map((sub) => {
+              {(Array.isArray(exam?.subjects) ? exam.subjects : []).map((sub) => {
                 const questionCount = Math.round(sub.weightage / 2);
                 const importanceColors = {
                   Highest: 'bg-redL/15 text-redL border-redL/30',

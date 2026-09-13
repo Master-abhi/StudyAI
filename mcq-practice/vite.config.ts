@@ -6,35 +6,43 @@ import fs from 'fs';
 // Plugin: after build, copy the generated public/mcq-practice/index.html → public/index.html
 // This keeps the root index.html in sync with the latest bundle hashes automatically.
 function syncRootIndexPlugin() {
+  const safeCopy = (src: string, dest: string, maxAttempts = 5) => {
+    if (!fs.existsSync(src)) return;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        fs.copyFileSync(src, dest);
+        return true;
+      } catch (err: any) {
+        try {
+          const content = fs.readFileSync(src);
+          fs.writeFileSync(dest, content);
+          return true;
+        } catch (_) {}
+        if (attempt === maxAttempts) {
+          console.warn(`[sync-root-index] Could not copy ${path.basename(dest)}:`, err.message);
+          return false;
+        }
+        const waitTill = Date.now() + 100 * attempt;
+        while (Date.now() < waitTill) {}
+      }
+    }
+  };
+
   return {
     name: 'sync-root-index',
     closeBundle() {
       const src = path.resolve(__dirname, '../public/mcq-practice/index.html');
       const dest = path.resolve(__dirname, '../public/index.html');
-      if (fs.existsSync(src)) {
-        try {
-          fs.copyFileSync(src, dest);
-          console.log('[sync-root-index] Copied mcq-practice/index.html → public/index.html ✅');
-        } catch (e: any) {
-          try {
-            const content = fs.readFileSync(src, 'utf-8');
-            fs.writeFileSync(dest, content, 'utf-8');
-            console.log('[sync-root-index] Written mcq-practice/index.html → public/index.html (via writeFileSync) ✅');
-          } catch (err: any) {
-            console.warn('[sync-root-index] Could not overwrite public/index.html:', err.message);
-          }
-        }
+      if (safeCopy(src, dest)) {
+        console.log('[sync-root-index] Synced mcq-practice/index.html → public/index.html ✅');
       }
+
       const apkSrc = path.resolve(__dirname, 'public/cgguru.apk');
       const apkDest = path.resolve(__dirname, '../public/cgguru.apk');
-      if (fs.existsSync(apkSrc)) {
-        try {
-          fs.copyFileSync(apkSrc, apkDest);
-          console.log('[sync-root-index] Synced cgguru.apk → public/cgguru.apk ✅');
-        } catch (e: any) {
-          console.warn('[sync-root-index] Could not sync cgguru.apk:', e.message);
-        }
+      if (safeCopy(apkSrc, apkDest)) {
+        console.log('[sync-root-index] Synced cgguru.apk → public/cgguru.apk ✅');
       }
+
       const fontsSrc = path.resolve(__dirname, 'public/fonts');
       const fontsDest = path.resolve(__dirname, '../public/fonts');
       if (fs.existsSync(fontsSrc)) {

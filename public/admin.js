@@ -322,7 +322,7 @@ async function loadGeneratedTestsAdmin() {
       return `
         <li>
           <div>
-            <strong>${t.examName}</strong> — ${t.subject === 'all' ? 'All Subjects' : t.subject}<br>
+            <strong>${t.title || t.examName}</strong> — ${t.subject === 'all' ? 'All Subjects' : t.subject}<br>
             <small style="color: var(--text-muted);">${t.mode.toUpperCase()} • ${t.language.toUpperCase()} • ${t.totalQuestions} Qs • ${dateStr}</small>
           </div>
           <button onclick="deleteTestAdmin('${t.id}')" style="width: auto; padding: 4px 10px; margin: 0; background: var(--error); font-size: 11px;">Delete</button>
