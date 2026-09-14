@@ -472,4 +472,27 @@ Respond with the exact requested JSON format. Include exactly 5 high-quality MCQ
   return response.choices[0].message.content.trim();
 }
 
-module.exports = { chat, chatStream, generateTest, parseSyllabus, translateAndSummarizeNews, generateNewsIntelligence };
+async function generateNotesJson(systemInstruction, prompt, maxTokens = 3500) {
+  const model = await getGroqModel();
+  const response = await client.chat.completions.create({
+    model: model,
+    max_tokens: maxTokens,
+    messages: [
+      { role: 'system', content: systemInstruction },
+      { role: 'user', content: prompt }
+    ]
+  });
+
+  return response.choices[0]?.message?.content?.trim() || '';
+}
+
+module.exports = { 
+  chat, 
+  chatStream, 
+  generateTest, 
+  parseSyllabus, 
+  translateAndSummarizeNews, 
+  generateNewsIntelligence,
+  generateNotesJson 
+};
+

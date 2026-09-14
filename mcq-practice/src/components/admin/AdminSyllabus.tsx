@@ -1370,10 +1370,6 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
           topic={studioTopic.topic}
           currentUser={currentUser}
           getApiUrl={getApiUrl}
-          onAttachPdf={async (examId, topicId, file) => {
-            await handleTopicPdfUpload(examId, topicId, file);
-            setStudioTopic(null);
-          }}
           onSaveNotes={async (examId, topicId, studyNotes) => {
             await handleTopicNotesSave(examId, topicId, studyNotes);
             setStudioTopic(null);

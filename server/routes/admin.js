@@ -2711,7 +2711,7 @@ router.delete('/syllabus/:id', verifyStaffOrAdmin('syllabus'), async (req, res) 
 // POST /api/admin/syllabus/generate-notes - Generate structured CG GURU premium study notes from educator raw material
 router.post('/syllabus/generate-notes', verifyStaffOrAdmin('syllabus'), async (req, res) => {
   try {
-    const { topicName, topicNameHi, subjectName, examName, targetExams, rawMaterial } = req.body;
+    const { topicName, topicNameHi, subjectName, examName, targetExams, rawMaterial, mode, provider } = req.body;
     if (!topicName && !rawMaterial) {
       return res.status(400).json({ error: 'topicName or rawMaterial is required' });
     }
@@ -2723,7 +2723,9 @@ router.post('/syllabus/generate-notes', verifyStaffOrAdmin('syllabus'), async (r
       subjectName,
       examName,
       targetExams: Array.isArray(targetExams) ? targetExams : ['CGPSC', 'CG Vyapam', 'Chhattisgarh Police', 'SI', 'Patwari', 'Teacher', 'State Exams'],
-      rawMaterial: rawMaterial || ''
+      rawMaterial: rawMaterial || '',
+      mode: mode || 'enrich',
+      provider: provider || 'groq'
     });
 
     res.json(result);

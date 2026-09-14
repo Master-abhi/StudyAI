@@ -104,66 +104,76 @@ router.get('/custom', async (req, res) => {
 // GET /api/syllabus/topic-pdf-url - Get time-limited signed URL for a topic PDF (Students must be logged in)
 router.get('/topic-pdf-url', verifyFirebaseToken, async (req, res) => {
   try {
-    const { examId, topicId } = req.query;
-    if (!examId || !topicId) {
-      return res.status(400).json({ error: 'examId and topicId are required' });
+    const { examId, topicId, topicName, topicNameHi } = req.query;
+    if (!topicId && !topicName) {
+      return res.status(400).json({ error: 'topicId or topicName is required' });
     }
 
-    // 1. Look up exam in Firestore 'syllabi'
-    let docSnap = await db.collection('syllabi').doc(examId).get();
-    let examData = docSnap.exists ? docSnap.data() : null;
-
-    // If not found by examId directly, search all custom syllabi for this topicId
-    if (!examData) {
-      const allSyllabiSnap = await db.collection('syllabi').get();
-      allSyllabiSnap.forEach(doc => {
-        const d = doc.data();
-        if (d && Array.isArray(d.subjects)) {
-          for (const sub of d.subjects) {
-            if (Array.isArray(sub.chapters)) {
-              for (const chap of sub.chapters) {
-                if (Array.isArray(chap.topics)) {
-                  if (chap.topics.some(t => t.id === topicId)) {
-                    examData = d;
-                    break;
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-
-    if (!examData) {
-      return res.status(404).json({ error: 'Syllabus not found' });
-    }
     let targetTopic = null;
 
-    if (Array.isArray(examData.subjects)) {
-      for (const sub of examData.subjects) {
+    // Helper to find topic within an exam object
+    const findTopicInExam = (examObj) => {
+      if (!examObj || !Array.isArray(examObj.subjects)) return null;
+      for (const sub of examObj.subjects) {
         if (Array.isArray(sub.chapters)) {
           for (const chap of sub.chapters) {
             if (Array.isArray(chap.topics)) {
               for (const top of chap.topics) {
-                if (top.id === topicId) {
-                  targetTopic = top;
-                  break;
-                }
+                if (top.id === topicId) return top;
+                if (topicName && top.name && top.name.toLowerCase() === topicName.toLowerCase()) return top;
+                if (topicNameHi && top.nameHi && top.nameHi === topicNameHi) return top;
               }
             }
-            if (targetTopic) break;
           }
         }
-        if (targetTopic) break;
+        if (Array.isArray(sub.topics)) {
+          for (const top of sub.topics) {
+            if (top.id === topicId) return top;
+            if (topicName && top.name && top.name.toLowerCase() === topicName.toLowerCase()) return top;
+            if (topicNameHi && top.nameHi && top.nameHi === topicNameHi) return top;
+          }
+        }
       }
+      return null;
+    };
+
+    // 1. Look up exam in Firestore 'syllabi'
+    if (examId) {
+      let docSnap = await db.collection('syllabi').doc(examId).get();
+      if (docSnap.exists) {
+        targetTopic = findTopicInExam(docSnap.data());
+      }
+    }
+
+    // 2. Fallback: Check CG VYAPAM BASICS ('cgv_master') for the matching topic
+    if (!targetTopic || !targetTopic.pdfPath) {
+      try {
+        const masterSnap = await db.collection('syllabi').doc('cgv_master').get();
+        if (masterSnap.exists) {
+          const masterTopic = findTopicInExam(masterSnap.data());
+          if (masterTopic && masterTopic.pdfPath) {
+            targetTopic = masterTopic;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 3. Fallback: Search all custom syllabi for this topicId
+    if (!targetTopic || !targetTopic.pdfPath) {
+      const allSyllabiSnap = await db.collection('syllabi').get();
+      allSyllabiSnap.forEach(doc => {
+        if (targetTopic && targetTopic.pdfPath) return;
+        const candidate = findTopicInExam(doc.data());
+        if (candidate && candidate.pdfPath) {
+          targetTopic = candidate;
+        }
+      });
     }
 
     if (!targetTopic || !targetTopic.pdfPath) {
       return res.status(404).json({ error: 'No PDF notes attached to this topic yet.' });
     }
 
-    // 2. Generate signed URL from Supabase Storage (valid for 1 hour = 3600 seconds)
     // Short-lived signed URL (5 minutes) for in-app viewing only
     const signedUrl = await createSignedPdfUrl(targetTopic.pdfPath, 300);
 
@@ -183,13 +193,13 @@ router.get('/topic-pdf-url', verifyFirebaseToken, async (req, res) => {
 // GET /api/syllabus/topic-notes - Get formatted interactive study notes for a topic
 router.get('/topic-notes', async (req, res) => {
   try {
-    const { examId, topicId } = req.query;
-    if (!topicId) {
-      return res.status(400).json({ error: 'topicId is required' });
+    const { examId, topicId, topicName, topicNameHi } = req.query;
+    if (!topicId && !topicName && !topicNameHi) {
+      return res.status(400).json({ error: 'topicId or topicName is required' });
     }
 
-    // 1. Try fast lookup from dedicated topic_study_notes cache collection
-    if (examId) {
+    // 1. Fast lookup: Check specified exam first
+    if (examId && topicId) {
       const cachedSnap = await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).get();
       if (cachedSnap.exists) {
         const data = cachedSnap.data();
@@ -204,73 +214,93 @@ router.get('/topic-notes', async (req, res) => {
       }
     }
 
-    // 1b. Fallback: Search topic_study_notes by topicId across all exams
-    try {
-      const topicNotesQuery = await db.collection('topic_study_notes').where('topicId', '==', topicId).limit(1).get();
-      if (!topicNotesQuery.empty) {
-        const data = topicNotesQuery.docs[0].data();
-        if (data && data.studyNotes) {
-          return res.json({
-            success: true,
-            studyNotes: desanitizeFromFirestore(data.studyNotes),
-            topicId,
-            examId: data.examId || examId
-          });
-        }
-      }
-    } catch (qErr) {
-      console.warn('[topic_study_notes query warn]:', qErr.message);
-    }
-
-    // 2. Fallback to syllabus collection
-    let examData = null;
-    if (examId) {
-      const docSnap = await db.collection('syllabi').doc(examId).get();
-      if (docSnap.exists) examData = docSnap.data();
-    }
-
-    if (!examData) {
-      const allSyllabiSnap = await db.collection('syllabi').get();
-      allSyllabiSnap.forEach(doc => {
-        const d = doc.data();
-        if (d && Array.isArray(d.subjects)) {
-          for (const sub of d.subjects) {
-            if (Array.isArray(sub.chapters)) {
-              for (const chap of sub.chapters) {
-                if (Array.isArray(chap.topics) && chap.topics.some(t => t.id === topicId)) {
-                  examData = d;
-                  break;
-                }
-              }
-            }
-            if (examData) break;
+    // 2. Automatic Cross-Exam Access: Check CG VYAPAM BASICS ('cgv_master') by topicId
+    if (topicId) {
+      try {
+        const masterSnap = await db.collection('topic_study_notes').doc(`cgv_master_${topicId}`).get();
+        if (masterSnap.exists) {
+          const data = masterSnap.data();
+          if (data && data.studyNotes) {
+            return res.json({
+              success: true,
+              studyNotes: desanitizeFromFirestore(data.studyNotes),
+              topicId,
+              examId: 'cgv_master',
+              inheritedFrom: 'CG VYAPAM BASICS'
+            });
           }
         }
-      });
+      } catch (_) {}
     }
 
-    if (!examData) {
-      return res.status(404).json({ error: 'Syllabus or topic not found' });
+    // 3. Fallback: Search topic_study_notes by topicId across all exams
+    if (topicId) {
+      try {
+        const topicNotesQuery = await db.collection('topic_study_notes').where('topicId', '==', topicId).limit(1).get();
+        if (!topicNotesQuery.empty) {
+          const data = topicNotesQuery.docs[0].data();
+          if (data && data.studyNotes) {
+            return res.json({
+              success: true,
+              studyNotes: desanitizeFromFirestore(data.studyNotes),
+              topicId,
+              examId: data.examId || examId
+            });
+          }
+        }
+      } catch (qErr) {
+        console.warn('[topic_study_notes query warn]:', qErr.message);
+      }
     }
 
+    // 4. Fallback to syllabus collection in Firestore
     let targetTopic = null;
-    if (Array.isArray(examData.subjects)) {
-      for (const sub of examData.subjects) {
+    let foundExamId = examId;
+
+    const findTopicInDoc = (examObj) => {
+      if (!examObj || !Array.isArray(examObj.subjects)) return null;
+      for (const sub of examObj.subjects) {
         if (Array.isArray(sub.chapters)) {
           for (const chap of sub.chapters) {
             if (Array.isArray(chap.topics)) {
               for (const top of chap.topics) {
-                if (top.id === topicId) {
-                  targetTopic = top;
-                  break;
-                }
+                if (top.id === topicId) return top;
+                if (topicName && top.name && top.name.toLowerCase() === topicName.toLowerCase()) return top;
+                if (topicNameHi && top.nameHi && top.nameHi === topicNameHi) return top;
               }
             }
-            if (targetTopic) break;
           }
         }
-        if (targetTopic) break;
+        if (Array.isArray(sub.topics)) {
+          for (const top of sub.topics) {
+            if (top.id === topicId) return top;
+            if (topicName && top.name && top.name.toLowerCase() === topicName.toLowerCase()) return top;
+            if (topicNameHi && top.nameHi && top.nameHi === topicNameHi) return top;
+          }
+        }
       }
+      return null;
+    };
+
+    if (examId) {
+      const docSnap = await db.collection('syllabi').doc(examId).get();
+      if (docSnap.exists) {
+        targetTopic = findTopicInDoc(docSnap.data());
+      }
+    }
+
+    // 5. Automatic CG VYAPAM BASICS check in syllabi collection
+    if (!targetTopic || !targetTopic.studyNotes) {
+      try {
+        const masterSnap = await db.collection('syllabi').doc('cgv_master').get();
+        if (masterSnap.exists) {
+          const masterCandidate = findTopicInDoc(masterSnap.data());
+          if (masterCandidate && masterCandidate.studyNotes) {
+            targetTopic = masterCandidate;
+            foundExamId = 'cgv_master';
+          }
+        }
+      } catch (_) {}
     }
 
     if (!targetTopic || !targetTopic.studyNotes) {
@@ -280,8 +310,8 @@ router.get('/topic-notes', async (req, res) => {
     res.json({
       success: true,
       studyNotes: desanitizeFromFirestore(targetTopic.studyNotes),
-      topicId,
-      examId: examData.id
+      topicId: targetTopic.id || topicId,
+      examId: foundExamId
     });
   } catch (err) {
     console.error('[Get Topic Study Notes Error]:', err.message);
@@ -405,17 +435,55 @@ router.get('/topic-tests', async (req, res) => {
       return res.json({ success: true, tests: [] });
     }
 
-    // Fetch tests from Firestore
-    const snapshot = await db.collection('tests').get();
+    // Fetch tests from Firestore (with fallback/supplement from cached files)
+    const rawTests = [];
+    try {
+      const snapshot = await db.collection('tests').get();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data) rawTests.push({ ...data, id: data.id || doc.id });
+      });
+    } catch (dbErr) {
+      console.warn('[topic-tests DB Warning]:', dbErr.message);
+    }
+
+    // Load from local tests cache for CG VYAPAM BASICS and all tests
+    const fs = require('fs');
+    const path = require('path');
+    const cacheFiles = [
+      path.join(__dirname, '../data_cache/tests_cgv_master.json'),
+      path.join(__dirname, '../data_cache/tests_all.json')
+    ];
+    for (const cf of cacheFiles) {
+      if (fs.existsSync(cf)) {
+        try {
+          const cached = JSON.parse(fs.readFileSync(cf, 'utf8'));
+          if (Array.isArray(cached)) {
+            for (const ct of cached) {
+              if (ct && !rawTests.some(t => t.id === ct.id)) {
+                rawTests.push(ct);
+              }
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
     const matchingTests = [];
 
-    snapshot.forEach(doc => {
-      const t = doc.data();
+    rawTests.forEach(t => {
       if (!t) return;
 
       const title = (t.title || '').toLowerCase();
       const subject = (t.subject || '').toLowerCase();
-      const examMatch = !examId || t.examId === examId || (Array.isArray(t.examIds) && t.examIds.includes(examId));
+      
+      // Automatic cross-exam access: CG VYAPAM BASICS ('cgv_master') tests are accessible to all exams!
+      const examMatch = !examId || 
+        t.examId === examId || 
+        (Array.isArray(t.examIds) && t.examIds.includes(examId)) ||
+        t.examId === 'cgv_master' || 
+        t.examName === 'CG VYAPAM BASICS' ||
+        (Array.isArray(t.examIds) && (t.examIds.includes('cgv_master') || t.examIds.includes('CG VYAPAM BASICS')));
 
       let matched = false;
       let matchScore = 0;
@@ -452,7 +520,7 @@ router.get('/topic-tests', async (req, res) => {
 
       if (matched && examMatch) {
         matchingTests.push({
-          id: t.id || doc.id,
+          id: t.id,
           title: t.title || `${t.subject || 'Practice'} ${t.mode === 'mock' ? 'Mock Test' : t.mode === 'pyq' ? 'PYQ Paper' : 'Quiz'}`,
           subject: t.subject || 'General Knowledge',
           mode: t.mode || 'quiz',

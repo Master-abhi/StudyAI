@@ -535,7 +535,66 @@ const DETAILED_EXAMS_DATA: Exam[] = [
   }
 ];
 
-const mapOldExamToNew = (oldId: string, oldExam: any): Exam => {
+const buildMasterTopicsMap = (merged: Record<string, any>): Map<string, any> => {
+  const map = new Map<string, any>();
+  const masterExam = merged['cgv_master'];
+  if (!masterExam || !Array.isArray(masterExam.subjects)) return map;
+
+  masterExam.subjects.forEach((sub: any) => {
+    if (Array.isArray(sub.chapters)) {
+      sub.chapters.forEach((ch: any) => {
+        if (Array.isArray(ch.topics)) {
+          ch.topics.forEach((t: any) => {
+            if (!t) return;
+            if (t.id) map.set(t.id, t);
+            if (t.name) map.set(t.name.toLowerCase().trim(), t);
+            if (t.nameHi) map.set(t.nameHi.trim(), t);
+          });
+        }
+      });
+    }
+    if (Array.isArray(sub.topics)) {
+      sub.topics.forEach((t: any) => {
+        if (!t) return;
+        if (t.id && !map.has(t.id)) map.set(t.id, t);
+        if (t.name && !map.has(t.name.toLowerCase().trim())) map.set(t.name.toLowerCase().trim(), t);
+        if (t.nameHi && !map.has(t.nameHi.trim())) map.set(t.nameHi.trim(), t);
+      });
+    }
+  });
+
+  return map;
+};
+
+const mapTopicWithMaster = (t: any, defaultId: string, masterMap: Map<string, any>): Topic => {
+  const master = masterMap.get(t.id) || 
+                 (t.name ? masterMap.get(t.name.toLowerCase().trim()) : null) || 
+                 (t.nameHi ? masterMap.get(t.nameHi.trim()) : null);
+
+  const hasStudyNotes = Boolean(
+    t.hasStudyNotes || 
+    t.studyNotes || 
+    master?.hasStudyNotes || 
+    master?.studyNotes
+  );
+
+  return {
+    id: t.id || master?.id || defaultId,
+    name: t.name || master?.name || '',
+    nameHi: t.nameHi || master?.nameHi || t.name || '',
+    subtopics: (Array.isArray(t.subtopics) && t.subtopics.length > 0) ? t.subtopics : (master?.subtopics || []),
+    importanceScore: t.importanceScore || master?.importanceScore || 7,
+    pdfPath: t.pdfPath || master?.pdfPath,
+    pdfName: t.pdfName || master?.pdfName,
+    pdfSize: t.pdfSize || master?.pdfSize,
+    pdfUpdatedAt: t.pdfUpdatedAt || master?.pdfUpdatedAt,
+    studyNotes: t.studyNotes || master?.studyNotes,
+    hasStudyNotes,
+    notesUpdatedAt: t.notesUpdatedAt || master?.notesUpdatedAt
+  };
+};
+
+const mapOldExamToNew = (oldId: string, oldExam: any, masterMap: Map<string, any>): Exam => {
   return {
     id: oldId,
     name: oldExam.name,
@@ -546,16 +605,18 @@ const mapOldExamToNew = (oldId: string, oldExam: any): Exam => {
     totalMarks: oldExam.pattern?.totalMarks || 100,
     subjects: (oldExam.subjects || []).map((sub: any, subIdx: number) => {
       let chapters: Chapter[] = [];
-      if (sub.chapters) {
-        chapters = sub.chapters;
-      } else {
-        const topics = (sub.topics || []).map((t: any, tIdx: number) => ({
-          id: t.id || `${oldId}-${subIdx}-${tIdx}`,
-          name: t.name,
-          nameHi: t.nameHi || t.name,
-          subtopics: t.subtopics || [],
-          importanceScore: t.importanceScore || 7
+      if (sub.chapters && Array.isArray(sub.chapters) && sub.chapters.length > 0) {
+        chapters = sub.chapters.map((ch: any) => ({
+          id: ch.id || `${oldId}_ch_${subIdx}`,
+          name: ch.name,
+          topics: (ch.topics || []).map((t: any, tIdx: number) => 
+            mapTopicWithMaster(t, `${oldId}-${subIdx}-${ch.id}-${tIdx}`, masterMap)
+          )
         }));
+      } else {
+        const topics = (sub.topics || []).map((t: any, tIdx: number) => 
+          mapTopicWithMaster(t, `${oldId}-${subIdx}-${tIdx}`, masterMap)
+        );
         chapters = [
           {
             id: `${oldId}_sub_${subIdx}_default`,
@@ -580,14 +641,15 @@ const mapOldExamToNew = (oldId: string, oldExam: any): Exam => {
 
 const getDynamicExams = (): Exam[] => {
   const list: Exam[] = [];
-  const cgpscData = (window as any).CGPSC_EXAM_DATA || {};
-  const vyapamData = (window as any).SYLLABUS_DATA || {};
+  const cgpscData = (typeof window !== 'undefined' && (window as any).CGPSC_EXAM_DATA) || {};
+  const vyapamData = (typeof window !== 'undefined' && (window as any).SYLLABUS_DATA) || {};
   
   const merged = { ...cgpscData, ...vyapamData };
+  const masterMap = buildMasterTopicsMap(merged);
   
   Object.entries(merged).forEach(([examId, oldExam]: [string, any]) => {
     try {
-      list.push(mapOldExamToNew(examId, oldExam));
+      list.push(mapOldExamToNew(examId, oldExam, masterMap));
     } catch (e) {
       console.error('Failed to map old exam:', examId, e);
     }

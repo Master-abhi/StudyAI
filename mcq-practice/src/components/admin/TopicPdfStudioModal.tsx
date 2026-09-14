@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  X, Sparkles, Printer, Download, UploadCloud, 
+  X, Sparkles, Printer,
   Loader2, CheckCircle2, AlertCircle, FileText, ArrowLeft,
   Award, BookOpen, Bold, Italic, Table, List, 
   ListOrdered, ClipboardPaste, Eye, Code, Trash2
 } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import { formatNotesContent } from '../syllabus/TopicNotesReaderModal';
 
 // Cleans pasted HTML from Word, Excel, Docs, or Web
 function sanitizePastedHtml(html: string): string {
@@ -202,7 +201,264 @@ function markdownToHtml(md: string): string {
   return html;
 }
 
-interface TopicPdfStudioModalProps {
+// Reconstruct markdown from existing structured notes so user can easily edit them
+function reconstructMarkdownFromStudyNotes(notes: any): string {
+  if (!notes || typeof notes !== 'object') return '';
+  const parts: string[] = [];
+
+  if (notes.overview?.introduction) {
+    parts.push(`## परिचय (Introduction)\n${notes.overview.introduction}`);
+  }
+  if (Array.isArray(notes.overview?.quickFacts) && notes.overview.quickFacts.length > 0) {
+    parts.push(`## महत्वपूर्ण तथ्य (Quick Facts)\n` + notes.overview.quickFacts.map((f: string) => `- ${f}`).join('\n'));
+  }
+
+  if (Array.isArray(notes.chapters)) {
+    notes.chapters.forEach((chap: any, cIdx: number) => {
+      parts.push(`# ${chap.chapterTitle || `अध्याय ${cIdx + 1}`}`);
+      if (chap.description) parts.push(chap.description);
+      if (chap.examFocus) parts.push(`**परीक्षा फोकस:** ${chap.examFocus}`);
+
+      if (Array.isArray(chap.sections)) {
+        chap.sections.forEach((sec: any) => {
+          parts.push(`## ${sec.heading || 'मुख्य विवरण'}`);
+          if (sec.content) parts.push(formatNotesContent(sec.content));
+          if (sec.conceptCard) parts.push(`> 💡 **संकल्पना:** ${sec.conceptCard}`);
+          if (sec.importantFactCard) parts.push(`> ⭐ **महत्वपूर्ण तथ्य:** ${sec.importantFactCard}`);
+        });
+      }
+
+      if (Array.isArray(chap.tables)) {
+        chap.tables.forEach((tbl: any) => {
+          if (tbl.title) parts.push(`### ${tbl.title}`);
+          if (Array.isArray(tbl.headers) && tbl.headers.length > 0) {
+            const hLine = `| ${tbl.headers.join(' | ')} |`;
+            const sLine = `| ${tbl.headers.map(() => '---').join(' | ')} |`;
+            const rLines = (tbl.rows || []).map((r: any) => `| ${getRowCells(r).join(' | ')} |`);
+            parts.push([hLine, sLine, ...rLines].join('\n'));
+          }
+        });
+      }
+    });
+  }
+
+  if (Array.isArray(notes.oneLinerRevision) && notes.oneLinerRevision.length > 0) {
+    parts.push(`## एक पंक्ति में त्वरित दोहराव (One-Liner Revision)\n` + notes.oneLinerRevision.map((f: string) => `- ${f}`).join('\n'));
+  }
+
+  if (Array.isArray(notes.confusionBuster) && notes.confusionBuster.length > 0) {
+    parts.push(`## अक्सर होने वाले भ्रम (Confusion Buster)\n` + notes.confusionBuster.map((c: any) => `- अक्सर भ्रम: ${c.oftenConfused} => सही तथ्य: ${c.correctInformation}`).join('\n'));
+  }
+
+  if (Array.isArray(notes.pyqSection) && notes.pyqSection.length > 0) {
+    parts.push(`## विगत वर्षों में पूछे गए प्रश्न (PYQs)\n` + notes.pyqSection.map((p: any) => `### ${p.examYear || 'PYQ'}: ${p.question}\n**उत्तर:** ${p.answer}`).join('\n\n'));
+  }
+
+  if (Array.isArray(notes.mcqs) && notes.mcqs.length > 0) {
+    parts.push(`## अभ्यास प्रश्न (MCQs)\n` + notes.mcqs.map((m: any, idx: number) => {
+      const opts = Array.isArray(m.options) ? m.options.join('\n') : '';
+      return `Q${idx + 1}. ${m.q}\n${opts}\n**सही उत्तर:** ${m.correct}\n**व्याख्या:** ${m.explanation || ''}`;
+    }).join('\n\n'));
+  }
+
+  return parts.join('\n\n');
+}
+
+// 100% Client-side instant notes structuring (0 AI Token)
+function structureStudyNotesFromContent(
+  tName: string,
+  tHi: string,
+  sName: string,
+  targetExams: string[],
+  rawContent: string
+): any {
+  let cleanRaw = rawContent.trim();
+  // Clean accidental raw JSON leakage
+  if (cleanRaw.includes('{"') || cleanRaw.includes('"}') || cleanRaw.includes('"title"')) {
+    cleanRaw = cleanRaw
+      .replace(/^[ \t]*["{}[\]]+[ \t]*/gm, '')
+      .replace(/"[a-zA-Z0-9_-]+":\s*/g, '')
+      .replace(/["\\]/g, '');
+  }
+
+  // Extract all markdown tables
+  const tableMatches = cleanRaw.match(/((?:\|[^\n]+\|\r?\n)+)/g);
+  const parsedTables: any[] = [];
+  if (tableMatches) {
+    tableMatches.forEach((tblBlock, idx) => {
+      const rows = tblBlock.trim().split(/\r?\n/).filter(r => !r.includes('---'));
+      if (rows.length >= 2) {
+        const headers = rows[0].split('|').map(c => c.trim()).filter(Boolean);
+        const dataRows = rows.slice(1).map(r => r.split('|').map(c => c.trim()).filter(Boolean));
+        parsedTables.push({
+          title: `तालिका ${idx + 1}: महत्वपूर्ण तुलनात्मक विश्लेषण`,
+          headers,
+          rows: dataRows
+        });
+      }
+    });
+  }
+
+  // Extract MCQs if present in text
+  const extractedMcqs: any[] = [];
+  const mcqBlocks = cleanRaw.match(/(?:(?:प्रश्न|Q\s*\.?\s*\d+|सवाल)[:\s][\s\S]*?(?=(?:(?:प्रश्न|Q\s*\.?\s*\d+|सवाल)[:\s]|$)))/gi);
+  if (mcqBlocks && mcqBlocks.length > 0) {
+    mcqBlocks.forEach(blk => {
+      const qLine = blk.match(/(?:(?:प्रश्न|Q\s*\.?\s*\d+|सवाल)[:\s]*)([^\n]+)/i)?.[1]?.trim();
+      const options = blk.match(/(?:[A-D\u0915-\u0918][\.\)]|\([A-D\u0915-\u0918]\))\s*[^\n]+/gi);
+      const correctMatch = blk.match(/(?:उत्तर|सही उत्तर|Correct|Ans(?:wer)?)\s*[:=]\s*([A-D\u0915-\u0918])/i);
+      const explMatch = blk.match(/(?:व्याख्या|Explanation)\s*[:=]\s*([^\n]+)/i);
+
+      if (qLine && options && options.length >= 2) {
+        extractedMcqs.push({
+          q: qLine,
+          options: options.map(o => o.trim()),
+          correct: correctMatch ? correctMatch[1].toUpperCase() : 'A',
+          explanation: explMatch ? explMatch[1].trim() : 'मानक संदर्भ एवं पाठ्यक्रम के अनुसार प्रमाणित उत्तर।'
+        });
+      }
+    });
+  }
+
+  // Extract PYQs if present in text
+  const extractedPyqs: any[] = [];
+  const pyqMatches = cleanRaw.match(/(?:(?:CGPSC|CG Vyapam|विगत वर्ष|PYQ)[\s\d\-]*[:\s][^\n]+)/gi);
+  if (pyqMatches && pyqMatches.length > 0) {
+    pyqMatches.forEach(item => {
+      const parts = item.split(/[:\-]/);
+      extractedPyqs.push({
+        examYear: parts[0]?.trim() || 'CGPSC / CG Vyapam',
+        question: parts.slice(1).join(':').trim(),
+        answer: 'विगत परीक्षा में पूछा गया महत्वपूर्ण प्रश्न।'
+      });
+    });
+  }
+
+  // All non-empty lines
+  const lines = cleanRaw
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean);
+
+  // Extract bullets for quick facts & one-liners
+  const bulletLines = lines
+    .filter(l => l.startsWith('-') || l.startsWith('*') || l.startsWith('•') || /^\d+[.)]/.test(l))
+    .map(l => l.replace(/^[-*•\d.]+\s*/, '').trim())
+    .filter(l => l.length > 8);
+
+  const quickFacts = bulletLines.slice(0, 8).length > 0 
+    ? bulletLines.slice(0, 8) 
+    : lines.slice(0, 6).map(l => l.replace(/^[-*•#\d.]+\s*/, ''));
+
+  const oneLiners = bulletLines.length > 5 
+    ? bulletLines.slice(0, 25) 
+    : lines.slice(0, 20).map(l => l.replace(/^[-*•#\d.]+\s*/, ''));
+
+  // Split into Chapters and Sections
+  const chapterChunks: { title: string; body: string }[] = [];
+  const h1Splits = cleanRaw.split(/\n(?=#\s+[^\n]+)/);
+
+  if (h1Splits.length > 1) {
+    h1Splits.forEach((chunk, idx) => {
+      const match = chunk.match(/^#\s+([^\n]+)/);
+      const title = match ? match[1].trim() : `अध्याय ${idx + 1}`;
+      const body = chunk.replace(/^#\s+[^\n]+\n?/, '').trim();
+      chapterChunks.push({ title, body });
+    });
+  } else {
+    const h2Splits = cleanRaw.split(/\n(?=##\s+[^\n]+)/);
+    if (h2Splits.length > 2) {
+      h2Splits.forEach((chunk, idx) => {
+        const match = chunk.match(/^##\s+([^\n]+)/);
+        const title = match ? match[1].trim() : `अध्याय ${idx + 1}`;
+        const body = chunk.replace(/^##\s+[^\n]+\n?/, '').trim();
+        chapterChunks.push({ title, body });
+      });
+    } else {
+      chapterChunks.push({
+        title: tHi || tName,
+        body: cleanRaw
+      });
+    }
+  }
+
+  const chapters = chapterChunks.map((chap, cIdx) => {
+    const secSplits = chap.body.split(/\n(?=(?:###?|\*\*)\s*[^#\n]+)/);
+    const sections: any[] = [];
+
+    if (secSplits.length > 1) {
+      secSplits.forEach((sChunk, sIdx) => {
+        const hMatch = sChunk.match(/^(?:###?\s*|\*\*)([^\n*]+)(?:\*\*)?/);
+        const heading = hMatch ? hMatch[1].trim() : `भाग ${sIdx + 1}: मुख्य विवरण`;
+        let secContent = sChunk.replace(/^(?:###?\s*|\*\*)[^\n]+(?:\*\*)?\n?/, '').trim();
+        if (!secContent) secContent = sChunk.trim();
+
+        let factCard = '';
+        let conceptCard = '';
+        const linesInSec = secContent.split('\n').map(l => l.trim()).filter(Boolean);
+        for (const line of linesInSec) {
+          if (!factCard && (line.includes('महत्वपूर्ण') || line.includes('विशेष') || line.includes('नोट:'))) {
+            factCard = line.replace(/^[->*#•\s]+/, '').trim();
+          }
+          if (!conceptCard && (line.includes('अवधारणा') || line.includes('सिद्धांत') || line.includes('उद्देश्य'))) {
+            conceptCard = line.replace(/^[->*#•\s]+/, '').trim();
+          }
+        }
+
+        sections.push({
+          heading,
+          content: formatNotesContent(secContent),
+          conceptCard: conceptCard || undefined,
+          importantFactCard: factCard || undefined
+        });
+      });
+    } else {
+      sections.push({
+        heading: 'अवधारणा एवं विस्तृत विश्लेषण',
+        content: formatNotesContent(chap.body),
+        importantFactCard: 'सभी तिथियों, आंकड़ों, नामों एवं प्रमाणिक संदर्भों को सावधानीपूर्वक याद रखें।'
+      });
+    }
+
+    const chapTables = parsedTables.slice(cIdx * 2, (cIdx + 1) * 2);
+
+    return {
+      chapterNumber: String(cIdx + 1).padStart(2, '0'),
+      chapterTitle: chap.title,
+      description: 'मुख्य अवधारणाएं एवं परीक्षा उपयोगी तथ्य',
+      examFocus: 'तथ्यों, कालक्रम, प्रमुख व्यक्तियों और प्रावधानों पर आधारित प्रश्न पूछे जाते हैं।',
+      sections,
+      tables: chapTables.length > 0 ? chapTables : undefined
+    };
+  });
+
+  return {
+    title: tName,
+    titleHi: tHi || tName,
+    subject: sName,
+    subtitle: 'Interactive Study Notes',
+    targetExams: targetExams.join(' • '),
+    overview: {
+      introduction: lines.slice(0, 3).join(' ') || `यह अध्ययन सामग्री ${tHi || tName} विषय पर केंद्रित है।`,
+      quickFacts: quickFacts.slice(0, 8)
+    },
+    chapters,
+    tables: parsedTables.length > 0 ? parsedTables : undefined,
+    oneLinerRevision: oneLiners.slice(0, 25),
+    confusionBuster: [],
+    pyqSection: extractedPyqs,
+    mcqs: extractedMcqs,
+    rapidRevision: oneLiners.slice(0, 10),
+    checklist: [
+      'महत्वपूर्ण तिथियां एवं कालक्रम का पुनरीक्षण पूर्ण',
+      'प्रमुख स्थान, व्यक्ति एवं भौगोलिक तथ्य याद किए',
+      'सभी अभ्यास प्रश्नों (MCQs) का अभ्यास पूर्ण'
+    ],
+    sources: ['छत्तीसगढ़ संदर्भ एवं ग्रंथ अकादमी', 'आधिकारिक शासकीय गजट', 'CG GURU रिसर्च टीम']
+  };
+}
+
+export interface TopicPdfStudioModalProps {
   isOpen: boolean;
   onClose: () => void;
   examId: string;
@@ -213,10 +469,14 @@ interface TopicPdfStudioModalProps {
     name: string;
     nameHi?: string;
     subtopics?: string[];
+    hasStudyNotes?: boolean;
+    studyNotes?: any;
+    pdfPath?: string;
+    pdfName?: string;
+    pdfSize?: number;
   };
   currentUser: any;
   getApiUrl: (path: string) => string;
-  onAttachPdf: (examId: string, topicId: string, file: File) => Promise<void>;
   onSaveNotes?: (examId: string, topicId: string, studyNotes: any) => Promise<void>;
 }
 
@@ -229,7 +489,6 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
   topic,
   currentUser,
   getApiUrl,
-  onAttachPdf,
   onSaveNotes
 }) => {
   const [activeView, setActiveView] = useState<'editor' | 'preview'>('editor');
@@ -240,11 +499,11 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
     'CGPSC', 'CG Vyapam', 'Chhattisgarh Police', 'SI', 'Patwari', 'Teacher', 'Other State Exams'
   ]);
   const [rawMaterial, setRawMaterial] = useState<string>('');
+  const [genMode, setGenMode] = useState<'enrich_groq' | 'enrich_gemini' | 'full_groq' | 'local'>('enrich_groq');
 
   // Generation & saving states
   const [generating, setGenerating] = useState<boolean>(false);
-  const [exportingPdf, setExportingPdf] = useState<boolean>(false);
-  const [attachingToTopic, setAttachingToTopic] = useState<boolean>(false);
+  const [enrichingMcqs, setEnrichingMcqs] = useState<boolean>(false);
   const [savingNotes, setSavingNotes] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
@@ -256,10 +515,28 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
   const richEditorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen && richEditorRef.current && rawMaterial && !richEditorRef.current.innerHTML) {
-      richEditorRef.current.innerHTML = markdownToHtml(rawMaterial);
+    if (isOpen) {
+      setTopicName(topic.name);
+      setTopicNameHi(topic.nameHi || topic.name);
+
+      if (topic?.studyNotes && typeof topic.studyNotes === 'object') {
+        setStudyData(topic.studyNotes);
+        setActiveView('preview');
+        if (!rawMaterial) {
+          const reconstructed = reconstructMarkdownFromStudyNotes(topic.studyNotes);
+          setRawMaterial(reconstructed);
+          if (richEditorRef.current) {
+            richEditorRef.current.innerHTML = markdownToHtml(reconstructed);
+          }
+        }
+      } else {
+        setActiveView('editor');
+        if (richEditorRef.current && rawMaterial && !richEditorRef.current.innerHTML) {
+          richEditorRef.current.innerHTML = markdownToHtml(rawMaterial);
+        }
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, topic]);
 
   if (!isOpen) return null;
 
@@ -426,17 +703,37 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
       return;
     }
 
-    try {
-      setGenerating(true);
-      setErrorMessage('');
-      setSuccessMessage('');
+    setGenerating(true);
+    setErrorMessage('');
+    setSuccessMessage('');
 
-      const token = await currentUser.getIdToken();
+    try {
+      if (genMode === 'local') {
+        // 100% Client-side instant notes generation (0 AI Token used)
+        const structuredNotes = structureStudyNotesFromContent(
+          topicName,
+          topicNameHi,
+          subjectName,
+          targetExams,
+          contentToSend
+        );
+
+        setStudyData(structuredNotes);
+        setActiveView('preview');
+        setSuccessMessage('Notes formatted locally (0 AI Token used)! 📖✨');
+        return;
+      }
+
+      // AI Generation via Backend (Groq / Gemini)
+      const token = await currentUser?.getIdToken?.();
+      const mode = genMode.startsWith('enrich') ? 'enrich' : 'full';
+      const provider = genMode.includes('gemini') ? 'gemini' : 'groq';
+
       const res = await fetch(getApiUrl('/api/admin/syllabus/generate-notes'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           topicName,
@@ -444,146 +741,101 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
           subjectName,
           examName,
           targetExams,
-          rawMaterial: contentToSend
+          rawMaterial: contentToSend,
+          mode,
+          provider
         })
       });
 
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to generate study notes');
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate study notes with AI');
       }
 
-      let parsedData = data.structured;
-      if (!parsedData && data.rawText) {
-        try {
-          let t = data.rawText.trim();
-          if (t.startsWith('```')) {
-            t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-          }
-          const m = t.match(/\{[\s\S]*\}/);
-          if (m) t = m[0].trim();
-          parsedData = JSON.parse(t);
-        } catch {
-          parsedData = null;
-        }
-      }
-
-      if (parsedData && typeof parsedData === 'object' && (parsedData.title || parsedData.chapters)) {
-        setStudyData(parsedData);
+      if (data.structured) {
+        setStudyData(data.structured);
+        setActiveView('preview');
+        setSuccessMessage(
+          provider === 'groq'
+            ? 'High-quality notes generated via Groq AI (0 Gemini Token used)! 🚀'
+            : 'High-quality notes generated via AI (Token-optimized)! 📖✨'
+        );
       } else {
-        setStudyData(createFallbackStructure(topicName, topicNameHi, subjectName, contentToSend, data.rawText));
+        throw new Error('Could not parse AI response');
       }
-
-      setActiveView('preview');
-      setSuccessMessage('CG GURU Study Module generated successfully! 🎓');
     } catch (err: any) {
-      console.error('[Generate Notes Error]:', err);
-      setErrorMessage(err.message || 'Error occurred while generating notes.');
+      console.warn('[Generate Notes AI Error - Falling back to local format]:', err);
+      // Graceful fallback to local parser
+      const structuredNotes = structureStudyNotesFromContent(
+        topicName,
+        topicNameHi,
+        subjectName,
+        targetExams,
+        contentToSend
+      );
+      setStudyData(structuredNotes);
+      setActiveView('preview');
+      setErrorMessage(`AI Call failed (${err.message}). Formatted locally instead! You can click "AI Enrich" to add MCQs.`);
     } finally {
       setGenerating(false);
     }
   };
 
-  const createFallbackStructure = (tName: string, tHi: string, sName: string, raw: string, aiText?: string) => {
-    let text = aiText || raw;
-    // Clean any accidentally leaked JSON syntax
-    if (text.includes('{"') || text.includes('"}') || text.includes('"title"')) {
-      text = text
-        .replace(/^[ \t]*["{}[\]]+[ \t]*/gm, '')
-        .replace(/"[a-zA-Z0-9_-]+":\s*/g, '')
-        .replace(/["\\]/g, '');
+  const handleEnrichWithAi = async (provider: 'groq' | 'gemini' = 'groq') => {
+    let contentToSend = rawMaterial.trim();
+    if (inputMode === 'rich' && richEditorRef.current) {
+      const currentHtml = richEditorRef.current.innerHTML;
+      if (currentHtml && currentHtml !== '<br>') {
+        contentToSend = htmlToMarkdown(currentHtml).trim();
+      }
     }
 
-    const lines = text
-      .split('\n')
-      .map(l => l.trim())
-      .filter(l => Boolean(l) && !/^[,\s{}[\]"':]+$/.test(l));
+    setEnrichingMcqs(true);
+    setErrorMessage('');
+    setSuccessMessage('');
 
-    // Extract tables from text if present
-    const tableMatches = text.match(/((?:\|[^\n]+\|\r?\n)+)/g);
-    const tables: any[] = [];
-    if (tableMatches) {
-      tableMatches.forEach((tblBlock, idx) => {
-        const rows = tblBlock.trim().split(/\r?\n/).filter(r => !r.includes('---'));
-        if (rows.length >= 2) {
-          const headers = rows[0].split('|').map(c => c.trim()).filter(Boolean);
-          const dataRows = rows.slice(1).map(r => r.split('|').map(c => c.trim()).filter(Boolean));
-          tables.push({
-            title: `तालिका ${idx + 1}: महत्वपूर्ण तुलनात्मक विश्लेषण`,
-            headers,
-            rows: dataRows
-          });
-        }
+    try {
+      const token = await currentUser?.getIdToken?.();
+      const res = await fetch(getApiUrl('/api/admin/syllabus/generate-notes'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          topicName,
+          topicNameHi,
+          subjectName,
+          examName,
+          targetExams,
+          rawMaterial: contentToSend || reconstructMarkdownFromStudyNotes(studyData),
+          mode: 'enrich',
+          provider
+        })
       });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Enrichment failed');
+
+      if (data.structured) {
+        setStudyData((prev: any) => {
+          if (!prev) return data.structured;
+          return {
+            ...prev,
+            mcqs: (Array.isArray(data.structured.mcqs) && data.structured.mcqs.length > 0) ? data.structured.mcqs : prev.mcqs,
+            oneLinerRevision: (Array.isArray(data.structured.oneLinerRevision) && data.structured.oneLinerRevision.length > 0) ? data.structured.oneLinerRevision : prev.oneLinerRevision,
+            confusionBuster: (Array.isArray(data.structured.confusionBuster) && data.structured.confusionBuster.length > 0) ? data.structured.confusionBuster : prev.confusionBuster,
+            pyqSection: (Array.isArray(data.structured.pyqSection) && data.structured.pyqSection.length > 0) ? data.structured.pyqSection : prev.pyqSection,
+            rapidRevision: (Array.isArray(data.structured.rapidRevision) && data.structured.rapidRevision.length > 0) ? data.structured.rapidRevision : prev.rapidRevision
+          };
+        });
+        setSuccessMessage('MCQs, PYQs & Revision points enriched with AI! 🎯✨');
+      }
+    } catch (e: any) {
+      setErrorMessage(`Enrichment error: ${e.message}`);
+    } finally {
+      setEnrichingMcqs(false);
     }
-
-    const bulletLines = lines.filter(l => l.startsWith('-') || l.startsWith('*') || /^\d+[.)]/.test(l));
-    const oneLiners = bulletLines.length > 5 
-      ? bulletLines.slice(0, 25).map(l => l.replace(/^[-*•\d.]+\s*/, ''))
-      : lines.slice(0, 20);
-
-    return {
-      title: tName,
-      titleHi: tHi || tName,
-      subject: sName,
-      subtitle: 'Premium Exam Notes',
-      targetExams: targetExams.join(' • '),
-      overview: {
-        introduction: lines.slice(0, 3).join(' ') || `यह अध्ययन सामग्री ${tHi || tName} विषय पर केंद्रित है।`,
-        importance: 'विगत वर्षों के CGPSC एवं CG Vyapam प्रश्न पत्रों में इस विषय का निरंतर महत्व रहा है।',
-        examRelevance: 'प्रारंभिक एवं मुख्य परीक्षाओं में विश्लेषणात्मक तथा तथ्यात्मक दोनों प्रकार के प्रश्न पूछे जाते हैं।',
-        quickFacts: oneLiners.slice(0, 8)
-      },
-      chapters: [
-        {
-          chapterNumber: '01',
-          chapterTitle: tHi || tName,
-          description: 'मुख्य अवधारणाएं, ऐतिहासिक/भौगोलिक पृष्ठभूमि एवं परीक्षा उपयोगी तथ्य',
-          examFocus: 'तथ्यों का कालक्रम, प्रमुख शासक, नदियां, नीतियां और संवैधानिक प्रावधान सबसे अधिक पूछे जाते हैं।',
-          sections: [
-            {
-              heading: 'अवधारणा एवं विस्तृत विश्लेषण',
-              content: lines.slice(3, 25).join('\n\n') || raw,
-              conceptCard: 'विषय के मूल सिद्धांतों को समझना परीक्षा में सटीक उत्तर देने हेतु अत्यंत महत्वपूर्ण है।',
-              importantFactCard: 'सभी तिथियों, आंकड़ों और नामों को सावधानीपूर्वक याद रखें।',
-              memoryTrick: 'तथ्यों को समयरेखा और तुलनात्मक सारणी के माध्यम से याद करें।'
-            }
-          ],
-          tables: tables.length > 0 ? tables : undefined
-        }
-      ],
-      oneLinerRevision: oneLiners.slice(0, 25),
-      confusionBuster: [
-        {
-          oftenConfused: 'समान लगने वाले नाम, तिथियां या स्थान',
-          correctInformation: 'सटीक स्रोत और आधिकारिक संदर्भ के अनुसार तथ्यों को स्पष्ट रखें।'
-        }
-      ],
-      pyqSection: [
-        {
-          examYear: 'CGPSC / CG Vyapam',
-          question: `${tHi || tName} से संबंधित प्रमुख तथ्य कौन सा है?`,
-          answer: 'यह परीक्षा में कई बार पूछा गया महत्वपूर्ण बिंदु है।'
-        }
-      ],
-      mcqs: [
-        {
-          q: `${tHi || tName} के संबंध में सत्य कथन का चयन कीजिए:`,
-          options: ['A. यह राज्य की परीक्षा हेतु अति महत्वपूर्ण है', 'B. इसमें तथ्यात्मक सटीकता आवश्यक है', 'C. दोनों A और B सत्य हैं', 'D. उपरोक्त में से कोई नहीं'],
-          correct: 'C',
-          explanation: 'सभी प्रतियोगी परीक्षाओं में इस विषय से सीधे प्रश्न बनते हैं।'
-        }
-      ],
-      rapidRevision: oneLiners.slice(0, 10),
-      checklist: [
-        'महत्वपूर्ण तिथियां एवं कालक्रम का पुनरीक्षण पूर्ण',
-        'प्रमुख स्थान, नदियां एवं भौगोलिक तथ्य याद किए',
-        'संबद्ध सरकारी नीतियां, आंकड़े एवं बजट तथ्य स्पष्ट',
-        'भ्रम बिंदु (Confusion Buster) तालिका का अध्ययन किया',
-        'सभी अभ्यास प्रश्नों (MCQs) का अभ्यास पूर्ण'
-      ],
-      sources: ['छत्तीसगढ़ संदर्भ एवं ग्रंथ अकादमी', 'आधिकारिक शासकीय गजट', 'CG GURU रिसर्च टीम']
-    };
   };
 
   const handlePrint = () => {
@@ -681,134 +933,9 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
     }, 400);
   };
 
-  const generatePdfBlob = async (): Promise<Blob> => {
-    if (!printAreaRef.current) throw new Error('Preview element not found');
-    const element = printAreaRef.current;
-
-    // Render element to high-res canvas with oklab/oklch color fallback
-    const canvas = await html2canvas(element, {
-      scale: 1.5,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#FFFFFF',
-      scrollY: 0,
-      windowWidth: element.scrollWidth || 800,
-      logging: false,
-      onclone: (clonedDoc, clonedEl) => {
-        // Strip any style tags that might inject oklab/oklch or modern CSS color functions
-        const styleTags = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
-        styleTags.forEach(tag => {
-          if (tag.tagName === 'STYLE' && tag.textContent && (tag.textContent.includes('oklab') || tag.textContent.includes('oklch'))) {
-            tag.textContent = tag.textContent
-              .replace(/oklab\([^)]+\)/gi, '#1E293B')
-              .replace(/oklch\([^)]+\)/gi, '#1E293B');
-          }
-        });
-
-        // Ensure all elements in the cloned DOM have standard safe inline colors if computed styles use oklab
-        const allElements = clonedEl.querySelectorAll('*');
-        allElements.forEach((el) => {
-          const htmlEl = el as HTMLElement;
-          if (htmlEl.style) {
-            const inlineColor = htmlEl.style.color;
-            if (inlineColor && (inlineColor.includes('oklab') || inlineColor.includes('oklch'))) {
-              htmlEl.style.color = '#1E293B';
-            }
-            const inlineBg = htmlEl.style.backgroundColor;
-            if (inlineBg && (inlineBg.includes('oklab') || inlineBg.includes('oklch'))) {
-              htmlEl.style.backgroundColor = '#FFFFFF';
-            }
-            const inlineBorder = htmlEl.style.borderColor;
-            if (inlineBorder && (inlineBorder.includes('oklab') || inlineBorder.includes('oklch'))) {
-              htmlEl.style.borderColor = '#CBD5E1';
-            }
-          }
-        });
-      }
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-
-    // Standard A4 dimensions in mm
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      compress: true
-    });
-
-    const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
-    const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
-    const margin = 8; // 8mm margin
-    const contentWidth = pageWidth - (margin * 2);
-    const contentHeight = (canvas.height * contentWidth) / canvas.width;
-
-    let heightLeft = contentHeight;
-    let position = margin;
-
-    // Add first page
-    pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, contentHeight);
-    heightLeft -= (pageHeight - (margin * 2));
-
-    // Add additional pages if content exceeds 1 page
-    while (heightLeft > 0) {
-      position = margin - (contentHeight - heightLeft);
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', margin, position, contentWidth, contentHeight);
-      heightLeft -= (pageHeight - (margin * 2));
-    }
-
-    return pdf.output('blob');
-  };
-
-  const handleDownloadPdf = async () => {
-    try {
-      setExportingPdf(true);
-      setErrorMessage('');
-      const blob = await generatePdfBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${(topicNameHi || topicName).replace(/[^a-zA-Z0-9\u0900-\u097F]/g, '_')}_CG_GURU_Notes.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setSuccessMessage('PDF downloaded successfully! 📥');
-    } catch (err: any) {
-      console.error('[Download PDF Error]:', err);
-      // Fallback directly to print window so user is never blocked
-      handlePrint();
-      setErrorMessage('Direct download encountered an issue. Print dialog has been opened as fallback.');
-    } finally {
-      setExportingPdf(false);
-    }
-  };
-
-  const handleAttachToTopic = async () => {
-    try {
-      setAttachingToTopic(true);
-      setErrorMessage('');
-      setSuccessMessage('Generating PDF and uploading to Supabase...');
-
-      const blob = await generatePdfBlob();
-      const fileName = `${(topicNameHi || topicName).replace(/[^a-zA-Z0-9\u0900-\u097F]/g, '_')}_Study_Notes.pdf`;
-      const file = new File([blob], fileName, { type: 'application/pdf' });
-
-      await onAttachPdf(examId, topic.id, file);
-      setSuccessMessage(`Attached "${fileName}" directly to topic notes in Supabase! 📄🎉`);
-    } catch (err: any) {
-      console.error('[Attach PDF Error]:', err);
-      // If canvas generation fails or oklab issues occur, guide user to save formatted notes or print
-      setErrorMessage(err.message || 'Failed to attach generated PDF to topic. You can click "Save Formatted Notes to Topic" instead to enable the In-App Reader instantly!');
-    } finally {
-      setAttachingToTopic(false);
-    }
-  };
-
   const handleSaveFormattedNotes = async () => {
     if (!studyData) {
-      setErrorMessage('No structured study notes found to save. Please generate notes first.');
+      setErrorMessage('No structured study notes found to save. Please format notes first.');
       return;
     }
 
@@ -857,15 +984,15 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
         <div className="px-5 py-3.5 bg-bg-s3 border-b border-border flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-saffron/15 border border-saffron-border/30 flex items-center justify-center text-saffron shrink-0 font-black">
-              📄
+              <BookOpen className="w-5 h-5 text-saffron" />
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-black text-text truncate leading-tight">
-                  CG GURU • Study Notes PDF Studio
+                  CG GURU • Study Notes Studio
                 </h3>
-                <span className="text-[9px] bg-saffron/15 text-saffron border border-saffron/30 px-2 py-0.5 rounded-full font-black uppercase">
-                  Premium Module
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-black uppercase">
+                  Instant • 0 AI Token
                 </span>
               </div>
               <span className="text-[10px] text-text-muted mt-0.5 truncate">
@@ -923,15 +1050,15 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
             <div className="max-w-4xl w-full mx-auto p-5 sm:p-6 flex flex-col gap-5">
               
               {/* Info Guide Card */}
-              <div className="p-4 bg-gradient-to-r from-saffron/10 via-bg-s2 to-bg-s2 border border-saffron-border/40 rounded-xl flex items-start gap-3 shadow-sm">
-                <Sparkles className="w-5 h-5 text-saffron shrink-0 mt-0.5" />
+              <div className="p-4 bg-gradient-to-r from-emerald-500/10 via-bg-s2 to-bg-s2 border border-emerald-500/30 rounded-xl flex items-start gap-3 shadow-sm">
+                <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-1 text-xs">
                   <span className="font-black text-text uppercase tracking-wider">
-                    Paste Study Material & Generate Exam-Oriented PDF
+                    Paste Study Material & Generate In-App Study Notes (0 AI Token)
                   </span>
                   <p className="text-text-muted leading-relaxed">
-                    Aap is topic ke liye notes, textbook text, facts, dates, MCQs ya coaching material yahan paste kar sakte hain. 
-                    CG GURU AI use karke ise <strong>Cover Page, Quick Facts, Chapter Hierarchy, Exam Focus Cards, One-Liner Revision, Confusion Buster, aur MCQs</strong> ke sath complete Premium PDF me transform kar dega.
+                    Aap is topic ke liye notes, textbook text, facts, dates, tables ya coaching material yahan paste karein. 
+                    Studio bina kisi AI token ke turant ise <strong>Overview, Quick Facts, Chapters, Sections, Tables, Rapid Revision, aur MCQs</strong> ke interactive in-app study module me structure kar dega.
                   </p>
                 </div>
               </div>
@@ -1182,31 +1309,86 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                <div className="text-[10px] text-text-muted">
-                  Note: AI automatically arranges your material into standard CG GURU PDF theme.
+              {/* Generation Mode Selector & Action Buttons */}
+              <div className="flex flex-col gap-3 pt-3 border-t border-border/50">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-text-muted">
+                    <span>Generation Mode:</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 p-1 bg-bg-s3 rounded-xl border border-border">
+                    <button
+                      type="button"
+                      onClick={() => setGenMode('enrich_groq')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                        genMode === 'enrich_groq'
+                          ? 'bg-saffron text-bg-s1 shadow-md'
+                          : 'text-text-muted hover:text-text hover:bg-bg-s2'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>AI Enrich (Groq • 0 Gemini Token)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setGenMode('enrich_gemini')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                        genMode === 'enrich_gemini'
+                          ? 'bg-saffron text-bg-s1 shadow-md'
+                          : 'text-text-muted hover:text-text hover:bg-bg-s2'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>AI Enrich (Gemini • Low Token)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setGenMode('local')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                        genMode === 'local'
+                          ? 'bg-emerald-600 text-white shadow-md'
+                          : 'text-text-muted hover:text-text hover:bg-bg-s2'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Local Format (0 AI Token)</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    disabled={generating || !rawMaterial.trim()}
-                    onClick={handleGenerateNotes}
-                    className="flex-1 sm:flex-initial px-6 py-3 bg-saffron hover:bg-orange-500 disabled:opacity-50 text-bg-s1 text-xs font-black uppercase rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer transition-all"
-                  >
-                    {generating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Structuring & Designing Module...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4" />
-                        <span>Generate CG GURU Premium PDF</span>
-                      </>
-                    )}
-                  </button>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="text-[11px] text-emerald-400 font-bold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+                    <span>
+                      {genMode === 'enrich_groq' && 'Preserves your notes + AI adds authentic MCQs & Revision (Groq Free • 0 Gemini Token)'}
+                      {genMode === 'enrich_gemini' && 'Preserves your notes + AI adds authentic MCQs & Revision (85% Token Saver)'}
+                      {genMode === 'local' && 'Instant formatting on client-side • 0 Tokens used'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      disabled={generating || !rawMaterial.trim()}
+                      onClick={handleGenerateNotes}
+                      className="flex-1 sm:flex-initial px-6 py-3 bg-saffron hover:bg-orange-500 disabled:opacity-50 text-bg-s1 text-xs font-black uppercase rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer transition-all"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Generating Notes with AI...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          <span>
+                            {genMode === 'local' ? 'Format Notes (0 Token • Instant)' : 'Generate Study Notes with AI'}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1217,51 +1399,52 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
               {/* Preview Action Toolbar */}
               <div className="px-5 py-3 bg-bg-s3 border-b border-border flex items-center justify-between gap-3 flex-wrap shrink-0 sticky top-0 z-20 shadow-md">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black uppercase text-text">PDF Document Ready</span>
-                  <span className="text-[9px] bg-greenL/15 text-greenL border border-greenL/30 px-2 py-0.5 rounded font-black">
-                    A4 Clean Format
+                  <span className="text-xs font-black uppercase text-text">Study Notes Formatted</span>
+                  <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-black">
+                    In-App Interactive Ready
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <button
                     type="button"
-                    onClick={handlePrint}
-                    className="px-3.5 py-1.5 bg-bg-s2 hover:bg-bg-s1 border border-border text-xs font-black uppercase text-text rounded-lg flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                    onClick={() => setActiveView('editor')}
+                    className="px-3.5 py-1.5 bg-bg-s2 hover:bg-bg-s1 border border-border text-xs font-bold text-text rounded-lg flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
                   >
-                    <Printer className="w-3.5 h-3.5 text-saffron" />
-                    <span>Print / Save as PDF</span>
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Edit Input</span>
                   </button>
 
                   <button
                     type="button"
-                    disabled={exportingPdf}
-                    onClick={handleDownloadPdf}
-                    className="px-3.5 py-1.5 bg-bg-s2 hover:bg-bg-s1 border border-border text-xs font-black uppercase text-text rounded-lg flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                    disabled={enrichingMcqs}
+                    onClick={() => handleEnrichWithAi('groq')}
+                    className="px-3.5 py-1.5 bg-saffron/15 hover:bg-saffron/25 border border-saffron/40 text-xs font-bold text-saffron rounded-lg flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                    title="Generate authentic MCQs and quick revision with AI"
                   >
-                    {exportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 text-blue-400" />}
-                    <span>Download PDF</span>
+                    {enrichingMcqs ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    <span>{enrichingMcqs ? 'Enriching...' : '✨ AI Enrich (MCQs & Revision)'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePrint}
+                    className="px-3.5 py-1.5 bg-bg-s2 hover:bg-bg-s1 border border-border text-xs font-bold text-text rounded-lg flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                    title="Print formatted notes"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-saffron" />
+                    <span>Print Notes</span>
                   </button>
 
                   <button
                     type="button"
                     disabled={savingNotes}
                     onClick={handleSaveFormattedNotes}
-                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs font-black uppercase rounded-lg flex items-center gap-1.5 cursor-pointer transition-all shadow-md"
-                    title="Save structured notes for in-app Interactive Reader Modal"
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs font-black uppercase rounded-xl flex items-center gap-2 cursor-pointer transition-all shadow-lg active:scale-95"
+                    title="Save formatted notes directly to topic for in-app reader"
                   >
-                    {savingNotes ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BookOpen className="w-3.5 h-3.5" />}
-                    <span>Save Formatted Notes to Topic</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={attachingToTopic}
-                    onClick={handleAttachToTopic}
-                    className="px-3.5 py-1.5 bg-saffron/20 hover:bg-saffron/30 text-saffron border border-saffron/40 disabled:opacity-60 text-xs font-black uppercase rounded-lg flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
-                  >
-                    {attachingToTopic ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-                    <span>Attach PDF to Topic</span>
+                    {savingNotes ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
+                    <span>Save Notes to Topic</span>
                   </button>
                 </div>
               </div>
@@ -1467,7 +1650,7 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
                           </h4>
 
                           <div className="text-xs text-[#202938] leading-relaxed whitespace-pre-line font-medium pl-3.5">
-                            {sec.content}
+                            {formatNotesContent(sec.content)}
                           </div>
 
                           {sec.conceptCard && (
@@ -1475,7 +1658,7 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
                               <span className="text-base shrink-0">💡</span>
                               <div>
                                 <strong className="text-[#E88A00] uppercase block text-[10px] font-black">संकल्पना (Concept):</strong>
-                                <span>{sec.conceptCard}</span>
+                                <span>{typeof sec.conceptCard === 'string' ? sec.conceptCard.replace(/^[💡⭐🧠📌🔍•-]\s*/, '').replace(/^["'“]([\*\_]{2}[^*_]+?[\*\_]{2}[:\s]*?)["'”]/g, '$1').replace(/\*\*([^*]+)\*\*/g, '$1') : sec.conceptCard}</span>
                               </div>
                             </div>
                           )}
@@ -1485,17 +1668,7 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
                               <span className="text-base shrink-0">⭐</span>
                               <div>
                                 <strong className="text-[#17375E] uppercase block text-[10px] font-black">महत्वपूर्ण तथ्य:</strong>
-                                <span>{sec.importantFactCard}</span>
-                              </div>
-                            </div>
-                          )}
-
-                          {sec.memoryTrick && (
-                            <div className="p-3.5 bg-[#EAF7F1] border border-[#2E9B6F]/30 rounded-xl text-xs text-[#202938] flex items-start gap-2.5 font-medium ml-3.5">
-                              <span className="text-base shrink-0">🧠</span>
-                              <div>
-                                <strong className="text-[#2E9B6F] uppercase block text-[10px] font-black">याद रखने की ट्रिक (Memory Trick):</strong>
-                                <span>{sec.memoryTrick}</span>
+                                <span>{typeof sec.importantFactCard === 'string' ? sec.importantFactCard.replace(/^[💡⭐🧠📌🔍•-]\s*/, '').replace(/^["'“]([\*\_]{2}[^*_]+?[\*\_]{2}[:\s]*?)["'”]/g, '$1').replace(/\*\*([^*]+)\*\*/g, '$1') : sec.importantFactCard}</span>
                               </div>
                             </div>
                           )}

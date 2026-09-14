@@ -2,15 +2,64 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { 
-  X, BookOpen, Printer, CheckCircle2, 
+  X, BookOpen, CheckCircle2, 
   Sparkles, FileText, Check, Copy, 
-  Layers, Lightbulb, Bookmark, Sun, Moon
+  Layers, Lightbulb, Bookmark, Sun, Moon,
+  Save, Menu, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import type { Topic } from './syllabusData';
+
+// Helper to clean raw HTML tags (<ul>, <li>, <b>, <p>, etc.) into clean markdown bullets and text
+export function formatNotesContent(content: any): string {
+  if (typeof content !== 'string') return content || '';
+  let str = content;
+
+  // If there are no HTML tags, return as-is
+  if (!/<[a-z][\s\S]*>/i.test(str)) {
+    return str;
+  }
+
+  // First convert <li>Title: text</li> or <li><b>Title:</b> text</li> into markdown bullet
+  str = str.replace(/<li[^>]*>\s*<strong>([^<]+)<\/strong>\s*:?\s*([\s\S]*?)<\/li>/gi, '\n- **$1:** $2');
+  str = str.replace(/<li[^>]*>\s*<b>([^<]+)<\/b>\s*:?\s*([\s\S]*?)<\/li>/gi, '\n- **$1:** $2');
+  str = str.replace(/<li[^>]*>\s*([^:<]+?)\s*:\s*([\s\S]*?)<\/li>/gi, '\n- **$1:** $2');
+  str = str.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '\n- $1');
+
+  // Replace bold & italic tags
+  str = str.replace(/<\/?(b|strong)[^>]*>/gi, '**');
+  str = str.replace(/<\/?(i|em)[^>]*>/gi, '*');
+
+  // Line breaks and paragraphs
+  str = str.replace(/<br\s*\/?>/gi, '\n');
+  str = str.replace(/<p[^>]*>/gi, '\n\n');
+  str = str.replace(/<\/p>/gi, '\n');
+
+  // Remove list wrappers
+  str = str.replace(/<\/?(ul|ol|span|div)[^>]*>/gi, '\n');
+
+  // Strip any other lingering HTML tags
+  str = str.replace(/<[^>]+>/g, '');
+
+  // Decode common HTML entities
+  str = str
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+
+  // Normalize excessive newlines
+  str = str.replace(/\n{3,}/g, '\n\n').trim();
+  return str;
+}
 
 // Helper to normalize notes object and unpack any sanitized Firestore table rows
 function normalizeNotes(val: any): any {
   if (!val) return val;
+  if (typeof val === 'string') {
+    return val;
+  }
   if (Array.isArray(val)) {
     return val.map(item => {
       if (item && typeof item === 'object' && item.__isRow === true && Array.isArray(item.cells)) {
@@ -25,7 +74,11 @@ function normalizeNotes(val: any): any {
     }
     const res: any = {};
     for (const [k, v] of Object.entries(val)) {
-      res[k] = normalizeNotes(v);
+      if (k === 'content' && typeof v === 'string') {
+        res[k] = formatNotesContent(v);
+      } else {
+        res[k] = normalizeNotes(v);
+      }
     }
     return res;
   }
@@ -67,6 +120,8 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
   onOpenPdf
 }) => {
   const [activeTab, setActiveTab] = useState<'theory' | 'tables' | 'revision' | 'mcqs'>('theory');
+  const [selectedChapterIdx, setSelectedChapterIdx] = useState<number | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [revealedExplanations, setRevealedExplanations] = useState<Record<number, boolean>>({});
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -251,6 +306,26 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
     }
   };
 
+  const renderCardText = (text: string) => {
+    if (!text) return null;
+    const cleaned = text
+      .trim()
+      .replace(/^[💡⭐🧠📌🔍•-]\s*/, '')
+      .replace(/^["'“]([\*\_]{2}[^*_]+?[\*\_]{2}[:\s]*?)["'”]/g, '$1')
+      .replace(/(^|\s)["'“]([\*\_]{2}[^*_]+?[\*\_]{2}[:\s]*?)["'”]/g, '$1$2');
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <span className="leading-relaxed font-medium">{children}</span>,
+          strong: ({ children }) => <strong className="font-black text-inherit">{children}</strong>
+        }}
+      >
+        {cleaned}
+      </ReactMarkdown>
+    );
+  };
+
   const allTables: any[] = [];
   if (notes) {
     if (Array.isArray(notes.tables)) allTables.push(...notes.tables);
@@ -262,16 +337,31 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none">
-      <div className={`w-full max-w-5xl h-[94vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden border font-sans transition-colors duration-200 ${
-        readingTheme === 'dark' ? 'border-[#2A364F]' : readingTheme === 'sepia' ? 'border-[#DECBB0]' : 'border-[#E2E8F0]'
-      } ${getThemeClass()}`}>
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-black/85 animate-fade-in select-none">
+      <div className={`w-full h-full flex flex-col overflow-hidden font-sans transition-colors duration-200 ${getThemeClass()}`}>
         
         {/* Top Header Bar */}
-        <div className={`px-4 sm:px-6 py-3 border-b flex items-center justify-between gap-3 shrink-0 ${getHeaderBgClass()}`}>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-saffron/15 text-saffron border border-saffron/30 flex items-center justify-center shrink-0 shadow-sm">
-              <BookOpen className="w-5 h-5" />
+        <div className={`px-3 sm:px-6 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 sm:gap-3 shrink-0 ${getHeaderBgClass()}`}>
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* Sidebar Toggle Button */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`p-2 rounded-xl border transition-all cursor-pointer shrink-0 ${
+                isSidebarOpen 
+                  ? 'bg-saffron/15 text-saffron border-saffron/40' 
+                  : readingTheme === 'dark' 
+                    ? 'bg-[#1E293B] border-[#334155] text-slate-300' 
+                    : readingTheme === 'sepia' 
+                      ? 'bg-[#E5D2B1] border-[#DECBB0] text-[#3F3325]' 
+                      : 'bg-slate-100 border-slate-200 text-slate-700'
+              }`}
+              title={isSidebarOpen ? "Hide Index Sidebar" : "Show Index Sidebar"}
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+
+            <div className="w-9 h-9 rounded-xl bg-saffron/15 text-saffron border border-saffron/30 flex items-center justify-center shrink-0 shadow-sm hidden sm:flex">
+              <BookOpen className="w-4.5 h-4.5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -282,14 +372,14 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                   {examName}
                 </span>
               </div>
-              <h2 className="text-base sm:text-lg font-black truncate leading-tight mt-0.5">
+              <h2 className="text-sm sm:text-base md:text-lg font-black truncate leading-tight mt-0.5">
                 {topic.nameHi || topic.name}
               </h2>
             </div>
           </div>
 
-          {/* Controls: Font Size, Theme, Print, Complete, Close */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Controls: Font Size, Theme, Save, Complete, Close */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             
             {/* Font Size Adjust */}
             <div className={`hidden sm:flex items-center border rounded-lg p-0.5 text-xs font-bold ${
@@ -345,27 +435,28 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
               </button>
             </div>
 
-            {/* Print / Save PDF Button */}
+            {/* Save Notes Button (Replaces Print) */}
             <button
               onClick={handlePrint}
               disabled={!notes}
-              className={`p-2 rounded-lg border transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
                 readingTheme === 'dark' 
-                  ? 'bg-[#1E293B] border-[#334155] text-slate-300 hover:text-white hover:bg-[#283548]' 
-                  : readingTheme === 'sepia'
-                    ? 'bg-[#E5D2B1] border-[#C9B38F] text-[#3F3325] hover:bg-[#D9C4A1]'
+                  ? 'bg-[#1E293B] border-[#334155] text-slate-200 hover:text-white hover:bg-[#283548]' 
+                  : readingTheme === 'sepia' 
+                    ? 'bg-[#E5D2B1] border-[#C9B38F] text-[#3F3325] hover:bg-[#D9C4A1]' 
                     : 'bg-[#F1F5F9] border-[#E2E8F0] text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
-              title="Print Notes or Save as PDF"
+              title="Save Notes as PDF"
             >
-              <Printer className="w-4 h-4" />
+              <Save className="w-3.5 h-3.5 text-saffron" />
+              <span className="hidden xs:inline sm:inline">Save</span>
             </button>
 
             {/* Mark as Studied Button */}
             {onMarkComplete && (
               <button
                 onClick={onMarkComplete}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   isCompleted 
                     ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
                     : 'bg-saffron text-white hover:bg-orange-600 font-black shadow-sm'
@@ -379,11 +470,11 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
             {/* Close Modal */}
             <button
               onClick={onClose}
-              className={`p-2 rounded-lg border transition-all cursor-pointer ml-1 ${
+              className={`p-2 rounded-lg border transition-all cursor-pointer ml-0.5 sm:ml-1 ${
                 readingTheme === 'dark' 
                   ? 'bg-[#1E293B] border-[#334155] text-slate-300 hover:text-white hover:bg-[#283548]' 
-                  : readingTheme === 'sepia'
-                    ? 'bg-[#E5D2B1] border-[#C9B38F] text-[#3F3325] hover:bg-[#D9C4A1]'
+                  : readingTheme === 'sepia' 
+                    ? 'bg-[#E5D2B1] border-[#C9B38F] text-[#3F3325] hover:bg-[#D9C4A1]' 
                     : 'bg-[#F1F5F9] border-[#E2E8F0] text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
               title="Close"
@@ -393,47 +484,178 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
           </div>
         </div>
 
-        {/* Section Navigation Tabs */}
-        {notes && (
-          <div className={`px-4 sm:px-6 border-b flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0 py-2 ${getHeaderBgClass()}`}>
-            {[
-              { id: 'theory', label: '📖 Theory & Chapters', count: notes.chapters?.length || 1 },
-              { id: 'tables', label: '📊 Comparative Tables', count: allTables.length },
-              { id: 'revision', label: '⚡ Rapid Revision & Facts', count: (notes.oneLinerRevision || notes.rapidRevision || []).length },
-              { id: 'mcqs', label: '🎯 Exam MCQs & Quiz', count: notes.mcqs?.length || 0 }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-saffron text-white font-black shadow-sm'
-                    : readingTheme === 'dark'
-                      ? 'text-slate-400 hover:text-white hover:bg-slate-800'
-                      : readingTheme === 'sepia'
-                        ? 'text-[#645037] hover:text-[#3F3325] hover:bg-[#E5D2B1]'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <span>{tab.label}</span>
-                {Boolean(tab.count) && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    activeTab === tab.id 
-                      ? 'bg-black/25 text-white' 
-                      : readingTheme === 'dark' 
-                        ? 'bg-slate-800 text-slate-300' 
-                        : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Main Body Area: Sidebar + Reading Scroll Area */}
+        <div className="flex-1 flex overflow-hidden relative">
+          
+          {/* Mobile backdrop for sidebar */}
+          {isSidebarOpen && (
+            <div 
+              onClick={() => setIsSidebarOpen(false)} 
+              className="fixed inset-0 bg-black/50 z-30 sm:hidden"
+            />
+          )}
 
-        {/* Modal Main Content Area */}
-        <div className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 select-text ${getFontSizeClass()}`}>
+          {/* Left Sidebar for Tabs and Chapters */}
+          {notes && (
+            <aside className={`${
+              isSidebarOpen ? 'translate-x-0' : '-translate-x-full sm:hidden'
+            } fixed sm:static inset-y-0 left-0 z-40 sm:z-auto w-72 sm:w-64 md:w-72 shrink-0 border-r flex flex-col h-full overflow-hidden transition-transform duration-200 ease-in-out ${
+              readingTheme === 'dark' 
+                ? 'bg-[#0F172A] border-[#1F2937]' 
+                : readingTheme === 'sepia' 
+                  ? 'bg-[#EFE2C8] border-[#DECBB0]' 
+                  : 'bg-[#F8FAFC] border-[#E2E8F0]'
+            }`}>
+              {/* Sidebar Header */}
+              <div className={`p-3.5 border-b flex items-center justify-between shrink-0 ${
+                readingTheme === 'dark' ? 'border-[#1F2937]' : readingTheme === 'sepia' ? 'border-[#DECBB0]' : 'border-[#E2E8F0]'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-saffron" />
+                  <span className="text-xs font-black uppercase tracking-wider">Index & Tabs</span>
+                </div>
+                <button 
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-1 rounded-md opacity-70 hover:opacity-100 sm:hidden cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Sidebar Content */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
+                {/* TABS SECTION */}
+                <div className="space-y-1">
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 block mb-1.5 ${
+                    readingTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                  }`}>
+                    अनुभाग (Sections)
+                  </span>
+                  {[
+                    { id: 'theory', label: '📖 Theory & Chapters', count: notes.chapters?.length || 1 },
+                    { id: 'tables', label: '📊 Comparative Tables', count: allTables.length },
+                    { id: 'revision', label: '⚡ Rapid Revision & Facts', count: (notes.oneLinerRevision || notes.rapidRevision || []).length },
+                    { id: 'mcqs', label: '🎯 Exam MCQs & Quiz', count: notes.mcqs?.length || 0 }
+                  ].map(tab => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          setActiveTab(tab.id as any);
+                          if (window.innerWidth < 640) setIsSidebarOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-xl font-bold flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-saffron text-white shadow-sm'
+                            : readingTheme === 'dark'
+                              ? 'text-slate-300 hover:bg-[#1E293B] hover:text-white'
+                              : readingTheme === 'sepia'
+                                ? 'text-[#3F3325] hover:bg-[#E5D2B1]'
+                                : 'text-slate-700 hover:bg-slate-200/70 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="truncate">{tab.label}</span>
+                        {tab.count > 0 && (
+                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                            isActive 
+                              ? 'bg-white/25 text-white' 
+                              : readingTheme === 'dark'
+                                ? 'bg-[#1E293B] text-slate-300'
+                                : 'bg-black/5 text-slate-600'
+                          }`}>
+                            {tab.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* CHAPTERS SECTION */}
+                {Array.isArray(notes.chapters) && notes.chapters.length > 0 && (
+                  <div className="pt-3 border-t border-border/40 space-y-1.5">
+                    <div className="flex items-center justify-between px-2 mb-1">
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${
+                        readingTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                      }`}>
+                        अध्याय सूची (Chapters)
+                      </span>
+                      <span className="text-[10px] font-bold text-saffron">
+                        {notes.chapters.length} कुल
+                      </span>
+                    </div>
+
+                    {/* All Chapters option */}
+                    <button
+                      onClick={() => {
+                        setActiveTab('theory');
+                        setSelectedChapterIdx(null);
+                        if (window.innerWidth < 640) setIsSidebarOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                        activeTab === 'theory' && selectedChapterIdx === null
+                          ? 'bg-saffron/15 text-saffron border border-saffron/40 font-black'
+                          : readingTheme === 'dark'
+                            ? 'text-slate-400 hover:bg-[#1E293B] hover:text-slate-200'
+                            : readingTheme === 'sepia'
+                              ? 'text-[#6A4A25] hover:bg-[#E5D2B1]'
+                              : 'text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                      }`}
+                    >
+                      <span className="text-sm">📚</span>
+                      <span>सभी अध्याय (All Chapters)</span>
+                    </button>
+
+                    {/* Individual Chapters */}
+                    {notes.chapters.map((ch: any, cIdx: number) => {
+                      const isSelected = activeTab === 'theory' && selectedChapterIdx === cIdx;
+                      return (
+                        <button
+                          key={cIdx}
+                          onClick={() => {
+                            setActiveTab('theory');
+                            setSelectedChapterIdx(cIdx);
+                            if (window.innerWidth < 640) setIsSidebarOpen(false);
+                          }}
+                          className={`w-full text-left p-2.5 rounded-xl text-xs transition-all cursor-pointer flex items-start gap-2.5 ${
+                            isSelected
+                              ? 'bg-saffron text-white shadow-sm font-bold'
+                              : readingTheme === 'dark'
+                                ? 'text-slate-300 hover:bg-[#1E293B] hover:text-white'
+                                : readingTheme === 'sepia'
+                                  ? 'text-[#3F3325] hover:bg-[#E5D2B1]'
+                                  : 'text-slate-700 hover:bg-slate-200/70 hover:text-slate-900'
+                          }`}
+                        >
+                          <span className={`w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5 ${
+                            isSelected
+                              ? 'bg-white/20 text-white'
+                              : 'bg-saffron/15 text-saffron'
+                          }`}>
+                            {ch.chapterNumber || (cIdx + 1 < 10 ? `0${cIdx + 1}` : cIdx + 1)}
+                          </span>
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="truncate font-bold leading-tight">
+                              {ch.chapterTitle || ch.title}
+                            </span>
+                            <span className={`text-[10px] mt-0.5 truncate ${
+                              isSelected ? 'text-white/80' : 'opacity-70'
+                            }`}>
+                              {ch.sections?.length || 0} भाग {ch.tables?.length ? `• ${ch.tables.length} सारणी` : ''}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </aside>
+          )}
+
+          {/* Reading Content Area */}
+          <div className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 select-text ${getFontSizeClass()}`}>
           
           {loading && (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-text-muted">
@@ -482,8 +704,8 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
           {notes && !loading && (
             <div className="max-w-4xl mx-auto space-y-6">
               
-              {/* Top Overview Banner */}
-              {notes.overview && (
+              {/* Top Overview Banner (Shown only in Theory & Chapters tab) */}
+              {activeTab === 'theory' && notes.overview && (
                 <div className={`p-5 rounded-2xl border ${getCardBgClass()} space-y-3.5`}>
                   <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2.5">
                     <span className="text-xs font-black uppercase text-saffron tracking-wider flex items-center gap-1.5">
@@ -501,34 +723,6 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                       {notes.overview.introduction}
                     </p>
                   )}
-
-                  {/* Highlights Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                    {notes.overview.importance && (
-                      <div className={`p-3.5 rounded-xl border flex flex-col gap-1 ${
-                        readingTheme === 'dark' 
-                          ? 'bg-amber-950/30 border-amber-500/30 text-amber-200' 
-                          : readingTheme === 'sepia'
-                            ? 'bg-[#FAD7A0]/40 border-amber-300 text-[#7E5109]'
-                            : 'bg-amber-50 border-amber-200 text-amber-950'
-                      }`}>
-                        <span className="text-[11px] font-black uppercase text-saffron">परीक्षा महत्व (Weightage)</span>
-                        <p className="text-xs leading-relaxed font-semibold">{notes.overview.importance}</p>
-                      </div>
-                    )}
-                    {notes.overview.examRelevance && (
-                      <div className={`p-3.5 rounded-xl border flex flex-col gap-1 ${
-                        readingTheme === 'dark' 
-                          ? 'bg-blue-950/30 border-blue-500/30 text-blue-200' 
-                          : readingTheme === 'sepia'
-                            ? 'bg-[#D4E6F1]/50 border-blue-300 text-[#154360]'
-                            : 'bg-blue-50 border-blue-200 text-blue-950'
-                      }`}>
-                        <span className="text-[11px] font-black uppercase text-blue-500 dark:text-blue-400">प्रश्न प्रवृत्ति (Question Trend)</span>
-                        <p className="text-xs leading-relaxed font-semibold">{notes.overview.examRelevance}</p>
-                      </div>
-                    )}
-                  </div>
 
                   {/* Quick Facts Pills */}
                   {Array.isArray(notes.overview.quickFacts) && notes.overview.quickFacts.length > 0 && (
@@ -558,14 +752,44 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
               {/* TAB 1: THEORY & CHAPTERS */}
               {activeTab === 'theory' && (
                 <div className="space-y-6">
-                  {Array.isArray(notes.chapters) && notes.chapters.map((chapter: any, cIdx: number) => (
-                    <div key={cIdx} className={`p-5 sm:p-6 rounded-xl border ${getCardBgClass()} shadow-sm space-y-5`}>
+                  {/* Single Chapter Active Indicator */}
+                  {selectedChapterIdx !== null && Array.isArray(notes.chapters) && notes.chapters[selectedChapterIdx] && (
+                    <div className={`p-3 sm:p-4 rounded-xl border flex items-center justify-between gap-3 shadow-xs ${getCardBgClass()}`}>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-7 h-7 rounded-lg bg-saffron text-white text-xs font-black flex items-center justify-center shrink-0">
+                          {notes.chapters[selectedChapterIdx].chapterNumber || (selectedChapterIdx + 1 < 10 ? `0${selectedChapterIdx + 1}` : selectedChapterIdx + 1)}
+                        </span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs sm:text-sm font-black truncate">
+                            अध्याय {selectedChapterIdx + 1} / {notes.chapters.length}: {notes.chapters[selectedChapterIdx].chapterTitle || notes.chapters[selectedChapterIdx].title}
+                          </span>
+                          <span className="text-[10px] text-text-muted">
+                            {notes.chapters[selectedChapterIdx].sections?.length || 0} अनुभाग अध्ययन हेतु उपलब्ध
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSelectedChapterIdx(null)}
+                        className="px-3 py-1.5 rounded-lg bg-saffron/10 hover:bg-saffron/20 text-saffron border border-saffron/30 text-xs font-bold shrink-0 transition-all cursor-pointer"
+                      >
+                        सभी अध्याय देखें (View All)
+                      </button>
+                    </div>
+                  )}
+
+                  {(selectedChapterIdx !== null && Array.isArray(notes.chapters) && notes.chapters[selectedChapterIdx]
+                    ? [notes.chapters[selectedChapterIdx]]
+                    : (Array.isArray(notes.chapters) ? notes.chapters : [])
+                  ).map((chapter: any, cIdx: number) => {
+                    const actualIdx = selectedChapterIdx !== null ? selectedChapterIdx : cIdx;
+                    return (
+                    <div key={actualIdx} className={`p-5 sm:p-6 rounded-xl border ${getCardBgClass()} shadow-sm space-y-5`}>
                       
                       {/* Chapter Title & Focus */}
                       <div className="border-b border-border/60 pb-3.5">
                         <div className="flex items-center gap-2 text-saffron text-xs font-black uppercase tracking-wider mb-1">
                           <Bookmark className="w-3.5 h-3.5" />
-                          <span>अध्याय {chapter.chapterNumber || `0${cIdx + 1}`}</span>
+                          <span>अध्याय {chapter.chapterNumber || (actualIdx + 1 < 10 ? `0${actualIdx + 1}` : actualIdx + 1)}</span>
                         </div>
                         <h3 className="text-lg sm:text-xl font-black text-text">
                           {chapter.chapterTitle || chapter.title}
@@ -574,9 +798,34 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                           <p className="text-xs text-text-muted mt-1 font-medium">{chapter.description}</p>
                         )}
                         {chapter.examFocus && (
-                          <div className="mt-2.5 px-3 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-medium flex items-center gap-2">
-                            <Lightbulb className="w-4 h-4 shrink-0 text-amber-400" />
-                            <span><strong>Exam Focus:</strong> {chapter.examFocus}</span>
+                          <div className={`mt-3 px-3.5 py-2 rounded-xl border flex items-start sm:items-center gap-2.5 text-xs font-medium ${
+                            readingTheme === 'dark'
+                              ? 'bg-amber-950/40 border-amber-500/30 text-amber-200'
+                              : readingTheme === 'sepia'
+                                ? 'bg-[#FBF1D3] border-amber-300/80 text-[#4E2D07]'
+                                : 'bg-amber-50/90 border-amber-300/80 text-amber-950'
+                          }`}>
+                            <div className={`p-1 rounded-lg shrink-0 ${
+                              readingTheme === 'dark' 
+                                ? 'bg-amber-500/20 text-amber-400' 
+                                : readingTheme === 'sepia'
+                                  ? 'bg-[#EAD8B8] text-[#8A4A00]'
+                                  : 'bg-amber-200/80 text-amber-800'
+                            }`}>
+                              <Lightbulb className="w-4 h-4 shrink-0" />
+                            </div>
+                            <div className="leading-relaxed">
+                              <strong className={`font-black uppercase tracking-wider text-[11px] mr-1.5 ${
+                                readingTheme === 'dark' 
+                                  ? 'text-amber-400' 
+                                  : readingTheme === 'sepia' 
+                                    ? 'text-[#8A4A00]' 
+                                    : 'text-amber-800'
+                              }`}>
+                                Exam Focus:
+                              </strong>
+                              <span className="font-semibold">{renderCardText(chapter.examFocus)}</span>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -632,7 +881,7 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                                   )
                                 }}
                               >
-                                {sec.content}
+                                {formatNotesContent(sec.content)}
                               </ReactMarkdown>
                             </div>
                           )}
@@ -649,7 +898,9 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                               <span className="font-black flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
                                 💡 मुख्य अवधारणा (Core Concept):
                               </span>
-                              <p className="leading-relaxed font-medium">{sec.conceptCard}</p>
+                              <div className="leading-relaxed font-medium">
+                                {renderCardText(sec.conceptCard)}
+                              </div>
                             </div>
                           )}
 
@@ -665,23 +916,9 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                               <span className="font-black flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
                                 ⭐ अति महत्वपूर्ण तथ्य (Exam Highlight):
                               </span>
-                              <p className="leading-relaxed font-medium">{sec.importantFactCard}</p>
-                            </div>
-                          )}
-
-                          {/* Memory Trick / Mnemonics */}
-                          {sec.memoryTrick && (
-                            <div className={`p-3.5 rounded-xl border text-xs space-y-1 shadow-2xs ${
-                              readingTheme === 'dark' 
-                                ? 'bg-purple-950/40 border-purple-500/30 text-purple-200' 
-                                : readingTheme === 'sepia'
-                                  ? 'bg-[#EFE0F7] border-purple-300 text-[#491660]'
-                                  : 'bg-purple-50 border-purple-200 text-purple-950'
-                            }`}>
-                              <span className="font-black flex items-center gap-1.5 text-purple-700 dark:text-purple-400">
-                                🧠 स्मरण सूत्र / ट्रिक (Memory Key):
-                              </span>
-                              <p className="leading-relaxed font-medium">{sec.memoryTrick}</p>
+                              <div className="leading-relaxed font-medium">
+                                {renderCardText(sec.importantFactCard)}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -746,7 +983,46 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                       )}
 
                     </div>
-                  ))}
+                    );
+                  })}
+
+                  {/* Previous / Next chapter navigation when a single chapter is selected */}
+                  {selectedChapterIdx !== null && Array.isArray(notes.chapters) && notes.chapters.length > 1 && (
+                    <div className="flex items-center justify-between pt-2 pb-4 gap-3">
+                      <button
+                        onClick={() => setSelectedChapterIdx(Math.max(0, selectedChapterIdx - 1))}
+                        disabled={selectedChapterIdx === 0}
+                        className={`px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          selectedChapterIdx === 0
+                            ? 'opacity-40 cursor-not-allowed border-transparent'
+                            : 'border-border hover:border-saffron bg-bg-s2 shadow-xs'
+                        }`}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>पिछला अध्याय</span>
+                      </button>
+
+                      <button
+                        onClick={() => setSelectedChapterIdx(null)}
+                        className="text-xs font-bold text-text-muted hover:text-saffron transition-colors cursor-pointer"
+                      >
+                        सभी अध्याय देखें (All)
+                      </button>
+
+                      <button
+                        onClick={() => setSelectedChapterIdx(Math.min(notes.chapters.length - 1, selectedChapterIdx + 1))}
+                        disabled={selectedChapterIdx === notes.chapters.length - 1}
+                        className={`px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          selectedChapterIdx === notes.chapters.length - 1
+                            ? 'opacity-40 cursor-not-allowed border-transparent'
+                            : 'border-border hover:border-saffron bg-bg-s2 shadow-xs'
+                        }`}
+                      >
+                        <span>अगला अध्याय</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Confusion Buster Section */}
                   {Array.isArray(notes.confusionBuster) && notes.confusionBuster.length > 0 && (
@@ -1054,6 +1330,8 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
             </div>
           )}
 
+          </div>
+
         </div>
 
         {/* Hidden Printable Container for Clean PDF / Print */}
@@ -1077,7 +1355,6 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                   <div style={{ marginBottom: '16px' }}>
                     <h3 style={{ color: '#1E3A8A' }}>परिचय एवं परीक्षा प्रासंगिकता</h3>
                     <p>{notes.overview.introduction}</p>
-                    {notes.overview.importance && <p><strong>परीक्षा महत्व:</strong> {notes.overview.importance}</p>}
                   </div>
                 )}
 
@@ -1086,10 +1363,15 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                     <h3 style={{ color: '#1E3A8A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px' }}>
                       अध्याय {i + 1}: {ch.chapterTitle || ch.title}
                     </h3>
+                    {ch.examFocus && (
+                      <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', padding: '6px 10px', borderRadius: '6px', fontSize: '9pt', color: '#78350F', margin: '6px 0 10px 0' }}>
+                        <strong>Exam Focus:</strong> {ch.examFocus}
+                      </div>
+                    )}
                     {Array.isArray(ch.sections) && ch.sections.map((sec: any, j: number) => (
                       <div key={j} style={{ marginBottom: '10px' }}>
                         {sec.heading && <h4>{sec.heading}</h4>}
-                        <p style={{ whiteSpace: 'pre-line' }}>{sec.content}</p>
+                        <p style={{ whiteSpace: 'pre-line' }}>{formatNotesContent(sec.content)}</p>
                       </div>
                     ))}
                   </div>
