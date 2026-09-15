@@ -416,9 +416,8 @@ Return ONLY a valid, parseable JSON object with NO markdown fence backticks, mat
     "सभी 20+ अभ्यास प्रश्नों (MCQs) का अभ्यास पूर्ण"
   ],
   "sources": [
-    "छत्तीसगढ़ संदर्भ एवं ग्रंथ अकादमी",
-    "आर्थिक सर्वेक्षण छत्तीसगढ़",
-    "आधिकारिक शासकीय गजट एवं आयोग संदर्भ"
+    "Reference Book / Source 1 mentioned in educator notes",
+    "Reference Book / Source 2 mentioned in educator notes"
   ]
 }
 
@@ -444,7 +443,7 @@ MANDATORY COMPLETION & ZERO-OMISSION RULES:
 5. "mcqs": Provide 8 to 12 high-quality practice MCQs with 4 options and clear 2-line explanations.
 6. "rapidRevision": Provide 8 to 12 quick revision bullet points.
 7. "checklist": 5 exam readiness checklist points.
-8. "sources": 3 to 5 authentic, specific reference sources (e.g., छत्तीसगढ़ हिंदी ग्रंथ अकादमी पुस्तक/लेखक, छत्तीसगढ़ आर्थिक सर्वेक्षण, शासकीय गजट, संबंधित आयोग).
+8. "sources": Extract and include ONLY the authentic reference sources/books that are mentioned or referenced in the educator's study material provided above. Do NOT invent or hallucinate extra sources. If the educator notes specifically mention certain books, authors, surveys, or government records, list ONLY those exact references. If none are mentioned, include only the standard topic source.
 9. TABLE & FACT PRESERVATION: If the educator provided tables, timelines, or site directories above, preserve EVERY single table faithfully with all its rows and columns intact.
 10. Return ONLY pure, valid JSON with no markdown fences and no trailing conversational text.
 `;
@@ -562,6 +561,19 @@ Return ONLY the valid JSON object with NO markdown fences.`;
 
   const parsed = tryParseOrRepairJson(responseText);
   if (parsed && typeof parsed === 'object') {
+    // Clean and normalize sources to array of strings if present
+    if (parsed.sources) {
+      if (Array.isArray(parsed.sources)) {
+        parsed.sources = parsed.sources.map(s => String(s).trim()).filter(Boolean);
+      } else if (typeof parsed.sources === 'string' && parsed.sources.trim()) {
+        parsed.sources = parsed.sources.split(/[\n•,;]+/).map(s => s.trim()).filter(Boolean);
+      } else {
+        parsed.sources = [];
+      }
+    } else {
+      parsed.sources = [];
+    }
+
     return { success: true, structured: parsed };
   } else {
     console.warn('[generatePdfStudyNotes] JSON parse failed, returning raw markdown');

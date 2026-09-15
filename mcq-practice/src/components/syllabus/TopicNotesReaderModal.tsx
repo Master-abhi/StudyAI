@@ -94,6 +94,21 @@ function getRowCells(row: any): string[] {
   return [String(row)];
 }
 
+// Safely extract and normalize sources list from notes (string or string[])
+export function getSourcesList(notes: any): string[] {
+  if (!notes) return [];
+  const rawSources = notes.sources || notes.references;
+  let list: string[] = [];
+
+  if (Array.isArray(rawSources)) {
+    list = rawSources.map((s: any) => String(s || '').trim()).filter(Boolean);
+  } else if (typeof rawSources === 'string' && rawSources.trim()) {
+    list = rawSources.split(/[\n•,;]+/).map((s: string) => s.trim()).filter(Boolean);
+  }
+
+  return list;
+}
+
 export interface TopicNotesReaderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -119,7 +134,7 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
   isCompleted = false,
   onOpenPdf
 }) => {
-  const [activeTab, setActiveTab] = useState<'theory' | 'tables' | 'revision' | 'mcqs'>('theory');
+  const [activeTab, setActiveTab] = useState<'theory' | 'tables' | 'revision' | 'mcqs' | 'sources'>('theory');
   const [selectedChapterIdx, setSelectedChapterIdx] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
@@ -336,6 +351,8 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
     }
   }
 
+  const allSources = getSourcesList(notes);
+
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-black/85 animate-fade-in select-none">
       <div className={`w-full h-full flex flex-col overflow-hidden font-sans transition-colors duration-200 ${getThemeClass()}`}>
@@ -372,7 +389,9 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                   {examName}
                 </span>
               </div>
-              <h2 className="text-sm sm:text-base md:text-lg font-black truncate leading-tight mt-0.5">
+              <h2 className={`text-sm sm:text-base md:text-lg font-black truncate leading-tight mt-0.5 ${
+                readingTheme === 'dark' ? 'text-white' : readingTheme === 'sepia' ? 'text-[#2A1E11]' : 'text-slate-900'
+              }`}>
                 {topic.nameHi || topic.name}
               </h2>
             </div>
@@ -535,7 +554,8 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                     { id: 'theory', label: '📖 Theory & Chapters', count: notes.chapters?.length || 1 },
                     { id: 'tables', label: '📊 Comparative Tables', count: allTables.length },
                     { id: 'revision', label: '⚡ Rapid Revision & Facts', count: (notes.oneLinerRevision || notes.rapidRevision || []).length },
-                    { id: 'mcqs', label: '🎯 Exam MCQs & Quiz', count: notes.mcqs?.length || 0 }
+                    { id: 'mcqs', label: '🎯 Exam MCQs & Quiz', count: notes.mcqs?.length || 0 },
+                    ...(allSources.length > 0 ? [{ id: 'sources', label: '📚 Sources & References', count: allSources.length }] : [])
                   ].map(tab => {
                     const isActive = activeTab === tab.id;
                     return (
@@ -791,11 +811,15 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                           <Bookmark className="w-3.5 h-3.5" />
                           <span>अध्याय {chapter.chapterNumber || (actualIdx + 1 < 10 ? `0${actualIdx + 1}` : actualIdx + 1)}</span>
                         </div>
-                        <h3 className="text-lg sm:text-xl font-black text-text">
+                        <h3 className={`text-lg sm:text-xl font-black ${
+                          readingTheme === 'dark' ? 'text-white' : readingTheme === 'sepia' ? 'text-[#2A1E11]' : 'text-slate-900'
+                        }`}>
                           {chapter.chapterTitle || chapter.title}
                         </h3>
                         {chapter.description && (
-                          <p className="text-xs text-text-muted mt-1 font-medium">{chapter.description}</p>
+                          <p className={`text-xs mt-1 font-medium ${
+                            readingTheme === 'dark' ? 'text-slate-400' : readingTheme === 'sepia' ? 'text-[#5C452A]' : 'text-slate-600'
+                          }`}>{chapter.description}</p>
                         )}
                         {chapter.examFocus && (
                           <div className={`mt-3 px-3.5 py-2 rounded-xl border flex items-start sm:items-center gap-2.5 text-xs font-medium ${
@@ -834,7 +858,9 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                       {Array.isArray(chapter.sections) && chapter.sections.map((sec: any, sIdx: number) => (
                         <div key={sIdx} className="space-y-3 pt-2">
                           {sec.heading && (
-                            <h4 className="text-base font-bold text-text flex items-center gap-2 border-l-3 border-saffron pl-2.5">
+                            <h4 className={`text-base font-black flex items-center gap-2 border-l-3 border-saffron pl-2.5 ${
+                              readingTheme === 'dark' ? 'text-slate-100' : readingTheme === 'sepia' ? 'text-[#2A1E11]' : 'text-slate-900'
+                            }`}>
                               {sec.heading}
                             </h4>
                           )}
@@ -866,13 +892,24 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                                     }`}>{children}</li>
                                   ),
                                   h1: ({ children }) => (
-                                    <h3 className="text-base font-black text-saffron mt-3 mb-1">{children}</h3>
+                                    <h3 className={`text-base font-black mt-4 mb-1.5 ${
+                                      readingTheme === 'dark' ? 'text-amber-400' : readingTheme === 'sepia' ? 'text-[#8A4A00]' : 'text-amber-700'
+                                    }`}>{children}</h3>
                                   ),
                                   h2: ({ children }) => (
-                                    <h4 className="text-sm font-black text-saffron mt-2.5 mb-1">{children}</h4>
+                                    <h4 className={`text-sm font-black mt-3 mb-1 ${
+                                      readingTheme === 'dark' ? 'text-amber-400' : readingTheme === 'sepia' ? 'text-[#8A4A00]' : 'text-amber-700'
+                                    }`}>{children}</h4>
                                   ),
                                   h3: ({ children }) => (
-                                    <h5 className="text-xs font-black uppercase text-saffron tracking-wider mt-2 mb-1">{children}</h5>
+                                    <h5 className={`text-xs font-black uppercase tracking-wider mt-2.5 mb-1 ${
+                                      readingTheme === 'dark' ? 'text-amber-300' : readingTheme === 'sepia' ? 'text-[#8A4A00]' : 'text-amber-800'
+                                    }`}>{children}</h5>
+                                  ),
+                                  h4: ({ children }) => (
+                                    <h6 className={`text-xs font-bold mt-2 mb-1 ${
+                                      readingTheme === 'dark' ? 'text-slate-100' : readingTheme === 'sepia' ? 'text-[#2A1E11]' : 'text-slate-900'
+                                    }`}>{children}</h6>
                                   ),
                                   blockquote: ({ children }) => (
                                     <blockquote className={`border-l-4 border-saffron pl-3 py-1 my-2 rounded-r italic text-xs ${
@@ -1047,6 +1084,50 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                             </div>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sources & References Citation Card in Theory View */}
+                  {allSources.length > 0 && (
+                    <div className={`mt-8 p-5 rounded-2xl border flex flex-col gap-3 shadow-xs ${
+                      readingTheme === 'dark'
+                        ? 'bg-[#151D2E] border-[#2A364F] text-slate-200'
+                        : readingTheme === 'sepia'
+                          ? 'bg-[#F5EAD4] border-[#DECBB0] text-[#3F3325]'
+                          : 'bg-white border-slate-200 text-slate-900'
+                    }`}>
+                      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-saffron">
+                          <BookOpen className="w-4 h-4" />
+                          <span>प्रामाणिक अध्ययन स्रोत एवं संदर्भ (Authentic Sources & References)</span>
+                        </div>
+                        <span className={`text-[10px] font-bold ${
+                          readingTheme === 'dark' ? 'text-slate-400' : readingTheme === 'sepia' ? 'text-[#7A5B36]' : 'text-slate-500'
+                        }`}>{allSources.length} प्रामाणिक संदर्भ</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        {allSources.map((s: string, idx: number) => (
+                          <div 
+                            key={idx} 
+                            className={`flex items-start gap-2 p-2.5 rounded-xl border ${
+                              readingTheme === 'dark'
+                                ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200'
+                                : readingTheme === 'sepia'
+                                  ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]'
+                                  : 'bg-slate-50 border-slate-200 text-slate-800'
+                            }`}
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                            <span className="font-semibold leading-snug">{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className={`text-[10px] flex items-center justify-between border-t border-border/40 pt-2 mt-1 ${
+                        readingTheme === 'dark' ? 'text-slate-400' : readingTheme === 'sepia' ? 'text-[#7A5B36]' : 'text-slate-500'
+                      }`}>
+                        <span>प्रतियोगी परीक्षा मानकों के अनुरूप प्रामाणिक संदर्भ ग्रंथों से संकलित</span>
+                        <span className="font-bold text-saffron">CG GURU Academic Research</span>
                       </div>
                     </div>
                   )}
@@ -1315,22 +1396,87 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                 </div>
               )}
 
-              {/* Sources & References Citation Card */}
-              {Array.isArray(notes.sources) && notes.sources.length > 0 && (
-                <div className="mt-8 p-4 bg-bg-s3/70 border border-border/80 rounded-2xl flex flex-col gap-2.5">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-saffron">
-                    <BookOpen className="w-4 h-4" />
-                    <span>प्रामाणिक अध्ययन स्रोत एवं संदर्भ (Authentic Sources & References)</span>
+              {/* TAB 5: DEDICATED SOURCES & REFERENCES TAB */}
+              {activeTab === 'sources' && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className={`p-6 rounded-2xl border ${getCardBgClass()} space-y-4`}>
+                    <div className="flex items-center gap-2.5 text-sm font-black uppercase tracking-wider text-saffron border-b border-border/50 pb-3">
+                      <BookOpen className="w-5 h-5" />
+                      <span>प्रामाणिक अध्ययन स्रोत एवं संदर्भ ग्रंथावली (Authentic Sources & Academic References)</span>
+                    </div>
+                    <p className={`text-xs leading-relaxed ${readingTheme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+                      इस अध्याय की विषयवस्तु, ऐतिहासिक कालक्रम, आंकड़े तथा परीक्षा-उन्मुख तथ्य निम्नलिखित राज्य स्तरीय प्रामाणिक शोध ग्रंथों, शासकीय प्रतिवेदनों तथा पाठ्यपुस्तकों से सत्यापित हैं:
+                    </p>
+                    <div className="grid grid-cols-1 gap-2.5 pt-2">
+                      {allSources.map((sourceText: string, sIdx: number) => (
+                        <div 
+                          key={sIdx} 
+                          className={`p-3.5 rounded-xl border flex items-start gap-3 text-xs leading-relaxed transition-all ${
+                            readingTheme === 'dark' 
+                              ? 'bg-[#1E293B]/80 border-[#334155] text-slate-200' 
+                              : readingTheme === 'sepia' 
+                                ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]' 
+                                : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
+                        >
+                          <span className="w-6 h-6 rounded-lg bg-saffron/15 text-saffron font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                            {sIdx + 1}
+                          </span>
+                          <div className="flex-1">
+                            <span className="font-bold text-[13px] block leading-snug">{sourceText}</span>
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-1">
+                              <CheckCircle2 className="w-3 h-3 inline" /> प्रमाणित राज्य प्रतियोगी परीक्षा अध्ययन संदर्भ
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-[11px] text-text-muted flex flex-wrap items-center justify-between border-t border-border/40 pt-3 mt-4 gap-2">
+                      <span>मानक संदर्भ: छत्तीसगढ़ ग्रंथ अकादमी, राज्य सांख्यिकी विभाग एवं परीक्षा आयोग गजट</span>
+                      <span className="font-bold text-saffron">CG GURU Academic Research Team</span>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-text">
-                    {notes.sources.map((s: string, idx: number) => (
-                      <div key={idx} className="flex items-start gap-2 p-2 rounded-xl bg-bg-s2 border border-border/60">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="font-medium">{s}</span>
+                </div>
+              )}
+
+              {/* Sources & References Citation Card (Rendered at bottom of MCQs tab) */}
+              {activeTab === 'mcqs' && allSources.length > 0 && (
+                <div className={`mt-8 p-5 rounded-2xl border flex flex-col gap-3 shadow-xs ${
+                  readingTheme === 'dark'
+                    ? 'bg-[#151D2E] border-[#2A364F] text-slate-200'
+                    : readingTheme === 'sepia'
+                      ? 'bg-[#F5EAD4] border-[#DECBB0] text-[#3F3325]'
+                      : 'bg-white border-slate-200 text-slate-900'
+                }`}>
+                  <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+                    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-saffron">
+                      <BookOpen className="w-4 h-4" />
+                      <span>प्रामाणिक अध्ययन स्रोत एवं संदर्भ (Authentic Sources & References)</span>
+                    </div>
+                    <span className={`text-[10px] font-bold ${
+                      readingTheme === 'dark' ? 'text-slate-400' : readingTheme === 'sepia' ? 'text-[#7A5B36]' : 'text-slate-500'
+                    }`}>कुल {allSources.length} संदर्भ</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {allSources.map((s: string, idx: number) => (
+                      <div 
+                        key={idx} 
+                        className={`flex items-start gap-2 p-2.5 rounded-xl border ${
+                          readingTheme === 'dark'
+                            ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200'
+                            : readingTheme === 'sepia'
+                              ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]'
+                              : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span className="font-semibold leading-snug">{s}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="text-[10px] text-text-muted flex items-center justify-between border-t border-border/40 pt-2 mt-1">
+                  <div className={`text-[10px] flex items-center justify-between border-t border-border/40 pt-2 mt-1 ${
+                    readingTheme === 'dark' ? 'text-slate-400' : readingTheme === 'sepia' ? 'text-[#7A5B36]' : 'text-slate-500'
+                  }`}>
                     <span>प्रतियोगी परीक्षा मानकों के अनुरूप प्रामाणिक स्रोतों से सत्यापित</span>
                     <span className="font-bold text-saffron">CG GURU Academic Research</span>
                   </div>
@@ -1445,11 +1591,11 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                   </div>
                 )}
 
-                {Array.isArray(notes.sources) && notes.sources.length > 0 && (
+                {allSources.length > 0 && (
                   <div className="avoid-break" style={{ marginBottom: '20px', padding: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '6px' }}>
                     <h4 style={{ color: '#1E3A8A', margin: '0 0 8px 0', fontSize: '9.5pt' }}>📖 प्रामाणिक स्रोत एवं संदर्भ (Sources & References)</h4>
                     <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '8.5pt', color: '#334155' }}>
-                      {notes.sources.map((s: string, idx: number) => (
+                      {allSources.map((s: string, idx: number) => (
                         <li key={idx} style={{ marginBottom: '3px' }}>{s}</li>
                       ))}
                     </ul>

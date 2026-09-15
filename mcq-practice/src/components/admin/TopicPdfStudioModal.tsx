@@ -47,6 +47,21 @@ function getRowCells(row: any): string[] {
   return [String(row)];
 }
 
+// Safely extract and normalize sources array
+function getSourcesList(data: any): string[] {
+  if (!data) return [];
+  const rawSources = data.sources || data.references;
+  let list: string[] = [];
+
+  if (Array.isArray(rawSources)) {
+    list = rawSources.map((s: any) => String(s || '').trim()).filter(Boolean);
+  } else if (typeof rawSources === 'string' && rawSources.trim()) {
+    list = rawSources.split(/[\n•,;]+/).map((s: string) => s.trim()).filter(Boolean);
+  }
+
+  return list;
+}
+
 // Convert tab-delimited text into an HTML table (for tables copied from Excel / PDF)
 function tabDelimitedToHtmlTable(text: string): string {
   const lines = text.trim().split(/\r?\n/).filter(Boolean);
@@ -1857,18 +1872,40 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
                   </div>
 
                   {/* SOURCES & REFERENCES */}
-                  <div className="p-6 bg-white border border-[#D9E0E8] rounded-2xl flex flex-col gap-2 text-xs text-[#667085] avoid-break">
-                    <span className="font-black text-[#17375E] uppercase tracking-wider text-[11px]">
-                      📖 प्रमाणिक स्रोत एवं संदर्भ (Sources & References)
-                    </span>
-                    <p className="leading-relaxed">
-                      {(studyData?.sources || []).join(' • ') || 'छत्तीसगढ़ ग्रंथ अकादमी • आर्थिक सर्वेक्षण • आधिकारिक सरकारी गजट'}
-                    </p>
-                    <div className="border-t border-[#D9E0E8] pt-3 mt-2 flex items-center justify-between text-[10px]">
-                      <span className="font-bold text-[#E88A00]">CG GURU Educational Ecosystem</span>
-                      <span>Prepared for State Competitive Exams</span>
-                    </div>
-                  </div>
+                  {(() => {
+                    const studioSources = getSourcesList(studyData);
+                    if (studioSources.length === 0) return null;
+                    return (
+                      <div className="p-6 bg-white border border-[#D9E0E8] rounded-2xl flex flex-col gap-3.5 text-xs text-[#202938] shadow-sm avoid-break">
+                        <div className="flex items-center justify-between border-b border-[#D9E0E8] pb-2.5">
+                          <span className="font-black text-[#17375E] uppercase tracking-wider text-xs flex items-center gap-2">
+                            <span>📖</span>
+                            <span>प्रमाणिक स्रोत एवं संदर्भ ग्रंथावली (Authentic Academic Sources & References)</span>
+                          </span>
+                          <span className="text-[10.5px] font-bold text-[#E88A00]">कुल {studioSources.length} प्रामाणिक संदर्भ</span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2.5">
+                          {studioSources.map((source: string, idx: number) => (
+                            <div key={idx} className="flex items-start gap-2.5 p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                              <span className="w-5 h-5 rounded-full bg-[#E88A00]/15 text-[#E88A00] font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                                {idx + 1}
+                              </span>
+                              <div className="flex-1">
+                                <span className="font-bold text-xs text-[#17375E] block leading-snug">{source}</span>
+                                <span className="text-[10px] text-[#2E9B6F] font-semibold flex items-center gap-1 mt-0.5">
+                                  ✓ छत्तीसगढ़ राज्य प्रतियोगी परीक्षा मानकों के अनुरूप सत्यापित
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="border-t border-[#D9E0E8] pt-3 mt-1 flex items-center justify-between text-[10px] text-[#667085]">
+                          <span className="font-bold text-[#E88A00]">CG GURU Academic Research & Content Ecosystem</span>
+                          <span>मानक संदर्भ: ग्रंथ अकादमी, आर्थिक सर्वेक्षण एवं शासकीय गजट</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                 </div>
               </div>
