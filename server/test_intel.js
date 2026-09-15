@@ -1,8 +1,8 @@
 require('dotenv').config();
 const { generatePdfStudyNotes } = require('./services/aiManager');
 
-async function runTest() {
-  console.log("Testing generatePdfStudyNotes with user raw material...");
+async function runGroqTest() {
+  console.log("Testing generatePdfStudyNotes with provider: 'groq'...");
   const raw = `1. विषय परिचय (Introduction & Overview)
 प्रागैतिहासिक काल (Prehistoric Period) मानव सभ्यता के विकास का वह कालखंड है जिसके अध्ययन के लिए कोई लिखित अभिलेख (Written Records) उपलब्ध नहीं हैं।
 छत्तीसगढ़ की प्रमुख गुफाएं:
@@ -17,7 +17,8 @@ async function runTest() {
       topicNameHi: 'प्रागैतिहासिक छत्तीसगढ़',
       subjectName: 'छत्तीसगढ़ का इतिहास एवं पुरातत्व',
       examName: 'CGPSC',
-      rawMaterial: raw
+      rawMaterial: raw,
+      provider: 'groq'
     });
     console.log("Success! Has structured:", Boolean(res.structured));
     if (res.structured) {
@@ -33,4 +34,4 @@ async function runTest() {
   }
 }
 
-runTest();
+runGroqTest();

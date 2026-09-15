@@ -1,5 +1,855 @@
 [
   {
+    "id": "test_1789388907833",
+    "title": "छत्तीसगढ़ की जलवायु एवं मौसम - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:28:27.833Z"
+  },
+  {
+    "id": "test_1789388750162",
+    "title": "छत्तीसगढ़ की जलवायु एवं मौसम - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:25:50.162Z"
+  },
+  {
+    "id": "test_1789388633205",
+    "title": "छत्तीसगढ़ की जलवायु एवं मौसम - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:23:53.205Z"
+  },
+  {
+    "id": "test_1789388514097",
+    "title": "छत्तीसगढ़ की नदी घाटी परियोजनाएँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:21:54.097Z"
+  },
+  {
+    "id": "test_1789388280718",
+    "title": "छत्तीसगढ़ की नदी घाटी परियोजनाएँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:18:00.718Z"
+  },
+  {
+    "id": "test_1789388202595",
+    "title": "छत्तीसगढ़ की नदी घाटी परियोजनाएँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:16:42.595Z"
+  },
+  {
+    "id": "test_1789387983386",
+    "title": "छत्तीसगढ़ की प्रमुख नदियाँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:13:03.386Z"
+  },
+  {
+    "id": "test_1789387900133",
+    "title": "छत्तीसगढ़ की प्रमुख नदियाँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:11:40.133Z"
+  },
+  {
+    "id": "test_1789387824971",
+    "title": "छत्तीसगढ़ की प्रमुख नदियाँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:10:24.971Z"
+  },
+  {
+    "id": "test_1789387627673",
+    "title": "छत्तीसगढ़ का भौतिक विभाजन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:07:07.673Z"
+  },
+  {
+    "id": "test_1789387552045",
+    "title": "छत्तीसगढ़ का भौतिक विभाजन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:05:52.045Z"
+  },
+  {
+    "id": "test_1789387177585",
+    "title": "छत्तीसगढ़ का भौतिक विभाजन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:59:37.585Z"
+  },
+  {
+    "id": "test_1789387059156",
+    "title": "छत्तीसगढ़ की स्थिति एवं सीमाएं - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:57:39.156Z"
+  },
+  {
+    "id": "test_1789386990406",
+    "title": "छत्तीसगढ़ की स्थिति एवं सीमाएं - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:56:30.406Z"
+  },
+  {
+    "id": "test_1789386836891",
+    "title": "छत्तीसगढ़ की स्थिति एवं सीमाएं - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:53:56.891Z"
+  },
+  {
+    "id": "test_1789386552793",
+    "title": "छत्तीसगढ़ राज्य का गठन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History & Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:49:12.793Z"
+  },
+  {
+    "id": "test_1789386482279",
+    "title": "छत्तीसगढ़ राज्य का गठन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History & Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:48:02.279Z"
+  },
+  {
+    "id": "test_1789386353861",
+    "title": "छत्तीसगढ़ राज्य का गठन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History & Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:45:53.861Z"
+  },
+  {
+    "id": "test_1789386220955",
+    "title": "स्वतंत्रता आंदोलन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:43:40.955Z"
+  },
+  {
+    "id": "test_1789386150586",
+    "title": "स्वतंत्रता आंदोलन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:42:30.586Z"
+  },
+  {
+    "id": "test_1789386090876",
+    "title": "स्वतंत्रता आंदोलन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:41:30.876Z"
+  },
+  {
+    "id": "test_1789385954224",
+    "title": "छत्तीसगढ़ में 1857 का विद्रोह - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:39:14.224Z"
+  },
+  {
+    "id": "test_1789385794969",
+    "title": "छत्तीसगढ़ में 1857 का विद्रोह - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:36:34.969Z"
+  },
+  {
+    "id": "test_1789385720992",
+    "title": "छत्तीसगढ़ में 1857 का विद्रोह - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:35:20.992Z"
+  },
+  {
+    "id": "test_1789385374688",
+    "title": "छत्तीसगढ़ में  ब्रिटिश शासन काल - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:29:34.688Z"
+  },
+  {
+    "id": "test_1789385315622",
+    "title": "छत्तीसगढ़ में  ब्रिटिश शासन काल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:28:35.622Z"
+  },
+  {
+    "id": "test_1789385254153",
+    "title": "छत्तीसगढ़ में  ब्रिटिश शासन काल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:27:34.153Z"
+  },
+  {
+    "id": "test_1789385155186",
+    "title": "मराठा शासन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:25:55.186Z"
+  },
+  {
+    "id": "test_1789385070898",
+    "title": "मराठा शासन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:24:30.898Z"
+  },
+  {
+    "id": "test_1789385008603",
+    "title": "मराठा शासन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:23:28.603Z"
+  },
+  {
+    "id": "test_1789384879668",
+    "title": "मध्यकालीन छत्तीसगढ़ का इतिहास - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:21:19.668Z"
+  },
+  {
+    "id": "test_1789384808927",
+    "title": "मध्यकालीन छत्तीसगढ़ का इतिहास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:20:08.927Z"
+  },
+  {
+    "id": "test_1789384746335",
+    "title": "मध्यकालीन छत्तीसगढ़ का इतिहास - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:19:06.335Z"
+  },
+  {
+    "id": "test_1789384586408",
+    "title": "कलचुरि वंश - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:16:26.408Z"
+  },
+  {
+    "id": "test_1789384505625",
+    "title": "कलचुरि वंश - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:15:05.625Z"
+  },
+  {
+    "id": "test_1789384417841",
+    "title": "कलचुरि वंश - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:13:37.841Z"
+  },
+  {
+    "id": "test_1789367359858",
+    "title": "सोम वंश - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T06:29:19.858Z"
+  },
+  {
+    "id": "test_1789367139373",
+    "title": "सोम वंश - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T06:25:39.373Z"
+  },
+  {
+    "id": "test_1789366898202",
+    "title": "सोम वंश - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T06:21:38.202Z"
+  },
+  {
+    "id": "test_1789366355597",
+    "title": "पाण्डु वंश - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T06:12:35.597Z"
+  },
+  {
+    "id": "test_1789366254794",
+    "title": "पाण्डु वंश - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T06:10:54.794Z"
+  },
+  {
+    "id": "test_1789365865770",
+    "title": "पाण्डु वंश - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T06:04:25.770Z"
+  },
+  {
+    "id": "test_1789365601680",
+    "title": "सातवाहन काल - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T06:00:01.680Z"
+  },
+  {
+    "id": "test_1789365507522",
+    "title": "सातवाहन काल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T05:58:27.522Z"
+  },
+  {
+    "id": "test_1789365344169",
+    "title": "सातवाहन काल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T05:55:44.169Z"
+  },
+  {
+    "id": "test_1789365073449",
+    "title": "नंद एवं मौर्य काल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T05:51:13.449Z"
+  },
+  {
+    "id": "test_1789364860929",
+    "title": "नंद एवं मौर्य काल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T05:47:40.929Z"
+  },
+  {
+    "id": "test_1789363937968",
+    "title": "प्राचीन छत्तीसगढ़ का इतिहास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T05:32:17.968Z"
+  },
+  {
+    "id": "test_1789363853667",
+    "title": "प्राचीन छत्तीसगढ़ का इतिहास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T05:30:53.667Z"
+  },
+  {
+    "id": "test_1789363632893",
+    "title": "प्राचीन छत्तीसगढ़ का इतिहास - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T05:27:12.893Z"
+  },
+  {
     "id": "test_1789307171692",
     "title": "प्रागैतिहासिक छत्तीसगढ़ - Test 03",
     "examId": "cgv_master",

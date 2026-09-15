@@ -1315,15 +1315,25 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                 </div>
               )}
 
-              {/* Sources Citation Footer */}
+              {/* Sources & References Citation Card */}
               {Array.isArray(notes.sources) && notes.sources.length > 0 && (
-                <div className="pt-4 border-t border-border/50 text-[11px] text-text-muted flex flex-wrap items-center gap-2">
-                  <span className="font-bold">प्रामाणिक संदर्भ स्रोत:</span>
-                  {notes.sources.map((s: string, idx: number) => (
-                    <span key={idx} className="px-2 py-0.5 rounded bg-bg-s3 border border-border/50">
-                      {s}
-                    </span>
-                  ))}
+                <div className="mt-8 p-4 bg-bg-s3/70 border border-border/80 rounded-2xl flex flex-col gap-2.5">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-saffron">
+                    <BookOpen className="w-4 h-4" />
+                    <span>प्रामाणिक अध्ययन स्रोत एवं संदर्भ (Authentic Sources & References)</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-text">
+                    {notes.sources.map((s: string, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2 p-2 rounded-xl bg-bg-s2 border border-border/60">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                        <span className="font-medium">{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-[10px] text-text-muted flex items-center justify-between border-t border-border/40 pt-2 mt-1">
+                    <span>प्रतियोगी परीक्षा मानकों के अनुरूप प्रामाणिक स्रोतों से सत्यापित</span>
+                    <span className="font-bold text-saffron">CG GURU Academic Research</span>
+                  </div>
                 </div>
               )}
 
@@ -1432,6 +1442,17 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                         </p>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {Array.isArray(notes.sources) && notes.sources.length > 0 && (
+                  <div className="avoid-break" style={{ marginBottom: '20px', padding: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '6px' }}>
+                    <h4 style={{ color: '#1E3A8A', margin: '0 0 8px 0', fontSize: '9.5pt' }}>📖 प्रामाणिक स्रोत एवं संदर्भ (Sources & References)</h4>
+                    <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '8.5pt', color: '#334155' }}>
+                      {notes.sources.map((s: string, idx: number) => (
+                        <li key={idx} style={{ marginBottom: '3px' }}>{s}</li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 

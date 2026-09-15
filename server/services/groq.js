@@ -472,18 +472,47 @@ Respond with the exact requested JSON format. Include exactly 5 high-quality MCQ
   return response.choices[0].message.content.trim();
 }
 
-async function generateNotesJson(systemInstruction, prompt, maxTokens = 3500) {
-  const model = await getGroqModel();
-  const response = await client.chat.completions.create({
-    model: model,
-    max_tokens: maxTokens,
-    messages: [
-      { role: 'system', content: systemInstruction },
-      { role: 'user', content: prompt }
-    ]
-  });
+async function generateNotesJson(systemInstruction, prompt, maxTokens = 6000) {
+  // Candidate models on Groq capable of handling large input contexts & JSON mode
+  const candidateModels = [
+    'openai/gpt-oss-120b',
+    'qwen/qwen3.6-27b',
+    'openai/gpt-oss-20b',
+    'qwen/qwen3.8-27b'
+  ];
 
-  return response.choices[0]?.message?.content?.trim() || '';
+  let lastError = null;
+
+  for (const model of candidateModels) {
+    try {
+      console.log(`[groq:generateNotesJson] Trying model: ${model} with max_tokens: ${maxTokens}...`);
+      const response = await client.chat.completions.create({
+        model: model,
+        max_tokens: maxTokens,
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: prompt }
+        ]
+      });
+
+      const content = response.choices[0]?.message?.content?.trim();
+      if (content && content.length > 50) {
+        return content;
+      }
+    } catch (err) {
+      lastError = err;
+      const isRateLimit = err.status === 413 || err.status === 429 || (err.message && err.message.includes('rate_limit_exceeded'));
+      console.warn(`[groq:generateNotesJson] Model ${model} failed (${err.status || err.message}). ${isRateLimit ? 'Trying next available model...' : ''}`);
+      if (!isRateLimit && err.status >= 400 && err.status < 500) {
+        // Continue to other model in case of schema/validation mismatch
+      }
+    }
+  }
+
+  // If candidate loop exhausted, throw last error for Gemini fallback
+  throw lastError || new Error('All Groq candidate models failed to generate notes JSON');
 }
 
 module.exports = { 

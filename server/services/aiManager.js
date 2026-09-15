@@ -294,6 +294,161 @@ async function generateNewsIntelligence(title, description, category, source) {
   }
 }
 
+async function generatePdfStudyNotes({ topicName, topicNameHi, subjectName, examName, targetExams = [], rawMaterial = '', provider = 'gemini' }) {
+  const selectedProvider = (provider && String(provider).toLowerCase() === 'groq') ? 'groq' : 'gemini';
+  const targetExamStr = targetExams && targetExams.length > 0 
+    ? targetExams.join(' • ') 
+    : 'CGPSC • CG Vyapam • SI • Police • Patwari • Teacher • Other State Exams';
+
+  const systemPrompt = `You are a senior educational content researcher, Chhattisgarh competitive-exam subject expert, curriculum designer, information architect, and premium PDF document designer.
+
+I am building a professional competitive-exam preparation platform called "CG GURU".
+
+I need you to create a COMPLETE, DETAILED, ACCURATE, EXAM-ORIENTED and PREMIUM study-notes module for CG GURU based on the topic and user-provided study material below.
+
+==================================================
+INPUT
+==================================================
+
+TOPIC:
+${topicNameHi || topicName} (${topicName})
+
+SUBJECT:
+${subjectName || 'General Studies / सामान्य अध्ययन'}
+
+TARGET EXAMS:
+${targetExamStr}
+
+LANGUAGE:
+Hindi (Pure Devanagari script). Use standard English in parentheses where helpful.
+
+==================================================
+CORE OBJECTIVE
+==================================================
+Create a study module that looks and feels like a professionally designed CG GURU educational product.
+Modern, Clean, Academic, Premium, Exam-focused, Easy to revise, Highly readable, Information-rich but uncluttered.
+
+ACCURACY GUIDELINES:
+- Accuracy is more important than visual appearance.
+- Priority: Government of Chhattisgarh official sources, Economic Survey, Budget, Census, NCERT, ASI, RBI.
+- Never invent facts, fake schemes, fake dates, statistics, or numerical data.
+- For statistics, mention relevant year.
+- If a fact cannot be verified, do not fabricate it.
+
+==================================================
+REQUIRED OUTPUT FORMAT: PURE JSON ONLY
+==================================================
+Return ONLY a valid, parseable JSON object with NO markdown fence backticks, matching this exact schema:
+{
+  "title": "${topicName}",
+  "titleHi": "${topicNameHi || topicName}",
+  "subject": "${subjectName || 'सामान्य अध्ययन'}",
+  "subtitle": "Premium Exam Notes",
+  "targetExams": "${targetExamStr}",
+  "overview": {
+    "introduction": "Comprehensive introduction to the topic in Hindi (3-5 sentences)...",
+    "importance": "Why this topic is important for exams...",
+    "examRelevance": "Weightage and exam relevance...",
+    "quickFacts": [
+      "5 to 10 high-value, crisp, accurate exam facts as bullet points..."
+    ]
+  },
+  "chapters": [
+    {
+      "chapterNumber": "01",
+      "chapterTitle": "Chapter Title in Hindi",
+      "description": "1-2 line introductory description",
+      "examFocus": "Compact card text explaining what is most frequently tested in exams",
+      "sections": [
+        {
+          "heading": "Section Heading in Hindi",
+          "content": "Detailed, highly accurate, structured content with bullet points or short paragraphs...",
+          "conceptCard": "💡 CONCEPT explanation or definition (optional)",
+          "importantFactCard": "⭐ IMPORTANT FACT takeaway (optional)",
+          "memoryTrick": "🧠 MEMORY TRICK mnemonic (optional)"
+        }
+      ],
+      "tables": [
+        {
+          "title": "Table Title (e.g. प्रमुख शासक, कालक्रम, योजना तुलना)",
+          "headers": ["स्तंभ 1", "स्तंभ 2", "स्तंभ 3"],
+          "rows": [
+            ["डेटा 1", "डेटा 2", "डेटा 3"]
+          ]
+        }
+      ]
+    }
+  ],
+  "oneLinerRevision": [
+    "One-liner point 1 (crisp high-value fact for last minute revision)...",
+    "One-liner point 2...",
+    "One-liner point 3..."
+  ],
+  "confusionBuster": [
+    {
+      "oftenConfused": "Similar names / dates / locations students confuse",
+      "correctInformation": "Clear correct fact and context to remove confusion"
+    }
+  ],
+  "pyqSection": [
+    {
+      "examYear": "CGPSC / CG Vyapam (or PYQ-Style)",
+      "question": "Question text in Hindi...",
+      "answer": "Correct answer with brief explanation"
+    }
+  ],
+  "mcqs": [
+    {
+      "q": "MCQ Question in Hindi?",
+      "options": ["A. Option 1", "B. Option 2", "C. Option 3", "D. Option 4"],
+      "correct": "B",
+      "explanation": "2-4 line exam-focused explanation."
+    }
+  ],
+  "rapidRevision": [
+    "Short fact / figure / formula for 5-minute revision..."
+  ],
+  "checklist": [
+    "महत्वपूर्ण तिथियां एवं कालक्रम का पुनरीक्षण पूर्ण",
+    "प्रमुख स्थान, नदियां एवं भौगोलिक तथ्य याद किए",
+    "संबद्ध सरकारी नीतियां, आंकड़े एवं बजट तथ्य स्पष्ट",
+    "भ्रम बिंदु (Confusion Buster) तालिका का अध्ययन किया",
+    "सभी 20+ अभ्यास प्रश्नों (MCQs) का अभ्यास पूर्ण"
+  ],
+  "sources": [
+    "छत्तीसगढ़ संदर्भ एवं ग्रंथ अकादमी",
+    "आर्थिक सर्वेक्षण छत्तीसगढ़",
+    "आधिकारिक शासकीय गजट एवं आयोग संदर्भ"
+  ]
+}
+
+==================================================
+STUDY MATERIAL PROVIDED BY EDUCATOR:
+==================================================
+${rawMaterial.trim() || `Cover the core syllabus and exam requirements for topic: ${topicNameHi || topicName} in ${subjectName}.`}
+
+==================================================
+MANDATORY COMPLETION & ZERO-OMISSION RULES:
+==================================================
+1. "chapters": Provide comprehensive, richly detailed chapters (create as many as needed, typically 3 to 8 chapters) to cover EVERY era, period, ruler, scheme, location, event, and section present in the syllabus or educator material. NOTHING SHOULD BE OMITTED OR COMPRESSED AWAY ('कुछ भी छूटना नहीं चाहिए').
+   Every chapter MUST include:
+   - "sections": 2 to 4 detailed sections with exhaustive, deep theory, bullet points, names, dates, and historical/geographical context.
+   - "tables": If the topic or educator notes contain tabular data, timelines, or lists, structure them as clear comparison/chronology tables with headers and rows.
+   - "examFocus": Specific high-yield exam takeaways.
+   - "conceptCard": Core conceptual explanation or definition.
+   - "importantFactCard": Key factual highlight.
+   - "memoryTrick": Mnemonic or trick to memorize.
+2. "oneLinerRevision": Provide 20 to 30 crisp, numbered high-value facts covering all aspects and sections of the topic.
+3. "confusionBuster": Provide 4 to 8 clear pairs of oftenConfused vs correctInformation (similar names, dates, locations students confuse).
+4. "pyqSection": Provide 4 to 6 past year / exam-style questions with accurate answers and brief explanations.
+5. "mcqs": Provide 8 to 12 high-quality practice MCQs with 4 options and clear 2-line explanations.
+6. "rapidRevision": Provide 8 to 12 quick revision bullet points.
+7. "checklist": 5 exam readiness checklist points.
+8. "sources": 3 to 5 authentic, specific reference sources (e.g., छत्तीसगढ़ हिंदी ग्रंथ अकादमी पुस्तक/लेखक, छत्तीसगढ़ आर्थिक सर्वेक्षण, शासकीय गजट, संबंधित आयोग).
+9. TABLE & FACT PRESERVATION: If the educator provided tables, timelines, or site directories above, preserve EVERY single table faithfully with all its rows and columns intact.
+10. Return ONLY pure, valid JSON with no markdown fences and no trailing conversational text.
+`;
+
 function tryParseOrRepairJson(raw) {
   if (!raw) return null;
   let text = typeof raw === 'object' ? JSON.stringify(raw) : String(raw).trim();
@@ -347,346 +502,70 @@ function tryParseOrRepairJson(raw) {
   }
 }
 
-// Helper to extract clean chapters and tables from raw text without AI tokens
-function parseRawMaterialLocally(rawText, topicTitle) {
-  if (!rawText || !rawText.trim()) return [];
-  const clean = rawText.trim();
-  
-  // Extract tables
-  const tableMatches = clean.match(/((?:\|[^\n]+\|\r?\n)+)/g);
-  const parsedTables = [];
-  if (tableMatches) {
-    tableMatches.forEach((tblBlock, idx) => {
-      const rows = tblBlock.trim().split(/\r?\n/).filter(r => !r.includes('---'));
-      if (rows.length >= 2) {
-        const headers = rows[0].split('|').map(c => c.trim()).filter(Boolean);
-        const dataRows = rows.slice(1).map(r => r.split('|').map(c => c.trim()).filter(Boolean));
-        parsedTables.push({
-          title: `तालिका ${idx + 1}: महत्वपूर्ण तथ्य एवं तुलनात्मक विश्लेषण`,
-          headers,
-          rows: dataRows
-        });
-      }
-    });
-  }
-
-  // Split chapters by # or ##
-  const chapterChunks = [];
-  const h1Splits = clean.split(/\n(?=#\s+[^\n]+)/);
-  if (h1Splits.length > 1) {
-    h1Splits.forEach((chunk, idx) => {
-      const match = chunk.match(/^#\s+([^\n]+)/);
-      const title = match ? match[1].trim() : `अध्याय ${idx + 1}`;
-      const body = chunk.replace(/^#\s+[^\n]+\n?/, '').trim();
-      if (body || title) chapterChunks.push({ title, body });
-    });
-  } else {
-    const h2Splits = clean.split(/\n(?=##\s+[^\n]+)/);
-    if (h2Splits.length > 2) {
-      h2Splits.forEach((chunk, idx) => {
-        const match = chunk.match(/^##\s+([^\n]+)/);
-        const title = match ? match[1].trim() : `अध्याय ${idx + 1}`;
-        const body = chunk.replace(/^##\s+[^\n]+\n?/, '').trim();
-        if (body || title) chapterChunks.push({ title, body });
-      });
-    } else {
-      chapterChunks.push({
-        title: topicTitle || 'मुख्य अध्ययन विवरण',
-        body: clean
-      });
-    }
-  }
-
-  return chapterChunks.map((chap, cIdx) => {
-    const secSplits = chap.body.split(/\n(?=(?:###?|\*\*)\s*[^#\n]+)/);
-    const sections = [];
-
-    if (secSplits.length > 1) {
-      secSplits.forEach((sChunk, sIdx) => {
-        const hMatch = sChunk.match(/^(?:###?\s*|\*\*)([^\n*]+)(?:\*\*)?/);
-        const heading = hMatch ? hMatch[1].trim() : `भाग ${sIdx + 1}: महत्वपूर्ण बिंदु`;
-        let secContent = sChunk.replace(/^(?:###?\s*|\*\*)[^\n]+(?:\*\*)?\n?/, '').trim();
-        if (!secContent) secContent = sChunk.trim();
-
-        let factCard = '';
-        let conceptCard = '';
-        const lines = secContent.split('\n').map(l => l.trim()).filter(Boolean);
-        for (const line of lines) {
-          if (!factCard && (line.includes('महत्वपूर्ण') || line.includes('विशेष') || line.includes('नोट:'))) {
-            factCard = line.replace(/^[->*#•\s]+/, '').trim();
-          }
-          if (!conceptCard && (line.includes('अवधारणा') || line.includes('सिद्धांत') || line.includes('परिभाषा'))) {
-            conceptCard = line.replace(/^[->*#•\s]+/, '').trim();
-          }
-        }
-
-        sections.push({
-          heading,
-          content: secContent,
-          conceptCard: conceptCard || undefined,
-          importantFactCard: factCard || undefined
-        });
-      });
-    } else {
-      sections.push({
-        heading: 'अवधारणा एवं विस्तृत विवरण',
-        content: chap.body,
-        importantFactCard: 'परीक्षा के दृष्टिकोण से सभी महत्वपूर्ण तिथियां, स्थान एवं मुख्य आंकड़े ध्यान रखें।'
-      });
-    }
-
-    const chapTables = parsedTables.slice(cIdx * 2, (cIdx + 1) * 2);
-    return {
-      chapterNumber: String(cIdx + 1).padStart(2, '0'),
-      chapterTitle: chap.title,
-      description: 'मुख्य अवधारणाएं एवं परीक्षा उपयोगी तथ्य',
-      examFocus: 'तथ्यों, कालक्रम, प्रमुख व्यक्तियों, नीतियों और प्रावधानों पर आधारित प्रश्न पूछे जाते हैं।',
-      sections,
-      tables: chapTables.length > 0 ? chapTables : undefined
-    };
-  });
-}
-
-async function generatePdfStudyNotes({ 
-  topicName, 
-  topicNameHi, 
-  subjectName, 
-  examName, 
-  targetExams = [], 
-  rawMaterial = '',
-  mode = 'enrich',
-  provider = 'groq'
-}) {
-  const targetExamStr = targetExams && targetExams.length > 0 
-    ? targetExams.join(' • ') 
-    : 'CGPSC • CG Vyapam • SI • Police • Patwari • Teacher • Other State Exams';
-
-  const tHi = topicNameHi || topicName;
-  const sName = subjectName || 'General Studies / सामान्य अध्ययन';
-
-  let responseText = '';
-
-  // MODE 1: ENRICH (85%+ Token Saving Hybrid)
-  // Preserves user's actual notes/tables locally (0 token), and AI generates authentic MCQs, PYQs, and One-Liners (~800-1200 tokens)
-  if (mode === 'enrich' && rawMaterial && rawMaterial.trim().length > 30) {
-    const localChapters = parseRawMaterialLocally(rawMaterial, tHi);
-
-    const enrichSystemPrompt = `You are a senior Chhattisgarh competitive-exam specialist for "CG GURU".
-Your task is to generate HIGH-YIELD EXAM SUPPLEMENTS in pure Hindi (Devanagari script) based on the topic and educator material.
-
-CRITICAL RULES:
-- Output ONLY valid JSON, no markdown fences, no conversational text.
-- Never hallucinate fake facts or fake dates.
-- Generate EXACTLY:
-  - 4 to 6 quickFacts (crisp bullet points)
-  - 8 to 12 oneLinerRevision (high-yield revision points)
-  - 2 to 4 confusionBuster pairs (oftenConfused vs correctInformation)
-  - 3 to 4 pyqSection (exam-style questions with accurate answers)
-  - 4 to 5 high-quality MCQs with 4 options and 2-line explanation
-  - 4 checklist points
-
-JSON SCHEMA:
-{
-  "introduction": "2-3 crisp sentences introducing the topic and exam significance",
-  "quickFacts": ["Fact 1...", "Fact 2..."],
-  "oneLinerRevision": ["Point 1...", "Point 2..."],
-  "confusionBuster": [
-    { "oftenConfused": "...", "correctInformation": "..." }
-  ],
-  "pyqSection": [
-    { "examYear": "CGPSC / CG Vyapam", "question": "...", "answer": "..." }
-  ],
-  "mcqs": [
-    {
-      "q": "MCQ Question in Hindi?",
-      "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
-      "correct": "A",
-      "explanation": "..."
-    }
-  ],
-  "checklist": ["Checklist item 1...", "Checklist item 2..."]
-}`;
-
-    const enrichUserPrompt = `TOPIC: ${tHi} (${topicName})
-SUBJECT: ${sName}
-EXAMS: ${targetExamStr}
-
-EDUCATOR RAW MATERIAL (Reference for facts & questions):
-${rawMaterial.slice(0, 3000)}
-
-Generate the exact JSON exam supplements now. Return ONLY JSON.`;
-
-    try {
-      if (provider === 'groq' && groqService && groqService.generateNotesJson) {
-        responseText = await groqService.generateNotesJson(enrichSystemPrompt, enrichUserPrompt, 3000);
-      } else if (geminiService && geminiService.generatePdfNotesJson) {
-        responseText = await geminiService.generatePdfNotesJson(enrichSystemPrompt, enrichUserPrompt, 'gemini-2.5-flash');
-      } else if (groqService && groqService.generateNotesJson) {
-        responseText = await groqService.generateNotesJson(enrichSystemPrompt, enrichUserPrompt, 3000);
-      }
-    } catch (primaryErr) {
-      console.warn(`[generatePdfStudyNotes:enrich] Primary failed (${primaryErr.message}). Trying alternative provider...`);
-      try {
-        if (provider === 'groq' && geminiService && geminiService.generatePdfNotesJson) {
-          responseText = await geminiService.generatePdfNotesJson(enrichSystemPrompt, enrichUserPrompt, 'gemini-2.5-flash');
-        } else if (groqService && groqService.generateNotesJson) {
-          responseText = await groqService.generateNotesJson(enrichSystemPrompt, enrichUserPrompt, 3000);
-        }
-      } catch (fallbackErr) {
-        console.error(`[generatePdfStudyNotes:enrich] Fallback failed: ${fallbackErr.message}`);
-      }
-    }
-
-    const parsedEnrich = tryParseOrRepairJson(responseText);
-
-    if (parsedEnrich && typeof parsedEnrich === 'object') {
-      const mergedNotes = {
-        title: topicName,
-        titleHi: tHi,
-        subject: sName,
-        subtitle: 'Premium Exam Notes',
-        targetExams: targetExamStr,
-        overview: {
-          introduction: parsedEnrich.introduction || `${tHi} विषय पर आधारित परीक्षा उपयोगी प्रामाणिक अध्ययन नोट्स।`,
-          importance: 'विगत वर्षों की परीक्षाओं में इस विषय से निरंतर प्रश्न पूछे जाते रहे हैं।',
-          examRelevance: 'प्रारंभिक एवं मुख्य परीक्षा हेतु अति महत्वपूर्ण',
-          quickFacts: Array.isArray(parsedEnrich.quickFacts) ? parsedEnrich.quickFacts : []
-        },
-        chapters: localChapters,
-        oneLinerRevision: Array.isArray(parsedEnrich.oneLinerRevision) ? parsedEnrich.oneLinerRevision : [],
-        confusionBuster: Array.isArray(parsedEnrich.confusionBuster) ? parsedEnrich.confusionBuster : [],
-        pyqSection: Array.isArray(parsedEnrich.pyqSection) ? parsedEnrich.pyqSection : [],
-        mcqs: Array.isArray(parsedEnrich.mcqs) ? parsedEnrich.mcqs : [],
-        rapidRevision: Array.isArray(parsedEnrich.oneLinerRevision) ? parsedEnrich.oneLinerRevision.slice(0, 8) : [],
-        checklist: Array.isArray(parsedEnrich.checklist) && parsedEnrich.checklist.length > 0 
-          ? parsedEnrich.checklist 
-          : [
-              'महत्वपूर्ण तिथियां एवं कालक्रम का पुनरीक्षण पूर्ण',
-              'प्रमुख स्थान, व्यक्ति एवं भौगोलिक तथ्य याद किए',
-              'भ्रम बिंदु (Confusion Buster) तालिका का अध्ययन किया',
-              'सभी अभ्यास प्रश्नों (MCQs) का अभ्यास पूर्ण'
-            ],
-        sources: ['छत्तीसगढ़ संदर्भ एवं ग्रंथ अकादमी', 'आधिकारिक शासकीय गजट', 'CG GURU रिसर्च टीम']
-      };
-
-      return { success: true, structured: mergedNotes, mode: 'enrich', provider };
-    }
-  }
-
-  // MODE 2: FULL AUTO AI GENERATION (Token-Optimized to 2,500 max tokens)
-  const fullSystemPrompt = `You are a senior educational content researcher for Chhattisgarh exams at "CG GURU".
-Create a compact, exam-oriented study module in pure Hindi (Devanagari script).
-
-OUTPUT MUST BE VALID JSON ONLY matching this schema:
-{
-  "title": "${topicName}",
-  "titleHi": "${tHi}",
-  "subject": "${sName}",
-  "subtitle": "Premium Exam Notes",
-  "targetExams": "${targetExamStr}",
-  "overview": {
-    "introduction": "2-3 sentences introducing the topic",
-    "quickFacts": ["3-5 high-yield facts"]
-  },
-  "chapters": [
-    {
-      "chapterNumber": "01",
-      "chapterTitle": "Chapter Title in Hindi",
-      "description": "Brief description",
-      "examFocus": "Key exam takeaway",
-      "sections": [
-        {
-          "heading": "Section Heading",
-          "content": "Structured bullet points or short paragraphs...",
-          "importantFactCard": "Key fact"
-        }
-      ],
-      "tables": [
-        {
-          "title": "Comparative Table",
-          "headers": ["स्तंभ 1", "स्तंभ 2"],
-          "rows": [["डेटा 1", "डेटा 2"]]
-        }
-      ]
-    }
-  ],
-  "oneLinerRevision": ["Point 1...", "Point 2..."],
-  "confusionBuster": [
-    { "oftenConfused": "...", "correctInformation": "..." }
-  ],
-  "pyqSection": [
-    { "examYear": "CGPSC / CG Vyapam", "question": "...", "answer": "..." }
-  ],
-  "mcqs": [
-    {
-      "q": "MCQ Question?",
-      "options": ["A. ..", "B. ..", "C. ..", "D. .."],
-      "correct": "A",
-      "explanation": "Brief explanation"
-    }
-  ],
-  "checklist": ["Point 1", "Point 2"],
-  "sources": ["छत्तीसगढ़ संदर्भ एवं ग्रंथ अकादमी", "आधिकारिक शासकीय गजट"]
-}`;
-
-  const fullUserPrompt = `Create the complete, exam-oriented study module JSON for topic: "${tHi}" (${topicName}) in subject "${sName}".
-Educator Notes (if any):
-${rawMaterial.slice(0, 2000)}
-
-Keep content concise, fact-rich, and exam-focused. Return ONLY valid JSON.`;
+  let responseText;
+  const userPrompt = `Create the complete, exhaustive, exam-oriented study module JSON for topic: "${topicNameHi || topicName}" (${topicName}) in subject "${subjectName || 'सामान्य अध्ययन'}".
+CRITICAL REQUIREMENT:
+- Fully cover EVERY SINGLE era, fact, person, location, and section from the educator material without omitting anything.
+- Preserve all tables and data lists.
+Return ONLY the valid JSON object with NO markdown fences.`;
 
   try {
-    if (provider === 'groq' && groqService && groqService.generateNotesJson) {
-      responseText = await groqService.generateNotesJson(fullSystemPrompt, fullUserPrompt, 3500);
-    } else if (geminiService && geminiService.generatePdfNotesJson) {
-      responseText = await geminiService.generatePdfNotesJson(fullSystemPrompt, fullUserPrompt, 'gemini-2.5-flash');
-    } else if (groqService && groqService.generateNotesJson) {
-      responseText = await groqService.generateNotesJson(fullSystemPrompt, fullUserPrompt, 3500);
+    if (selectedProvider === 'groq') {
+      console.log('[generatePdfStudyNotes] Requesting Groq for study notes generation...');
+      if (groqService && groqService.generateNotesJson) {
+        responseText = await groqService.generateNotesJson(systemPrompt, userPrompt, 6000);
+      } else if (groqService && typeof groqService.chat === 'function') {
+        responseText = await groqService.chat(systemPrompt + '\n\n' + userPrompt, 'Study Notes Designer', 'hindi', [], 6000);
+      } else {
+        throw new Error('Groq service is not available');
+      }
+    } else {
+      console.log('[generatePdfStudyNotes] Requesting Gemini for study notes generation...');
+      if (geminiService && geminiService.generatePdfNotesJson) {
+        responseText = await geminiService.generatePdfNotesJson(systemPrompt, userPrompt, 'gemini-2.5-flash');
+      } else {
+        const testService = await getService('test');
+        responseText = await testService.chat(systemPrompt + '\n\n' + userPrompt, 'Study Notes Designer', 'hindi', [], 8000);
+      }
     }
   } catch (primaryErr) {
-    console.warn(`[generatePdfStudyNotes:full] Primary failed (${primaryErr.message}). Trying fallback...`);
+    console.warn(`[generatePdfStudyNotes] Primary provider (${selectedProvider}) failed: ${primaryErr.message}. Trying alternate fallback...`);
     try {
-      if (groqService && groqService.generateNotesJson) {
-        responseText = await groqService.generateNotesJson(fullSystemPrompt, fullUserPrompt, 3500);
-      } else if (geminiService && geminiService.generatePdfNotesJson) {
-        responseText = await geminiService.generatePdfNotesJson(fullSystemPrompt, fullUserPrompt, 'gemini-2.5-flash');
+      if (selectedProvider === 'groq') {
+        // Fallback to Gemini
+        console.log('[generatePdfStudyNotes] Falling back to Gemini...');
+        if (geminiService && geminiService.generatePdfNotesJson) {
+          responseText = await geminiService.generatePdfNotesJson(systemPrompt, userPrompt, 'gemini-2.5-flash');
+        } else {
+          throw primaryErr;
+        }
+      } else {
+        // Fallback to Groq
+        console.log('[generatePdfStudyNotes] Falling back to Groq...');
+        if (groqService && groqService.generateNotesJson) {
+          responseText = await groqService.generateNotesJson(systemPrompt, userPrompt, 6000);
+        } else if (groqService && typeof groqService.chat === 'function') {
+          responseText = await groqService.chat(systemPrompt + '\n\n' + userPrompt, 'Study Notes Designer', 'hindi', [], 6000);
+        } else {
+          throw primaryErr;
+        }
       }
     } catch (fallbackErr) {
-      console.error(`[generatePdfStudyNotes:full] Fallback failed: ${fallbackErr.message}`);
+      console.error(`[generatePdfStudyNotes] Fallback provider also failed: ${fallbackErr.message}`);
       throw primaryErr;
     }
   }
 
-  const parsedFull = tryParseOrRepairJson(responseText);
-  if (parsedFull && typeof parsedFull === 'object') {
-    return { success: true, structured: parsedFull, mode: 'full', provider };
+  if (!responseText) {
+    throw new Error('Empty response from AI Study Notes Designer');
+  }
+
+  const parsed = tryParseOrRepairJson(responseText);
+  if (parsed && typeof parsed === 'object') {
+    return { success: true, structured: parsed };
   } else {
-    // Fallback: parse raw material locally so the user never gets an error
-    const fallbackChapters = parseRawMaterialLocally(rawMaterial, tHi);
-    return { 
-      success: true, 
-      structured: {
-        title: topicName,
-        titleHi: tHi,
-        subject: sName,
-        subtitle: 'Study Notes',
-        targetExams: targetExamStr,
-        overview: {
-          introduction: `${tHi} विषय पर आधारित अध्ययन सामग्री।`,
-          quickFacts: []
-        },
-        chapters: fallbackChapters,
-        oneLinerRevision: [],
-        confusionBuster: [],
-        pyqSection: [],
-        mcqs: [],
-        rapidRevision: [],
-        checklist: ['अध्ययन पूर्ण', 'अभ्यास पूर्ण'],
-        sources: ['CG GURU रिसर्च टीम']
-      },
-      mode: 'local_fallback',
-      rawText: responseText
-    };
+    console.warn('[generatePdfStudyNotes] JSON parse failed, returning raw markdown');
+    return { success: true, structured: null, rawText: responseText };
   }
 }
 
