@@ -1,0 +1,53 @@
+[
+  {
+    "id": "test_pool_1781604622183",
+    "title": "",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-16T10:10:22.183Z"
+  },
+  {
+    "id": "test_pool_1781373458435",
+    "title": "",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-13T17:57:38.435Z"
+  },
+  {
+    "id": "test_pool_1781372756552",
+    "title": "",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-13T17:45:56.552Z"
+  }
+]

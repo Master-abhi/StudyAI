@@ -274,7 +274,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     setSelectedSubject(null);
   }, [activeMode, activeExam]);
 
-  const getSubjectProgress = (subjectTests: ServerTest[]) => {
+  const getSubjectProgress = (subjectTests: ServerTest[], subjectName?: string) => {
     let completed = 0;
     let inProgress = 0;
     subjectTests.forEach(test => {
@@ -284,7 +284,9 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
         else if (prog.attemptedCount > 0) inProgress++;
       }
     });
-    return { completed, inProgress, total: subjectTests.length };
+    const folderMeta = subjectName ? subjectFolders.find(f => getCanonicalSubject(f.subject) === getCanonicalSubject(subjectName)) : null;
+    const total = subjectTests.length > 0 ? subjectTests.length : (folderMeta ? folderMeta.count : 0);
+    return { completed, inProgress, total };
   };
 
   const getApiUrl = (path: string) => {
@@ -302,49 +304,69 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     return path;
   };
 
-  const fetchTests = async () => {
+  // Subject Folders (Lazy-load: load only folder metadata first)
+  const [subjectFolders, setSubjectFolders] = useState<{ subject: string; count: number; totalQuestions?: number }[]>([]);
+  const [subjectTestsCache, setSubjectTestsCache] = useState<Record<string, ServerTest[]>>({});
+  const [loadingSubject, setLoadingSubject] = useState<boolean>(false);
+
+  // Fetch subject folders on mount or mode/exam change
+  const fetchSubjectFolders = async () => {
     setLoading(true);
     try {
-      const res = await fetch(getApiUrl('/api/tests'));
+      const res = await fetch(getApiUrl(`/api/tests/subjects?examId=${activeExam?.id || ''}&mode=${activeMode}`));
       if (res.ok) {
         const data = await res.json();
-        console.log('[PracticeTab] Loaded educator tests from server:', data);
         if (Array.isArray(data)) {
-          setTests(data);
+          setSubjectFolders(data);
         }
       }
     } catch (err) {
-      console.warn('Failed to load educator tests from server:', err);
-      // Fallback: populate tests from offline storage if server is unreachable
-      try {
-        const storedOffline = localStorage.getItem('examprep_offline_tests_v1');
-        if (storedOffline) {
-          const offlineMap = JSON.parse(storedOffline);
-          const offlineList: ServerTest[] = Object.values(offlineMap).map((t: any) => ({
-            id: t.id,
-            title: t.title || '',
-            examId: t.examId || '',
-            examIds: t.examIds || [],
-            examName: t.examName || '',
-            subject: t.subject || 'Offline Test',
-            mode: t.mode || 'quiz',
-            language: t.language || 'hindi',
-            totalQuestions: t.totalQuestions || t.questions?.length || 0,
-            createdAt: t.createdAt || new Date().toISOString()
-          }));
-          if (offlineList.length > 0) {
-            setTests(offlineList);
-          }
-        }
-      } catch (_) {}
+      console.warn('Failed to load subject folders from server:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  // Lazy-load tests for a specific clicked subject folder
+  const fetchSubjectTests = async (subjectName: string) => {
+    const canonical = getCanonicalSubject(subjectName);
+    if (subjectTestsCache[canonical] && subjectTestsCache[canonical].length > 0) {
+      return;
+    }
+
+    setLoadingSubject(true);
+    try {
+      const res = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&subject=${encodeURIComponent(subjectName)}&mode=${activeMode}`));
+      if (res.ok) {
+        const data: ServerTest[] = await res.json();
+        if (Array.isArray(data)) {
+          setSubjectTestsCache(prev => ({
+            ...prev,
+            [canonical]: data
+          }));
+          setTests(prev => {
+            const existingIds = new Set(data.map(d => d.id));
+            return [...prev.filter(t => !existingIds.has(t.id)), ...data];
+          });
+        }
+      }
+    } catch (err) {
+      console.warn(`Failed to load tests for subject ${subjectName}:`, err);
+    } finally {
+      setLoadingSubject(false);
+    }
+  };
+
+  const handleSelectSubject = (sub: string | null) => {
+    setSelectedSubject(sub);
+    if (sub && sub !== 'All') {
+      fetchSubjectTests(sub);
+    }
+  };
+
   useEffect(() => {
-    fetchTests();
-  }, []);
+    fetchSubjectFolders();
+  }, [activeExam?.id, activeMode]);
 
   const handleStartEducatorTest = async (testId: string, testMode: 'quiz' | 'mock' | 'pyq', subject: string) => {
     // Check internal app offline storage first
@@ -401,7 +423,11 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     return map;
   }, [baseFilteredTests]);
 
-  const availableSubjects = Object.keys(subjectsMap).sort();
+  const availableSubjects = React.useMemo(() => {
+    const fromFolders = subjectFolders.map(f => getCanonicalSubject(f.subject));
+    const fromTests = Object.keys(subjectsMap);
+    return Array.from(new Set([...fromFolders, ...fromTests])).sort();
+  }, [subjectFolders, subjectsMap]);
 
   // 4. Apply active filters
   let filteredTests = baseFilteredTests.filter(t => {
@@ -827,7 +853,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                       <label className="text-[9px] font-black uppercase text-text-muted">Subject (विषय)</label>
                       <select
                         value={selectedSubject || 'All'}
-                        onChange={(e) => setSelectedSubject(e.target.value === 'All' ? null : e.target.value)}
+                        onChange={(e) => handleSelectSubject(e.target.value === 'All' ? null : e.target.value)}
                         className="w-full bg-bg-s3 border border-border focus:border-saffron/50 rounded-lg px-2.5 py-2 text-xs font-semibold text-text outline-none cursor-pointer"
                       >
                         <option value="All">All Subjects ({baseFilteredTests.length})</option>
@@ -891,7 +917,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
               {availableSubjects.length > 0 && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar pt-2 border-t border-border/40">
                   <button
-                    onClick={() => setSelectedSubject(null)}
+                    onClick={() => handleSelectSubject(null)}
                     className={`px-3 py-1.5 rounded-lg text-[11px] font-black shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
                       selectedSubject === null
                         ? 'bg-saffron text-bg-s1 shadow'
@@ -907,7 +933,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                     return (
                       <button
                         key={sub}
-                        onClick={() => setSelectedSubject(isSelected ? null : sub)}
+                        onClick={() => handleSelectSubject(isSelected ? null : sub)}
                         className={`px-3 py-1.5 rounded-lg text-[11px] font-black shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
                           isSelected
                             ? 'bg-saffron text-bg-s1 shadow'
@@ -946,13 +972,13 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {availableSubjects.map(sub => {
                     const subTests = subjectsMap[sub] || [];
-                    const stats = getSubjectProgress(subTests);
+                    const stats = getSubjectProgress(subTests, sub);
                     return (
                       <motion.div
                         key={sub}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => setSelectedSubject(sub)}
+                        onClick={() => handleSelectSubject(sub)}
                         className="p-4 bg-bg-s2 hover:bg-bg-s2/90 border border-border hover:border-saffron-border/60 rounded-xl flex flex-col justify-between gap-3 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
                       >
                         <div className="absolute top-0 right-0 w-16 h-16 bg-saffron-dim/10 rounded-full blur-xl pointer-events-none group-hover:bg-saffron-dim/20 transition-all" />
@@ -1001,7 +1027,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                     <div className="flex items-center gap-2.5 min-w-0">
                       {/* Back Button */}
                       <button
-                        onClick={() => setSelectedSubject(null)}
+                        onClick={() => handleSelectSubject(null)}
                         className="px-3 py-1.5 bg-bg-s1 hover:bg-saffron hover:text-bg-s1 border border-border text-text-muted hover:border-saffron rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-xs active:scale-[0.97]"
                         title="Back to All Subjects"
                       >
@@ -1029,7 +1055,13 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                 )}
 
             {/* List or Empty Indicator */}
-            {filteredTests.length === 0 ? (
+            {loadingSubject ? (
+              <div className="p-12 text-center bg-bg-s2 border border-border rounded-xl text-xs text-text-muted flex flex-col items-center justify-center gap-2.5 animate-pulse">
+                <Loader2 className="w-6 h-6 animate-spin text-saffron" />
+                <span className="font-bold text-text">Loading {selectedSubject} tests...</span>
+                <span className="text-[10px]">Fetching subject tests on-demand</span>
+              </div>
+            ) : filteredTests.length === 0 ? (
               <div className="p-8 text-center bg-bg-s2 border border-border rounded-xl text-xs text-text-muted flex flex-col items-center gap-2">
                 <AlertCircle className="w-6 h-6 text-saffron-border/60 mb-0.5" />
                 <span>No educator tests match your filter criteria or selected subject.</span>

@@ -1,27 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, Cpu, 
   ArrowLeft, Sparkles, Server, AlertTriangle, Users, ShieldCheck, History, Sliders, Eye,
   MessageSquare, Award, Keyboard, Brain, Bell
 } from 'lucide-react';
-import { AdminTyping } from './AdminTyping';
-import { AdminTests } from './AdminTests';
-import { AdminNews } from './AdminNews';
-import { AdminSyllabus } from './AdminSyllabus';
-import { AdminAIConfig } from './AdminAIConfig';
-import { AdminUsers } from './AdminUsers';
-import { AdminStaffs } from './AdminStaffs';
-import { AdminLogs } from './AdminLogs';
-import { AdminTabsConfig } from './AdminTabsConfig';
-import { AdminExamsConfig } from './AdminExamsConfig';
-import { AdminFeedbacks } from './AdminFeedbacks';
-import { AdminBadges } from './AdminBadges';
-import { AdminReports } from './AdminReports';
-import { AdminTraining } from './AdminTraining';
-import { AdminBranding } from './AdminBranding';
-import { AdminNotifications } from './AdminNotifications';
+
+// Lazy load heavy admin sub-panels for instant initial load and code-splitting
+const AdminTyping = lazy(() => import('./AdminTyping').then(m => ({ default: m.AdminTyping })));
+const AdminTests = lazy(() => import('./AdminTests').then(m => ({ default: m.AdminTests })));
+const AdminNews = lazy(() => import('./AdminNews').then(m => ({ default: m.AdminNews })));
+const AdminSyllabus = lazy(() => import('./AdminSyllabus').then(m => ({ default: m.AdminSyllabus })));
+const AdminAIConfig = lazy(() => import('./AdminAIConfig').then(m => ({ default: m.AdminAIConfig })));
+const AdminUsers = lazy(() => import('./AdminUsers').then(m => ({ default: m.AdminUsers })));
+const AdminStaffs = lazy(() => import('./AdminStaffs').then(m => ({ default: m.AdminStaffs })));
+const AdminLogs = lazy(() => import('./AdminLogs').then(m => ({ default: m.AdminLogs })));
+const AdminTabsConfig = lazy(() => import('./AdminTabsConfig').then(m => ({ default: m.AdminTabsConfig })));
+const AdminExamsConfig = lazy(() => import('./AdminExamsConfig').then(m => ({ default: m.AdminExamsConfig })));
+const AdminFeedbacks = lazy(() => import('./AdminFeedbacks').then(m => ({ default: m.AdminFeedbacks })));
+const AdminBadges = lazy(() => import('./AdminBadges').then(m => ({ default: m.AdminBadges })));
+const AdminReports = lazy(() => import('./AdminReports').then(m => ({ default: m.AdminReports })));
+const AdminTraining = lazy(() => import('./AdminTraining').then(m => ({ default: m.AdminTraining })));
+const AdminBranding = lazy(() => import('./AdminBranding').then(m => ({ default: m.AdminBranding })));
+const AdminNotifications = lazy(() => import('./AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 
 import type { Exam } from '../syllabus/syllabusData';
+
+const AdminTabLoader = () => (
+  <div className="flex flex-col items-center justify-center min-h-[300px] w-full py-16 gap-3 text-text-muted">
+    <div className="w-8 h-8 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
+    <span className="text-[11px] font-bold uppercase tracking-wider text-saffron">Loading module...</span>
+  </div>
+);
 
 interface AdminDashboardProps {
   currentUser: any;
@@ -44,7 +53,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     error: ''
   });
 
-    const getApiUrl = (path: string) => {
+  const getApiUrl = (path: string) => {
     const hostname = window.location.hostname;
     const isLocal = hostname === 'localhost' || 
                     hostname === '127.0.0.1' || 
@@ -65,30 +74,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
       const token = await currentUser.getIdToken();
       const headers = { 'Authorization': `Bearer ${token}` };
       
-      // Fetch concurrently
-      const [testsRes, materialsRes, newsRes, aiRes, usersRes] = await Promise.all([
-        fetch(getApiUrl('/api/admin/tests'), { headers }),
-        fetch(getApiUrl('/api/admin/materials'), { headers }),
-        fetch(getApiUrl('/api/news?includeJobs=true')),
-        fetch(getApiUrl('/api/admin/config/ai'), { headers }),
-        fetch(getApiUrl('/api/admin/users'), { headers })
-      ]);
-
-      const tests = testsRes.ok ? await testsRes.json() : [];
-      const materials = materialsRes.ok ? await materialsRes.json() : [];
-      const news = newsRes.ok ? await newsRes.json() : { articles: [] };
-      const aiConfig = aiRes.ok ? await aiRes.json() : { activeAI: 'gemini' };
-      const users = usersRes.ok ? await usersRes.json() : [];
-
-      setStats({
-        testsCount: Array.isArray(tests) ? tests.length : 0,
-        materialsCount: Array.isArray(materials) ? materials.length : 0,
-        articlesCount: news && Array.isArray(news.articles) ? news.articles.length : 0,
-        usersCount: Array.isArray(users) ? users.length : 0,
-        activeAI: aiConfig.activeAI || 'gemini',
-        loading: false,
-        error: ''
-      });
+      // Single lightweight cached stats endpoint instead of 5 massive queries
+      const res = await fetch(getApiUrl('/api/admin/stats'), { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setStats({
+          testsCount: data.testsCount || 0,
+          materialsCount: data.materialsCount || 0,
+          articlesCount: data.articlesCount || 0,
+          usersCount: data.usersCount || 0,
+          activeAI: data.activeAI || 'gemini',
+          loading: false,
+          error: ''
+        });
+      } else {
+        throw new Error('Failed to load stats');
+      }
     } catch (e: any) {
       console.error('[Admin Stats Fetch Error]:', e);
       setStats(prev => ({
@@ -99,9 +100,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
     }
   };
 
+  // Only run on mount or when user changes, NOT on every subpage switch
   useEffect(() => {
     fetchStats();
-  }, [currentUser, activeSubPage]);
+  }, [currentUser]);
 
   // Sidebar items
   const menuItems = [
@@ -336,7 +338,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onG
 
         {/* Sub-page viewport */}
         <main className="flex-1 min-w-0 bg-bg-s1">
-          {renderSubPage()}
+          <Suspense fallback={<AdminTabLoader />}>
+            {renderSubPage()}
+          </Suspense>
         </main>
 
       </div>

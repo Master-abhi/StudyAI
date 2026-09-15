@@ -147,6 +147,60 @@ const normalizeQuestion = (q) => {
 };
 
 
+// ── Administrative Overview Stats ──
+
+// GET /api/admin/stats - Lightweight administrative overview metrics (cached)
+router.get('/stats', verifyStaffOrAdmin('any'), async (req, res) => {
+  try {
+    const stats = await safeFirestoreQuery('admin_dashboard_stats', async () => {
+      let testsCount = 0;
+      let materialsCount = 0;
+      let usersCount = 0;
+      let articlesCount = 0;
+
+      try {
+        const testsSnap = await db.collection('tests').select('id').get();
+        testsCount = testsSnap.size;
+      } catch (_) {}
+
+      try {
+        const matSnap = await db.collection('materials').select('id').get();
+        materialsCount = matSnap.size;
+      } catch (_) {}
+
+      try {
+        const usrSnap = await db.collection('users').select('uid').get();
+        usersCount = usrSnap.size;
+      } catch (_) {}
+
+      try {
+        const newsSnap = await db.collection('news').doc('cache').get();
+        if (newsSnap.exists && Array.isArray(newsSnap.data()?.articles)) {
+          articlesCount = newsSnap.data().articles.length;
+        }
+      } catch (_) {}
+
+      return {
+        testsCount,
+        materialsCount,
+        usersCount,
+        articlesCount,
+        timestamp: Date.now()
+      };
+    }, { testsCount: 0, materialsCount: 0, usersCount: 0, articlesCount: 0 }, 10 * 60 * 1000); // 10 min cache
+
+    const activeAI = await getActiveAI().catch(() => 'gemini');
+
+    res.json({
+      ...stats,
+      activeAI
+    });
+  } catch (err) {
+    console.error('[Admin Stats Error]:', err.message);
+    res.json({ testsCount: 0, materialsCount: 0, usersCount: 0, articlesCount: 0, activeAI: 'gemini' });
+  }
+});
+
 // ── AI Config Routes ──
 
 router.get('/config/ai', verifyAdmin, async (req, res) => {

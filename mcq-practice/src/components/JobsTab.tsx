@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, ExternalLink, 
   Bookmark, ShieldAlert, Clock, GraduationCap, 
   Building, Users, Coins, AlertCircle, X,
   CheckCircle2, Share2, BookOpen, Calendar, HelpCircle,
-  FileText, Sparkles, ChevronRight, ArrowRight
+  FileText, Sparkles, ChevronRight, ArrowRight, ChevronDown
 } from 'lucide-react';
 
 interface JobArticle {
@@ -222,6 +222,28 @@ export const JobsTab: React.FC<JobsTabProps> = ({ onNavigateToTab }) => {
     return true;
   });
 
+  // Chunked lazy loading (Infinite scroll)
+  const [visibleCount, setVisibleCount] = useState<number>(10);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [searchQuery, selectedSector, activeViewMode]);
+
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0] && entries[0].isIntersecting) {
+        setVisibleCount(prev => prev + 10);
+      }
+    }, { threshold: 0.1 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visibleCount, filteredJobs.length]);
+
+  const displayedJobs = filteredJobs.slice(0, visibleCount);
+
   return (
     <div className="flex flex-col gap-5 animate-fade-in w-full pb-10">
       {/* Top Controls: All Vacancies vs Saved Jobs toggle */}
@@ -307,7 +329,7 @@ export const JobsTab: React.FC<JobsTabProps> = ({ onNavigateToTab }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredJobs.map((job, idx) => {
+          {displayedJobs.map((job, idx) => {
             const isSaved = savedJobs.some(j => j.title === job.title);
 
             // Extract all essential job detail aliases safely
@@ -322,7 +344,7 @@ export const JobsTab: React.FC<JobsTabProps> = ({ onNavigateToTab }) => {
                 key={idx}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: idx * 0.03 }}
+                transition={{ duration: 0.2, delay: (idx % 10) * 0.03 }}
                 onClick={() => setSelectedJob(job)}
                 className="p-5 bg-bg-s2 border border-border hover:border-saffron/60 rounded-2xl flex flex-col justify-between gap-4 transition-all shadow-md group relative cursor-pointer hover:shadow-xl hover:-translate-y-0.5"
               >
@@ -425,6 +447,18 @@ export const JobsTab: React.FC<JobsTabProps> = ({ onNavigateToTab }) => {
               </motion.div>
             );
           })}
+
+          {visibleCount < filteredJobs.length && (
+            <div ref={loadMoreRef} className="col-span-1 md:col-span-2 py-4 flex flex-col items-center justify-center gap-2">
+              <button
+                onClick={() => setVisibleCount(prev => prev + 10)}
+                className="px-5 py-2.5 bg-bg-s2 hover:bg-bg-s3 border border-border hover:border-saffron text-xs font-black uppercase text-saffron rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2"
+              >
+                <ChevronDown className="w-4 h-4" />
+                <span>Load More Jobs ({filteredJobs.length - visibleCount} remaining)</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 

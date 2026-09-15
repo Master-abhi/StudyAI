@@ -40,7 +40,32 @@ function loadCache(key, fallbackValue = null) {
   return fallbackValue;
 }
 
-async function safeFirestoreQuery(key, queryFn, fallbackValue = null) {
+async function safeFirestoreQuery(key, queryFn, fallbackValue = null, ttlMs = 10 * 60 * 1000) {
+  const now = Date.now();
+
+  // 1. Cache-first: Check in-memory cache if still within TTL
+  if (memoryCache.has(key)) {
+    const entry = memoryCache.get(key);
+    if (entry && (now - entry.timestamp < ttlMs)) {
+      return entry.data;
+    }
+  }
+
+  // 2. Check disk cache if still within TTL
+  try {
+    const filePath = path.join(cacheDir, `${key.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+    if (fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      if (now - stats.mtimeMs < ttlMs) {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const data = JSON.parse(content);
+        memoryCache.set(key, { data, timestamp: stats.mtimeMs });
+        return data;
+      }
+    }
+  } catch (_) {}
+
+  // 3. Cache expired or missing: Execute live query
   try {
     const result = await queryFn();
     if (result !== undefined && result !== null) {

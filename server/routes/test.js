@@ -5,35 +5,107 @@ const ai = require('../services/aiManager');
 const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 const { aiRateLimiter } = require('../middleware/rateLimiter');
 
-const { safeFirestoreQuery } = require('../services/firestoreCache');
+const { safeFirestoreQuery, invalidateCache } = require('../services/firestoreCache');
 
-// GET /api/tests - list generated tests for current exam
+// GET /api/tests/subjects - list subject folders and test counts (lightweight for fast tab load)
+router.get('/subjects', async (req, res) => {
+  try {
+    const { examId, mode } = req.query;
+    const cacheKey = `test_subjects_${examId || 'all'}_${mode || 'all'}`;
+
+    const subjects = await safeFirestoreQuery(cacheKey, async () => {
+      // Reuse cached full test list
+      const testsCacheKey = `tests_base_${examId || 'all'}`;
+      const allTests = await safeFirestoreQuery(testsCacheKey, async () => {
+        const snapshot = await db.collection('tests').get();
+        let list = snapshot.docs.map(doc => {
+          const d = doc.data();
+          return {
+            id: d.id,
+            title: d.title || '',
+            examId: d.examId,
+            examIds: d.examIds || (d.examId ? [d.examId] : []),
+            examName: d.examName,
+            examNames: d.examNames || (d.examName ? [d.examName] : []),
+            subject: d.subject || 'General Knowledge',
+            mode: d.mode || 'quiz',
+            language: d.language || 'hindi',
+            totalQuestions: d.questions ? d.questions.length : 0,
+            createdAt: d.createdAt
+          };
+        });
+
+        if (examId) {
+          list = list.filter(t => t.examId === examId || (Array.isArray(t.examIds) && t.examIds.includes(examId)));
+        }
+
+        return list;
+      }, []);
+
+      const counts = {};
+      allTests.forEach(t => {
+        if (mode && t.mode !== mode) return;
+        const sub = t.subject || 'General Knowledge';
+        if (!counts[sub]) {
+          counts[sub] = { subject: sub, count: 0, totalQuestions: 0, modes: new Set() };
+        }
+        counts[sub].count += 1;
+        counts[sub].totalQuestions += (t.totalQuestions || 0);
+        counts[sub].modes.add(t.mode);
+      });
+
+      return Object.values(counts).map(c => ({
+        ...c,
+        modes: Array.from(c.modes)
+      })).sort((a, b) => b.count - a.count);
+    }, []);
+
+    res.json(subjects || []);
+  } catch (err) {
+    console.error('[Get Test Subjects Error]:', err.message);
+    res.json([]);
+  }
+});
+
+// GET /api/tests - list generated tests for current exam / subject
 router.get('/', async (req, res) => {
   try {
-    const { examId } = req.query;
-    const cacheKey = `tests_${examId || 'all'}`;
+    const { examId, subject, mode } = req.query;
+    const cacheKey = `tests_${examId || 'all'}_${subject || 'all'}_${mode || 'all'}`;
 
     const tests = await safeFirestoreQuery(cacheKey, async () => {
-      const snapshot = await db.collection('tests').get();
-      let list = snapshot.docs.map(doc => {
-        const d = doc.data();
-        return {
-          id: d.id,
-          title: d.title || '',
-          examId: d.examId,
-          examIds: d.examIds || (d.examId ? [d.examId] : []),
-          examName: d.examName,
-          examNames: d.examNames || (d.examName ? [d.examName] : []),
-          subject: d.subject,
-          mode: d.mode,
-          language: d.language,
-          totalQuestions: d.questions ? d.questions.length : 0,
-          createdAt: d.createdAt
-        };
-      });
+      const testsCacheKey = `tests_base_${examId || 'all'}`;
+      let list = await safeFirestoreQuery(testsCacheKey, async () => {
+        const snapshot = await db.collection('tests').get();
+        return snapshot.docs.map(doc => {
+          const d = doc.data();
+          return {
+            id: d.id,
+            title: d.title || '',
+            examId: d.examId,
+            examIds: d.examIds || (d.examId ? [d.examId] : []),
+            examName: d.examName,
+            examNames: d.examNames || (d.examName ? [d.examName] : []),
+            subject: d.subject || 'General Knowledge',
+            mode: d.mode || 'quiz',
+            language: d.language || 'hindi',
+            totalQuestions: d.questions ? d.questions.length : 0,
+            createdAt: d.createdAt
+          };
+        });
+      }, []);
 
       if (examId) {
         list = list.filter(t => t.examId === examId || (Array.isArray(t.examIds) && t.examIds.includes(examId)));
+      }
+
+      if (mode) {
+        list = list.filter(t => t.mode === mode);
+      }
+
+      if (subject && subject !== 'All') {
+        const subLower = subject.toLowerCase();
+        list = list.filter(t => (t.subject || '').toLowerCase() === subLower);
       }
 
       // Sort in-memory to avoid requiring a Firestore composite index
@@ -53,14 +125,20 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/tests/:id - get questions of a specific test
+// GET /api/tests/:id - get questions of a specific test (cached)
 router.get('/:id', async (req, res) => {
   try {
-    const doc = await db.collection('tests').doc(req.params.id).get();
-    if (!doc.exists) {
+    const testId = req.params.id;
+    const testData = await safeFirestoreQuery(`test_detail_${testId}`, async () => {
+      const doc = await db.collection('tests').doc(testId).get();
+      if (!doc.exists) return null;
+      return { id: doc.id, ...doc.data() };
+    }, null, 60 * 60 * 1000); // 1 hour TTL for immutable test questions
+
+    if (!testData) {
       return res.status(404).json({ error: 'Test not found' });
     }
-    res.json({ id: doc.id, ...doc.data() });
+    res.json(testData);
   } catch (err) {
     console.error('[Get Test Details Error]:', err.message);
     res.status(500).json({ error: 'Failed to fetch test details.' });

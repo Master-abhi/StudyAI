@@ -508,7 +508,16 @@ export default function App() {
   const [isReviewMode, setIsReviewMode] = useState<boolean>(false);
   const [rankingData, setRankingData] = useState<any>(null);
 
-  const [exams, setExams] = useState<Exam[]>(EXAMS_DATA);
+  const [exams, setExams] = useState<Exam[]>(() => {
+    try {
+      const cached = localStorage.getItem('cg_cached_syllabus_exams_v1');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return EXAMS_DATA;
+  });
   const getDaysRemainingForExam = (examId: string): number => {
     let storedTarget = localStorage.getItem(`examprep_target_date_${examId}`);
     if (examId === activeExamId) {
@@ -554,8 +563,14 @@ export default function App() {
     return path;
   };
 
-  const fetchCustomSyllabi = async () => {
+  const fetchCustomSyllabi = async (forceRefresh = false) => {
     try {
+      const lastFetch = Number(localStorage.getItem('cg_cached_syllabus_time_v1') || 0);
+      const isFresh = Date.now() - lastFetch < 24 * 60 * 60 * 1000; // 24 hours
+      if (!forceRefresh && isFresh) {
+        return; // Use localStorage directly!
+      }
+
       const res = await fetch(getApiUrl('/api/syllabus/custom'));
       if (res.ok) {
         const customExams = await res.json();
@@ -567,6 +582,10 @@ export default function App() {
             }
           });
           setExams(merged);
+          try {
+            localStorage.setItem('cg_cached_syllabus_exams_v1', JSON.stringify(merged));
+            localStorage.setItem('cg_cached_syllabus_time_v1', String(Date.now()));
+          } catch (_) {}
         }
       }
     } catch (e) {
@@ -656,10 +675,6 @@ export default function App() {
         setNotificationPermissionNeeded(true);
       }
 
-      // 2. Trigger backend job deadline scan & expired notification cleanup
-      try {
-        fetch(getApiUrl('/api/notifications/job-alerts/scan'), { method: 'POST' }).catch(() => {});
-      } catch (e) {}
 
       const getReadIds = (): string[] => {
         try {

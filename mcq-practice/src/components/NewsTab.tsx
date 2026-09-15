@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Newspaper, Search, Calendar, Globe, 
@@ -6,7 +6,7 @@ import {
   Award, CheckCircle, Brain, Clock,
   ChevronRight, Bookmark,
   Trophy, FileText,
-  RotateCcw, Flame, BookOpen, Sparkle
+  RotateCcw, Flame, BookOpen, Sparkle, ChevronDown
 } from 'lucide-react';
 
 interface Article {
@@ -461,6 +461,28 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
   const displayFeed = articles.filter(art => !isJobCategory(art.category));
   const filteredArticles = getFilteredList(displayFeed);
 
+  // Chunked lazy loading (Infinite scroll)
+  const [visibleCount, setVisibleCount] = useState<number>(10);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [searchQuery, activeCategory, activeSubTab]);
+
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0] && entries[0].isIntersecting) {
+        setVisibleCount(prev => prev + 10);
+      }
+    }, { threshold: 0.1 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visibleCount, filteredArticles.length]);
+
+  const displayedArticles = filteredArticles.slice(0, visibleCount);
+
   // Trending Section (Top 5 scoring articles or just first 5 articles)
   const trendingArticles = displayFeed
     .slice()
@@ -649,7 +671,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredArticles.map((art, idx) => (
+                  {displayedArticles.map((art, idx) => (
                     <motion.button
                       key={idx}
                       onClick={() => {
@@ -658,7 +680,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                       }}
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: Math.min(idx * 0.05, 0.4) }}
+                      transition={{ delay: Math.min((idx % 10) * 0.04, 0.3) }}
                       className="p-4 bg-bg-s2 hover:bg-bg-s2/90 border border-border rounded-xl text-left shadow-sm transition-all hover:scale-[1.005] cursor-pointer flex flex-col gap-3 group relative overflow-hidden"
                     >
                       {/* Left border highlight */}
@@ -698,6 +720,18 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                       </div>
                     </motion.button>
                   ))}
+
+                  {visibleCount < filteredArticles.length && (
+                    <div ref={loadMoreRef} className="col-span-1 md:col-span-2 py-4 flex flex-col items-center justify-center gap-2">
+                      <button
+                        onClick={() => setVisibleCount(prev => prev + 10)}
+                        className="px-5 py-2.5 bg-bg-s2 hover:bg-bg-s3 border border-border hover:border-saffron text-xs font-black uppercase text-saffron rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                        <span>Load More Updates ({filteredArticles.length - visibleCount} remaining)</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -1,0 +1,82 @@
+[
+  {
+    "subject": "Chhattisgarh History",
+    "count": 35,
+    "totalQuestions": 350,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Chhattisgarh Geography",
+    "count": 15,
+    "totalQuestions": 150,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Chhattisgarh History & Polity",
+    "count": 3,
+    "totalQuestions": 30,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Chhattisgarh General Knowledge",
+    "count": 3,
+    "totalQuestions": 60,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Mixed Subjects",
+    "count": 3,
+    "totalQuestions": 60,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "All Subjects",
+    "count": 2,
+    "totalQuestions": 40,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Mathematics",
+    "count": 2,
+    "totalQuestions": 40,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Reasoning",
+    "count": 2,
+    "totalQuestions": 40,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Mixed Subjects 2",
+    "count": 1,
+    "totalQuestions": 10,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "सामान्य विज्ञान",
+    "count": 1,
+    "totalQuestions": 20,
+    "modes": [
+      "mock"
+    ]
+  }
+]

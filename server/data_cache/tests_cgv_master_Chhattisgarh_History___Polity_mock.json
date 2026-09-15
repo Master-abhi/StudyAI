@@ -1,0 +1,53 @@
+[
+  {
+    "id": "test_1789386552793",
+    "title": "छत्तीसगढ़ राज्य का गठन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History & Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:49:12.793Z"
+  },
+  {
+    "id": "test_1789386482279",
+    "title": "छत्तीसगढ़ राज्य का गठन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History & Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:48:02.279Z"
+  },
+  {
+    "id": "test_1789386353861",
+    "title": "छत्तीसगढ़ राज्य का गठन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History & Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:45:53.861Z"
+  }
+]

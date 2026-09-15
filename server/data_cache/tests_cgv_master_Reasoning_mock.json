@@ -1,0 +1,36 @@
+[
+  {
+    "id": "test_pool_1781604654072",
+    "title": "",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Reasoning",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-16T10:10:54.072Z"
+  },
+  {
+    "id": "test_pool_1781603676564",
+    "title": "",
+    "examId": "cgpsc_sse",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Reasoning",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-16T09:54:36.564Z"
+  }
+]

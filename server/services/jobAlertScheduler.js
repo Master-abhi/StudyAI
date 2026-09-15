@@ -37,10 +37,18 @@ function getTodayIsoDate() {
   return istDate.toISOString().split('T')[0];
 }
 
+let lastSchedulerRunTime = 0;
+const MIN_SCAN_INTERVAL_MS = 60 * 60 * 1000; // Run at most once per 60 minutes
+
 /**
  * Runs the automated job deadline alert scan & expired notification cleanup
  */
-async function runJobDeadlineScheduler() {
+async function runJobDeadlineScheduler(force = false) {
+  if (!force && Date.now() - lastSchedulerRunTime < MIN_SCAN_INTERVAL_MS) {
+    console.log('[Job Deadline Scheduler] Scan skipped: already completed within the last hour.');
+    return { success: true, message: 'Scan skipped: already run recently' };
+  }
+
   console.log('[Job Deadline Scheduler] Running job deadline alert scan & expired notification cleanup...');
   const todayStr = getTodayIsoDate();
   console.log(`[Job Deadline Scheduler] Today IST Date: ${todayStr}`);
@@ -54,6 +62,10 @@ async function runJobDeadlineScheduler() {
     const batchDelete = db.batch();
     let hasDeleteOps = false;
 
+    // Track existing non-expired notifications to avoid duplicate alerts and redundant reads
+    const existingTitlesSet = new Set();
+    const existingJobIdsSet = new Set();
+
     notifsSnap.docs.forEach(doc => {
       const data = doc.data();
       const lastDate = parseToIsoDate(data.lastDate || data.deadline || data.expiryDate || data.expiresAt);
@@ -64,6 +76,9 @@ async function runJobDeadlineScheduler() {
         batchDelete.delete(doc.ref);
         deletedExpiredCount++;
         hasDeleteOps = true;
+      } else {
+        if (data.title) existingTitlesSet.add(data.title.toLowerCase());
+        if (data.jobId) existingJobIdsSet.add(data.jobId);
       }
     });
 
@@ -107,11 +122,6 @@ async function runJobDeadlineScheduler() {
     // Check deadlines for each job
     const notifBatch = db.batch();
     let hasNotifOps = false;
-
-    // Get existing notifications to avoid duplicate alerts
-    const existingNotifSnap = await db.collection('notifications').get();
-    const existingTitlesSet = new Set(existingNotifSnap.docs.map(d => (d.data().title || '').toLowerCase()));
-    const existingJobIdsSet = new Set(existingNotifSnap.docs.map(d => d.data().jobId || ''));
 
     for (const job of uniqueJobs) {
       const lastDate = parseToIsoDate(job.lastDate || job.last_date || job.deadline);
@@ -162,6 +172,7 @@ async function runJobDeadlineScheduler() {
       console.log(`[Job Deadline Scheduler] Published ${createdAlertsCount} new job deadline alerts to Firestore ✅`);
     }
 
+    lastSchedulerRunTime = Date.now();
     return {
       success: true,
       createdAlertsCount,
@@ -169,6 +180,7 @@ async function runJobDeadlineScheduler() {
       scannedTodayDate: todayStr
     };
   } catch (err) {
+    lastSchedulerRunTime = Date.now();
     if (err.message && (err.message.includes('RESOURCE_EXHAUSTED') || err.message.includes('Quota exceeded') || err.code === 8)) {
       console.warn('[Job Deadline Scheduler] Firestore quota exceeded for today. Scheduler paused gracefully.');
     } else {

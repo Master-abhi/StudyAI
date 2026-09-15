@@ -1,0 +1,66 @@
+[
+  {
+    "subject": "Mixed Subjects",
+    "count": 4,
+    "totalQuestions": 20,
+    "modes": [
+      "quiz"
+    ]
+  },
+  {
+    "subject": "Chhattisgarh General Knowledge",
+    "count": 3,
+    "totalQuestions": 15,
+    "modes": [
+      "quiz"
+    ]
+  },
+  {
+    "subject": "History",
+    "count": 3,
+    "totalQuestions": 15,
+    "modes": [
+      "quiz"
+    ]
+  },
+  {
+    "subject": "Math",
+    "count": 3,
+    "totalQuestions": 15,
+    "modes": [
+      "quiz"
+    ]
+  },
+  {
+    "subject": "India GS",
+    "count": 3,
+    "totalQuestions": 15,
+    "modes": [
+      "quiz"
+    ]
+  },
+  {
+    "subject": "सामान्य विज्ञान",
+    "count": 3,
+    "totalQuestions": 15,
+    "modes": [
+      "quiz"
+    ]
+  },
+  {
+    "subject": "Logical Reasoning",
+    "count": 2,
+    "totalQuestions": 10,
+    "modes": [
+      "quiz"
+    ]
+  },
+  {
+    "subject": "Hindi",
+    "count": 2,
+    "totalQuestions": 10,
+    "modes": [
+      "quiz"
+    ]
+  }
+]
