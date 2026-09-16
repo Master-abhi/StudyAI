@@ -17,6 +17,11 @@ textarea::placeholder {
 }
 
 :root {
+  /* Safe Area Inset Support (Notch, Status Bar & Home Gesture Bar) */
+  --app-status-bar-height: 0px;
+  --safe-area-top: max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px));
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
   /* Default Dark Theme variables */
   --bg-s0: #0B0E14;
   --bg-s1: #121620;

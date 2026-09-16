@@ -1,1 +1,56 @@
-[]
+[
+  {
+    "id": "test_pool_1785232745669",
+    "title": "",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-07-28T09:59:05.669Z"
+  },
+  {
+    "id": "test_pool_1781527057957",
+    "title": "",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-15T12:37:37.957Z"
+  }
+]

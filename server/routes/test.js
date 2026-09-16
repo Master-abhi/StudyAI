@@ -7,6 +7,44 @@ const { aiRateLimiter } = require('../middleware/rateLimiter');
 
 const { safeFirestoreQuery, invalidateCache } = require('../services/firestoreCache');
 
+function getCanonicalSubject(rawSubject) {
+  if (!rawSubject || typeof rawSubject !== 'string') return 'General Knowledge';
+  let trimmed = rawSubject.trim().replace(/\s+/g, ' ');
+  if (!trimmed) return 'General Knowledge';
+  
+  const lower = trimmed.toLowerCase();
+  
+  if (lower === 'all' || lower === 'all subjects' || lower === 'mixed' || lower === 'full syllabus') {
+    return 'Full Syllabus / All Subjects';
+  }
+  
+  // Standardize common subject cased variations
+  if (lower === 'cg gk' || lower === 'cggk' || lower === 'cg general knowledge' || lower === 'chhattisgarh gk') return 'CG GK';
+  if (lower === 'cg geography' || lower === 'chhattisgarh geography') return 'CG Geography';
+  if (lower === 'cg history' || lower === 'chhattisgarh history') return 'CG History';
+  if (lower === 'cg polity' || lower === 'cg admin' || lower === 'chhattisgarh polity') return 'CG Polity & Governance';
+  if (lower === 'cg economy' || lower === 'chhattisgarh economy') return 'CG Economy';
+  if (lower === 'cg culture' || lower === 'cg culture & tribe' || lower === 'cg tribe' || lower === 'chhattisgarh culture') return 'CG Culture & Tribes';
+  if (lower === 'general knowledge' || lower === 'gk' || lower === 'general studies' || lower === 'gs') return 'General Knowledge';
+  if (lower === 'indian history' || lower === 'history of india' || lower === 'history') return 'Indian History';
+  if (lower === 'indian polity' || lower === 'indian constitution' || lower === 'polity') return 'Indian Polity';
+  if (lower === 'indian geography' || lower === 'geography') return 'Indian Geography';
+  if (lower === 'indian economy' || lower === 'economy') return 'Indian Economy';
+  if (lower === 'general science' || lower === 'science') return 'General Science';
+  if (lower === 'aptitude' || lower === 'maths' || lower === 'mathematics' || lower === 'quant') return 'Aptitude & Maths';
+  if (lower === 'reasoning' || lower === 'logical reasoning') return 'Reasoning';
+  if (lower === 'hindi' || lower === 'hindi language') return 'Hindi Language';
+  if (lower === 'chhattisgarhi' || lower === 'chhattisgarhi language') return 'Chhattisgarhi Language';
+  if (lower === 'english' || lower === 'english language') return 'English Language';
+  if (lower === 'current affairs' || lower === 'ca') return 'Current Affairs';
+
+  if (trimmed === trimmed.toLowerCase() || trimmed === trimmed.toUpperCase()) {
+    return trimmed.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  }
+  
+  return trimmed;
+}
+
 // GET /api/tests/subjects - list subject folders and test counts (lightweight for fast tab load)
 router.get('/subjects', async (req, res) => {
   try {
@@ -45,7 +83,7 @@ router.get('/subjects', async (req, res) => {
       const counts = {};
       allTests.forEach(t => {
         if (mode && t.mode !== mode) return;
-        const sub = t.subject || 'General Knowledge';
+        const sub = getCanonicalSubject(t.subject || 'General Knowledge');
         if (!counts[sub]) {
           counts[sub] = { subject: sub, count: 0, totalQuestions: 0, modes: new Set() };
         }
@@ -104,8 +142,13 @@ router.get('/', async (req, res) => {
       }
 
       if (subject && subject !== 'All') {
+        const canonicalTarget = getCanonicalSubject(subject).toLowerCase();
         const subLower = subject.toLowerCase();
-        list = list.filter(t => (t.subject || '').toLowerCase() === subLower);
+        list = list.filter(t => {
+          const testSub = (t.subject || '').toLowerCase();
+          const testCanonical = getCanonicalSubject(t.subject || '').toLowerCase();
+          return testSub === subLower || testCanonical === canonicalTarget || testCanonical === subLower || testSub === canonicalTarget;
+        });
       }
 
       // Sort in-memory to avoid requiring a Firestore composite index

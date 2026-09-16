@@ -14,6 +14,7 @@
         <item name="windowNoTitle">true</item>
         <item name="android:statusBarColor">#121620</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:fitsSystemWindows">true</item>
     </style>
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">

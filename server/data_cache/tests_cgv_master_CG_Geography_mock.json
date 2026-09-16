@@ -1,1 +1,257 @@
-[]
+[
+  {
+    "id": "test_1789388907833",
+    "title": "छत्तीसगढ़ की जलवायु एवं मौसम - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:28:27.833Z"
+  },
+  {
+    "id": "test_1789388750162",
+    "title": "छत्तीसगढ़ की जलवायु एवं मौसम - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:25:50.162Z"
+  },
+  {
+    "id": "test_1789388633205",
+    "title": "छत्तीसगढ़ की जलवायु एवं मौसम - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:23:53.205Z"
+  },
+  {
+    "id": "test_1789388514097",
+    "title": "छत्तीसगढ़ की नदी घाटी परियोजनाएँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:21:54.097Z"
+  },
+  {
+    "id": "test_1789388280718",
+    "title": "छत्तीसगढ़ की नदी घाटी परियोजनाएँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:18:00.718Z"
+  },
+  {
+    "id": "test_1789388202595",
+    "title": "छत्तीसगढ़ की नदी घाटी परियोजनाएँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:16:42.595Z"
+  },
+  {
+    "id": "test_1789387983386",
+    "title": "छत्तीसगढ़ की प्रमुख नदियाँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:13:03.386Z"
+  },
+  {
+    "id": "test_1789387900133",
+    "title": "छत्तीसगढ़ की प्रमुख नदियाँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:11:40.133Z"
+  },
+  {
+    "id": "test_1789387824971",
+    "title": "छत्तीसगढ़ की प्रमुख नदियाँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:10:24.971Z"
+  },
+  {
+    "id": "test_1789387627673",
+    "title": "छत्तीसगढ़ का भौतिक विभाजन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:07:07.673Z"
+  },
+  {
+    "id": "test_1789387552045",
+    "title": "छत्तीसगढ़ का भौतिक विभाजन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T12:05:52.045Z"
+  },
+  {
+    "id": "test_1789387177585",
+    "title": "छत्तीसगढ़ का भौतिक विभाजन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:59:37.585Z"
+  },
+  {
+    "id": "test_1789387059156",
+    "title": "छत्तीसगढ़ की स्थिति एवं सीमाएं - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:57:39.156Z"
+  },
+  {
+    "id": "test_1789386990406",
+    "title": "छत्तीसगढ़ की स्थिति एवं सीमाएं - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:56:30.406Z"
+  },
+  {
+    "id": "test_1789386836891",
+    "title": "छत्तीसगढ़ की स्थिति एवं सीमाएं - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-14T11:53:56.891Z"
+  }
+]

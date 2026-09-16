@@ -336,19 +336,65 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
 
     setLoadingSubject(true);
     try {
-      const res = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&subject=${encodeURIComponent(subjectName)}&mode=${activeMode}`));
-      if (res.ok) {
-        const data: ServerTest[] = await res.json();
-        if (Array.isArray(data)) {
-          setSubjectTestsCache(prev => ({
-            ...prev,
-            [canonical]: data
-          }));
-          setTests(prev => {
-            const existingIds = new Set(data.map(d => d.id));
-            return [...prev.filter(t => !existingIds.has(t.id)), ...data];
-          });
+      // 1. Try querying by subject name directly
+      let data: ServerTest[] = [];
+      try {
+        const res = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&subject=${encodeURIComponent(subjectName)}&mode=${activeMode}`));
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json) && json.length > 0) {
+            data = json;
+          }
         }
+      } catch (_) {}
+
+      // 2. Fallback: If 0 tests returned, check subjectFolders for any raw names that canonicalize to this subject
+      if (data.length === 0 && subjectFolders.length > 0) {
+        const matchingFolders = subjectFolders.filter(
+          f => getCanonicalSubject(f.subject).toLowerCase() === canonical.toLowerCase()
+        );
+        for (const folder of matchingFolders) {
+          if (folder.subject && folder.subject.toLowerCase() !== subjectName.toLowerCase()) {
+            try {
+              const rawRes = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&subject=${encodeURIComponent(folder.subject)}&mode=${activeMode}`));
+              if (rawRes.ok) {
+                const rawJson = await rawRes.json();
+                if (Array.isArray(rawJson) && rawJson.length > 0) {
+                  data = [...data, ...rawJson];
+                }
+              }
+            } catch (_) {}
+          }
+        }
+      }
+
+      // 3. Fallback: If still 0 tests, fetch tests for this exam & mode and filter by canonical subject locally
+      if (data.length === 0) {
+        try {
+          const allRes = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&mode=${activeMode}`));
+          if (allRes.ok) {
+            const allJson = await allRes.json();
+            if (Array.isArray(allJson) && allJson.length > 0) {
+              const matching = allJson.filter(
+                t => getCanonicalSubject(t.subject || '').toLowerCase() === canonical.toLowerCase()
+              );
+              if (matching.length > 0) {
+                data = matching;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (Array.isArray(data)) {
+        setSubjectTestsCache(prev => ({
+          ...prev,
+          [canonical]: data
+        }));
+        setTests(prev => {
+          const existingIds = new Set(data.map(d => d.id));
+          return [...prev.filter(t => !existingIds.has(t.id)), ...data];
+        });
       }
     } catch (err) {
       console.warn(`Failed to load tests for subject ${subjectName}:`, err);
@@ -429,11 +475,17 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     return Array.from(new Set([...fromFolders, ...fromTests])).sort();
   }, [subjectFolders, subjectsMap]);
 
+  const totalTestsAcrossFolders = React.useMemo(() => {
+    const fromFolders = subjectFolders.reduce((sum, f) => sum + (f.count || 0), 0);
+    return Math.max(fromFolders, baseFilteredTests.length);
+  }, [subjectFolders, baseFilteredTests.length]);
+
   // 4. Apply active filters
   let filteredTests = baseFilteredTests.filter(t => {
     const matchesSearch = searchQuery 
       ? t.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        (t.examName && t.examName.toLowerCase().includes(searchQuery.toLowerCase()))
+        (t.examName && t.examName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (t.title && t.title.toLowerCase().includes(searchQuery.toLowerCase()))
       : true;
 
     const matchesLanguage = selectedLanguage && selectedLanguage !== 'All'
@@ -925,10 +977,11 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                     }`}
                   >
                     <Layers className="w-3.5 h-3.5" />
-                    <span>All Subjects ({baseFilteredTests.length})</span>
+                    <span>All Subjects ({totalTestsAcrossFolders})</span>
                   </button>
                   {availableSubjects.map(sub => {
-                    const count = (subjectsMap[sub] || []).length;
+                    const stats = getSubjectProgress(subjectsMap[sub] || [], sub);
+                    const count = stats.total;
                     const isSelected = selectedSubject?.toLowerCase() === sub.toLowerCase();
                     return (
                       <button
@@ -965,7 +1018,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
                     </h4>
                   </div>
                   <span className="text-[10px] text-text-muted font-bold">
-                    {availableSubjects.length} Subjects • {baseFilteredTests.length} Tests
+                    {availableSubjects.length} Subjects • {totalTestsAcrossFolders} Tests
                   </span>
                 </div>
 

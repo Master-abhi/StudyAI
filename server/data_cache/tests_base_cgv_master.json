@@ -1,5 +1,344 @@
 [
   {
+    "id": "test_1780416563333",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    "examNames": [
+      "CGVYAPAM — Patwari & Revenue Inspector Exam"
+    ],
+    "subject": "सामान्य ज्ञान (India GK)",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-06-02T16:09:23.333Z"
+  },
+  {
+    "id": "test_1780416962669",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    "examNames": [
+      "CGVYAPAM — Patwari & Revenue Inspector Exam"
+    ],
+    "subject": "सामान्य ज्ञान (India GK)",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-06-02T16:16:02.669Z"
+  },
+  {
+    "id": "test_1780416972481",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    "examNames": [
+      "CGVYAPAM — Patwari & Revenue Inspector Exam"
+    ],
+    "subject": "Computer",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-06-02T16:16:12.481Z"
+  },
+  {
+    "id": "test_1780416986120",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    "examNames": [
+      "CGVYAPAM — Patwari & Revenue Inspector Exam"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-06-02T16:16:26.120Z"
+  },
+  {
+    "id": "test_1780418687630",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    "examNames": [
+      "CGVYAPAM — Patwari & Revenue Inspector Exam"
+    ],
+    "subject": "all",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-06-02T16:44:47.630Z"
+  },
+  {
+    "id": "test_1780541718459",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "Patwari / RI",
+    "examNames": [
+      "Patwari / RI"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T02:55:18.459Z"
+  },
+  {
+    "id": "test_1780589016543",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:03:36.543Z"
+  },
+  {
+    "id": "test_1780589219199",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:06:59.199Z"
+  },
+  {
+    "id": "test_1780589291768",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:08:11.768Z"
+  },
+  {
+    "id": "test_1780589369618",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:09:29.618Z"
+  },
+  {
+    "id": "test_1780589446373",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:10:46.373Z"
+  },
+  {
+    "id": "test_1780589516257",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Mixed CDP",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:11:56.258Z"
+  },
+  {
+    "id": "test_1780589764754",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CG TET"
+    ],
+    "subject": "Mixed CDP",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:16:04.754Z"
+  },
+  {
+    "id": "test_1780589884027",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CG TET",
+    "examNames": [
+      "CG TET"
+    ],
+    "subject": "Mixed (CDP + Hindi + English + Math + EVS)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:18:04.027Z"
+  },
+  {
+    "id": "test_1780590297945",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CG TET"
+    ],
+    "subject": "Mixed (CDP + Hindi + English + Math + EVS)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:24:57.945Z"
+  },
+  {
+    "id": "test_1780590377993",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CG TET"
+    ],
+    "subject": "Mixed (CDP + Hindi + English + Math + EVS)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:26:17.993Z"
+  },
+  {
+    "id": "test_1780590581529",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Mixed (CDP + Hindi + English + Math + EVS)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T16:29:41.529Z"
+  },
+  {
+    "id": "test_1780592691708",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T17:04:51.708Z"
+  },
+  {
+    "id": "test_1780971943833",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgpsc_sse",
+      "cg_constable",
+      "cg_police_si",
+      "excise_constable",
+      "mandi_nirikshak",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "transport_constable"
+    ],
+    "examName": "CG Vyapam Mixed Subjects",
+    "examNames": [
+      "CGPSC SSE",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI"
+    ],
+    "subject": "All Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-09T02:25:43.833Z"
+  },
+  {
     "id": "test_1780973161346",
     "title": "",
     "examId": "cgv_patwari",
@@ -38,6 +377,23 @@
     "language": "hindi",
     "totalQuestions": 20,
     "createdAt": "2026-06-09T03:16:26.129Z"
+  },
+  {
+    "id": "test_1781006112379",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET Paper-I",
+    "examNames": [
+      "CG TET"
+    ],
+    "subject": "Child Development and Pedagogy (CDP)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 15,
+    "createdAt": "2026-06-09T11:55:12.379Z"
   },
   {
     "id": "test_1789287442452",

@@ -149,7 +149,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
   return (
     <div className="flex flex-col min-h-screen text-text font-sans w-full max-w-7xl mx-auto pb-12">
       {/* Staff Panel Header */}
-      <header className="sticky top-0 bg-[#0B0E14]/90 backdrop-blur-md border-b border-border/60 py-4 flex flex-col sm:flex-row justify-between items-center z-40 shrink-0 gap-3">
+      <header 
+        style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px)) + 1rem)' }}
+        className="sticky top-0 bg-[#0B0E14]/95 backdrop-blur-md border-b border-border/60 pb-4 flex flex-col sm:flex-row justify-between items-center z-40 shrink-0 gap-3"
+      >
         <div className="flex items-center gap-2.5">
           <span className="text-2xl leading-none">🛡️</span>
           <div className="flex flex-col">

@@ -139,7 +139,10 @@ export const LandingTab: React.FC<LandingTabProps> = ({
       </div>
 
       {/* Main Landing Page Top Header */}
-      <header className="sticky top-0 z-40 w-full bg-bg-s1/90 backdrop-blur-md border-b border-border/70 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-sm">
+      <header 
+        style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px)) + 0.75rem)' }}
+        className="sticky top-0 z-40 w-full bg-bg-s1/95 backdrop-blur-md border-b border-border/70 px-4 sm:px-8 pb-3.5 flex items-center justify-between shadow-sm"
+      >
         {/* Brand Logo & Name */}
         <div 
           onClick={() => {

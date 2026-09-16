@@ -1,1 +1,42 @@
-[]
+[
+  {
+    "id": "test_1780974986129",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari",
+      "mandi_nirikshak",
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "Mandi Nirikshak",
+      "Patwari / RI"
+    ],
+    "subject": "All Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-09T03:16:26.129Z"
+  },
+  {
+    "id": "test_1780973161346",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari",
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "Patwari / RI"
+    ],
+    "subject": "All Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-09T02:46:01.346Z"
+  }
+]

@@ -39,7 +39,10 @@ export const PracticeHeader: React.FC<PracticeHeaderProps> = ({
   const isTimeUrgent = isMock && (testDuration - elapsedTime) < 5 * 60;
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-bg-s2/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between shadow-lg">
+    <header 
+      style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px)) + 0.75rem)' }}
+      className="sticky top-0 z-40 w-full bg-bg-s2/95 backdrop-blur-md border-b border-border px-4 pb-3 flex items-center justify-between shadow-lg"
+    >
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}

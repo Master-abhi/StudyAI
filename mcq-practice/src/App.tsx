@@ -385,8 +385,19 @@ export default function App() {
       // Update Capacitor Status Bar style dynamically
       import('@capacitor/core').then(({ Capacitor }) => {
         if (Capacitor.isNativePlatform()) {
-          import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+          import('@capacitor/status-bar').then(async ({ StatusBar, Style }) => {
             const isDark = resolvedTheme === 'dark';
+            try {
+              await StatusBar.setOverlaysWebView({ overlay: false });
+            } catch (_) {}
+            try {
+              const info = await StatusBar.getInfo();
+              if (info.overlays && info.height > 0) {
+                document.documentElement.style.setProperty('--app-status-bar-height', `${info.height}px`);
+              } else {
+                document.documentElement.style.setProperty('--app-status-bar-height', '0px');
+              }
+            } catch (_) {}
             StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => {});
             StatusBar.setBackgroundColor({ color: isDark ? '#121620' : '#ffffff' }).catch(() => {});
           });
@@ -929,6 +940,19 @@ export default function App() {
           // 2. Set initial status bar styling
           const updateStatusBar = async () => {
             try {
+              try {
+                await StatusBar.setOverlaysWebView({ overlay: false });
+              } catch (_) {}
+
+              try {
+                const info = await StatusBar.getInfo();
+                if (info.overlays && info.height > 0) {
+                  document.documentElement.style.setProperty('--app-status-bar-height', `${info.height}px`);
+                } else {
+                  document.documentElement.style.setProperty('--app-status-bar-height', '0px');
+                }
+              } catch (_) {}
+
               const currentTheme = localStorage.getItem('cg_theme') || 'dark';
               const isDark = currentTheme === 'dark' || (currentTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
               await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
@@ -2750,11 +2774,14 @@ export default function App() {
         activeTab === 'chat' 
           ? 'h-[100dvh] md:h-screen overflow-hidden' 
           : 'min-h-screen'
-      } ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' ? 'pb-16 md:pb-0 md:pl-72' : 'pb-0'}`}>
+      } ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' ? 'pb-24 md:pb-0 md:pl-72' : 'pb-0'}`}>
         
         {/* Mobile Sticky Top Header (Shown if test workspace is NOT active, hidden on desktop) */}
         {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' && (
-          <header className="md:hidden sticky top-0 left-0 right-0 bg-bg-s1/90 backdrop-blur-md border-b border-border/60 px-5 py-4 flex items-center justify-between z-30 shadow-sm shrink-0">
+          <header 
+            style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px)) + 0.75rem)' }}
+            className="md:hidden sticky top-0 left-0 right-0 bg-bg-s1/95 backdrop-blur-md border-b border-border/60 px-4 pb-3 flex items-center justify-between z-30 shadow-sm shrink-0"
+          >
             <div className="flex items-center gap-2">
               <GraduationCap className="w-6 h-6 text-saffron" />
               <span className="text-sm font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
@@ -3218,7 +3245,10 @@ export default function App() {
 
         {/* Mobile Fixed Bottom Navigation Bar (Hidden on desktop) */}
         {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' && (
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-bg-s2/95 backdrop-blur-md border-t border-border px-3 py-2 flex items-center justify-around z-30 shadow-2xl shrink-0">
+          <nav 
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }}
+            className="md:hidden fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-bg-s2/95 backdrop-blur-md border-t border-border px-3 pt-2 flex items-center justify-around z-30 shadow-2xl shrink-0"
+          >
             {[
               { id: 'home', label: 'Home', icon: Home },
               { id: 'practice', label: 'Tests', icon: Trophy },
