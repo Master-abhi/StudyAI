@@ -476,8 +476,8 @@ async function generateNotesJson(systemInstruction, prompt, maxTokens = 6000) {
   // Candidate models on Groq capable of handling large input contexts & JSON mode
   const candidateModels = [
     'openai/gpt-oss-120b',
-    'qwen/qwen3.6-27b',
     'openai/gpt-oss-20b',
+    'groq/compound',
     'qwen/qwen3.8-27b'
   ];
 

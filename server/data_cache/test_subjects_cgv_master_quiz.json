@@ -48,14 +48,6 @@
     ]
   },
   {
-    "subject": "सामान्य ज्ञान (India GK)",
-    "count": 2,
-    "totalQuestions": 10,
-    "modes": [
-      "quiz"
-    ]
-  },
-  {
     "subject": "Reasoning",
     "count": 2,
     "totalQuestions": 10,
@@ -67,30 +59,6 @@
     "subject": "Hindi Language",
     "count": 2,
     "totalQuestions": 10,
-    "modes": [
-      "quiz"
-    ]
-  },
-  {
-    "subject": "Computer",
-    "count": 1,
-    "totalQuestions": 5,
-    "modes": [
-      "quiz"
-    ]
-  },
-  {
-    "subject": "हिंदी भाषा",
-    "count": 1,
-    "totalQuestions": 5,
-    "modes": [
-      "quiz"
-    ]
-  },
-  {
-    "subject": "Full Syllabus / All Subjects",
-    "count": 1,
-    "totalQuestions": 5,
     "modes": [
       "quiz"
     ]

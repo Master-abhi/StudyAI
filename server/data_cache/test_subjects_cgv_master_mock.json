@@ -16,41 +16,17 @@
     ]
   },
   {
-    "subject": "Child Development & Pedagogy",
-    "count": 6,
-    "totalQuestions": 120,
+    "subject": "Chhattisgarh History & Polity",
+    "count": 3,
+    "totalQuestions": 30,
     "modes": [
       "mock"
     ]
   },
   {
     "subject": "Chhattisgarh General Knowledge",
-    "count": 4,
-    "totalQuestions": 80,
-    "modes": [
-      "mock"
-    ]
-  },
-  {
-    "subject": "Mixed (CDP + Hindi + English + Math + EVS)",
-    "count": 4,
-    "totalQuestions": 80,
-    "modes": [
-      "mock"
-    ]
-  },
-  {
-    "subject": "Full Syllabus / All Subjects",
     "count": 3,
     "totalQuestions": 60,
-    "modes": [
-      "mock"
-    ]
-  },
-  {
-    "subject": "Chhattisgarh History & Polity",
-    "count": 3,
-    "totalQuestions": 30,
     "modes": [
       "mock"
     ]
@@ -64,7 +40,7 @@
     ]
   },
   {
-    "subject": "Mixed CDP",
+    "subject": "Full Syllabus / All Subjects",
     "count": 2,
     "totalQuestions": 40,
     "modes": [
@@ -83,14 +59,6 @@
     "subject": "Reasoning",
     "count": 2,
     "totalQuestions": 40,
-    "modes": [
-      "mock"
-    ]
-  },
-  {
-    "subject": "Child Development and Pedagogy (CDP)",
-    "count": 1,
-    "totalQuestions": 15,
     "modes": [
       "mock"
     ]

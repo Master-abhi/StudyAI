@@ -39,8 +39,74 @@ interface AdminDashboardProps {
   onRefreshExams: () => void;
 }
 
+const VALID_SUBPAGES = [
+  'overview', 'users', 'feedbacks', 'reports', 'staffs', 'tests', 
+  'news', 'notifications', 'syllabus', 'aiconfig', 'logs', 
+  'tabsconfig', 'examsconfig', 'badges', 'typing', 'training', 'branding'
+] as const;
+type SubPage = typeof VALID_SUBPAGES[number];
+
+const getInitialSubPage = (): SubPage => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get('subtab') || params.get('adminTab') || params.get('subpage');
+    if (fromUrl && (VALID_SUBPAGES as readonly string[]).includes(fromUrl)) {
+      return fromUrl as SubPage;
+    }
+    const saved = localStorage.getItem('cg_admin_subtab');
+    if (saved && (VALID_SUBPAGES as readonly string[]).includes(saved)) {
+      return saved as SubPage;
+    }
+  }
+  return 'overview';
+};
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onGoBack, exams, onRefreshExams }) => {
-  const [activeSubPage, setActiveSubPage] = useState<'overview' | 'users' | 'feedbacks' | 'reports' | 'staffs' | 'tests' | 'news' | 'notifications' | 'syllabus' | 'aiconfig' | 'logs' | 'tabsconfig' | 'examsconfig' | 'badges' | 'typing' | 'training' | 'branding'>('overview');
+  const [activeSubPage, setActiveSubPage] = useState<SubPage>(getInitialSubPage);
+
+  // Synchronize activeSubPage with localStorage & URL search params so browser refresh keeps the user on the current subtab
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('cg_admin_subtab', activeSubPage);
+
+    const url = new URL(window.location.href);
+    const currentSubtab = url.searchParams.get('subtab') || url.searchParams.get('adminTab') || url.searchParams.get('subpage');
+
+    if (activeSubPage === 'overview') {
+      if (currentSubtab) {
+        url.searchParams.delete('subtab');
+        url.searchParams.delete('adminTab');
+        url.searchParams.delete('subpage');
+        const newSearch = url.searchParams.toString();
+        const newRelativePath = url.pathname + (newSearch ? '?' + newSearch : '') + url.hash;
+        window.history.replaceState(window.history.state, '', newRelativePath);
+      }
+    } else {
+      if (currentSubtab !== activeSubPage) {
+        url.searchParams.set('subtab', activeSubPage);
+        url.searchParams.delete('adminTab');
+        url.searchParams.delete('subpage');
+        const newSearch = url.searchParams.toString();
+        const newRelativePath = url.pathname + (newSearch ? '?' + newSearch : '') + url.hash;
+        window.history.replaceState(window.history.state, '', newRelativePath);
+      }
+    }
+  }, [activeSubPage]);
+
+  // Handle browser Back / Forward navigation within admin subpages
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get('subtab') || params.get('adminTab') || params.get('subpage');
+      if (fromUrl && (VALID_SUBPAGES as readonly string[]).includes(fromUrl)) {
+        setActiveSubPage(fromUrl as SubPage);
+      } else if (!fromUrl) {
+        setActiveSubPage('overview');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   
   // Dashboard overall stats state
   const [stats, setStats] = useState({

@@ -86,11 +86,15 @@ router.post('/parse', verifyFirebaseToken, aiRateLimiter, upload.single('syllabu
   }
 });
 
-const { safeFirestoreQuery } = require('../services/firestoreCache');
+const { safeFirestoreQuery, invalidateCache } = require('../services/firestoreCache');
 
 // GET /api/syllabus/custom - Retrieve all custom syllabi stored in Firestore (cached)
 router.get('/custom', async (req, res) => {
   try {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    if (req.query.force === 'true' || req.query.refresh === 'true') {
+      invalidateCache('syllabi_custom_all');
+    }
     const syllabi = await safeFirestoreQuery('syllabi_custom_all', async () => {
       const snapshot = await db.collection('syllabi').get();
       const list = [];
@@ -98,7 +102,7 @@ router.get('/custom', async (req, res) => {
         list.push(doc.data());
       });
       return list;
-    }, [], 24 * 60 * 60 * 1000); // 24-hour cache TTL
+    }, [], 5 * 60 * 1000); // 5-minute cache TTL with instant invalidation on changes
     res.json(syllabi || []);
   } catch (err) {
     console.error('[Get Custom Syllabi Error]:', err.message);

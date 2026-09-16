@@ -3,7 +3,7 @@ import {
   X, Sparkles, Zap, Printer, Download, UploadCloud, 
   Loader2, CheckCircle2, AlertCircle, FileText, ArrowLeft,
   Award, BookOpen, Bold, Italic, Table, List, 
-  ListOrdered, ClipboardPaste, Eye, Code, Trash2
+  ListOrdered, ClipboardPaste, Eye, Code, Trash2, Edit, Save
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -267,9 +267,36 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
 
   // Structured notes data
   const [studyData, setStudyData] = useState<any | null>(null);
+  const [jsonEditorOpen, setJsonEditorOpen] = useState<boolean>(false);
+  const [rawJsonText, setRawJsonText] = useState<string>('');
 
   const printAreaRef = useRef<HTMLDivElement>(null);
   const richEditorRef = useRef<HTMLDivElement>(null);
+
+  // Preload existing notes when modal opens so existing notes can be viewed/edited immediately
+  useEffect(() => {
+    if (!isOpen || !topic?.id || !examId) return;
+
+    let isMounted = true;
+    const fetchExisting = async () => {
+      try {
+        const res = await fetch(getApiUrl(`/api/syllabus/topic-notes?examId=${encodeURIComponent(examId)}&topicId=${encodeURIComponent(topic.id)}`));
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data && data.studyNotes) {
+            setStudyData(data.studyNotes);
+            setActiveView('preview');
+            setSuccessMessage('Loaded saved formatted notes! You can view, edit, or regenerate them. 📝');
+          }
+        }
+      } catch (err) {
+        console.warn('[Studio] Could not load existing notes:', err);
+      }
+    };
+
+    fetchExisting();
+    return () => { isMounted = false; };
+  }, [isOpen, topic?.id, examId]);
 
   useEffect(() => {
     if (isOpen && richEditorRef.current && rawMaterial && !richEditorRef.current.innerHTML) {
@@ -960,14 +987,29 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
 
           <div className="flex items-center gap-2 shrink-0">
             {activeView === 'preview' && (
-              <button
-                type="button"
-                onClick={() => setActiveView('editor')}
-                className="px-3 py-1.5 bg-bg-s2 hover:bg-bg-s1 border border-border rounded-lg text-xs font-bold text-text flex items-center gap-1.5 cursor-pointer transition-all"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Edit Input</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRawJsonText(JSON.stringify(studyData || {}, null, 2));
+                    setJsonEditorOpen(true);
+                  }}
+                  className="px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                  title="Directly edit structured chapters, theory, tables, or MCQs"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  <span>Edit Content (JSON)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveView('editor')}
+                  className="px-3 py-1.5 bg-bg-s2 hover:bg-bg-s1 border border-border rounded-lg text-xs font-bold text-text flex items-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Edit Input</span>
+                </button>
+              </>
             )}
 
             <button
@@ -980,6 +1022,64 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Quick JSON / Content Editor Modal Overlay */}
+        {jsonEditorOpen && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-fade-in">
+            <div className="bg-bg-s2 border border-border rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden font-sans">
+              <div className="px-5 py-3.5 bg-bg-s3 border-b border-border flex items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Edit className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-sm font-black text-text">Edit Study Notes Content (JSON)</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setJsonEditorOpen(false)}
+                  className="p-1.5 hover:bg-bg-s1 text-text-muted hover:text-text rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="px-5 py-2.5 bg-bg-s1 border-b border-border text-[11px] text-text-muted">
+                💡 Yahan aap topic ke chapters, section heading, theory content, tables, confusion buster, ya MCQs ko directly edit kar sakte hain. Changes apply karne ke baad "Apply & Refresh Preview" par click karein.
+              </div>
+              <div className="flex-1 p-4 overflow-hidden flex flex-col">
+                <textarea
+                  value={rawJsonText}
+                  onChange={(e) => setRawJsonText(e.target.value)}
+                  className="w-full flex-1 bg-[#101216] text-[#A6E22E] font-mono text-xs p-4 rounded-xl border border-border focus:border-emerald-500 outline-none resize-none leading-relaxed"
+                  spellCheck={false}
+                />
+              </div>
+              <div className="px-5 py-3 bg-bg-s3 border-t border-border flex items-center justify-between gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setJsonEditorOpen(false)}
+                  className="px-4 py-2 bg-bg-s2 hover:bg-bg-s1 border border-border rounded-xl text-xs font-bold text-text-muted hover:text-text transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const parsed = JSON.parse(rawJsonText);
+                      setStudyData(parsed);
+                      setJsonEditorOpen(false);
+                      setSuccessMessage('Content updated successfully! Review preview and click "Save Formatted Notes to Topic" to save.');
+                    } catch (err: any) {
+                      setErrorMessage('Invalid JSON syntax: ' + err.message);
+                    }
+                  }}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase rounded-xl flex items-center gap-2 shadow-lg transition-all cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Apply & Refresh Preview</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Notifications */}
         {successMessage && (

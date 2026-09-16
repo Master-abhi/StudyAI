@@ -2728,6 +2728,24 @@ router.post('/syllabus/save', verifyStaffOrAdmin('syllabus'), async (req, res) =
       return res.status(400).json({ error: 'Invalid syllabus payload. id and name are required.' });
     }
 
+    // Strip heavy studyNotes from topics before saving to syllabi collection to respect Firestore's 1MB limit
+    if (Array.isArray(exam.subjects)) {
+      exam.subjects.forEach(sub => {
+        if (Array.isArray(sub.chapters)) {
+          sub.chapters.forEach(chap => {
+            if (Array.isArray(chap.topics)) {
+              chap.topics.forEach(top => {
+                if (top.studyNotes) {
+                  top.hasStudyNotes = true;
+                  delete top.studyNotes;
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
     // Save to firestore collection 'syllabi'
     const cleanExam = sanitizeForFirestore({
       ...exam,
@@ -2737,6 +2755,7 @@ router.post('/syllabus/save', verifyStaffOrAdmin('syllabus'), async (req, res) =
 
     console.log(`[Admin Syllabus Save] Saved/updated syllabus config ${exam.id} ✅`);
 
+    invalidateCache('syllabi_custom_all');
     await logStaffActivity(req, 'save_syllabus', { id: exam.id, name: exam.name });
 
     res.json({ success: true, exam });
@@ -2753,6 +2772,7 @@ router.delete('/syllabus/:id', verifyStaffOrAdmin('syllabus'), async (req, res) 
     await db.collection('syllabi').doc(id).delete();
     console.log(`[Admin Syllabus Delete] Deleted custom syllabus ${id} ✅`);
 
+    invalidateCache('syllabi_custom_all');
     await logStaffActivity(req, 'delete_syllabus', { id });
 
     res.json({ success: true, message: 'Custom syllabus deleted successfully.' });
@@ -2862,10 +2882,28 @@ router.post('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), upload.single
       try { await deleteTopicPdf(oldPdfPath); } catch (_) {}
     }
 
-    // 5. Save updated syllabus config in Firestore
+    // 5. Save updated syllabus config in Firestore (stripping any bulky studyNotes)
+    if (Array.isArray(examObj.subjects)) {
+      examObj.subjects.forEach(sub => {
+        if (Array.isArray(sub.chapters)) {
+          sub.chapters.forEach(chap => {
+            if (Array.isArray(chap.topics)) {
+              chap.topics.forEach(top => {
+                if (top.studyNotes) {
+                  top.hasStudyNotes = true;
+                  delete top.studyNotes;
+                }
+              });
+            }
+          });
+        }
+      });
+    }
     examObj.updatedAt = new Date().toISOString();
-    await docRef.set(examObj, { merge: true });
+    const cleanExamObj = sanitizeForFirestore(examObj);
+    await docRef.set(cleanExamObj);
 
+    invalidateCache('syllabi_custom_all');
     await logStaffActivity(req, 'upload_topic_pdf', { examId, topicId, pdfName: req.file.originalname, storagePath });
 
     res.json({
@@ -2931,6 +2969,7 @@ router.delete('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), async (req,
     examObj.updatedAt = new Date().toISOString();
     await docRef.set(examObj, { merge: true });
 
+    invalidateCache('syllabi_custom_all');
     await logStaffActivity(req, 'delete_topic_pdf', { examId, topicId });
 
     res.json({ success: true, message: 'PDF notes detached from topic successfully.', exam: examObj });
@@ -2966,6 +3005,20 @@ router.post('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (req,
       return res.status(404).json({ error: 'Exam syllabus configuration not found.' });
     }
 
+    // 1. Always save the full formatted study notes in dedicated collection 'topic_study_notes'
+    // Each topic gets its own document (up to 1 MB each, allowing unlimited total notes across topics)
+    const cleanNotes = sanitizeForFirestore(studyNotes);
+    await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).set({
+      examId,
+      topicId,
+      studyNotes: cleanNotes,
+      updatedAt: new Date().toISOString()
+    });
+
+    // 2. In the syllabus document (which holds all subjects, chapters, topics for the exam),
+    // only store metadata flags (hasStudyNotes, notesUpdatedAt).
+    // Strip heavy studyNotes from topics in examObj to keep the syllabus document light (<200 KB)
+    // and prevent hitting Firestore's strict 1 MiB (1,048,576 bytes) document size limit.
     let topicFound = false;
     if (Array.isArray(examObj.subjects)) {
       examObj.subjects.forEach(sub => {
@@ -2975,9 +3028,13 @@ router.post('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (req,
               chap.topics.forEach(top => {
                 if (top.id === topicId) {
                   topicFound = true;
-                  top.studyNotes = studyNotes;
                   top.hasStudyNotes = true;
                   top.notesUpdatedAt = new Date().toISOString();
+                }
+                // Strip heavy studyNotes from all topics in the syllabus document
+                if (top.studyNotes) {
+                  top.hasStudyNotes = true;
+                  delete top.studyNotes;
                 }
               });
             }
@@ -2992,21 +3049,10 @@ router.post('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (req,
 
     examObj.updatedAt = new Date().toISOString();
     const cleanExamObj = sanitizeForFirestore(examObj);
-    await docRef.set(cleanExamObj, { merge: true });
+    // Write whole doc without { merge: true } so any previous legacy embedded studyNotes are completely purged
+    await docRef.set(cleanExamObj);
 
-    // Also store directly in a separate dedicated collection for fast single-topic retrieval & caching
-    try {
-      const cleanNotes = sanitizeForFirestore(studyNotes);
-      await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).set({
-        examId,
-        topicId,
-        studyNotes: cleanNotes,
-        updatedAt: new Date().toISOString()
-      });
-    } catch (cacheErr) {
-      console.warn('[Topic Notes Cache Store]:', cacheErr.message);
-    }
-
+    invalidateCache('syllabi_custom_all');
     await logStaffActivity(req, 'save_topic_study_notes', { examId, topicId });
 
     res.json({
@@ -3050,6 +3096,11 @@ router.delete('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (re
                   delete top.hasStudyNotes;
                   delete top.notesUpdatedAt;
                 }
+                // Also clean up any legacy studyNotes from other topics
+                if (top.studyNotes) {
+                  top.hasStudyNotes = true;
+                  delete top.studyNotes;
+                }
               });
             }
           });
@@ -3062,12 +3113,14 @@ router.delete('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (re
     }
 
     examObj.updatedAt = new Date().toISOString();
-    await docRef.set(examObj, { merge: true });
+    const cleanExamObj = sanitizeForFirestore(examObj);
+    await docRef.set(cleanExamObj);
 
     try {
       await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).delete();
     } catch (_) {}
 
+    invalidateCache('syllabi_custom_all');
     await logStaffActivity(req, 'delete_topic_study_notes', { examId, topicId });
 
     res.json({ success: true, message: 'Study notes removed from topic.', exam: examObj });

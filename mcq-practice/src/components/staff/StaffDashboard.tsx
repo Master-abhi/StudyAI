@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Trophy, Newspaper, BookOpen, 
   ArrowLeft, Shield, AlertCircle 
@@ -24,7 +24,68 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
   exams, 
   onRefreshExams 
 }) => {
-  const [activeSubPage, setActiveSubPage] = useState<string>('overview');
+  const VALID_STAFF_SUBPAGES = ['overview', 'tests', 'news', 'syllabus'] as const;
+
+  const getInitialSubPage = (): string => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get('subtab') || params.get('staffTab') || params.get('subpage');
+      if (fromUrl && (VALID_STAFF_SUBPAGES as readonly string[]).includes(fromUrl)) {
+        return fromUrl;
+      }
+      const saved = localStorage.getItem('cg_staff_subtab');
+      if (saved && (VALID_STAFF_SUBPAGES as readonly string[]).includes(saved)) {
+        return saved;
+      }
+    }
+    return 'overview';
+  };
+
+  const [activeSubPage, setActiveSubPage] = useState<string>(getInitialSubPage);
+
+  // Synchronize activeSubPage with localStorage & URL search params so browser refresh keeps the user on the current subtab
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('cg_staff_subtab', activeSubPage);
+
+    const url = new URL(window.location.href);
+    const currentSubtab = url.searchParams.get('subtab') || url.searchParams.get('staffTab') || url.searchParams.get('subpage');
+
+    if (activeSubPage === 'overview') {
+      if (currentSubtab) {
+        url.searchParams.delete('subtab');
+        url.searchParams.delete('staffTab');
+        url.searchParams.delete('subpage');
+        const newSearch = url.searchParams.toString();
+        const newRelativePath = url.pathname + (newSearch ? '?' + newSearch : '') + url.hash;
+        window.history.replaceState(window.history.state, '', newRelativePath);
+      }
+    } else {
+      if (currentSubtab !== activeSubPage) {
+        url.searchParams.set('subtab', activeSubPage);
+        url.searchParams.delete('staffTab');
+        url.searchParams.delete('subpage');
+        const newSearch = url.searchParams.toString();
+        const newRelativePath = url.pathname + (newSearch ? '?' + newSearch : '') + url.hash;
+        window.history.replaceState(window.history.state, '', newRelativePath);
+      }
+    }
+  }, [activeSubPage]);
+
+  // Handle browser Back / Forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get('subtab') || params.get('staffTab') || params.get('subpage');
+      if (fromUrl && (VALID_STAFF_SUBPAGES as readonly string[]).includes(fromUrl)) {
+        setActiveSubPage(fromUrl);
+      } else if (!fromUrl) {
+        setActiveSubPage('overview');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, requiredRole: null },

@@ -1,1 +1,0 @@
-import{t as e}from"./AdminSyllabus-B14fMqej.js";export default e();

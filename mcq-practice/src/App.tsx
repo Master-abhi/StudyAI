@@ -576,13 +576,15 @@ export default function App() {
 
   const fetchCustomSyllabi = async (forceRefresh = false) => {
     try {
+      const isAdminOrStaff = activeTab === 'admin' || activeTab === 'staff';
       const lastFetch = Number(localStorage.getItem('cg_cached_syllabus_time_v1') || 0);
-      const isFresh = Date.now() - lastFetch < 24 * 60 * 60 * 1000; // 24 hours
-      if (!forceRefresh && isFresh) {
-        return; // Use localStorage directly!
+      const isFresh = Date.now() - lastFetch < 30 * 60 * 1000; // 30 minutes for normal users
+      if (!forceRefresh && !isAdminOrStaff && isFresh) {
+        return; // Use localStorage directly for normal users
       }
 
-      const res = await fetch(getApiUrl('/api/syllabus/custom'));
+      const shouldBypass = forceRefresh || isAdminOrStaff;
+      const res = await fetch(getApiUrl(`/api/syllabus/custom${shouldBypass ? `?force=true&_t=${Date.now()}` : ''}`));
       if (res.ok) {
         const customExams = await res.json();
         if (Array.isArray(customExams)) {

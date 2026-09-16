@@ -190,6 +190,11 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
     }
   };
 
+  // Always load live fresh exams on mount
+  useEffect(() => {
+    onRefreshExams();
+  }, []);
+
   const handleTopicNotesSave = async (examId: string, topicId: string, studyNotes: any) => {
     try {
       const token = await currentUser.getIdToken();
@@ -211,6 +216,19 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMessage('Formatted study notes saved to topic successfully! 📖✨');
+        // Optimistically update topic in currentExam immediately
+        if (currentExam && Array.isArray(currentExam.subjects)) {
+          currentExam.subjects.forEach(s => {
+            (s.chapters || []).forEach(c => {
+              (c.topics || []).forEach(t => {
+                if (t.id === topicId) {
+                  t.hasStudyNotes = true;
+                  t.studyNotes = studyNotes;
+                }
+              });
+            });
+          });
+        }
         onRefreshExams();
       } else {
         throw new Error(data.error || 'Failed to save formatted study notes.');
@@ -242,6 +260,21 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMessage(`Removed formatted study notes from "${topicName}".`);
+        // Optimistically update topic in local exam state immediately
+        const currentExam = exams.find(e => e.id === examId);
+        if (currentExam && Array.isArray(currentExam.subjects)) {
+          currentExam.subjects.forEach(s => {
+            (s.chapters || []).forEach(c => {
+              (c.topics || []).forEach(t => {
+                if (t.id === topicId) {
+                  delete t.hasStudyNotes;
+                  delete t.studyNotes;
+                  delete t.notesUpdatedAt;
+                }
+              });
+            });
+          });
+        }
         onRefreshExams();
       } else {
         throw new Error(data.error || 'Failed to remove study notes.');
@@ -863,18 +896,31 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
                                 </div>
                               </div>
 
-                              {/* Action Buttons: Notes Studio / Upload PDF / Replace / Remove */}
+                              {/* Action Buttons: Edit Notes / Notes Studio / Upload PDF / Replace / Clear Notes */}
                               <div className="flex items-center gap-2 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => setStudioTopic({ topic, subjectName: currentSubject.name, examId: currentExam.id, examName: currentExam.name })}
-                                  disabled={isUploading || isDeleting}
-                                  className="px-3 py-1.5 rounded-lg border border-saffron/40 bg-saffron/10 hover:bg-saffron hover:text-bg-s1 text-saffron text-[11px] font-black uppercase flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-40"
-                                  title="Paste study material and generate CG GURU formatted notes"
-                                >
-                                  <Sparkles className="w-3.5 h-3.5" />
-                                  <span>Notes Studio</span>
-                                </button>
+                                {(topic.hasStudyNotes || topic.studyNotes) ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setStudioTopic({ topic, subjectName: currentSubject.name, examId: currentExam.id, examName: currentExam.name })}
+                                    disabled={isUploading || isDeleting}
+                                    className="px-3 py-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-600 hover:text-white text-emerald-400 text-[11px] font-black uppercase flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-40"
+                                    title="View or Edit saved formatted notes in Notes Studio"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                    <span>Edit Notes</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setStudioTopic({ topic, subjectName: currentSubject.name, examId: currentExam.id, examName: currentExam.name })}
+                                    disabled={isUploading || isDeleting}
+                                    className="px-3 py-1.5 rounded-lg border border-saffron/40 bg-saffron/10 hover:bg-saffron hover:text-bg-s1 text-saffron text-[11px] font-black uppercase flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-40"
+                                    title="Paste study material and generate CG GURU formatted notes"
+                                  >
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    <span>Notes Studio</span>
+                                  </button>
+                                )}
 
                                 <label className={`px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase flex items-center gap-1.5 cursor-pointer transition-all shadow-sm ${
                                   isUploading
@@ -911,12 +957,18 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
 
                                 {(topic.hasStudyNotes || topic.studyNotes) && (
                                   <button
+                                    type="button"
                                     onClick={() => handleTopicNotesDelete(currentExam.id, topic.id, topic.nameHi || topic.name)}
-                                    disabled={isUploading || isDeleting}
+                                    disabled={isUploading || isDeleting || deletingTopicId === topic.id}
                                     title="Remove formatted study notes"
-                                    className="px-2 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-redL/20 hover:text-redL hover:border-redL/30 text-[10px] font-bold cursor-pointer disabled:opacity-40 transition-colors"
+                                    className="px-2.5 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white text-[10px] font-bold cursor-pointer disabled:opacity-40 transition-all flex items-center gap-1 shadow-sm"
                                   >
-                                    Clear Notes
+                                    {deletingTopicId === topic.id ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    )}
+                                    <span>Clear Notes</span>
                                   </button>
                                 )}
 
