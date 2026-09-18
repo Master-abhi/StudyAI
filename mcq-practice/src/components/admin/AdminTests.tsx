@@ -290,7 +290,11 @@ export const QuestionBodyRenderer: React.FC<{ q: any; textClassName?: string }> 
 
 export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) => {
   const [tests, setTests] = useState<TestMeta[]>([]);
+  const [totalTestsCount, setTotalTestsCount] = useState<number>(0);
+  const [hasMoreTests, setHasMoreTests] = useState<boolean>(false);
   const [loadingList, setLoadingList] = useState<boolean>(true);
+  const [loadingMoreTests, setLoadingMoreTests] = useState<boolean>(false);
+  const [loadingAllTests, setLoadingAllTests] = useState<boolean>(false);
   const [loadingGen, setLoadingGen] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
@@ -305,7 +309,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [filterExamId, setFilterExamId] = useState<string>('all');
 
   // Creator state
-  const [creatorTab, setCreatorTab] = useState<'generate' | 'upload' | 'pool_upload' | 'pool_generate' | 'pool_monitor'>('pool_generate');
+  const [creatorTab, setCreatorTab] = useState<'generate' | 'upload' | 'pool_upload' | 'pool_generate' | 'pool_monitor'>('upload');
   const [uploadJsonText, setUploadJsonText] = useState<string>('');
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
 
@@ -448,6 +452,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
           setSuccessMessage(`All ${data.count || 0} questions deleted from Question Bank Pool! 🗑️`);
         } else {
           setTests([]);
+          setTotalTestsCount(0);
+          setHasMoreTests(false);
           setSuccessMessage(`All ${data.count || 0} tests deleted from Registry! 🗑️`);
         }
         setBulkDeleteTarget(null);
@@ -563,6 +569,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [inlineTitleValue, setInlineTitleValue] = useState<string>('');
   const [savingTitleId, setSavingTitleId] = useState<string | null>(null);
+
+  // Inline Subject Editing in Registry
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+  const [inlineSubjectValue, setInlineSubjectValue] = useState<string>('');
+  const [savingSubjectId, setSavingSubjectId] = useState<string | null>(null);
 
   // Find active exam data
   const activeExam = exams.find(e => e.id === selectedExamId) || exams[0];
@@ -1151,16 +1162,67 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   };
 
 
-  const fetchTestsList = async () => {
-    setLoadingList(true);
+  const fetchTestsList = async (options?: { reset?: boolean; loadAll?: boolean; examId?: string; offset?: number }) => {
+    const isReset = options?.reset ?? true;
+    const isLoadAll = options?.loadAll ?? false;
+    const targetExamId = options?.examId !== undefined ? options.examId : filterExamId;
+
+    if (isLoadAll) {
+      setLoadingAllTests(true);
+    } else if (!isReset) {
+      setLoadingMoreTests(true);
+    } else {
+      setLoadingList(true);
+    }
+
     try {
-      const token = await currentUser.getIdToken();
-      const res = await fetch(getApiUrl('/api/admin/tests'), {
+      const token = currentUser ? await currentUser.getIdToken() : '';
+      const currentOffset = isReset || isLoadAll ? 0 : (options?.offset !== undefined ? options.offset : tests.length);
+      const limit = 10;
+
+      const queryParams = new URLSearchParams();
+      if (targetExamId && targetExamId !== 'all') {
+        queryParams.append('examId', targetExamId);
+      }
+
+      if (isLoadAll) {
+        queryParams.append('all', 'true');
+      } else {
+        queryParams.append('limit', String(limit));
+        queryParams.append('offset', String(currentOffset));
+      }
+
+      const res = await fetch(getApiUrl(`/api/admin/tests?${queryParams.toString()}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+
       if (res.ok) {
         const data = await res.json();
-        setTests(data || []);
+        let newTests: TestMeta[] = [];
+        let totalCount = 0;
+        let moreAvailable = false;
+
+        if (Array.isArray(data)) {
+          newTests = data;
+          totalCount = data.length;
+          moreAvailable = false;
+        } else if (data && Array.isArray(data.tests)) {
+          newTests = data.tests;
+          totalCount = typeof data.total === 'number' ? data.total : newTests.length;
+          moreAvailable = Boolean(data.hasMore);
+        }
+
+        if (isReset || isLoadAll) {
+          setTests(newTests);
+        } else {
+          setTests(prev => {
+            const existingIds = new Set(prev.map(t => t.id));
+            const uniqueNew = newTests.filter(t => !existingIds.has(t.id));
+            return [...prev, ...uniqueNew];
+          });
+        }
+        setTotalTestsCount(totalCount);
+        setHasMoreTests(moreAvailable);
       } else {
         throw new Error('Failed to retrieve generated tests.');
       }
@@ -1169,7 +1231,19 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       setErrorMessage('Could not load test entries.');
     } finally {
       setLoadingList(false);
+      setLoadingMoreTests(false);
+      setLoadingAllTests(false);
     }
+  };
+
+  const handleLoadMoreTests = () => {
+    if (loadingMoreTests || loadingAllTests || !hasMoreTests) return;
+    fetchTestsList({ reset: false, offset: tests.length });
+  };
+
+  const handleLoadAllTests = () => {
+    if (loadingMoreTests || loadingAllTests) return;
+    fetchTestsList({ loadAll: true });
   };
 
   const fetchPoolStats = async () => {
@@ -1192,8 +1266,16 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
 
   useEffect(() => {
     fetchTestsList();
-    fetchPoolStats();
   }, [currentUser]);
+
+  // Lazy-load pool stats only when switching to pool tabs (pool_generate, pool_upload, pool_monitor)
+  useEffect(() => {
+    if (creatorTab === 'pool_generate' || creatorTab === 'pool_upload' || creatorTab === 'pool_monitor') {
+      if (!poolStats) {
+        fetchPoolStats();
+      }
+    }
+  }, [creatorTab]);
 
   // Handle exam select change to reset selected subject to default
   const handleExamChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1577,6 +1659,7 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       if (res.ok) {
         setSuccessMessage('Test deleted successfully.');
         setTests(prev => prev.filter(t => t.id !== testId));
+        setTotalTestsCount(prev => Math.max(0, prev - 1));
       } else {
         throw new Error('Deletion failed.');
       }
@@ -1725,6 +1808,43 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
       setErrorMessage(err.message || 'Error updating test title');
     } finally {
       setSavingTitleId(null);
+    }
+  };
+
+  const handleInlineSaveSubject = async (testId: string) => {
+    if (!testId) return;
+    const cleanSubject = inlineSubjectValue.trim();
+    if (!cleanSubject) {
+      setErrorMessage('Subject name cannot be empty.');
+      return;
+    }
+    setSavingSubjectId(testId);
+    setErrorMessage('');
+    try {
+      const token = await currentUser.getIdToken();
+      
+      const res = await fetch(getApiUrl(`/api/admin/tests/${testId}/subject`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ subject: cleanSubject })
+      });
+
+      if (res.ok) {
+        setTests(prev => prev.map(t => (t.id === testId ? { ...t, subject: cleanSubject } : t)));
+        setEditingSubjectId(null);
+        setSuccessMessage(`Test subject updated to "${cleanSubject}"! 🎉`);
+      } else {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update subject');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Error updating test subject');
+    } finally {
+      setSavingSubjectId(null);
     }
   };
 
@@ -2857,7 +2977,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                 <label className="text-[9px] font-black uppercase text-text-muted">Filter Exam:</label>
                 <select
                   value={filterExamId}
-                  onChange={(e) => setFilterExamId(e.target.value)}
+                  onChange={(e) => {
+                    const newExam = e.target.value;
+                    setFilterExamId(newExam);
+                    fetchTestsList({ reset: true, examId: newExam, offset: 0 });
+                  }}
                   className="bg-bg-s3 text-[11px] text-text border border-border focus:border-saffron px-2.5 py-1.5 rounded-lg outline-none cursor-pointer font-sans"
                 >
                   <option value="all">All Exams</option>
@@ -2910,7 +3034,8 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
               No test papers found matching the selected exam filter.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-border/50 text-[10px] text-text-muted font-black uppercase tracking-wider">
@@ -2938,10 +3063,68 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                          )}
                        </td>
                        <td className="py-3 px-3">
-                         <div className="flex flex-col truncate max-w-[150px]">
-                           <span className="font-bold text-text leading-tight truncate" title={test.subject}>
-                             {test.subject === 'all' ? 'All Subjects' : test.subject}
-                           </span>
+                         <div className="flex flex-col min-w-[140px] max-w-[220px]">
+                           {editingSubjectId === test.id ? (
+                             <div className="flex items-center gap-1.5 w-full mb-1">
+                               <input
+                                 type="text"
+                                 autoFocus
+                                 value={inlineSubjectValue}
+                                 onChange={(e) => setInlineSubjectValue(e.target.value)}
+                                 onKeyDown={(e) => {
+                                   if (e.key === 'Enter') {
+                                     e.preventDefault();
+                                     handleInlineSaveSubject(test.id);
+                                   }
+                                   if (e.key === 'Escape') {
+                                     setEditingSubjectId(null);
+                                   }
+                                 }}
+                                 placeholder="Enter subject..."
+                                 className="bg-bg-s3 text-xs font-bold text-text border border-saffron px-2 py-1 rounded outline-none w-full"
+                                 disabled={savingSubjectId === test.id}
+                               />
+                               <button
+                                 type="button"
+                                 onClick={() => handleInlineSaveSubject(test.id)}
+                                 disabled={savingSubjectId === test.id}
+                                 className="p-1 bg-saffron hover:bg-saffron/90 text-bg-s1 rounded cursor-pointer transition-colors shrink-0 disabled:opacity-50"
+                                 title="Save Subject"
+                               >
+                                 {savingSubjectId === test.id ? (
+                                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                 ) : (
+                                   <CheckCircle className="w-3.5 h-3.5" />
+                                 )}
+                               </button>
+                               <button
+                                 type="button"
+                                 onClick={() => setEditingSubjectId(null)}
+                                 disabled={savingSubjectId === test.id}
+                                 className="p-1 bg-bg-s3 hover:bg-bg-s1 text-text-muted hover:text-text rounded border border-border cursor-pointer transition-colors shrink-0"
+                                 title="Cancel"
+                               >
+                                 <X className="w-3.5 h-3.5" />
+                               </button>
+                             </div>
+                           ) : (
+                             <div className="flex items-center gap-1.5 group max-w-full">
+                               <span className="font-bold text-text leading-tight truncate" title={test.subject}>
+                                 {test.subject === 'all' ? 'All Subjects' : test.subject}
+                               </span>
+                               <button
+                                 type="button"
+                                 onClick={() => {
+                                   setEditingSubjectId(test.id);
+                                   setInlineSubjectValue(test.subject === 'all' ? 'All Subjects' : (test.subject || ''));
+                                 }}
+                                 className="opacity-60 group-hover:opacity-100 p-1 text-text-muted hover:text-saffron cursor-pointer rounded transition-all hover:bg-saffron/10 shrink-0"
+                                 title="Quick Edit Subject (विषय बदलें)"
+                               >
+                                 <Pencil className="w-3 h-3" />
+                               </button>
+                             </div>
+                           )}
                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                              <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none ${
                                test.mode === 'mock' 
@@ -3075,6 +3258,68 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination & Count Controls */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-bg-s3/40 border-t border-border/40 rounded-b-xl -mx-5 -mb-5 mt-1">
+              <div className="flex items-center gap-2 text-xs text-text-muted flex-wrap">
+                <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-bg-s3 border border-border text-[11px] font-bold text-text">
+                  Showing <strong className="text-saffron mx-1 font-black">{filteredRegistryTests.length}</strong> of <strong className="text-text mx-1 font-black">{totalTestsCount || filteredRegistryTests.length}</strong> tests
+                </span>
+                {!hasMoreTests && filteredRegistryTests.length > 0 && (
+                  <span className="text-[10px] text-green-400 font-bold flex items-center gap-1 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded">
+                    <CheckCircle className="w-3 h-3 text-green-400" />
+                    All tests loaded
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {hasMoreTests && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleLoadMoreTests}
+                      disabled={loadingMoreTests || loadingAllTests}
+                      className="px-3.5 py-1.5 bg-saffron hover:bg-saffron/90 disabled:opacity-50 text-bg-s1 rounded-lg text-xs font-black uppercase flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm"
+                      title="Load next 10 tests"
+                    >
+                      {loadingMoreTests ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Loading +10...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Load More (+10 Tests)</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleLoadAllTests}
+                      disabled={loadingMoreTests || loadingAllTests}
+                      className="px-3.5 py-1.5 bg-bg-s3 hover:bg-bg-s1 disabled:opacity-50 text-text hover:text-saffron border border-border rounded-lg text-xs font-black uppercase flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm"
+                      title="Load all remaining tests"
+                    >
+                      {loadingAllTests ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-saffron" />
+                          <span>Loading All...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Layers className="w-3.5 h-3.5 text-saffron" />
+                          <span>Load All Tests ({totalTestsCount})</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            </>
           )}
         </div>
 

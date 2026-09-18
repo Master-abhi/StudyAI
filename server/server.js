@@ -75,6 +75,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api', generalRateLimiter);
 app.use('/api/user/send-otp', otpRateLimiter);
 
+// Direct redirect for Android App APK to Supabase Storage CDN
+const SUPABASE_APK_URL = process.env.SUPABASE_APK_URL || 'https://qduvlyvueztczchfloog.supabase.co/storage/v1/object/public/app/cgguru.apk';
+app.get(['/cgguru.apk', '/download/app', '/api/app/download'], (req, res) => {
+  res.redirect(302, SUPABASE_APK_URL);
+});
+
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/api/chat', chatRoutes);

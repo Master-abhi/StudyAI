@@ -37,12 +37,6 @@ function syncRootIndexPlugin() {
         console.log('[sync-root-index] Synced mcq-practice/index.html → public/index.html ✅');
       }
 
-      const apkSrc = path.resolve(__dirname, 'public/cgguru.apk');
-      const apkDest = path.resolve(__dirname, '../public/cgguru.apk');
-      if (safeCopy(apkSrc, apkDest)) {
-        console.log('[sync-root-index] Synced cgguru.apk → public/cgguru.apk ✅');
-      }
-
       const fontsSrc = path.resolve(__dirname, 'public/fonts');
       const fontsDest = path.resolve(__dirname, '../public/fonts');
       if (fs.existsSync(fontsSrc)) {

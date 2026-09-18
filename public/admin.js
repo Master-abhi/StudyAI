@@ -302,33 +302,70 @@ function initExamAndSubjectSelects() {
   });
 }
 
-async function loadGeneratedTestsAdmin() {
+let adminTestsListState = {
+  tests: [],
+  total: 0,
+  hasMore: false
+};
+
+async function loadGeneratedTestsAdmin(append = false, loadAll = false) {
   const list = document.getElementById('admin-tests-list');
   if (!list) return;
-  list.innerHTML = '<div class="profile-loading">Loading generated tests...</div>';
+  if (!append && !loadAll) {
+    list.innerHTML = '<div class="profile-loading">Loading generated tests...</div>';
+    adminTestsListState.tests = [];
+  }
 
   try {
     const headers = await getAuthHeader();
-    const res = await fetch('/api/admin/tests', { headers });
-    const tests = await res.json();
+    const offset = append ? adminTestsListState.tests.length : 0;
+    const url = loadAll ? '/api/admin/tests?all=true' : `/api/admin/tests?limit=10&offset=${offset}`;
+    const res = await fetch(url, { headers });
+    const data = await res.json();
 
-    if (tests.length === 0) {
+    const fetchedTests = Array.isArray(data) ? data : (data.tests || []);
+    const totalCount = typeof data.total === 'number' ? data.total : fetchedTests.length;
+    const hasMore = Boolean(data.hasMore);
+
+    if (append) {
+      adminTestsListState.tests = [...adminTestsListState.tests, ...fetchedTests];
+    } else {
+      adminTestsListState.tests = fetchedTests;
+    }
+    adminTestsListState.total = totalCount;
+    adminTestsListState.hasMore = hasMore;
+
+    if (adminTestsListState.tests.length === 0) {
       list.innerHTML = '<li style="color: var(--text-muted);">No generated tests on server.</li>';
       return;
     }
 
-    list.innerHTML = tests.map(t => {
+    const itemsHtml = adminTestsListState.tests.map(t => {
       const dateStr = t.createdAt ? new Date(t.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
       return `
         <li>
           <div>
             <strong>${t.title || t.examName}</strong> — ${t.subject === 'all' ? 'All Subjects' : t.subject}<br>
-            <small style="color: var(--text-muted);">${t.mode.toUpperCase()} • ${t.language.toUpperCase()} • ${t.totalQuestions} Qs • ${dateStr}</small>
+            <small style="color: var(--text-muted);">${(t.mode || '').toUpperCase()} • ${(t.language || '').toUpperCase()} • ${t.totalQuestions || 0} Qs • ${dateStr}</small>
           </div>
           <button onclick="deleteTestAdmin('${t.id}')" style="width: auto; padding: 4px 10px; margin: 0; background: var(--error); font-size: 11px;">Delete</button>
         </li>
       `;
     }).join('');
+
+    const footerHtml = `
+      <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin-top: 8px; border-top: 1px solid var(--border, #444); font-size: 12px; color: var(--text-muted); flex-wrap: wrap; gap: 8px; background: transparent; border-bottom: none;">
+        <span>Showing <strong>${adminTestsListState.tests.length}</strong> of <strong>${adminTestsListState.total}</strong> tests</span>
+        <div style="display: flex; gap: 8px;">
+          ${adminTestsListState.hasMore ? `
+            <button onclick="loadGeneratedTestsAdmin(true, false)" style="width: auto; padding: 4px 12px; margin: 0; font-size: 11px; background: var(--primary, #e67e22); color: #fff; border: none; border-radius: 4px; cursor: pointer;">Load More (+10)</button>
+            <button onclick="loadGeneratedTestsAdmin(false, true)" style="width: auto; padding: 4px 12px; margin: 0; font-size: 11px; background: var(--bg-card, #2c3e50); color: var(--text, #fff); border: 1px solid var(--border, #555); border-radius: 4px; cursor: pointer;">Load All Tests</button>
+          ` : '<span style="color: #4ade80; font-weight: bold;">✓ All tests loaded</span>'}
+        </div>
+      </li>
+    `;
+
+    list.innerHTML = itemsHtml + footerHtml;
   } catch (e) {
     list.innerHTML = '<li style="color: var(--error);">Failed to load tests.</li>';
     showToast('Failed to load generated tests', 'error');

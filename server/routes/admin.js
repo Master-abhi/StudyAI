@@ -9,6 +9,12 @@ const { fetchExamSyllabusContext } = require('../services/syllabusHelper');
 const { safeFirestoreQuery, invalidateCache } = require('../services/firestoreCache');
 const { uploadTopicPdf, deleteTopicPdf } = require('../services/supabaseStorage');
 
+function invalidateTestsAndPoolCache() {
+  invalidateCache('tests');
+  invalidateCache('admin_tests_meta');
+  invalidateCache('pool_stats');
+}
+
 // Helper to sanitize data for Firestore (Firestore strictly forbids nested arrays like table rows: [['a','b'],['c','d']])
 function sanitizeForFirestore(val) {
   if (val === null || val === undefined) return null;
@@ -1021,6 +1027,7 @@ router.post('/tests/generate', verifyStaffOrAdmin('tests'), async (req, res) => 
     };
 
     await db.collection('tests').doc(testId).set(newTest);
+    invalidateTestsAndPoolCache();
     console.log(`[Admin Test Gen] Generated and saved test ${testId} ✅`);
 
     // Continuously save all generated questions to the 'questions' collection on the server
@@ -1142,6 +1149,7 @@ router.post('/tests/upload', verifyStaffOrAdmin('tests'), async (req, res) => {
     };
 
     await db.collection('tests').doc(testId).set(newTest);
+    invalidateTestsAndPoolCache();
     console.log(`[Admin Test Upload] Saved test ${testId} ✅`);
 
     // Save individual questions to questions collection
@@ -1327,36 +1335,40 @@ function getCanonicalSubject(rawSubject) {
 // Get stats from the Question Bank & Test Questions
 router.get('/questions/pool/stats', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
-    const poolSnap = await db.collection('question_bank').get();
-    const questionsSnap = await db.collection('questions').get();
+    const stats = await safeFirestoreQuery('pool_stats', async () => {
+      const poolSnap = await db.collection('question_bank').get();
+      const questionsSnap = await db.collection('questions').get();
 
-    let totalCount = poolSnap.size + questionsSnap.size;
+      let totalCount = poolSnap.size + questionsSnap.size;
 
-    const subjects = {};
-    const exams = {};
+      const subjects = {};
+      const exams = {};
 
-    const processDoc = (doc) => {
-      const q = doc.data();
-      const sub = getCanonicalSubject(q.subject);
-      subjects[sub] = (subjects[sub] || 0) + 1;
+      const processDoc = (doc) => {
+        const q = doc.data() || {};
+        const sub = getCanonicalSubject(q.subject);
+        subjects[sub] = (subjects[sub] || 0) + 1;
 
-      if (Array.isArray(q.examTags)) {
-        q.examTags.forEach(tag => {
-          exams[tag] = (exams[tag] || 0) + 1;
-        });
-      } else if (q.examId) {
-        exams[q.examId] = (exams[q.examId] || 0) + 1;
-      }
-    };
+        if (Array.isArray(q.examTags)) {
+          q.examTags.forEach(tag => {
+            exams[tag] = (exams[tag] || 0) + 1;
+          });
+        } else if (q.examId) {
+          exams[q.examId] = (exams[q.examId] || 0) + 1;
+        }
+      };
 
-    poolSnap.docs.forEach(processDoc);
-    questionsSnap.docs.forEach(processDoc);
+      poolSnap.docs.forEach(processDoc);
+      questionsSnap.docs.forEach(processDoc);
 
-    res.json({
-      totalCount,
-      subjects,
-      exams
-    });
+      return {
+        totalCount,
+        subjects,
+        exams
+      };
+    }, { totalCount: 0, subjects: {}, exams: {} }, 10 * 60 * 1000);
+
+    res.json(stats);
   } catch (err) {
     console.error('[Admin Pool Stats Error]:', err.message);
     res.status(500).json({ error: 'Failed to retrieve question bank stats.' });
@@ -1800,6 +1812,7 @@ router.post('/tests/generate-from-pool', verifyStaffOrAdmin('tests'), async (req
 
     // Save test to tests collection
     await db.collection('tests').doc(testId).set(newTest);
+    invalidateTestsAndPoolCache();
 
     // Save individual questions to questions collection
     const batch = db.batch();
@@ -2143,6 +2156,8 @@ router.post('/tests/generate-multiple-from-pool', verifyStaffOrAdmin('tests'), a
       });
     }
 
+    invalidateTestsAndPoolCache();
+
     await logStaffActivity(req, 'generate_multiple_tests_from_pool', {
       count: generatedTests.length,
       examName,
@@ -2168,6 +2183,7 @@ router.delete('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
     const { id } = req.params;
     await db.collection('tests').doc(id).delete();
+    invalidateTestsAndPoolCache();
     console.log(`[Admin Test Delete] Deleted test ${id} ✅`);
 
     await logStaffActivity(req, 'delete_test', { testId: id });
@@ -2209,6 +2225,7 @@ const handleBulkDeleteTests = async (req, res) => {
       deletedCount += chunk.length;
     }
 
+    invalidateTestsAndPoolCache();
     await logStaffActivity(req, 'delete_all_tests', { deletedCount });
     console.log(`[Admin Bulk Test Delete] Deleted ${deletedCount} tests ✅`);
 
@@ -2344,29 +2361,33 @@ router.get('/subjects/renames', async (req, res) => {
   }
 });
 
-// GET /api/admin/tests - List all generated tests for admin registry
+// GET /api/admin/tests - List generated tests for admin registry (supports limit, offset, examId, all)
 router.get('/tests', verifyStaffOrAdmin('tests'), async (req, res) => {
   try {
-    const { examId } = req.query;
+    const { examId, limit: limitQuery, offset: offsetQuery, all } = req.query;
 
-    const snapshot = await db.collection('tests').get();
-    let list = snapshot.docs.map(doc => {
-      const d = doc.data() || {};
-      return {
-        id: d.id || doc.id,
-        title: d.title || '',
-        examId: d.examId || (d.examIds && d.examIds[0]) || '',
-        examIds: d.examIds || (d.examId ? [d.examId] : []),
-        examName: d.examName || (d.examNames && d.examNames[0]) || '',
-        examNames: d.examNames || (d.examName ? [d.examName] : []),
-        subject: d.subject,
-        mode: d.mode,
-        language: d.language,
-        totalQuestions: d.questions ? d.questions.length : (d.totalQuestions || 0),
-        pattern: d.pattern,
-        createdAt: d.createdAt
-      };
-    });
+    const rawList = await safeFirestoreQuery('admin_tests_meta', async () => {
+      const snapshot = await db.collection('tests').get();
+      return snapshot.docs.map(doc => {
+        const d = doc.data() || {};
+        return {
+          id: d.id || doc.id,
+          title: d.title || '',
+          examId: d.examId || (d.examIds && d.examIds[0]) || '',
+          examIds: d.examIds || (d.examId ? [d.examId] : []),
+          examName: d.examName || (d.examNames && d.examNames[0]) || '',
+          examNames: d.examNames || (d.examName ? [d.examName] : []),
+          subject: d.subject,
+          mode: d.mode,
+          language: d.language,
+          totalQuestions: d.questions ? d.questions.length : (d.totalQuestions || 0),
+          pattern: d.pattern,
+          createdAt: d.createdAt
+        };
+      });
+    }, [], 10 * 60 * 1000);
+
+    let list = Array.isArray(rawList) ? [...rawList] : [];
 
     if (examId && examId !== 'all') {
       list = list.filter(t => t.examId === examId || (Array.isArray(t.examIds) && t.examIds.includes(examId)));
@@ -2378,7 +2399,36 @@ router.get('/tests', verifyStaffOrAdmin('tests'), async (req, res) => {
       return dateB - dateA;
     });
 
+    const total = list.length;
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+    // If limit or offset was specified (and not all=true), return paginated object
+    if ((limitQuery !== undefined || offsetQuery !== undefined) && all !== 'true') {
+      const limit = parseInt(limitQuery, 10) || 10;
+      const offset = parseInt(offsetQuery, 10) || 0;
+      const pagedTests = list.slice(offset, offset + limit);
+      const hasMore = offset + pagedTests.length < total;
+
+      return res.json({
+        tests: pagedTests,
+        total,
+        offset,
+        limit,
+        hasMore
+      });
+    }
+
+    // If client explicitly requested all=true as object
+    if (all === 'true') {
+      return res.json({
+        tests: list,
+        total,
+        offset: 0,
+        limit: total,
+        hasMore: false
+      });
+    }
+
     res.json(list || []);
   } catch (err) {
     console.error('[Admin Get Tests Error]:', err.message);
@@ -2405,13 +2455,46 @@ router.patch('/tests/:id/title', verifyStaffOrAdmin('tests'), async (req, res) =
     }, { merge: true });
 
     // Invalidate tests cache so registry reflects immediately
-    invalidateCache('tests');
+    invalidateTestsAndPoolCache();
     await logStaffActivity(req, 'rename_test_title', { testId: id, title: cleanTitle });
 
     res.json({ success: true, title: cleanTitle, message: 'Test title updated successfully! 🎉' });
   } catch (err) {
     console.error('[Admin Rename Test Title Error]:', err.message);
     res.status(500).json({ error: err.message || 'Failed to update test title.' });
+  }
+});
+
+// Quick update test subject
+router.patch('/tests/:id/subject', verifyStaffOrAdmin('tests'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject } = req.body;
+
+    const testRef = db.collection('tests').doc(id);
+    const doc = await testRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Test not found' });
+    }
+
+    const cleanSubject = typeof subject === 'string' ? subject.trim() : '';
+    if (!cleanSubject) {
+      return res.status(400).json({ error: 'Subject cannot be empty' });
+    }
+
+    await testRef.set({
+      subject: cleanSubject,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    // Invalidate tests cache so registry reflects immediately
+    invalidateTestsAndPoolCache();
+    await logStaffActivity(req, 'update_test_subject', { testId: id, subject: cleanSubject });
+
+    res.json({ success: true, subject: cleanSubject, message: 'Test subject updated successfully! 🎉' });
+  } catch (err) {
+    console.error('[Admin Update Test Subject Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to update test subject.' });
   }
 });
 
@@ -2538,7 +2621,7 @@ router.put('/tests/:id', verifyStaffOrAdmin('tests'), async (req, res) => {
     }
 
     // Invalidate tests cache so changes reflect immediately across app
-    invalidateCache('tests');
+    invalidateTestsAndPoolCache();
 
     await logStaffActivity(req, 'edit_test', { testId: id, title: updatedTest.title, examName: resolvedExamName, subject: updatedTest.subject, mode: testMode, language: updatedTest.language });
 

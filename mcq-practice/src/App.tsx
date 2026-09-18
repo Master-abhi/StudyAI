@@ -81,6 +81,7 @@ const TabFallback = () => (
 );
 
 import type { Exam } from './components/syllabus/syllabusData';
+import { SUPABASE_APK_URL } from './constants';
 import { 
   EXAMS_DATA, 
   getProgressFromLocalStorage, 
@@ -2793,7 +2794,9 @@ export default function App() {
             <div className="flex items-center gap-2">
               {/* App Download Button */}
               <a 
-                href="/cgguru.apk"
+                href={SUPABASE_APK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 download="CG_Guru_App.apk"
                 className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-bg-s1 font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer transition-all active:scale-[0.96]"
                 title="Download Android App (APK)"
