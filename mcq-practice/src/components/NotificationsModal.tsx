@@ -60,22 +60,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      // Direct Firestore client SDK read if available
-      const firebase = (window as any).firebase;
-      if (firebase && firebase.apps.length > 0) {
-        try {
-          const snap = await firebase.firestore().collection('notifications')
-            .orderBy('createdAt', 'desc')
-            .limit(50)
-            .get();
-          const docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-          setNotifications(docs);
-          setLoading(false);
-          return;
-        } catch (e) {}
-      }
-
-      // API Fallback
+      // Use cached backend API to protect Firestore read quota
       const res = await fetch(getApiUrl('/api/notifications'));
       if (res.ok) {
         const data = await res.json();

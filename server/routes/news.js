@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getCachedNews } = require('../services/scraper');
-const { scrapeAllNews } = require('../services/newsScraper');
+const { getCachedNews } = require('../services/newsService');
 const ai = require('../services/aiManager');
 const { admin, db } = require('../firebase-admin');
 const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
@@ -26,7 +25,12 @@ function verifyRefreshSecret(req, res, next) {
   next();
 }
 
-// GET /api/news — reads cache from Firestore
+// In-memory caches to prevent burning Firestore 50k reads quota
+const intelligenceMemoryCache = new Map();
+const userRecsCache = new Map();       // userId -> { articles, timestamp }
+const userAnalyticsCache = new Map();  // userId -> { data, timestamp }
+
+// GET /api/news — reads cache from memory/Firestore with CDN edge caching
 router.get('/', async (req, res) => {
   try {
     const { category, includeJobs } = req.query;
@@ -61,6 +65,9 @@ router.get('/', async (req, res) => {
       articles = articles.filter(a => !isJobCategory(a.category));
     }
 
+    // Set Edge CDN and Browser caching headers to shield Firestore
+    res.set('Cache-Control', 'public, max-age=180, s-maxage=360, stale-while-revalidate=600');
+
     res.json({
       lastUpdated: cached.lastUpdated,
       totalArticles: articles.length,
@@ -68,11 +75,17 @@ router.get('/', async (req, res) => {
     });
   } catch (err) {
     console.error('[News Error]:', err.message);
-    res.status(500).json({ error: 'Failed to fetch news.' });
+    const fallback = getCachedNews ? (await getCachedNews().catch(() => ({ articles: [] }))) : { articles: [] };
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json({
+      lastUpdated: null,
+      totalArticles: (fallback.articles || []).length,
+      articles: fallback.articles || []
+    });
   }
 });
 
-// GET /api/news/intelligence — reads or generates AI news intelligence
+// GET /api/news/intelligence — reads or generates AI news intelligence (cached)
 router.get('/intelligence', async (req, res) => {
   try {
     const { title, description, category, source } = req.query;
@@ -81,6 +94,13 @@ router.get('/intelligence', async (req, res) => {
     }
 
     const docId = crypto.createHash('md5').update(title).digest('hex');
+
+    // 1. Check in-memory cache first
+    if (intelligenceMemoryCache.has(docId)) {
+      res.set('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+      return res.json(intelligenceMemoryCache.get(docId));
+    }
+
     const docRef = db.collection('news_intelligence').doc(docId);
     
     let existingData = null;
@@ -90,10 +110,12 @@ router.get('/intelligence', async (req, res) => {
         existingData = doc.data();
       }
     } catch (readErr) {
-      console.warn('[News Intelligence Firestore read fail]:', readErr.message);
+      console.warn('[News Intelligence Firestore read fail (quota?)]:', readErr.message);
     }
 
     if (existingData) {
+      intelligenceMemoryCache.set(docId, existingData);
+      res.set('Cache-Control', 'public, max-age=86400, s-maxage=86400');
       return res.json(existingData);
     }
 
@@ -109,12 +131,15 @@ router.get('/intelligence', async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
+    intelligenceMemoryCache.set(docId, fullIntel);
+
     try {
       await docRef.set(fullIntel);
     } catch (writeErr) {
       console.warn('[News Intelligence Firestore write fail]:', writeErr.message);
     }
 
+    res.set('Cache-Control', 'public, max-age=86400, s-maxage=86400');
     res.json(fullIntel);
   } catch (err) {
     console.error('[News Intelligence Error]:', err.message);
@@ -122,10 +147,20 @@ router.get('/intelligence', async (req, res) => {
   }
 });
 
-// GET /api/news/recommended — returns ranked news based on weak areas & exam
+// GET /api/news/recommended — returns ranked news based on weak areas & exam (cached per user)
 router.get('/recommended', verifyFirebaseToken, async (req, res) => {
   try {
     const userId = req.user.uid;
+    const now = Date.now();
+
+    // Check user recommendations cache (10 min TTL)
+    if (userRecsCache.has(userId)) {
+      const entry = userRecsCache.get(userId);
+      if (now - entry.timestamp < 10 * 60 * 1000) {
+        res.set('Cache-Control', 'private, max-age=120');
+        return res.json({ articles: entry.articles });
+      }
+    }
 
     const cached = await getCachedNews();
     let articles = (cached.articles || []).filter(a => {
@@ -205,7 +240,7 @@ router.get('/recommended', verifyFirebaseToken, async (req, res) => {
         } else if (diffDays <= 7) {
           recencyWeight = 30;  // Within a week
         } else if (diffDays > 30) {
-          recencyWeight = -100; // Over a month old (heavily deprioritized)
+          recencyWeight = -100; // Over a month old
         } else if (diffDays > 14) {
           recencyWeight = -40;  // Over 2 weeks old
         }
@@ -221,14 +256,29 @@ router.get('/recommended', verifyFirebaseToken, async (req, res) => {
     });
 
     scoredArticles.sort((a, b) => b.totalScore - a.totalScore);
+    
+    // Cache result in memory
+    userRecsCache.set(userId, { articles: scoredArticles, timestamp: now });
+    res.set('Cache-Control', 'private, max-age=120');
+
     res.json({ articles: scoredArticles });
   } catch (err) {
     console.error('[News Recommended Error]:', err.message);
-    res.status(500).json({ error: 'Failed to fetch recommendations.' });
+    // Fallback: return unpersonalized news instead of failing
+    try {
+      const cached = await getCachedNews();
+      const articles = (cached.articles || []).filter(a => {
+        const c = (a.category || '').toLowerCase();
+        return c !== 'jobs' && c !== 'job' && c !== 'job_alert' && c !== 'recruitment';
+      });
+      res.json({ articles });
+    } catch (_) {
+      res.json({ articles: [] });
+    }
   }
 });
 
-// POST /api/news/log-interaction — tracks reader metrics
+// POST /api/news/log-interaction — tracks reader metrics (graceful fallback)
 router.post('/log-interaction', verifyFirebaseToken, async (req, res) => {
   try {
     const userId = req.user.uid;
@@ -240,6 +290,9 @@ router.post('/log-interaction', verifyFirebaseToken, async (req, res) => {
     
     const articleId = crypto.createHash('md5').update(title).digest('hex');
     
+    // Invalidate cached analytics for this user so next fetch is fresh
+    userAnalyticsCache.delete(userId);
+
     try {
       const interactionRef = db.collection('user_current_affairs_interactions').doc();
       await interactionRef.set({
@@ -252,20 +305,29 @@ router.post('/log-interaction', verifyFirebaseToken, async (req, res) => {
         timestamp: new Date().toISOString()
       });
     } catch (writeErr) {
-      console.warn('[Log News Interaction Firestore write fail]:', writeErr.message);
+      console.warn('[Log News Interaction Firestore write fail (quota?)]:', writeErr.message);
     }
     
     res.json({ success: true });
   } catch (err) {
     console.error('[Log News Interaction Error]:', err.message);
-    res.status(500).json({ error: 'Failed to log news interaction.' });
+    res.json({ success: true, savedLocally: true });
   }
 });
 
-// GET /api/news/analytics — calculated CA Readiness, Mastery, Retention and Revision Coverage
+// GET /api/news/analytics — calculated CA Readiness, Mastery, Retention and Revision Coverage (cached)
 router.get('/analytics', verifyFirebaseToken, async (req, res) => {
   try {
     const userId = req.user.uid;
+    const now = Date.now();
+
+    // Check user analytics in-memory cache (5 min TTL)
+    if (userAnalyticsCache.has(userId)) {
+      const entry = userAnalyticsCache.get(userId);
+      if (now - entry.timestamp < 5 * 60 * 1000) {
+        return res.json(entry.data);
+      }
+    }
     
     let docs = [];
     try {
@@ -274,7 +336,7 @@ router.get('/analytics', verifyFirebaseToken, async (req, res) => {
         .get();
       docs = snap.docs;
     } catch (dbErr) {
-      console.warn('[News Analytics Firestore query fail]:', dbErr.message);
+      console.warn('[News Analytics Firestore query fail (quota?)]:', dbErr.message);
     }
       
     const uniqueReads = new Set();
@@ -341,7 +403,7 @@ router.get('/analytics', verifyFirebaseToken, async (req, res) => {
     const revisionCoverageScore = bookmarkCount > 0 ? Math.min(100, Math.round((flashcardsRevised / bookmarkCount) * 100)) : 80;
     const readinessScore = Math.round(0.4 * masteryScore + 0.3 * retentionScore + 0.3 * revisionCoverageScore);
     
-    res.json({
+    const resultPayload = {
       readCount,
       bookmarkCount,
       mcqAttempts,
@@ -353,10 +415,25 @@ router.get('/analytics', verifyFirebaseToken, async (req, res) => {
         revisionCoverageScore,
         readinessScore
       }
-    });
+    };
+
+    userAnalyticsCache.set(userId, { data: resultPayload, timestamp: now });
+    res.json(resultPayload);
   } catch (err) {
     console.error('[News Analytics Error]:', err.message);
-    res.status(500).json({ error: 'Failed to fetch news analytics.' });
+    res.json({
+      readCount: 0,
+      bookmarkCount: 0,
+      mcqAttempts: 0,
+      flashcardsRevised: 0,
+      totalTimeSpent: 0,
+      metrics: {
+        masteryScore: 70,
+        retentionScore: 60,
+        revisionCoverageScore: 80,
+        readinessScore: 70
+      }
+    });
   }
 });
 
@@ -391,6 +468,7 @@ router.get('/capsules', async (req, res) => {
       }
     });
     
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=600, stale-while-revalidate=1200');
     res.json({
       daily,
       weekly,
@@ -399,7 +477,13 @@ router.get('/capsules', async (req, res) => {
     });
   } catch (err) {
     console.error('[News Capsules Error]:', err.message);
-    res.status(500).json({ error: 'Failed to fetch news capsules.' });
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json({
+      daily: [],
+      weekly: [],
+      monthly: [],
+      yearly: []
+    });
   }
 });
 

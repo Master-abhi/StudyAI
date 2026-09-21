@@ -155,9 +155,8 @@ export const JobsTab: React.FC<JobsTabProps> = ({ onNavigateToTab }) => {
     if (!hasLocalCache) {
       setLoading(true);
     }
-    setError('');
     try {
-      const res = await fetch(getApiUrl('/api/news?category=jobs'));
+      const res = await fetch(getApiUrl('/api/jobs'));
       if (res.ok) {
         const data = await res.json();
         const fetched = (data.articles || []).filter(isStructuredJob);

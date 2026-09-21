@@ -18,6 +18,12 @@ service cloud.firestore {
       allow write: if false; // Server uses Admin SDK (bypasses rules)
     }
 
+    // ── Notifications ──
+    match /notifications/{notifId} {
+      allow read: if true;
+      allow write: if false; // Server uses Admin SDK (bypasses rules)
+    }
+
     // ── Study Materials ──
     // Any logged-in user can read (to get study notes)
     // Only admin can write (upload materials)

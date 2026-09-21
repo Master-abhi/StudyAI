@@ -90,21 +90,18 @@ async function runJobDeadlineScheduler(force = false) {
     // 2. FETCH ALL JOBS & SCAN FOR DEADLINES EXPIRING TODAY OR SOON
     let articles = [];
     try {
-      const cacheDoc = await db.collection('news').doc('cache').get();
+      const cacheDoc = await db.collection('jobs').doc('cache').get();
       if (cacheDoc.exists && Array.isArray(cacheDoc.data()?.articles)) {
         articles = cacheDoc.data().articles;
       }
     } catch (e) {
-      console.warn('[Job Deadline Scheduler] Error reading news cache from Firestore:', e.message);
+      console.warn('[Job Deadline Scheduler] Error reading jobs cache from Firestore:', e.message);
     }
 
-    // Also fetch from news_articles collection if available
+    // Also fetch from dedicated job_alerts collection if available
     try {
-      const articlesSnap = await db.collection('news_articles')
-        .where('category', 'in', ['jobs', 'job', 'job_alert', 'recruitment'])
-        .get();
-      
-      const firestoreJobs = articlesSnap.docs.map(d => d.data());
+      const articlesSnap = await db.collection('job_alerts').limit(100).get();
+      const firestoreJobs = articlesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       articles = [...articles, ...firestoreJobs];
     } catch (e) {
       // Ignore if query fails

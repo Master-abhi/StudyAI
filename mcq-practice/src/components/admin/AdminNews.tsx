@@ -427,13 +427,13 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
       };
 
       const token = await currentUser.getIdToken();
-      const res = await fetch(getApiUrl('/api/admin/news/upload'), {
+      const res = await fetch(getApiUrl('/api/admin/jobs/upload'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ articles: [jobArticle] })
+        body: JSON.stringify({ jobs: [jobArticle] })
       });
 
       const data = await res.json();
@@ -507,18 +507,23 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
       }
 
       const token = await currentUser.getIdToken();
-      const res = await fetch(getApiUrl('/api/admin/news/upload'), {
+      const endpoint = activeAdminTab === 'jobs' ? '/api/admin/jobs/upload' : '/api/admin/news/upload';
+      const bodyPayload = activeAdminTab === 'jobs' 
+        ? JSON.stringify({ jobs: itemsToUpload })
+        : JSON.stringify({ articles: itemsToUpload });
+
+      const res = await fetch(getApiUrl(endpoint), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ articles: itemsToUpload })
+        body: bodyPayload
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setSuccessMessage(`Successfully uploaded ${data.totalArticles} ${activeAdminTab === 'jobs' ? 'job alerts' : 'news articles'}!`);
+        setSuccessMessage(`Successfully uploaded ${data.totalJobs || data.totalArticles || itemsToUpload.length} ${activeAdminTab === 'jobs' ? 'job alerts' : 'news articles'}!`);
         setUploadFile(null);
         setPasteJson('');
         setShowUploadSection(false);
@@ -538,17 +543,30 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
     setLoadingList(true);
     setErrorMessage('');
     try {
-      const res = await fetch(getApiUrl('/api/news?includeJobs=true'));
-      if (res.ok) {
-        const data = await res.json();
-        setArticles(data.articles || []);
-        setLastUpdated(data.lastUpdated || '');
+      // If on Jobs tab, fetch directly from dedicated /api/jobs endpoint
+      // If on News tab, fetch from /api/news endpoint
+      if (activeAdminTab === 'jobs') {
+        const res = await fetch(getApiUrl('/api/jobs?admin=true'));
+        if (res.ok) {
+          const data = await res.json();
+          setArticles(data.articles || []);
+          setLastUpdated(data.lastUpdated || '');
+        } else {
+          throw new Error('Failed to retrieve job alerts.');
+        }
       } else {
-        throw new Error('Failed to retrieve news cache.');
+        const res = await fetch(getApiUrl('/api/news?admin=true'));
+        if (res.ok) {
+          const data = await res.json();
+          setArticles(data.articles || []);
+          setLastUpdated(data.lastUpdated || '');
+        } else {
+          throw new Error('Failed to retrieve news cache.');
+        }
       }
     } catch (e: any) {
       console.error(e);
-      setErrorMessage('Could not load current affairs cache.');
+      setErrorMessage(activeAdminTab === 'jobs' ? 'Could not load job alerts.' : 'Could not load current affairs cache.');
     } finally {
       setLoadingList(false);
     }
@@ -556,7 +574,7 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
 
   useEffect(() => {
     fetchNewsCache();
-  }, []);
+  }, [activeAdminTab]);
 
   const handleRefreshNews = async () => {
     setLoadingRefresh(true);
@@ -565,14 +583,15 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
 
     try {
       const token = await currentUser.getIdToken();
-      const res = await fetch(getApiUrl('/api/admin/news/refresh'), {
+      const endpoint = activeAdminTab === 'jobs' ? '/api/admin/jobs/refresh' : '/api/admin/news/refresh';
+      const res = await fetch(getApiUrl(endpoint), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setSuccessMessage(`Successfully refreshed and cached ${data.totalArticles} updates!`);
+        setSuccessMessage(`Successfully refreshed and cached ${data.totalJobs || data.totalArticles} updates!`);
         fetchNewsCache();
       } else {
         throw new Error(data.error || 'Server rejected refresh run.');
@@ -597,7 +616,8 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
 
     try {
       const token = await currentUser.getIdToken();
-      const res = await fetch(getApiUrl('/api/admin/news/delete'), {
+      const endpoint = activeAdminTab === 'jobs' ? '/api/admin/jobs/delete' : '/api/admin/news/delete';
+      const res = await fetch(getApiUrl(endpoint), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -634,13 +654,18 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
 
     try {
       const token = await currentUser.getIdToken();
-      const res = await fetch(getApiUrl('/api/admin/news/edit'), {
+      const endpoint = activeAdminTab === 'jobs' ? '/api/admin/jobs/edit' : '/api/admin/news/edit';
+      const bodyPayload = activeAdminTab === 'jobs'
+        ? JSON.stringify({ job: editingArticle })
+        : JSON.stringify({ article: editingArticle });
+
+      const res = await fetch(getApiUrl(endpoint), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ article: editingArticle })
+        body: bodyPayload
       });
 
       const data = await res.json();
@@ -695,7 +720,8 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ currentUser }) => {
 
     try {
       const token = await currentUser.getIdToken();
-      const res = await fetch(getApiUrl('/api/admin/news/delete-bulk'), {
+      const endpoint = activeAdminTab === 'jobs' ? '/api/admin/jobs/delete-bulk' : '/api/admin/news/delete-bulk';
+      const res = await fetch(getApiUrl(endpoint), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

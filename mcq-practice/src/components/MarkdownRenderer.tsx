@@ -173,12 +173,18 @@ PlotlyChart.displayName = 'PlotlyChart';
 
 
 
-// Convert raw expressions like x^2 = 4ay, y^2 = -4ax, (a+b)^2, 10^-5, etc. to KaTeX math or formatted superscripts
+// Convert raw expressions like x^2 = 4ay, y^2 = -4ax, (a+b)^2, 10^-5, \(...\), \sqrt{...}, \dfrac{...} etc. to KaTeX math
 const formatSuperscriptsAndMath = (text: string): string => {
   if (!text) return '';
 
+  let normalized = text;
+
+  // Convert LaTeX delimiters \(...\) and \[...\] to $...$ and $$...$$
+  normalized = normalized.replace(/\\\[([\s\S]*?)\\\]/g, (_match, m) => `$$${m}$$`);
+  normalized = normalized.replace(/\\\(([\s\S]*?)\\\)/g, (_match, m) => `$${m}$`);
+
   // 1. If text already contains explicit LaTeX delimiters ($...$ or $$...$$), don't break them
-  const parts = text.split(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g);
+  const parts = normalized.split(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g);
 
   return parts.map((part, index) => {
     // Odd index parts are delimited LaTeX blocks - preserve them as is
@@ -187,6 +193,9 @@ const formatSuperscriptsAndMath = (text: string): string => {
     }
 
     let processed = part;
+
+    // Auto-wrap raw LaTeX commands missing $ delimiters, e.g.: 2\sqrt{2}, \dfrac{3}{4}, 1 \dfrac{1}{8}, \sqrt{50}
+    processed = processed.replace(/((?:-?\d+(?:\.\d+)?\s*)?\\(?:d?frac|sqrt|times|div|pm|mp|le|ge|neq|approx|alpha|beta|theta|pi)\b(?:\{[^{}]*\}(?:\{[^{}]*\})?|[a-zA-Z0-9]*))/g, (_match, m) => `$${m.trim()}$`);
 
     // Convert HTML <sup> and <sub> tags to unicode or markdown/math if present
     processed = processed.replace(/<sup>(.*?)<\/sup>/gi, (_match, sup) => `^{${sup}}`);

@@ -7,7 +7,8 @@ const { extractTextFromPDF } = require('../services/syllabusParser');
 const { getActiveAI, setActiveAI, getGeminiConfig, updateAIConfig, generateTest, summarizeNews, translateAndSummarizeNews, generateNewsIntelligence } = require('../services/aiManager');
 const { fetchExamSyllabusContext } = require('../services/syllabusHelper');
 const { safeFirestoreQuery, invalidateCache } = require('../services/firestoreCache');
-const { uploadTopicPdf, deleteTopicPdf } = require('../services/supabaseStorage');
+const { setInMemoryNewsCache, getCachedNews, updateNewsCacheInFirestore } = require('../services/newsService');
+const { setInMemoryJobsCache, getCachedJobs, updateJobsCacheInFirestore } = require('../services/jobsService');
 
 function invalidateTestsAndPoolCache() {
   invalidateCache('tests');
@@ -586,6 +587,8 @@ router.get('/materials', verifyStaffOrAdmin('syllabus'), async (req, res) => {
 
 // ── Admin News Refresh Endpoint (Scraper Disabled) ──
 
+// ── Admin News Refresh Endpoint (Scraper Disabled) ──
+
 router.post('/news/refresh', verifyStaffOrAdmin('news'), async (req, res) => {
   try {
     console.log('[Admin News Refresh] Scraper disabled. Refreshing cache from manual news articles...');
@@ -619,11 +622,50 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
     const batch = db.batch();
 
     const cleanedArticles = [];
+    const jobsToRoute = [];
+
     for (let index = 0; index < articles.length; index++) {
       const art = articles[index];
-      const category = art.category || 'general';
+      const category = (art.category || 'general').toLowerCase();
       const cleanTitle = art.title || `News Article ${index + 1}`;
       const docId = crypto.createHash('md5').update(art.url || cleanTitle).digest('hex');
+
+      // If item is a job, route to job_alerts collection
+      if (category === 'jobs' || category === 'job' || category === 'job_alert' || category === 'recruitment') {
+        const cleanJob = {
+          title: cleanTitle,
+          title_hi: art.title_hi || cleanTitle,
+          description: art.description || art.details || '',
+          description_hi: art.description_hi || art.details || '',
+          category: 'jobs',
+          department: art.department || art.dept || art.organization || art.board || '',
+          totalPosts: art.totalPosts || art.posts || art.post || art.vacancies || art.total_posts || '',
+          qualification: art.qualification || art.eligibility || art.education || '',
+          qualification_hi: art.qualification_hi || '',
+          lastDate: art.lastDate || art.last_date || art.deadline || art.pubDate || art.date || '',
+          salary: art.salary || art.payScale || art.pay_scale || art.stipend || '',
+          ageLimit: art.ageLimit || art.age_limit || art.age || '',
+          fee: art.applicationFee || art.fee || art.application_fee || '',
+          selectionProcess: art.selectionProcess || art.selection || art.selection_process || '',
+          details: art.details || art.job_details || art.description || '',
+          syllabus: art.syllabus || art.examPattern || art.exam_pattern || '',
+          examPattern: art.syllabus || art.examPattern || art.exam_pattern || '',
+          postDetails: art.postDetails || art.post_details || '',
+          howToApply: art.howToApply || art.how_to_apply || '',
+          examDate: art.examDate || art.exam_date || art.importantDates || '',
+          source: art.source || 'Official Notification',
+          url: art.url || '',
+          date: art.lastDate || art.pubDate || timestamp.split('T')[0],
+          pubDate: art.lastDate || art.pubDate || timestamp.split('T')[0],
+          state: art.state || 'CG',
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        batch.set(db.collection('job_alerts').doc(docId), cleanJob, { merge: true });
+        jobsToRoute.push(cleanJob);
+        continue;
+      }
+
+      // News intelligence
       const intelDocId = crypto.createHash('md5').update(cleanTitle).digest('hex');
       let intelObj = art.intelligence || art.aiAnalysis || null;
       if (!intelObj && art.quiz && Array.isArray(art.quiz)) {
@@ -636,86 +678,36 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
       }
 
       if (intelObj) {
-        try {
-          const fullIntel = {
-            ...intelObj,
-            title: cleanTitle,
-            createdAt: timestamp
-          };
-          await db.collection('news_intelligence').doc(intelDocId).set(fullIntel, { merge: true });
-          const urlIntelId = crypto.createHash('md5').update(art.url || cleanTitle).digest('hex');
-          await db.collection('news_intelligence').doc(urlIntelId).set(fullIntel, { merge: true });
-        } catch (err) {
-          console.warn('[Admin News Upload] Failed to save pre-provided news_intelligence:', err.message);
-        }
-      } else if (category !== 'jobs' && category !== 'job' && category !== 'job_alert' && category !== 'recruitment') {
-        try {
-          console.log(`[Admin News Upload] Pre-generating AI intelligence & quiz ONCE for: ${cleanTitle}`);
-          const intel = await ai.generateNewsIntelligence(cleanTitle, art.description || art.summary || details || '', category, art.source || 'Manual Upload');
-          intelObj = {
-            ...intel,
-            title: cleanTitle,
-            createdAt: timestamp
-          };
-          await db.collection('news_intelligence').doc(intelDocId).set(intelObj, { merge: true });
-          const urlIntelId = crypto.createHash('md5').update(art.url || cleanTitle).digest('hex');
-          await db.collection('news_intelligence').doc(urlIntelId).set(intelObj, { merge: true });
-        } catch (genErr) {
-          console.warn('[Admin News Upload] Auto AI pre-generation fail (will fallback when requested):', genErr.message);
-        }
+        const fullIntel = {
+          ...intelObj,
+          title: cleanTitle,
+          createdAt: timestamp
+        };
+        batch.set(db.collection('news_intelligence').doc(intelDocId), fullIntel, { merge: true });
       }
 
-      const dept = art.department || art.dept || art.organization || art.board || '';
-      const posts = art.totalPosts || art.posts || art.post || art.vacancies || art.total_posts || '';
-      const qual = art.qualification || art.eligibility || art.qualification_hi || art.education || '';
-      const lDate = art.lastDate || art.last_date || art.deadline || art.pubDate || art.date || '';
-      const sal = art.salary || art.payScale || art.pay_scale || art.stipend || '';
-      const age = art.ageLimit || art.age_limit || art.age || '';
-      const fee = art.applicationFee || art.fee || art.application_fee || '';
-      const mode = art.applyMode || art.mode || art.apply_mode || '';
-      const selection = art.selectionProcess || art.selection || art.selection_process || '';
-      const details = art.details || art.job_details || art.description || art.description_hi || art.summary || art.summary_hi || '';
       const historyEn = art.history || art.historicalContext || art.history_en || '';
       const historyHi = art.history_hi || art.historicalContext_hi || art.history_hi || '';
-      const syllabus = art.syllabus || art.examPattern || art.exam_pattern || '';
-      const postDetails = art.postDetails || art.post_details || '';
-      const howToApply = art.howToApply || art.how_to_apply || '';
-      const examDate = art.examDate || art.exam_date || art.importantDates || '';
 
       const cleanArt = {
         title: cleanTitle,
         title_hi: art.title_hi || cleanTitle,
-        description: art.description || details || '',
-        description_hi: art.description_hi || details || '',
-        summary: art.summary || details || '',
-        summary_hi: art.summary_hi || details || '',
+        description: art.description || art.summary || '',
+        description_hi: art.description_hi || art.summary_hi || '',
+        summary: art.summary || art.description || '',
+        summary_hi: art.summary_hi || art.description_hi || '',
         history: historyEn,
         history_hi: historyHi,
         historicalContext: historyEn,
         historicalContext_hi: historyHi,
         source: art.source || 'Manual Upload',
         category: category,
-        department: dept,
-        totalPosts: posts,
-        qualification: qual,
-        lastDate: lDate,
-        salary: sal,
-        ageLimit: age,
-        fee: fee,
-        mode: mode,
-        selectionProcess: selection,
-        details: details,
-        syllabus: syllabus,
-        examPattern: syllabus,
-        postDetails: postDetails,
-        howToApply: howToApply,
-        examDate: examDate,
         state: art.state || 'CG',
-        pubDate: lDate || timestamp.split('T')[0],
-        date: lDate || timestamp.split('T')[0],
+        pubDate: art.pubDate || art.date || timestamp.split('T')[0],
+        date: art.date || art.pubDate || timestamp.split('T')[0],
         url: art.url || '',
         examRelevance: art.examRelevance || true,
-        icon: art.icon || (category === 'jobs' ? '💼' : category === 'chhattisgarh' ? '🏔️' : '📰'),
+        icon: art.icon || (category === 'chhattisgarh' ? '🏔️' : '📰'),
         lang: art.lang || 'hi',
         intelligence: intelObj || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -726,126 +718,30 @@ router.post('/news/upload', verifyStaffOrAdmin('news'), async (req, res) => {
       cleanedArticles.push(cleanArt);
     }
 
-    await batch.commit();
-    console.log(`[Admin News Upload] Saved ${cleanedArticles.length} articles to firestore collection 'news_articles'`);
-
-    // Regenerate cache compiled compilation
-    const snap = await db.collection('news_articles').orderBy('createdAt', 'desc').limit(150).get();
-    let allStored = snap.docs.map(doc => doc.data());
-
-    // Sort in memory
-    allStored.sort((a, b) => {
-      const dateA = a.pubDate || a.date || '';
-      const dateB = b.pubDate || b.date || '';
-      if (dateA !== dateB) {
-        return dateB.localeCompare(dateA);
-      }
-      const createA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime()) : 0;
-      const createB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime()) : 0;
-      return createB - createA;
-    });
-
-    const cacheArticles = allStored.slice(0, 50).map(art => ({
-      ...art,
-      date: art.date || art.pubDate || timestamp.split('T')[0],
-      pubDate: art.pubDate || art.date || timestamp.split('T')[0]
-    }));
-
-    const cacheData = {
-      lastUpdated: timestamp,
-      articles: cacheArticles
-    };
-
     try {
-      const fs = require('fs');
-      const path = require('path');
-      const LOCAL_CACHE_PATH = path.join(__dirname, '../cache/news-cache.json');
-      const cacheDir = path.dirname(LOCAL_CACHE_PATH);
-      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
-      fs.writeFileSync(LOCAL_CACHE_PATH, JSON.stringify(cacheData, null, 2), 'utf-8');
-      console.log('[Admin News Upload] Saved news cache to disk ✅');
-    } catch (fsErr) {
-      console.error('[Admin News Upload] Disk write error:', fsErr.message);
+      await batch.commit();
+      console.log(`[Admin Upload] Committed batch: ${cleanedArticles.length} news to news_articles, ${jobsToRoute.length} jobs to job_alerts ✅`);
+    } catch (batchErr) {
+      console.warn('[Admin Upload] Batch commit warning (quota?):', batchErr.message);
     }
 
-    try {
-      await db.collection('news').doc('cache').set(cacheData);
-      console.log('[Admin News Upload] Cache successfully updated in news/cache.');
-    } catch (writeErr) {
-      console.warn('[Admin News Upload] Firestore cache write fail:', writeErr.message);
+    if (cleanedArticles.length > 0) {
+      await updateNewsCacheInFirestore();
+    }
+    if (jobsToRoute.length > 0) {
+      await updateJobsCacheInFirestore();
     }
 
-    await logStaffActivity(req, 'upload_news', { totalArticles: cleanedArticles.length });
+    await logStaffActivity(req, 'upload_news', { totalNews: cleanedArticles.length, totalJobs: jobsToRoute.length });
 
-    res.json({ success: true, totalArticles: cleanedArticles.length });
+    res.json({ success: true, totalArticles: cleanedArticles.length + jobsToRoute.length, totalNews: cleanedArticles.length, totalJobs: jobsToRoute.length });
   } catch (err) {
     console.error('[Admin News Upload Error]:', err.message);
     res.status(500).json({ error: err.message || 'Failed to upload news articles.' });
   }
 });
 
-// Helper function to update news & jobs cache in Firestore and local disk
-async function updateNewsCacheInFirestore() {
-  try {
-    const crypto = require('crypto');
-    const fs = require('fs');
-    const path = require('path');
-    const timestamp = new Date().toISOString();
-    
-    let allStored = [];
-    try {
-      const snap = await db.collection('news_articles').orderBy('createdAt', 'desc').limit(150).get();
-      allStored = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (readErr) {
-      console.warn('[Update News Cache Firestore read fail]:', readErr.message);
-    }
-
-    allStored.sort((a, b) => {
-      const dateA = a.pubDate || a.date || '';
-      const dateB = b.pubDate || b.date || '';
-      if (dateA !== dateB) {
-        return dateB.localeCompare(dateA);
-      }
-      const createA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime()) : 0;
-      const createB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime()) : 0;
-      return createB - createA;
-    });
-
-    const cacheArticles = allStored.slice(0, 100).map(art => ({
-      ...art,
-      id: art.id || crypto.createHash('md5').update(art.url || art.title || '').digest('hex'),
-      date: art.date || art.pubDate || timestamp.split('T')[0],
-      pubDate: art.pubDate || art.date || timestamp.split('T')[0]
-    }));
-
-    const cacheData = {
-      lastUpdated: timestamp,
-      articles: cacheArticles
-    };
-
-    try {
-      const LOCAL_CACHE_PATH = path.join(__dirname, '../cache/news-cache.json');
-      const cacheDir = path.dirname(LOCAL_CACHE_PATH);
-      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
-      fs.writeFileSync(LOCAL_CACHE_PATH, JSON.stringify(cacheData, null, 2), 'utf-8');
-      console.log('[Update News Cache] Saved news cache to disk ✅');
-    } catch (fsErr) {
-      console.error('[Update News Cache] Disk write error:', fsErr.message);
-    }
-
-    try {
-      await db.collection('news').doc('cache').set(cacheData);
-    } catch (writeErr) {
-      console.warn('[Update News Cache Firestore write fail]:', writeErr.message);
-    }
-
-    return cacheData;
-  } catch (err) {
-    console.error('[Update News Cache Error]:', err.message);
-  }
-}
-
-// ── Admin News/Jobs Edit Endpoint ──
+// ── Admin News Edit Endpoint ──
 router.post('/news/edit', verifyStaffOrAdmin('news'), async (req, res) => {
   try {
     const { article } = req.body;
@@ -874,7 +770,7 @@ router.post('/news/edit', verifyStaffOrAdmin('news'), async (req, res) => {
   }
 });
 
-// ── Admin News/Jobs Delete Endpoint ──
+// ── Admin News Delete Endpoint ──
 router.post('/news/delete', verifyStaffOrAdmin('news'), async (req, res) => {
   try {
     const { id, url, title } = req.body;
@@ -894,20 +790,6 @@ router.post('/news/delete', verifyStaffOrAdmin('news'), async (req, res) => {
       }
     }
 
-    // Direct delete from cache document as well
-    const cacheRef = db.collection('news').doc('cache');
-    const cacheDoc = await cacheRef.get();
-    if (cacheDoc.exists) {
-      const data = cacheDoc.data();
-      const filtered = (data.articles || []).filter(a => {
-        if (id && a.id === id) return false;
-        if (url && a.url === url) return false;
-        if (title && a.title === title) return false;
-        return true;
-      });
-      await cacheRef.set({ ...data, articles: filtered }, { merge: true });
-    }
-
     await updateNewsCacheInFirestore();
     await logStaffActivity(req, 'delete_news', { id: docId, title });
 
@@ -918,7 +800,7 @@ router.post('/news/delete', verifyStaffOrAdmin('news'), async (req, res) => {
   }
 });
 
-// ── Admin News/Jobs Bulk Delete Endpoint ──
+// ── Admin News Bulk Delete Endpoint ──
 router.post('/news/delete-bulk', verifyStaffOrAdmin('news'), async (req, res) => {
   try {
     const { items } = req.body;
@@ -928,9 +810,6 @@ router.post('/news/delete-bulk', verifyStaffOrAdmin('news'), async (req, res) =>
 
     const crypto = require('crypto');
     const batch = db.batch();
-    const deleteIdsSet = new Set();
-    const deleteTitlesSet = new Set();
-    const deleteUrlsSet = new Set();
 
     for (const item of items) {
       const id = item.id || '';
@@ -940,39 +819,206 @@ router.post('/news/delete-bulk', verifyStaffOrAdmin('news'), async (req, res) =>
       const docId = id || crypto.createHash('md5').update(url || title).digest('hex');
       const hashId = crypto.createHash('md5').update(url || title).digest('hex');
 
-      if (id) deleteIdsSet.add(id);
-      if (title) deleteTitlesSet.add(title);
-      if (url) deleteUrlsSet.add(url);
-
       batch.delete(db.collection('news_articles').doc(docId));
       if (hashId !== docId) {
         batch.delete(db.collection('news_articles').doc(hashId));
       }
     }
 
-    await batch.commit();
-
-    // Clean up from cache doc as well
-    const cacheRef = db.collection('news').doc('cache');
-    const cacheDoc = await cacheRef.get();
-    if (cacheDoc.exists) {
-      const data = cacheDoc.data();
-      const filtered = (data.articles || []).filter(a => {
-        if (a.id && deleteIdsSet.has(a.id)) return false;
-        if (a.title && deleteTitlesSet.has(a.title)) return false;
-        if (a.url && deleteUrlsSet.has(a.url)) return false;
-        return true;
-      });
-      await cacheRef.set({ ...data, articles: filtered }, { merge: true });
-    }
-
+    await batch.commit().catch(() => {});
     await updateNewsCacheInFirestore();
     await logStaffActivity(req, 'delete_news_bulk', { count: items.length });
 
-    res.json({ success: true, count: items.length, message: `Successfully deleted ${items.length} entries` });
+    res.json({ success: true, count: items.length, message: `Successfully deleted ${items.length} news entries` });
   } catch (err) {
     console.error('[Admin News Bulk Delete Error]:', err.message);
-    res.status(500).json({ error: err.message || 'Failed to delete selected entries' });
+    res.status(500).json({ error: err.message || 'Failed to delete selected news entries' });
+  }
+});
+
+// ==========================================
+// ── DEDICATED ADMIN JOBS DATABASE ROUTES ──
+// ==========================================
+
+// ── Admin Jobs Refresh Cache Endpoint ──
+router.post('/jobs/refresh', verifyStaffOrAdmin('news'), async (req, res) => {
+  try {
+    const cacheData = await updateJobsCacheInFirestore();
+    await logStaffActivity(req, 'refresh_jobs_cache', { totalJobs: cacheData?.articles?.length || 0 });
+
+    res.json({
+      success: true,
+      message: 'Job alerts cache refreshed successfully.',
+      lastUpdated: cacheData?.lastUpdated || new Date().toISOString(),
+      totalJobs: cacheData?.articles?.length || 0
+    });
+  } catch (err) {
+    console.error('[Admin Jobs Refresh Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to refresh jobs cache' });
+  }
+});
+
+// ── Admin Jobs Upload/Paste Endpoint ──
+router.post('/jobs/upload', verifyStaffOrAdmin('news'), async (req, res) => {
+  try {
+    const { jobs, articles } = req.body;
+    const items = jobs || articles;
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: 'Jobs array is required' });
+    }
+
+    const crypto = require('crypto');
+    const timestamp = new Date().toISOString();
+    const batch = db.batch();
+    const cleanedJobs = [];
+
+    for (let index = 0; index < items.length; index++) {
+      const job = items[index];
+      const cleanTitle = job.title || `Job Alert ${index + 1}`;
+      const docId = crypto.createHash('md5').update(job.url || cleanTitle).digest('hex');
+
+      const cleanJob = {
+        title: cleanTitle,
+        title_hi: job.title_hi || cleanTitle,
+        category: 'jobs',
+        department: job.department || job.dept || job.organization || job.board || '',
+        totalPosts: job.totalPosts || job.posts || job.post || job.vacancies || job.total_posts || '',
+        qualification: job.qualification || job.eligibility || job.education || '',
+        qualification_hi: job.qualification_hi || '',
+        lastDate: job.lastDate || job.last_date || job.deadline || job.pubDate || job.date || '',
+        salary: job.salary || job.payScale || job.pay_scale || job.stipend || '',
+        ageLimit: job.ageLimit || job.age_limit || job.age || '',
+        fee: job.applicationFee || job.fee || job.application_fee || '',
+        selectionProcess: job.selectionProcess || job.selection || job.selection_process || '',
+        details: job.details || job.job_details || job.description || '',
+        syllabus: job.syllabus || job.examPattern || job.exam_pattern || '',
+        examPattern: job.syllabus || job.examPattern || job.exam_pattern || '',
+        postDetails: job.postDetails || job.post_details || '',
+        howToApply: job.howToApply || job.how_to_apply || '',
+        examDate: job.examDate || job.exam_date || job.importantDates || '',
+        source: job.source || 'Official Notification',
+        url: job.url || '',
+        date: job.lastDate || job.pubDate || timestamp.split('T')[0],
+        pubDate: job.lastDate || job.pubDate || timestamp.split('T')[0],
+        state: job.state || 'CG',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      batch.set(db.collection('job_alerts').doc(docId), cleanJob, { merge: true });
+      cleanedJobs.push(cleanJob);
+    }
+
+    try {
+      await batch.commit();
+      console.log(`[Admin Jobs Upload] Saved ${cleanedJobs.length} jobs to job_alerts collection ✅`);
+    } catch (batchErr) {
+      console.warn('[Admin Jobs Upload] Batch commit warning (quota?):', batchErr.message);
+    }
+
+    await updateJobsCacheInFirestore();
+    await logStaffActivity(req, 'upload_jobs', { totalJobs: cleanedJobs.length });
+
+    res.json({ success: true, totalJobs: cleanedJobs.length });
+  } catch (err) {
+    console.error('[Admin Jobs Upload Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to upload job alerts.' });
+  }
+});
+
+// ── Admin Jobs Edit Endpoint ──
+router.post('/jobs/edit', verifyStaffOrAdmin('news'), async (req, res) => {
+  try {
+    const { article, job } = req.body;
+    const target = article || job;
+    if (!target || (!target.id && !target.url && !target.title)) {
+      return res.status(400).json({ error: 'Job payload with id, url or title is required' });
+    }
+
+    const crypto = require('crypto');
+    const docId = target.id || crypto.createHash('md5').update(target.url || target.title).digest('hex');
+
+    const updatedJob = {
+      ...target,
+      id: docId,
+      category: 'jobs',
+      updatedAt: new Date().toISOString()
+    };
+
+    await db.collection('job_alerts').doc(docId).set(updatedJob, { merge: true });
+    await updateJobsCacheInFirestore();
+
+    await logStaffActivity(req, 'edit_job', { id: docId, title: target.title });
+
+    res.json({ success: true, message: 'Job alert updated successfully' });
+  } catch (err) {
+    console.error('[Admin Jobs Edit Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to edit job alert' });
+  }
+});
+
+// ── Admin Jobs Delete Endpoint ──
+router.post('/jobs/delete', verifyStaffOrAdmin('news'), async (req, res) => {
+  try {
+    const { id, url, title } = req.body;
+    if (!id && !url && !title) {
+      return res.status(400).json({ error: 'id, url or title is required for deletion' });
+    }
+
+    const crypto = require('crypto');
+    const docId = id || crypto.createHash('md5').update(url || title).digest('hex');
+
+    await db.collection('job_alerts').doc(docId).delete().catch(() => {});
+
+    if (title || url) {
+      const hashId = crypto.createHash('md5').update(url || title).digest('hex');
+      if (hashId !== docId) {
+        await db.collection('job_alerts').doc(hashId).delete().catch(() => {});
+      }
+    }
+
+    await updateJobsCacheInFirestore();
+    await logStaffActivity(req, 'delete_job', { id: docId, title });
+
+    res.json({ success: true, message: 'Job alert deleted successfully' });
+  } catch (err) {
+    console.error('[Admin Jobs Delete Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to delete job alert' });
+  }
+});
+
+// ── Admin Jobs Bulk Delete Endpoint ──
+router.post('/jobs/delete-bulk', verifyStaffOrAdmin('news'), async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Array of items to delete is required' });
+    }
+
+    const crypto = require('crypto');
+    const batch = db.batch();
+
+    for (const item of items) {
+      const id = item.id || '';
+      const url = item.url || '';
+      const title = item.title || '';
+
+      const docId = id || crypto.createHash('md5').update(url || title).digest('hex');
+      const hashId = crypto.createHash('md5').update(url || title).digest('hex');
+
+      batch.delete(db.collection('job_alerts').doc(docId));
+      if (hashId !== docId) {
+        batch.delete(db.collection('job_alerts').doc(hashId));
+      }
+    }
+
+    await batch.commit().catch(() => {});
+    await updateJobsCacheInFirestore();
+    await logStaffActivity(req, 'delete_jobs_bulk', { count: items.length });
+
+    res.json({ success: true, count: items.length, message: `Successfully deleted ${items.length} job alerts` });
+  } catch (err) {
+    console.error('[Admin Jobs Bulk Delete Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to delete selected job alerts' });
   }
 });
 

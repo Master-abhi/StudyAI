@@ -1,37 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../firebase-admin');
-const { scrapeAllJobs } = require('../services/jobScraper');
-const { verifyAdmin } = require('../middleware/verifyFirebaseToken');
+const { getCachedJobs, setInMemoryJobsCache, updateJobsCacheInFirestore, getFallbackJobs } = require('../services/jobsService');
+const { verifyStaffOrAdmin } = require('../middleware/verifyFirebaseToken');
 
-/**
- * Middleware: Verify request secret or check if user is an admin.
- */
-async function verifyAdminOrRefreshSecret(req, res, next) {
-  const configuredSecret = process.env.NEWS_REFRESH_SECRET;
-  const providedSecret = req.get('x-refresh-secret');
-
-  if (providedSecret && configuredSecret && providedSecret === configuredSecret) {
-    return next();
-  }
-  
-  if (!configuredSecret && process.env.NODE_ENV !== 'production' && providedSecret) {
-    return next();
-  }
-
-  // Fallback to checking Firebase Admin ID Token
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return verifyAdmin(req, res, next);
-  }
-
-  return res.status(401).json({ error: 'Unauthorized: Access denied' });
-}
-
-// Helper to assign job priority scores
+// Helper to assign job priority scores for ordering
 function getJobPriority(job) {
-  const cat = job.category;
-  const isCG = (cat === 'cgpsc' || cat === 'cgvyapam' || job.state === 'CG');
+  const cat = (job.category || '').toLowerCase();
+  const isCG = (cat === 'cgpsc' || cat === 'cgvyapam' || cat === 'chhattisgarh' || job.state === 'CG');
   
   if (isCG) return 5;
   if (cat === 'railway') return 4;
@@ -41,116 +17,103 @@ function getJobPriority(job) {
   return 0;
 }
 
-// GET /api/jobs - fetch jobs with category and state filters, pagination, and sorting
+function isStructuredJob(job) {
+  if (!job) return false;
+  const title = (job.title || '').toLowerCase() + ' ' + (job.title_hi || '').toLowerCase();
+  if (title.includes('एसबीआई क्लर्क') || title.includes('बिहान') || title.includes('sbi clerk') || title.includes('bihan')) {
+    return false;
+  }
+  return Boolean(
+    job.department || job.dept || job.organization || job.board || 
+    job.totalPosts || job.posts || job.vacancies || job.post || job.total_posts || 
+    job.qualification || job.eligibility || job.education || job.qualification_hi || 
+    job.lastDate || job.last_date || job.deadline || 
+    job.salary || job.payScale || job.pay_scale || job.stipend || 
+    job.details || job.job_details
+  );
+}
+
+// GET /api/jobs - fetch jobs from dedicated jobs database/cache
 router.get('/', async (req, res) => {
   try {
-    const { category, state, limit = 20, lastDocId } = req.query;
+    const { category, state, limit = 50, admin: isAdminView } = req.query;
 
-    // Fetch the most recent jobs
-    const snap = await db.collection('jobs').orderBy('scrapedAt', 'desc').limit(300).get();
-    let jobs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const cachedData = await getCachedJobs();
+    let jobs = Array.isArray(cachedData?.articles) ? cachedData.articles : [];
 
-    // Apply filtering in memory
-    if (category && category !== 'all') {
-      jobs = jobs.filter(j => j.category === category);
+    // Filter by category
+    if (category && category !== 'all' && category !== 'jobs') {
+      jobs = jobs.filter(j => (j.category || '').toLowerCase() === category.toLowerCase());
     }
+
+    // Filter by state
     if (state && state !== 'all') {
-      jobs = jobs.filter(j => j.state === state);
+      jobs = jobs.filter(j => (j.state || 'CG').toLowerCase() === state.toLowerCase());
     }
 
-    // Sort jobs based on custom priority:
-    // 1. CG Jobs
-    // 2. Railway
-    // 3. Banking
-    // 4. SSC
-    // 5. UPSC
-    // Within each priority tier, sort by scrapedAt desc.
+    // Sort jobs based on custom priority and last date
     jobs.sort((a, b) => {
       const prioA = getJobPriority(a);
       const prioB = getJobPriority(b);
-      if (prioA !== prioB) {
-        return prioB - prioA;
-      }
-      return new Date(b.scrapedAt || 0) - new Date(a.scrapedAt || 0);
+      if (prioA !== prioB) return prioB - prioA;
+
+      const dateA = a.lastDate || a.pubDate || a.date || '';
+      const dateB = b.lastDate || b.pubDate || b.date || '';
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+
+      return (b.title || '').localeCompare(a.title || '');
     });
 
-    // Pagination in memory
-    let startIndex = 0;
-    if (lastDocId) {
-      const idx = jobs.findIndex(j => j.id === lastDocId);
-      if (idx !== -1) {
-        startIndex = idx + 1;
-      }
+    const limitNum = parseInt(limit, 10) || 50;
+    const paginatedJobs = jobs.slice(0, limitNum);
+
+    // Set Edge CDN and Browser caching headers to shield Firestore
+    if (isAdminView !== 'true') {
+      res.set('Cache-Control', 'public, max-age=300, s-maxage=600, stale-while-revalidate=1200');
+    } else {
+      res.set('Cache-Control', 'no-cache');
     }
 
-    const limitNum = parseInt(limit, 10) || 20;
-    const paginatedJobs = jobs.slice(startIndex, startIndex + limitNum);
-
     res.json({
+      lastUpdated: cachedData?.lastUpdated || new Date().toISOString(),
       totalJobs: jobs.length,
       jobs: paginatedJobs,
-      lastDocId: paginatedJobs.length > 0 ? paginatedJobs[paginatedJobs.length - 1].id : null
+      articles: paginatedJobs // backwards compatibility with components reading data.articles
     });
   } catch (err) {
     console.error('[Jobs Route Error]:', err.message);
-    
-    // Fallback if orderBy fails due to Firestore indexes
-    try {
-      const snap = await db.collection('jobs').limit(300).get();
-      let jobs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      if (category && category !== 'all') {
-        jobs = jobs.filter(j => j.category === category);
-      }
-      if (state && state !== 'all') {
-        jobs = jobs.filter(j => j.state === state);
-      }
-
-      // Sort jobs based on custom priority
-      jobs.sort((a, b) => {
-        const prioA = getJobPriority(a);
-        const prioB = getJobPriority(b);
-        if (prioA !== prioB) {
-          return prioB - prioA;
-        }
-        return new Date(b.scrapedAt || 0) - new Date(a.scrapedAt || 0);
-      });
-
-      let startIndex = 0;
-      if (lastDocId) {
-        const idx = jobs.findIndex(j => j.id === lastDocId);
-        if (idx !== -1) {
-          startIndex = idx + 1;
-        }
-      }
-
-      const limitNum = parseInt(limit, 10) || 20;
-      const paginatedJobs = jobs.slice(startIndex, startIndex + limitNum);
-
-      res.json({
-        totalJobs: jobs.length,
-        jobs: paginatedJobs,
-        lastDocId: paginatedJobs.length > 0 ? paginatedJobs[paginatedJobs.length - 1].id : null
-      });
-    } catch (fallbackErr) {
-      console.error('[Jobs Fallback Error]:', fallbackErr.message);
-      res.status(500).json({ error: 'Failed to fetch jobs.' });
-    }
+    const fallback = getFallbackJobs();
+    res.json({
+      lastUpdated: null,
+      totalJobs: fallback.length,
+      jobs: fallback,
+      articles: fallback
+    });
   }
 });
 
-// POST /api/jobs/refresh - trigger jobs scraping
-router.post('/refresh', verifyAdminOrRefreshSecret, async (req, res) => {
+// GET /api/jobs/:id - fetch single job details
+router.get('/:id', async (req, res) => {
   try {
-    const jobs = await scrapeAllJobs();
-    res.json({
-      success: true,
-      message: 'Jobs refreshed successfully',
-      totalScraped: jobs.length
-    });
+    const { id } = req.params;
+    const cachedData = await getCachedJobs();
+    const jobs = Array.isArray(cachedData?.articles) ? cachedData.articles : [];
+    const job = jobs.find(j => j.id === id || j.url === id || j.title === id);
+
+    if (job) {
+      return res.json(job);
+    }
+
+    // Fallback: check Firestore directly
+    const doc = await db.collection('job_alerts').doc(id).get();
+    if (doc.exists) {
+      return res.json({ id: doc.id, ...doc.data() });
+    }
+
+    res.status(404).json({ error: 'Job opening not found' });
   } catch (err) {
-    console.error('[Jobs Refresh Route Error]:', err.message);
-    res.status(500).json({ error: 'Failed to refresh jobs.' });
+    console.error('[Get Job Details Error]:', err.message);
+    res.status(500).json({ error: 'Failed to fetch job details' });
   }
 });
 

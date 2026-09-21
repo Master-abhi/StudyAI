@@ -175,7 +175,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
           mcqScore
         })
       });
-      fetchAnalyticsSilent();
+      // Analytics will refresh automatically when user navigates to Analytics tab
     } catch (e) {
       console.warn('Failed to log interaction', e);
     }
@@ -285,22 +285,6 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     }
   };
 
-  const fetchAnalyticsSilent = async () => {
-    if (!currentUser) return;
-    try {
-      const token = await currentUser.getIdToken();
-      const res = await fetch(getApiUrl('/api/news/analytics'), {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAnalyticsData(data);
-      }
-    } catch (e) {
-      console.warn('[News Analytics Silent Error]:', e);
-    }
-  };
-
   // Load Initial Data
   useEffect(() => {
     // Instant local load from localStorage to minimize app loading time
@@ -365,23 +349,13 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     setCurrentQuizIdx(0);
     setOpenTime(Date.now());
 
-    // Track article read for daily tasks
+    // Track article read for daily tasks locally (synced during regular user sync)
     try {
       const todayKey = new Date().toISOString().split('T')[0];
       const readStored = JSON.parse(localStorage.getItem(`cg_read_articles_${todayKey}`) || '[]');
       if (!readStored.includes(article.title)) {
         const updated = [...readStored, article.title];
         localStorage.setItem(`cg_read_articles_${todayKey}`, JSON.stringify(updated));
-        if (currentUser) {
-          const firebase = (window as any).firebase;
-          if (firebase && firebase.apps && firebase.apps.length > 0) {
-            firebase.firestore().collection('users').doc(currentUser.uid).set({
-              readArticlesToday: updated,
-              readArticlesDate: todayKey,
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true }).catch((err: any) => console.warn('News sync error:', err));
-          }
-        }
       }
     } catch (e) {
       console.warn(e);

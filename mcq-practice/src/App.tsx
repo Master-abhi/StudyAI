@@ -673,10 +673,8 @@ export default function App() {
     }
   };
 
-  // Real-time Notifications Listener & Automatic Unread Count Calculation
+  // Notifications Listener & Automatic Unread Count Calculation
   useEffect(() => {
-    let unsubscribeSnap: (() => void) | null = null;
-
     const checkAndSubscribe = async () => {
       // 1. Ensure Notification Channel, Request Permission & Register SW
       ensureNotificationChannel();
@@ -749,49 +747,16 @@ export default function App() {
         } catch (e) {}
       };
 
-      const setupFirestoreListener = () => {
-        const firebase = (window as any).firebase;
-        if (firebase && firebase.apps && firebase.apps.length > 0) {
-          try {
-            unsubscribeSnap = firebase.firestore().collection('notifications')
-              .orderBy('createdAt', 'desc')
-              .limit(50)
-              .onSnapshot((snap: any) => {
-                const docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-                processNotifications(docs);
-              }, (err: any) => {
-                console.warn('[Firestore Notifications Listener Error]:', err);
-                fetchNotificationsApi();
-              });
-            return true;
-          } catch (e) {
-            return false;
-          }
-        }
-        return false;
-      };
-
-      // 1. Initial API fetch
+      // 1. Initial API fetch from cached server endpoint
       await fetchNotificationsApi();
 
-      // 2. Setup real-time Firestore listener
-      const attached = setupFirestoreListener();
-      if (!attached) {
-        setTimeout(() => {
-          if (!unsubscribeSnap) {
-            setupFirestoreListener();
-          }
-        }, 1500);
-      }
-
-      // 3. Periodic Background Polling interval (every 25s) so bell stays active automatically without refresh
+      // 2. Periodic background check (every 5 mins) to keep notifications updated without burning Firestore quota
       const pollInterval = setInterval(() => {
         fetchNotificationsApi();
-      }, 25000);
+      }, 5 * 60 * 1000);
 
       return () => {
         clearInterval(pollInterval);
-        if (unsubscribeSnap) unsubscribeSnap();
       };
     };
 
@@ -799,7 +764,6 @@ export default function App() {
 
     return () => {
       cleanupPromise.then(cleanup => cleanup && cleanup());
-      if (unsubscribeSnap) unsubscribeSnap();
     };
   }, []);
 

@@ -1,0 +1,4817 @@
+[
+  {
+    "id": "test_1780416563333",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    "examNames": [
+      "CGVYAPAM — Patwari & Revenue Inspector Exam"
+    ],
+    "subject": "सामान्य ज्ञान (India GK)",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-06-02T16:09:23.333Z"
+  },
+  {
+    "id": "test_1780416962669",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    "examNames": [
+      "CGVYAPAM — Patwari & Revenue Inspector Exam"
+    ],
+    "subject": "सामान्य ज्ञान (India GK)",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-06-02T16:16:02.669Z"
+  },
+  {
+    "id": "test_1780416972481",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    "examNames": [
+      "CGVYAPAM — Patwari & Revenue Inspector Exam"
+    ],
+    "subject": "Computer",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-06-02T16:16:12.481Z"
+  },
+  {
+    "id": "test_1780416986120",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    "examNames": [
+      "CGVYAPAM — Patwari & Revenue Inspector Exam"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-06-02T16:16:26.120Z"
+  },
+  {
+    "id": "test_1780418687630",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "CGVYAPAM — Patwari & Revenue Inspector Exam",
+    "examNames": [
+      "CGVYAPAM — Patwari & Revenue Inspector Exam"
+    ],
+    "subject": "all",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-06-02T16:44:47.630Z"
+  },
+  {
+    "id": "test_1780541718459",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "Patwari / RI",
+    "examNames": [
+      "Patwari / RI"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T02:55:18.459Z"
+  },
+  {
+    "id": "test_1780589016543",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:03:36.543Z"
+  },
+  {
+    "id": "test_1780589219199",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:06:59.199Z"
+  },
+  {
+    "id": "test_1780589291768",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:08:11.768Z"
+  },
+  {
+    "id": "test_1780589369618",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:09:29.618Z"
+  },
+  {
+    "id": "test_1780589446373",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:10:46.373Z"
+  },
+  {
+    "id": "test_1780589516257",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGTET"
+    ],
+    "subject": "Mixed CDP",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:11:56.258Z"
+  },
+  {
+    "id": "test_1780589764754",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CG TET"
+    ],
+    "subject": "Mixed CDP",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:16:04.754Z"
+  },
+  {
+    "id": "test_1780589884027",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CG TET",
+    "examNames": [
+      "CG TET"
+    ],
+    "subject": "Mixed (CDP + Hindi + English + Math + EVS)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:18:04.027Z"
+  },
+  {
+    "id": "test_1780590297945",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CG TET"
+    ],
+    "subject": "Mixed (CDP + Hindi + English + Math + EVS)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:24:57.945Z"
+  },
+  {
+    "id": "test_1780590377993",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CG TET"
+    ],
+    "subject": "Mixed (CDP + Hindi + English + Math + EVS)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:26:17.993Z"
+  },
+  {
+    "id": "test_1780590581529",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Mixed (CDP + Hindi + English + Math + EVS)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T16:29:41.529Z"
+  },
+  {
+    "id": "test_1780592691708",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CGTET",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Child Development & Pedagogy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-04T17:04:51.708Z"
+  },
+  {
+    "id": "test_1780971943833",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgpsc_sse",
+      "cg_constable",
+      "cg_police_si",
+      "excise_constable",
+      "mandi_nirikshak",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "transport_constable"
+    ],
+    "examName": "CG Vyapam Mixed Subjects",
+    "examNames": [
+      "CGPSC SSE",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI"
+    ],
+    "subject": "All Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-09T02:25:43.833Z"
+  },
+  {
+    "id": "test_1780973161346",
+    "title": "Mixed Subjects - Test 1",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari",
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "Patwari / RI"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect",
+      "parts": [
+        {
+          "part": "Part-I",
+          "subjects": [
+            "Hindi",
+            "English",
+            "Mathematics"
+          ]
+        },
+        {
+          "part": "Part-II",
+          "subjects": [
+            "General Mental Ability",
+            "General Knowledge",
+            "CG GK"
+          ]
+        },
+        {
+          "part": "Part-III",
+          "subjects": [
+            "Computer"
+          ]
+        }
+      ]
+    },
+    "createdAt": "2026-06-09T02:46:01.346Z"
+  },
+  {
+    "id": "test_1780974986129",
+    "title": "Mixed Subjects - Test 2",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari",
+      "mandi_nirikshak",
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "Mandi Nirikshak",
+      "Patwari / RI"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect",
+      "parts": [
+        {
+          "part": "Part-I",
+          "subjects": [
+            "Hindi",
+            "English",
+            "Mathematics"
+          ]
+        },
+        {
+          "part": "Part-II",
+          "subjects": [
+            "General Mental Ability",
+            "General Knowledge",
+            "CG GK"
+          ]
+        },
+        {
+          "part": "Part-III",
+          "subjects": [
+            "Computer"
+          ]
+        }
+      ]
+    },
+    "createdAt": "2026-06-09T03:16:26.129Z"
+  },
+  {
+    "id": "test_1781006112379",
+    "title": "",
+    "examId": "cg_tet",
+    "examIds": [
+      "cg_tet"
+    ],
+    "examName": "CGTET Paper-I",
+    "examNames": [
+      "CG TET"
+    ],
+    "subject": "Child Development and Pedagogy (CDP)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 15,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-06-09T11:55:12.379Z"
+  },
+  {
+    "id": "test_1789287442452",
+    "title": "प्रागैतिहासिक छत्तीसगढ़ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-13T08:17:22.452Z"
+  },
+  {
+    "id": "test_1789307011827",
+    "title": "प्रागैतिहासिक छत्तीसगढ़ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-13T13:43:31.827Z"
+  },
+  {
+    "id": "test_1789307171692",
+    "title": "प्रागैतिहासिक छत्तीसगढ़ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-13T13:46:11.692Z"
+  },
+  {
+    "id": "test_1789363632893",
+    "title": "प्राचीन छत्तीसगढ़ का इतिहास - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T05:27:12.893Z"
+  },
+  {
+    "id": "test_1789363853667",
+    "title": "प्राचीन छत्तीसगढ़ का इतिहास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T05:30:53.667Z"
+  },
+  {
+    "id": "test_1789363937968",
+    "title": "प्राचीन छत्तीसगढ़ का इतिहास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T05:32:17.968Z"
+  },
+  {
+    "id": "test_1789364860929",
+    "title": "नंद एवं मौर्य काल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T05:47:40.929Z"
+  },
+  {
+    "id": "test_1789365073449",
+    "title": "नंद एवं मौर्य काल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T05:51:13.449Z"
+  },
+  {
+    "id": "test_1789365344169",
+    "title": "सातवाहन काल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T05:55:44.169Z"
+  },
+  {
+    "id": "test_1789365507522",
+    "title": "सातवाहन काल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T05:58:27.522Z"
+  },
+  {
+    "id": "test_1789365601680",
+    "title": "सातवाहन काल - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T06:00:01.680Z"
+  },
+  {
+    "id": "test_1789365865770",
+    "title": "पाण्डु वंश - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T06:04:25.770Z"
+  },
+  {
+    "id": "test_1789366254794",
+    "title": "पाण्डु वंश - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T06:10:54.794Z"
+  },
+  {
+    "id": "test_1789366355597",
+    "title": "पाण्डु वंश - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T06:12:35.597Z"
+  },
+  {
+    "id": "test_1789366898202",
+    "title": "सोम वंश - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T06:21:38.202Z"
+  },
+  {
+    "id": "test_1789367139373",
+    "title": "सोम वंश - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T06:25:39.373Z"
+  },
+  {
+    "id": "test_1789367359858",
+    "title": "सोम वंश - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T06:29:19.858Z"
+  },
+  {
+    "id": "test_1789384417841",
+    "title": "कलचुरि वंश - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:13:37.841Z"
+  },
+  {
+    "id": "test_1789384505625",
+    "title": "कलचुरि वंश - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:15:05.625Z"
+  },
+  {
+    "id": "test_1789384586408",
+    "title": "कलचुरि वंश - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:16:26.408Z"
+  },
+  {
+    "id": "test_1789384746335",
+    "title": "मध्यकालीन छत्तीसगढ़ का इतिहास - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:19:06.335Z"
+  },
+  {
+    "id": "test_1789384808927",
+    "title": "मध्यकालीन छत्तीसगढ़ का इतिहास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:20:08.927Z"
+  },
+  {
+    "id": "test_1789384879668",
+    "title": "मध्यकालीन छत्तीसगढ़ का इतिहास - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:21:19.668Z"
+  },
+  {
+    "id": "test_1789385008603",
+    "title": "मराठा शासन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:23:28.603Z"
+  },
+  {
+    "id": "test_1789385070898",
+    "title": "मराठा शासन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:24:30.898Z"
+  },
+  {
+    "id": "test_1789385155186",
+    "title": "मराठा शासन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:25:55.186Z"
+  },
+  {
+    "id": "test_1789385254153",
+    "title": "छत्तीसगढ़ में  ब्रिटिश शासन काल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:27:34.153Z"
+  },
+  {
+    "id": "test_1789385315622",
+    "title": "छत्तीसगढ़ में  ब्रिटिश शासन काल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:28:35.622Z"
+  },
+  {
+    "id": "test_1789385374688",
+    "title": "छत्तीसगढ़ में  ब्रिटिश शासन काल - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:29:34.688Z"
+  },
+  {
+    "id": "test_1789385720992",
+    "title": "छत्तीसगढ़ में 1857 का विद्रोह - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:35:20.992Z"
+  },
+  {
+    "id": "test_1789385794969",
+    "title": "छत्तीसगढ़ में 1857 का विद्रोह - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:36:34.969Z"
+  },
+  {
+    "id": "test_1789385954224",
+    "title": "छत्तीसगढ़ में 1857 का विद्रोह - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:39:14.224Z"
+  },
+  {
+    "id": "test_1789386090876",
+    "title": "स्वतंत्रता आंदोलन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:41:30.876Z"
+  },
+  {
+    "id": "test_1789386150586",
+    "title": "स्वतंत्रता आंदोलन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:42:30.586Z"
+  },
+  {
+    "id": "test_1789386220955",
+    "title": "स्वतंत्रता आंदोलन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh History",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:43:40.955Z"
+  },
+  {
+    "id": "test_1789386353861",
+    "title": "छत्तीसगढ़ राज्य का गठन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:45:53.861Z"
+  },
+  {
+    "id": "test_1789386482279",
+    "title": "छत्तीसगढ़ राज्य का गठन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:48:02.279Z"
+  },
+  {
+    "id": "test_1789386552793",
+    "title": "छत्तीसगढ़ राज्य का गठन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:49:12.793Z"
+  },
+  {
+    "id": "test_1789386836891",
+    "title": "छत्तीसगढ़ की स्थिति एवं सीमाएं - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:53:56.891Z"
+  },
+  {
+    "id": "test_1789386990406",
+    "title": "छत्तीसगढ़ की स्थिति एवं सीमाएं - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:56:30.406Z"
+  },
+  {
+    "id": "test_1789387059156",
+    "title": "छत्तीसगढ़ की स्थिति एवं सीमाएं - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:57:39.156Z"
+  },
+  {
+    "id": "test_1789387177585",
+    "title": "छत्तीसगढ़ का भौतिक विभाजन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T11:59:37.585Z"
+  },
+  {
+    "id": "test_1789387552045",
+    "title": "छत्तीसगढ़ का भौतिक विभाजन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:05:52.045Z"
+  },
+  {
+    "id": "test_1789387627673",
+    "title": "छत्तीसगढ़ का भौतिक विभाजन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:07:07.673Z"
+  },
+  {
+    "id": "test_1789387824971",
+    "title": "छत्तीसगढ़ की प्रमुख नदियाँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:10:24.971Z"
+  },
+  {
+    "id": "test_1789387900133",
+    "title": "छत्तीसगढ़ की प्रमुख नदियाँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:11:40.133Z"
+  },
+  {
+    "id": "test_1789387983386",
+    "title": "छत्तीसगढ़ की प्रमुख नदियाँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:13:03.386Z"
+  },
+  {
+    "id": "test_1789388202595",
+    "title": "छत्तीसगढ़ की नदी घाटी परियोजनाएँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:16:42.595Z"
+  },
+  {
+    "id": "test_1789388280718",
+    "title": "छत्तीसगढ़ की नदी घाटी परियोजनाएँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:18:00.718Z"
+  },
+  {
+    "id": "test_1789388514097",
+    "title": "छत्तीसगढ़ की नदी घाटी परियोजनाएँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:21:54.097Z"
+  },
+  {
+    "id": "test_1789388633205",
+    "title": "छत्तीसगढ़ की जलवायु एवं मौसम - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:23:53.205Z"
+  },
+  {
+    "id": "test_1789388750162",
+    "title": "छत्तीसगढ़ की जलवायु एवं मौसम - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:25:50.162Z"
+  },
+  {
+    "id": "test_1789388907833",
+    "title": "छत्तीसगढ़ की जलवायु एवं मौसम - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-14T12:28:27.833Z"
+  },
+  {
+    "id": "test_1789713071236",
+    "title": "मिट्टी के प्रकार एवं वर्गीकरण - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T06:31:11.236Z"
+  },
+  {
+    "id": "test_1789713203443",
+    "title": "मिट्टी के प्रकार एवं वर्गीकरण - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T06:33:23.443Z"
+  },
+  {
+    "id": "test_1789715380344",
+    "title": "मिट्टी के प्रकार एवं वर्गीकरण - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T07:09:40.344Z"
+  },
+  {
+    "id": "test_1789716563009",
+    "title": "वन संसाधन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T07:29:23.009Z"
+  },
+  {
+    "id": "test_1789718242441",
+    "title": "वन संसाधन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T07:57:22.441Z"
+  },
+  {
+    "id": "test_1789718354032",
+    "title": "वन संसाधन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T07:59:14.032Z"
+  },
+  {
+    "id": "test_1789722937112",
+    "title": "राष्ट्रीय उद्यान - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T09:15:37.112Z"
+  },
+  {
+    "id": "test_1789723004853",
+    "title": "राष्ट्रीय उद्यान - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T09:16:44.853Z"
+  },
+  {
+    "id": "test_1789723080328",
+    "title": "राष्ट्रीय उद्यान - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T09:18:00.328Z"
+  },
+  {
+    "id": "test_1789726054819",
+    "title": "वन्यजीव अभयारण्य - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:07:34.819Z"
+  },
+  {
+    "id": "test_1789726128968",
+    "title": "वन्यजीव अभयारण्य - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:08:48.968Z"
+  },
+  {
+    "id": "test_1789726196099",
+    "title": "वन्यजीव अभयारण्य - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:09:56.099Z"
+  },
+  {
+    "id": "test_1789726328021",
+    "title": "खनिज संसाधन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:12:08.021Z"
+  },
+  {
+    "id": "test_1789726410329",
+    "title": "खनिज संसाधन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:13:30.329Z"
+  },
+  {
+    "id": "test_1789726481549",
+    "title": "खनिज संसाधन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:14:41.549Z"
+  },
+  {
+    "id": "test_1789726698684",
+    "title": "प्रमुख जनजातियाँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:18:18.684Z"
+  },
+  {
+    "id": "test_1789726816244",
+    "title": "प्रमुख जनजातियाँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:20:16.244Z"
+  },
+  {
+    "id": "test_1789726894751",
+    "title": "प्रमुख जनजातियाँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:21:34.751Z"
+  },
+  {
+    "id": "test_1789727031011",
+    "title": "विशेष पिछड़ी जनजातियाँ (PVTGs) - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:23:51.011Z"
+  },
+  {
+    "id": "test_1789727115976",
+    "title": "विशेष पिछड़ी जनजातियाँ (PVTGs) - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:25:15.976Z"
+  },
+  {
+    "id": "test_1789727202561",
+    "title": "विशेष पिछड़ी जनजातियाँ (PVTGs) - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:26:42.561Z"
+  },
+  {
+    "id": "test_1789727329816",
+    "title": "प्रमुख लोकनृत्य - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:28:49.816Z"
+  },
+  {
+    "id": "test_1789727460062",
+    "title": "प्रमुख लोकनृत्य - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:31:00.062Z"
+  },
+  {
+    "id": "test_1789727538158",
+    "title": "प्रमुख लोकनृत्य - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:32:18.158Z"
+  },
+  {
+    "id": "test_1789727743287",
+    "title": "छत्तीसगढ़ के लोकगीत - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:35:43.287Z"
+  },
+  {
+    "id": "test_1789727782117",
+    "title": "छत्तीसगढ़ के लोकगीत - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:36:22.117Z"
+  },
+  {
+    "id": "test_1789727848163",
+    "title": "छत्तीसगढ़ के लोकगीत - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:37:28.163Z"
+  },
+  {
+    "id": "test_1789727976396",
+    "title": "छत्तीसगढ़ के प्रमुख त्यौहार - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:39:36.396Z"
+  },
+  {
+    "id": "test_1789728009978",
+    "title": "छत्तीसगढ़ के प्रमुख त्यौहार - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:40:09.978Z"
+  },
+  {
+    "id": "test_1789728038921",
+    "title": "छत्तीसगढ़ के प्रमुख त्यौहार - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:40:38.921Z"
+  },
+  {
+    "id": "test_1789728237970",
+    "title": "छत्तीसगढ़ के प्रमुख मेले - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:43:57.970Z"
+  },
+  {
+    "id": "test_1789728267596",
+    "title": "छत्तीसगढ़ के प्रमुख मेले - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:44:27.596Z"
+  },
+  {
+    "id": "test_1789728298373",
+    "title": "छत्तीसगढ़ के प्रमुख मेले - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:44:58.373Z"
+  },
+  {
+    "id": "test_1789728431820",
+    "title": "छत्तीसगढ़ की हस्तशिल्प कला - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:47:11.820Z"
+  },
+  {
+    "id": "test_1789728452631",
+    "title": "छत्तीसगढ़ की हस्तशिल्प कला - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:47:32.631Z"
+  },
+  {
+    "id": "test_1789728620426",
+    "title": "छत्तीसगढ़ के प्रमुख मंदिर - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:50:20.426Z"
+  },
+  {
+    "id": "test_1789728652589",
+    "title": "छत्तीसगढ़ के प्रमुख मंदिर - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:50:52.589Z"
+  },
+  {
+    "id": "test_1789728703123",
+    "title": "छत्तीसगढ़ के प्रमुख मंदिर - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Culture",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:51:43.123Z"
+  },
+  {
+    "id": "test_1789728837781",
+    "title": "छत्तीसगढ़ की कृषि - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Economy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:53:57.781Z"
+  },
+  {
+    "id": "test_1789728910282",
+    "title": "छत्तीसगढ़ की कृषि - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Economy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:55:10.282Z"
+  },
+  {
+    "id": "test_1789728942957",
+    "title": "छत्तीसगढ़ की कृषि - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Economy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:55:42.957Z"
+  },
+  {
+    "id": "test_1789729130095",
+    "title": "छत्तीसगढ़ का उद्योग - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Economy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:58:50.095Z"
+  },
+  {
+    "id": "test_1789729156550",
+    "title": "छत्तीसगढ़ का उद्योग - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Economy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T10:59:16.550Z"
+  },
+  {
+    "id": "test_1789729243927",
+    "title": "छत्तीसगढ़ का उद्योग - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Economy",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T11:00:43.927Z"
+  },
+  {
+    "id": "test_1789729449561",
+    "title": "छत्तीसगढ़ का ऊर्जा संसाधन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T11:04:09.561Z"
+  },
+  {
+    "id": "test_1789729494590",
+    "title": "छत्तीसगढ़ का ऊर्जा संसाधन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T11:04:54.590Z"
+  },
+  {
+    "id": "test_1789729567780",
+    "title": "छत्तीसगढ़ का ऊर्जा संसाधन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T11:06:07.780Z"
+  },
+  {
+    "id": "test_1789729882311",
+    "title": "जिले एवं संभाग - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T11:11:22.311Z"
+  },
+  {
+    "id": "test_1789729942703",
+    "title": "जिले एवं संभाग - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T11:12:22.703Z"
+  },
+  {
+    "id": "test_1789730041726",
+    "title": "जिले एवं संभाग - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Geography",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T11:14:01.726Z"
+  },
+  {
+    "id": "test_1789730244012",
+    "title": "छत्तीसगढ़ पंचायती राज व्यवस्था - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T11:17:24.012Z"
+  },
+  {
+    "id": "test_1789730297287",
+    "title": "छत्तीसगढ़ पंचायती राज व्यवस्था - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T11:18:17.287Z"
+  },
+  {
+    "id": "test_1789730325269",
+    "title": "छत्तीसगढ़ पंचायती राज व्यवस्था - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh Polity",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T11:18:45.269Z"
+  },
+  {
+    "id": "test_1789755699308",
+    "title": "छत्तीसगढ़ शासन की प्रमुख योजनाएं - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Government Schemes",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T18:21:39.308Z"
+  },
+  {
+    "id": "test_1789755825628",
+    "title": "छत्तीसगढ़ शासन की प्रमुख योजनाएं- Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Government Schemes",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T18:23:45.628Z"
+  },
+  {
+    "id": "test_1789755930776",
+    "title": "छत्तीसगढ़ शासन की प्रमुख योजनाएं - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Chhattisgarh Government Schemes",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 12,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-18T18:25:30.776Z"
+  },
+  {
+    "id": "test_1789991144136",
+    "title": "संख्या पद्धति की मूल अवधारणाऍं - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T11:45:44.136Z"
+  },
+  {
+    "id": "test_1789991194762",
+    "title": "संख्या पद्धति की मूल अवधारणाऍं - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T11:46:34.762Z"
+  },
+  {
+    "id": "test_1789991283123",
+    "title": "संख्या पद्धति की मूल अवधारणाऍं - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T11:48:03.123Z"
+  },
+  {
+    "id": "test_1789991495815",
+    "title": "विभाज्यता के मूल नियम- Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T11:51:35.815Z"
+  },
+  {
+    "id": "test_1789991617239",
+    "title": "विभाज्यता के मूल नियम - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T11:53:37.239Z"
+  },
+  {
+    "id": "test_1789991666001",
+    "title": "विभाज्यता के मूल नियम - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T11:54:26.001Z"
+  },
+  {
+    "id": "test_1789992034334",
+    "title": "लघुत्तम समापवर्त्य एवं महत्तम समापवर्तक - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T12:00:34.334Z"
+  },
+  {
+    "id": "test_1789992101950",
+    "title": "लघुत्तम समापवर्त्य एवं महत्तम समापवर्तक - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T12:01:41.950Z"
+  },
+  {
+    "id": "test_1789992213371",
+    "title": "लघुत्तम समापवर्त्य एवं महत्तम समापवर्तक - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T12:03:33.371Z"
+  },
+  {
+    "id": "test_pool_1781372756552",
+    "title": "Chhattisgarh General Knowledge - Test 1",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 120,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-13T17:45:56.552Z"
+  },
+  {
+    "id": "test_pool_1781373458435",
+    "title": "Chhattisgarh General Knowledge - Test 2",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-13T17:57:38.435Z"
+  },
+  {
+    "id": "test_pool_1781527057957",
+    "title": "Mathematics - Test 1",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-15T12:37:37.957Z"
+  },
+  {
+    "id": "test_pool_1781576975115",
+    "title": "Mixed Subjects - Test 3",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 10,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-16T02:29:35.115Z"
+  },
+  {
+    "id": "test_pool_1781603676564",
+    "title": "Reasoning - Test 1",
+    "examId": "cgpsc_sse",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Reasoning",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-16T09:54:36.564Z"
+  },
+  {
+    "id": "test_pool_1781604588769",
+    "title": "Mixed Subjects - Test 4",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-16T10:09:48.769Z"
+  },
+  {
+    "id": "test_pool_1781604622183",
+    "title": "Chhattisgarh General Knowledge - Test 3",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-16T10:10:22.183Z"
+  },
+  {
+    "id": "test_pool_1781604654072",
+    "title": "Reasoning - Test 2",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Reasoning",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-06-16T10:10:54.072Z"
+  },
+  {
+    "id": "test_pool_1783582949515",
+    "title": "Mixed Subjects - Test 4",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 10,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-07-09T07:42:29.515Z"
+  },
+  {
+    "id": "test_pool_1785156073096",
+    "title": "सामान्य विज्ञान - Test 1",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgpsc_sse",
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CGPSC SSE",
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "सामान्य विज्ञान",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-07-27T12:41:13.096Z"
+  },
+  {
+    "id": "test_pool_1785207448808",
+    "title": "Mixed Subjects - Test 5",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 10,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T02:57:28.808Z"
+  },
+  {
+    "id": "test_pool_1785232745669",
+    "title": "Mathematics - Test 2",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-07-28T09:59:05.669Z"
+  },
+  {
+    "id": "test_pool_1785232780574",
+    "title": "Mixed Subjects - Test 6",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T09:59:40.574Z"
+  },
+  {
+    "id": "test_pool_1785232785718",
+    "title": "Mixed Subjects - Test 7",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T09:59:45.718Z"
+  },
+  {
+    "id": "test_pool_1785232792882",
+    "title": "Mixed Subjects - Test 8",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T09:59:52.882Z"
+  },
+  {
+    "id": "test_pool_1785232804889",
+    "title": "Chhattisgarh General Knowledge - Test 4",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:00:04.889Z"
+  },
+  {
+    "id": "test_pool_1785232812449",
+    "title": "Chhattisgarh General Knowledge - Test 5",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:00:12.449Z"
+  },
+  {
+    "id": "test_pool_1785232826155",
+    "title": "Chhattisgarh General Knowledge - Test 6",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:00:26.155Z"
+  },
+  {
+    "id": "test_pool_1785232838820",
+    "title": "History - Test 1",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "History",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:00:38.820Z"
+  },
+  {
+    "id": "test_pool_1785232843706",
+    "title": "History - Test 2",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "History",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:00:43.706Z"
+  },
+  {
+    "id": "test_pool_1785232847773",
+    "title": "History - Test 3",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "History",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:00:47.773Z"
+  },
+  {
+    "id": "test_pool_1785232863946",
+    "title": "Mathematics - Test 3",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mathemetics",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:01:03.946Z"
+  },
+  {
+    "id": "test_pool_1785232867413",
+    "title": "Mathematics - Test 4",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mathematics",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:01:07.413Z"
+  },
+  {
+    "id": "test_pool_1785232871627",
+    "title": "Mathematics - Test 5",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mathematics",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:01:11.627Z"
+  },
+  {
+    "id": "test_pool_1785232877188",
+    "title": "India GS - Test 1",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "India GS",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:01:17.188Z"
+  },
+  {
+    "id": "test_pool_1785232880696",
+    "title": "India GS - Test 2",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "India GS",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:01:20.696Z"
+  },
+  {
+    "id": "test_pool_1785232884479",
+    "title": "India GS - Test 3",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "India GS",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:01:24.479Z"
+  },
+  {
+    "id": "test_pool_1785232895517",
+    "title": "Logical Reasoning - Test 1",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Logical Reasoning",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:01:35.517Z"
+  },
+  {
+    "id": "test_pool_1785232901573",
+    "title": "Logical Reasoning - Test 2",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Logical Reasoning",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:01:41.573Z"
+  },
+  {
+    "id": "test_pool_1785232919632",
+    "title": "सामान्य विज्ञान - Test 1",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "सामान्य विज्ञान",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:01:59.632Z"
+  },
+  {
+    "id": "test_pool_1785232923933",
+    "title": "सामान्य विज्ञान - Test 2",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "सामान्य विज्ञान",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:02:03.933Z"
+  },
+  {
+    "id": "test_pool_1785232931769",
+    "title": "सामान्य विज्ञान - Test 3",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "सामान्य विज्ञान",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:02:11.769Z"
+  },
+  {
+    "id": "test_pool_1785232971785",
+    "title": "Hindi - Test 1",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Hindi",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:02:51.785Z"
+  },
+  {
+    "id": "test_pool_1785232975312",
+    "title": "Hindi - Test 2",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Hindi",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "pattern": {
+      "totalQuestions": 5,
+      "totalMarks": 5,
+      "durationMinutes": 5,
+      "markingScheme": "+1 for correct, 0 for incorrect"
+    },
+    "createdAt": "2026-07-28T10:02:55.312Z"
+  },
+  {
+    "id": "test_pool_1786174925534_4",
+    "title": "Mixed Subjects - Test 2",
+    "examId": "cgpsc_sse",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "cgpsc_sse",
+      "cg_tet",
+      "cgv_teacher",
+      "cgv_steno_deo",
+      "transport_constable",
+      "cgv_food",
+      "cgv_lab_tech",
+      "adeo",
+      "cgv_sub_eng",
+      "cgv_patwari",
+      "cgv_naib",
+      "cgv_police",
+      "cgv_health",
+      "mandi_nirikshak",
+      "cgv_forest",
+      "cgv_accountant"
+    ],
+    "examName": "CGPSC SSE",
+    "examNames": [
+      "CGPSC SSE",
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)",
+      "Shikshak / Teacher (TET)",
+      "Food Inspector (खाद्य निरीक्षक)",
+      "Sub Engineer (Civil/Elec./Mech.)",
+      "Naib Tehsildar / Revenue",
+      "Staff Nurse / ANM / Health",
+      "Accountant / Junior Accountant",
+      "Steno / Data Entry Operator",
+      "Lab Technician / Radiographer"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "pattern": {
+      "totalQuestions": 20,
+      "totalMarks": 20,
+      "durationMinutes": 20,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-08-08T07:42:03.357Z"
+  },
+  {
+    "id": "test_1790011568773_431",
+    "title": "करणी एवं घातांक - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T17:26:08.773Z"
+  },
+  {
+    "id": "test_1790011638420_782",
+    "title": "करणी एवं घातांक - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T17:27:18.420Z"
+  },
+  {
+    "id": "test_1790011646100_301",
+    "title": "करणी एवं घातांक - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T17:27:26.100Z"
+  },
+  {
+    "id": "test_1790011688858_708",
+    "title": "सरलीकरण - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T17:28:08.858Z"
+  },
+  {
+    "id": "test_1790011712615_400",
+    "title": "सरलीकरण - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T17:28:32.615Z"
+  },
+  {
+    "id": "test_1790011736093_521",
+    "title": "सरलीकरण - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T17:28:56.093Z"
+  },
+  {
+    "id": "test_1790011775606_770",
+    "title": "प्रतिशत - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T17:29:35.606Z"
+  },
+  {
+    "id": "test_1790011786242_976",
+    "title": "प्रतिशत - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T17:29:46.242Z"
+  },
+  {
+    "id": "test_1790011809186_376",
+    "title": "प्रतिशत - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T17:30:09.186Z"
+  },
+  {
+    "id": "test_1790012073684_808",
+    "title": "बट्टा - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "Aptitude and Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "pattern": {
+      "totalQuestions": 10,
+      "totalMarks": 10,
+      "durationMinutes": 15,
+      "markingScheme": "+1 for correct, -0.25 for incorrect"
+    },
+    "createdAt": "2026-09-21T17:34:33.684Z"
+  }
+]
