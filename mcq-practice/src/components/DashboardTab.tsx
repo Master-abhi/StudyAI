@@ -59,7 +59,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     if (cachedHome) {
       try {
         const parsed = JSON.parse(cachedHome);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length > 1) {
           setArticles(parsed);
           setLoadingNews(false);
         }
@@ -71,12 +71,12 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         let res;
         if (currentUser) {
           const token = await currentUser.getIdToken();
-          res = await fetch(getApiUrl('/api/news/recommended'), {
+          res = await fetch(getApiUrl(`/api/news/recommended?t=${Date.now()}`), {
             headers: { 'Authorization': `Bearer ${token}` }
           });
         }
         if (!res || !res.ok) {
-          res = await fetch(getApiUrl('/api/news'));
+          res = await fetch(getApiUrl(`/api/news?t=${Date.now()}`));
         }
         if (res.ok) {
           const data = await res.json();

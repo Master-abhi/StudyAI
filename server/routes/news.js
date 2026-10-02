@@ -33,8 +33,8 @@ const userAnalyticsCache = new Map();  // userId -> { data, timestamp }
 // GET /api/news — reads cache from memory/Firestore with CDN edge caching
 router.get('/', async (req, res) => {
   try {
-    const { category, includeJobs } = req.query;
-    const cached = await getCachedNews();
+    const { category, includeJobs, admin: isAdminView } = req.query;
+    const cached = await getCachedNews(isAdminView === 'true');
 
     let articles = cached.articles || [];
 
@@ -66,7 +66,11 @@ router.get('/', async (req, res) => {
     }
 
     // Set Edge CDN and Browser caching headers to shield Firestore
-    res.set('Cache-Control', 'public, max-age=180, s-maxage=360, stale-while-revalidate=600');
+    if (isAdminView === 'true' || articles.length <= 1) {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else {
+      res.set('Cache-Control', 'public, max-age=60, s-maxage=120, stale-while-revalidate=300');
+    }
 
     res.json({
       lastUpdated: cached.lastUpdated,
@@ -76,7 +80,7 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('[News Error]:', err.message);
     const fallback = getCachedNews ? (await getCachedNews().catch(() => ({ articles: [] }))) : { articles: [] };
-    res.set('Cache-Control', 'public, max-age=60');
+    res.set('Cache-Control', 'no-cache');
     res.json({
       lastUpdated: null,
       totalArticles: (fallback.articles || []).length,
@@ -153,20 +157,20 @@ router.get('/recommended', verifyFirebaseToken, async (req, res) => {
     const userId = req.user.uid;
     const now = Date.now();
 
-    // Check user recommendations cache (10 min TTL)
-    if (userRecsCache.has(userId)) {
-      const entry = userRecsCache.get(userId);
-      if (now - entry.timestamp < 10 * 60 * 1000) {
-        res.set('Cache-Control', 'private, max-age=120');
-        return res.json({ articles: entry.articles });
-      }
-    }
-
     const cached = await getCachedNews();
     let articles = (cached.articles || []).filter(a => {
       const c = (a.category || '').toLowerCase();
       return c !== 'jobs' && c !== 'job' && c !== 'job_alert' && c !== 'recruitment';
     });
+
+    // Check user recommendations cache (10 min TTL, but invalidate if article pool changed or was a 1-article glitch)
+    if (userRecsCache.has(userId)) {
+      const entry = userRecsCache.get(userId);
+      if (now - entry.timestamp < 10 * 60 * 1000 && entry.articles && entry.articles.length >= articles.length && entry.articles.length > 1) {
+        res.set('Cache-Control', 'private, max-age=120');
+        return res.json({ articles: entry.articles });
+      }
+    }
 
     let user = {};
     const weakSubjects = new Set();
@@ -508,6 +512,8 @@ router.post('/refresh', verifyRefreshSecret, async (req, res) => {
     message: 'Automated news scraper is disabled. News updates are managed manually via Admin Panel.',
     disabled: true
   });
-});
+router.clearUserRecsCache = () => {
+  userRecsCache.clear();
+};
 
 module.exports = router;

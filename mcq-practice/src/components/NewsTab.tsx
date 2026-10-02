@@ -24,6 +24,8 @@ interface Article {
   source: string;
   url: string;
   date?: string;
+  state?: string;
+  tags?: string[];
   icon?: string;
   recommendationScore?: number;
 }
@@ -204,7 +206,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length > 1) {
           hasLocalCache = true;
         }
       } catch (e) {}
@@ -214,7 +216,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     }
     setError('');
     try {
-      const res = await fetch(getApiUrl('/api/news'));
+      const res = await fetch(getApiUrl(`/api/news?t=${Date.now()}`));
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.articles)) {
@@ -292,7 +294,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length > 1) {
           setArticles(parsed);
           setLoading(false);
         }
@@ -394,18 +396,19 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     setIntel(null);
   };
 
-  const getCategoryIcon = (category: string) => {
+  const getCategoryIcon = (category?: string) => {
+    if (!category) return '📰';
     const cat = category.toLowerCase();
-    if (cat.includes('chhattisgarh')) return '🏔️';
+    if (cat.includes('chhattisgarh') || cat.includes('cg')) return '🏔️';
     if (cat.includes('national')) return '🇮🇳';
     if (cat.includes('international')) return '🌍';
-    if (cat.includes('polity')) return '⚖️';
-    if (cat.includes('economy') || cat.includes('budget')) return '📈';
+    if (cat.includes('polity') || cat.includes('governance')) return '⚖️';
+    if (cat.includes('economy') || cat.includes('budget') || cat.includes('business')) return '📈';
     if (cat.includes('science') || cat.includes('tech')) return '🔬';
     if (cat.includes('environment')) return '🌿';
     if (cat.includes('sport')) return '🏏';
     if (cat.includes('award')) return '🏆';
-    if (cat.includes('scheme')) return '🏛️';
+    if (cat.includes('scheme') || cat.includes('yojana')) return '🏛️';
     if (cat.includes('agriculture')) return '🌾';
     if (cat.includes('report') || cat.includes('index')) return '📊';
     return '📰';
@@ -421,13 +424,35 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
   const getFilteredList = (list: Article[]) => {
     return list.filter(art => {
       if (isJobCategory(art.category)) return false;
-      const matchesCategory = activeCategory === 'all' || art.category.toLowerCase().includes(activeCategory.toLowerCase()) || activeCategory.toLowerCase().includes(art.category.toLowerCase());
-      const query = searchQuery.toLowerCase();
-      const titleText = (art.title || '').toLowerCase() + ' ' + 
-                        (art.title_hi || '').toLowerCase() + ' ' + 
-                        (art.description || '').toLowerCase() + ' ' + 
-                        (art.description_hi || '').toLowerCase();
-      const matchesSearch = titleText.includes(query);
+      const cat = (art.category || '').toLowerCase();
+      const state = (art.state || '').toLowerCase();
+      const titleText = (
+        (art.title || '') + ' ' + 
+        (art.title_hi || '') + ' ' + 
+        (art.description || '') + ' ' + 
+        (art.description_hi || '') + ' ' +
+        (art.tags ? art.tags.join(' ') : '')
+      ).toLowerCase();
+
+      let matchesCategory = activeCategory === 'all';
+      if (!matchesCategory) {
+        if (cat.includes(activeCategory.toLowerCase()) || activeCategory.toLowerCase().includes(cat)) {
+          matchesCategory = true;
+        } else if (activeCategory === 'chhattisgarh') {
+          matchesCategory = state === 'cg' || state.includes('chhattisgarh') || /छत्तीसगढ़|raipur|chhattisgarh|bilaspur|bastar|durg/i.test(titleText);
+        } else if (activeCategory === 'scheme') {
+          matchesCategory = /scheme|योजना|अभियान|portal|mission/i.test(titleText) || cat.includes('scheme');
+        } else if (activeCategory === 'economy') {
+          matchesCategory = /अर्थव्यवस्था|बजट|economy|budget|gdp|tax|bank|rbi|finance|business/i.test(titleText) || cat.includes('economy') || cat.includes('business');
+        } else if (activeCategory === 'polity') {
+          matchesCategory = /polity|संविधान|न्यायालय|court|act|bill|ordinance|election|governance/i.test(titleText) || cat.includes('polity') || cat.includes('governance');
+        } else if (activeCategory === 'national') {
+          matchesCategory = state === 'national' || state === 'india' || state === 'all' || /national|भारत|केन्द्रीय|india/i.test(titleText);
+        }
+      }
+
+      const query = searchQuery.toLowerCase().trim();
+      const matchesSearch = !query || titleText.includes(query);
       return matchesCategory && matchesSearch;
     });
   };

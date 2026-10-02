@@ -24,8 +24,7 @@ import {
   Tag, 
   Award,
   LayoutDashboard,
-  LogIn,
-  GraduationCap
+  LogIn
 } from 'lucide-react';
 import { SUPABASE_APK_URL } from '../constants';
 
@@ -153,17 +152,15 @@ export const LandingTab: React.FC<LandingTabProps> = ({
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }}
-          className="flex items-center gap-2.5 cursor-pointer select-none"
+          className="flex items-center gap-3 cursor-pointer select-none py-1"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-saffron to-orange-500 flex items-center justify-center shadow-md">
-            <GraduationCap className="w-5 h-5 text-white" />
-          </div>
+          <img src="/CG_GURU.png" alt="CG Guru" loading="eager" decoding="async" className="w-12 h-12 sm:w-14 sm:h-14 object-contain filter drop-shadow-md shrink-0 transition-transform hover:scale-105" />
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
+            <div className="flex items-center gap-2">
+              <span className="text-lg sm:text-2xl font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider leading-tight">
                 CG Guru
               </span>
-              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-saffron/15 text-saffron border border-saffron/30">
+              <span className="text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded bg-saffron/15 text-saffron border border-saffron/30">
                 AI Prep
               </span>
             </div>

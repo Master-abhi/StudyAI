@@ -109,6 +109,41 @@ export function getSourcesList(notes: any): string[] {
   return list;
 }
 
+class NotesErrorBoundary extends React.Component<{ children: React.ReactNode; onClose: () => void }, { hasError: boolean; error: string }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: '' };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error: error?.message || 'Error rendering study notes' };
+  }
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error('[Notes Reader Error]:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4">
+          <div className="bg-white dark:bg-slate-900 border border-red-300 dark:border-red-900/60 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center space-y-4">
+            <div className="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl">
+              ⚠️
+            </div>
+            <h3 className="text-base font-black text-slate-900 dark:text-white">नोट्स लोड करने में समस्या आई</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400">{this.state.error}</p>
+            <button
+              onClick={this.props.onClose}
+              className="px-4 py-2 bg-saffron text-white rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors cursor-pointer"
+            >
+              वापस जाएँ (Close)
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export interface TopicNotesReaderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -122,7 +157,7 @@ export interface TopicNotesReaderModalProps {
   onOpenPdf?: (topic: Topic) => void;
 }
 
-export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
+export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> = ({
   isOpen,
   onClose,
   topic,
@@ -736,11 +771,11 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                     </span>
                   </div>
 
-                  {notes.overview.introduction && (
+                  {(notes.overview.introduction || notes.overview.intro) && (
                     <p className={`font-medium text-justify leading-relaxed ${
                       readingTheme === 'dark' ? 'text-slate-200' : readingTheme === 'sepia' ? 'text-[#3F3325]' : 'text-slate-800'
                     }`}>
-                      {notes.overview.introduction}
+                      {notes.overview.introduction || notes.overview.intro}
                     </p>
                   )}
 
@@ -751,18 +786,23 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                         readingTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'
                       }`}>मुख्य तथ्य झलक (Quick Highlights):</span>
                       <div className="flex flex-wrap gap-2">
-                        {notes.overview.quickFacts.map((fact: string, idx: number) => (
-                          <span key={idx} className={`text-xs px-3 py-1.5 rounded-lg border font-semibold flex items-center gap-2 ${
-                            readingTheme === 'dark'
-                              ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200'
-                              : readingTheme === 'sepia'
-                                ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]'
-                                : 'bg-slate-100 border-slate-200 text-slate-800'
-                          }`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-saffron shrink-0" />
-                            {fact}
-                          </span>
-                        ))}
+                        {notes.overview.quickFacts.map((fact: any, idx: number) => {
+                          const factText = typeof fact === 'object' && fact !== null
+                            ? (fact.label ? `${fact.label}: ${fact.value || ''}` : (fact.value || fact.text || JSON.stringify(fact)))
+                            : String(fact || '');
+                          return (
+                            <span key={idx} className={`text-xs px-3 py-1.5 rounded-lg border font-semibold flex items-center gap-2 ${
+                              readingTheme === 'dark'
+                                ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200'
+                                : readingTheme === 'sepia'
+                                  ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]'
+                                  : 'bg-slate-100 border-slate-200 text-slate-800'
+                            }`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-saffron shrink-0" />
+                              {factText}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -814,7 +854,7 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                         <h3 className={`text-lg sm:text-xl font-black ${
                           readingTheme === 'dark' ? 'text-white' : readingTheme === 'sepia' ? 'text-[#2A1E11]' : 'text-slate-900'
                         }`}>
-                          {chapter.chapterTitle || chapter.title}
+                          {chapter.chapterTitle || chapter.title || chapter.titleHi || `अध्याय ${actualIdx + 1}`}
                         </h3>
                         {chapter.description && (
                           <p className={`text-xs mt-1 font-medium ${
@@ -857,11 +897,11 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                       {/* Sections */}
                       {Array.isArray(chapter.sections) && chapter.sections.map((sec: any, sIdx: number) => (
                         <div key={sIdx} className="space-y-3 pt-2">
-                          {sec.heading && (
+                          {(sec.heading || sec.title) && (
                             <h4 className={`text-base font-black flex items-center gap-2 border-l-3 border-saffron pl-2.5 ${
                               readingTheme === 'dark' ? 'text-slate-100' : readingTheme === 'sepia' ? 'text-[#2A1E11]' : 'text-slate-900'
                             }`}>
-                              {sec.heading}
+                              {sec.heading || sec.title}
                             </h4>
                           )}
 
@@ -1068,22 +1108,28 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                         ⚠️ सामान्य भ्रम एवं स्पष्टीकरण (Confusion Buster)
                       </h4>
                       <div className="divide-y divide-border/40">
-                        {notes.confusionBuster.map((item: any, idx: number) => (
-                          <div key={idx} className="py-2.5 grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
-                            <div className={`p-3 rounded-lg border ${
-                              readingTheme === 'dark' ? 'bg-red-950/40 border-red-500/30 text-red-200' : readingTheme === 'sepia' ? 'bg-[#FADBD8]/60 border-red-300 text-[#78281F]' : 'bg-red-50 border-red-200 text-red-900'
-                            }`}>
-                              <span className="font-black block mb-1">❌ अक्सर होने वाला भ्रम:</span>
-                              <span className="leading-relaxed font-medium">{item.oftenConfused}</span>
+                        {notes.confusionBuster.map((item: any, idx: number) => {
+                          const leftHeading = item.conceptA ? `❌ ${item.conceptA}` : '❌ अक्सर होने वाला भ्रम:';
+                          const leftContent = item.oftenConfused || (item.conceptA ? `${item.conceptA}` : '');
+                          const rightHeading = item.conceptB ? `✔️ ${item.conceptB}` : '✔️ सही एवं प्रामाणिक तथ्य:';
+                          const rightContent = item.correctInformation || item.keyDifference || (item.trickToRemember ? `याद रखने का सूत्र: ${item.trickToRemember}` : '');
+                          return (
+                            <div key={idx} className="py-2.5 grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+                              <div className={`p-3 rounded-lg border ${
+                                readingTheme === 'dark' ? 'bg-red-950/40 border-red-500/30 text-red-200' : readingTheme === 'sepia' ? 'bg-[#FADBD8]/60 border-red-300 text-[#78281F]' : 'bg-red-50 border-red-200 text-red-900'
+                              }`}>
+                                <span className="font-black block mb-1">{leftHeading}</span>
+                                <span className="leading-relaxed font-medium">{leftContent || item.keyDifference || ''}</span>
+                              </div>
+                              <div className={`p-3 rounded-lg border ${
+                                readingTheme === 'dark' ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200' : readingTheme === 'sepia' ? 'bg-[#D4EFDF]/60 border-emerald-300 text-[#145A32]' : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                              }`}>
+                                <span className="font-black block mb-1">{rightHeading}</span>
+                                <span className="leading-relaxed font-medium">{rightContent || ''}</span>
+                              </div>
                             </div>
-                            <div className={`p-3 rounded-lg border ${
-                              readingTheme === 'dark' ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200' : readingTheme === 'sepia' ? 'bg-[#D4EFDF]/60 border-emerald-300 text-[#145A32]' : 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                            }`}>
-                              <span className="font-black block mb-1">✔️ सही एवं प्रामाणिक तथ्य:</span>
-                              <span className="leading-relaxed font-medium">{item.correctInformation}</span>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1213,34 +1259,61 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                     </div>
 
                     <div className="grid grid-cols-1 gap-2.5">
-                      {(notes.oneLinerRevision || notes.rapidRevision || []).map((fact: string, idx: number) => (
-                        <div 
-                          key={idx} 
-                          className={`p-3.5 rounded-xl border flex items-start justify-between gap-3 text-xs leading-relaxed group transition-colors ${
-                            readingTheme === 'dark'
-                              ? 'bg-[#1E293B]/70 border-[#334155] hover:border-saffron/50 text-slate-200'
-                              : readingTheme === 'sepia'
-                                ? 'bg-[#EFE2C8] border-[#DECBB0] hover:border-amber-600 text-[#3F3325]'
-                                : 'bg-[#F8FAFC] border-[#E2E8F0] hover:border-saffron/60 text-slate-800'
-                          }`}
-                        >
-                          <div className="flex items-start gap-2.5">
-                            <span className="w-5 h-5 rounded-full bg-saffron/15 text-saffron font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">
-                              {idx + 1}
-                            </span>
-                            <span className="font-semibold">{fact}</span>
-                          </div>
-                          <button
-                            onClick={() => copyRevisionPoint(fact, idx)}
-                            className={`p-1.5 rounded transition-colors shrink-0 ${
-                              readingTheme === 'dark' ? 'text-slate-400 hover:text-saffron hover:bg-slate-800' : 'text-slate-500 hover:text-saffron hover:bg-slate-200'
+                      {[
+                        ...(Array.isArray(notes.oneLinerRevision) ? notes.oneLinerRevision : []),
+                        ...(Array.isArray(notes.rapidRevision) ? notes.rapidRevision : [])
+                      ].map((item: any, idx: number) => {
+                        let text = '';
+                        let badge = '';
+                        if (typeof item === 'object' && item !== null) {
+                          if (item.fact) {
+                            text = item.fact;
+                            badge = item.category || item.examTag || '';
+                          } else if (item.prompt) {
+                            text = `${item.prompt} → ${item.recallAnswer || ''}`;
+                          } else {
+                            text = item.text || item.title || JSON.stringify(item);
+                          }
+                        } else {
+                          text = String(item || '');
+                        }
+
+                        return (
+                          <div 
+                            key={idx} 
+                            className={`p-3.5 rounded-xl border flex items-start justify-between gap-3 text-xs leading-relaxed group transition-colors ${
+                              readingTheme === 'dark'
+                                ? 'bg-[#1E293B]/70 border-[#334155] hover:border-saffron/50 text-slate-200'
+                                : readingTheme === 'sepia'
+                                  ? 'bg-[#EFE2C8] border-[#DECBB0] hover:border-amber-600 text-[#3F3325]'
+                                  : 'bg-[#F8FAFC] border-[#E2E8F0] hover:border-saffron/60 text-slate-800'
                             }`}
-                            title="Copy fact"
                           >
-                            {copiedIndex === idx ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      ))}
+                            <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                              <span className="w-5 h-5 rounded-full bg-saffron/15 text-saffron font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                                {idx + 1}
+                              </span>
+                              <div className="flex flex-col gap-1 min-w-0">
+                                <span className="font-semibold leading-relaxed">{text}</span>
+                                {badge && (
+                                  <span className="text-[10px] font-bold text-saffron bg-saffron/10 px-1.5 py-0.5 rounded w-fit border border-saffron/20">
+                                    {badge}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => copyRevisionPoint(text, idx)}
+                              className={`p-1.5 rounded transition-colors shrink-0 ${
+                                readingTheme === 'dark' ? 'text-slate-400 hover:text-saffron hover:bg-slate-800' : 'text-slate-500 hover:text-saffron hover:bg-slate-200'
+                              }`}
+                              title="Copy fact"
+                            >
+                              {copiedIndex === idx ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1251,23 +1324,31 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                         🏛️ विगत वर्षों के प्रश्न (Previous Year Questions - PYQs)
                       </h4>
                       <div className="space-y-2.5">
-                        {notes.pyqSection.map((pyq: any, idx: number) => (
-                          <div key={idx} className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${
-                            readingTheme === 'dark' 
-                              ? 'bg-blue-950/40 border-blue-500/30 text-slate-200' 
-                              : readingTheme === 'sepia'
-                                ? 'bg-[#D4E6F1]/50 border-blue-300 text-[#154360]'
-                                : 'bg-blue-50 border-blue-200 text-blue-950'
-                          }`}>
-                            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                              <span>{pyq.examYear || 'CGPSC / Vyapam'}</span>
+                        {notes.pyqSection.map((pyq: any, idx: number) => {
+                          const examLabel = pyq.examYear || (pyq.examName ? `${pyq.examName}${pyq.year ? ' (' + pyq.year + ')' : ''}` : 'CGPSC / Vyapam');
+                          return (
+                            <div key={idx} className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${
+                              readingTheme === 'dark' 
+                                ? 'bg-blue-950/40 border-blue-500/30 text-slate-200' 
+                                : readingTheme === 'sepia'
+                                  ? 'bg-[#D4E6F1]/50 border-blue-300 text-[#154360]'
+                                  : 'bg-blue-50 border-blue-200 text-blue-950'
+                            }`}>
+                              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                                <span>{examLabel}</span>
+                              </div>
+                              <p className="font-bold text-sm leading-snug">{pyq.question}</p>
+                              <p className="font-semibold text-[11px] pt-1 border-t border-blue-500/20 text-emerald-600 dark:text-emerald-400">
+                                ✓ उत्तर: {pyq.answer}
+                              </p>
+                              {pyq.explanation && (
+                                <p className="text-[11px] opacity-80 pt-0.5">
+                                  <strong>व्याख्या:</strong> {pyq.explanation}
+                                </p>
+                              )}
                             </div>
-                            <p className="font-bold text-sm leading-snug">{pyq.question}</p>
-                            <p className="font-semibold text-[11px] pt-1 border-t border-blue-500/20 text-emerald-600 dark:text-emerald-400">
-                              ✓ उत्तर: {pyq.answer}
-                            </p>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1279,8 +1360,9 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                         📋 अंतिम समीक्षा चेकलिस्ट (Study Checklist)
                       </h4>
                       <div className="space-y-2">
-                        {notes.checklist.map((chk: string, idx: number) => {
+                        {notes.checklist.map((chk: any, idx: number) => {
                           const isDone = Boolean(checkedChecklist[idx]);
+                          const text = typeof chk === 'object' && chk !== null ? (chk.text || chk.label || JSON.stringify(chk)) : String(chk || '');
                           return (
                             <button
                               key={idx}
@@ -1300,7 +1382,7 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                               }`}>
                                 {isDone && <Check className="w-3 h-3 stroke-[3]" />}
                               </div>
-                              <span className="font-semibold">{chk}</span>
+                              <span className="font-semibold">{text}</span>
                             </button>
                           );
                         })}
@@ -1318,7 +1400,11 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                     notes.mcqs.map((mcq: any, qIdx: number) => {
                       const userChoice = selectedAnswers[qIdx];
                       const isRevealed = revealedExplanations[qIdx];
-                      const correctLetter = (mcq.correct || 'A').toString().trim().toUpperCase().charAt(0);
+                      const correctLetter = typeof mcq.correct === 'number'
+                        ? String.fromCharCode(65 + mcq.correct)
+                        : typeof mcq.correctIndex === 'number'
+                          ? String.fromCharCode(65 + mcq.correctIndex)
+                          : (mcq.correct || 'A').toString().trim().toUpperCase().charAt(0);
 
                       return (
                         <div key={qIdx} className={`p-5 rounded-xl border ${getCardBgClass()} space-y-3.5`}>
@@ -1335,10 +1421,11 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
 
                           {/* Options */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                            {Array.isArray(mcq.options) && mcq.options.map((opt: string, optIdx: number) => {
+                            {Array.isArray(mcq.options) && mcq.options.map((opt: any, optIdx: number) => {
                               const letter = String.fromCharCode(65 + optIdx);
                               const isSelected = userChoice === letter;
                               const isCorrectOpt = letter === correctLetter;
+                              const optText = typeof opt === 'object' && opt !== null ? (opt.text || JSON.stringify(opt)) : String(opt || '');
 
                               let optStyle = readingTheme === 'dark' 
                                 ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200 hover:border-saffron/60 hover:bg-[#1E293B]' 
@@ -1365,11 +1452,12 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                                   }`}>
                                     {letter}
                                   </span>
-                                  <span className="leading-snug">{opt}</span>
+                                  <span className="leading-snug">{optText}</span>
                                 </button>
                               );
                             })}
                           </div>
+
 
                           {/* Instant Explanation */}
                           {isRevealed && (
@@ -1510,14 +1598,14 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                 {notes.overview && (
                   <div style={{ marginBottom: '16px' }}>
                     <h3 style={{ color: '#1E3A8A' }}>परिचय एवं परीक्षा प्रासंगिकता</h3>
-                    <p>{notes.overview.introduction}</p>
+                    <p>{notes.overview.introduction || notes.overview.intro}</p>
                   </div>
                 )}
 
                 {Array.isArray(notes.chapters) && notes.chapters.map((ch: any, i: number) => (
                   <div key={i} className="avoid-break" style={{ marginBottom: '20px' }}>
                     <h3 style={{ color: '#1E3A8A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px' }}>
-                      अध्याय {i + 1}: {ch.chapterTitle || ch.title}
+                      अध्याय {i + 1}: {ch.chapterTitle || ch.title || ch.titleHi}
                     </h3>
                     {ch.examFocus && (
                       <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', padding: '6px 10px', borderRadius: '6px', fontSize: '9pt', color: '#78350F', margin: '6px 0 10px 0' }}>
@@ -1526,7 +1614,7 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                     )}
                     {Array.isArray(ch.sections) && ch.sections.map((sec: any, j: number) => (
                       <div key={j} style={{ marginBottom: '10px' }}>
-                        {sec.heading && <h4>{sec.heading}</h4>}
+                        {(sec.heading || sec.title) && <h4>{sec.heading || sec.title}</h4>}
                         <p style={{ whiteSpace: 'pre-line' }}>{formatNotesContent(sec.content)}</p>
                       </div>
                     ))}
@@ -1567,9 +1655,17 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                   <div className="avoid-break" style={{ marginBottom: '20px' }}>
                     <h3 style={{ color: '#1E3A8A' }}>त्वरित पुनरीक्षण तथ्य (Rapid Revision)</h3>
                     <ul>
-                      {(notes.oneLinerRevision || notes.rapidRevision).map((pt: string, idx: number) => (
-                        <li key={idx} style={{ marginBottom: '4px' }}>{pt}</li>
-                      ))}
+                      {[
+                        ...(Array.isArray(notes.oneLinerRevision) ? notes.oneLinerRevision : []),
+                        ...(Array.isArray(notes.rapidRevision) ? notes.rapidRevision : [])
+                      ].map((item: any, idx: number) => {
+                        const text = typeof item === 'object' && item !== null
+                          ? (item.fact || (item.prompt ? `${item.prompt} → ${item.recallAnswer || ''}` : JSON.stringify(item)))
+                          : String(item || '');
+                        return (
+                          <li key={idx} style={{ marginBottom: '4px' }}>{text}</li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
@@ -1577,17 +1673,27 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
                 {Array.isArray(notes.mcqs) && notes.mcqs.length > 0 && (
                   <div className="avoid-break" style={{ marginBottom: '20px' }}>
                     <h3 style={{ color: '#1E3A8A' }}>अभ्यास प्रश्न (MCQs)</h3>
-                    {notes.mcqs.map((mcq: any, idx: number) => (
-                      <div key={idx} style={{ marginBottom: '10px' }}>
-                        <p><strong>Q{idx + 1}. {mcq.q || mcq.question}</strong></p>
-                        {Array.isArray(mcq.options) && mcq.options.map((opt: string, oi: number) => (
-                          <div key={oi} style={{ marginLeft: '12px', fontSize: '9pt' }}>{opt}</div>
-                        ))}
-                        <p style={{ color: '#059669', fontSize: '9pt', marginTop: '2px' }}>
-                          सही उत्तर: ({mcq.correct}) {mcq.explanation ? `- ${mcq.explanation}` : ''}
-                        </p>
-                      </div>
-                    ))}
+                    {notes.mcqs.map((mcq: any, idx: number) => {
+                      const correctLetter = typeof mcq.correct === 'number'
+                        ? String.fromCharCode(65 + mcq.correct)
+                        : typeof mcq.correctIndex === 'number'
+                          ? String.fromCharCode(65 + mcq.correctIndex)
+                          : (mcq.correct || 'A').toString().trim().toUpperCase().charAt(0);
+                      return (
+                        <div key={idx} style={{ marginBottom: '10px' }}>
+                          <p><strong>Q{idx + 1}. {mcq.q || mcq.question}</strong></p>
+                          {Array.isArray(mcq.options) && mcq.options.map((opt: any, oi: number) => {
+                            const optText = typeof opt === 'object' && opt !== null ? (opt.text || JSON.stringify(opt)) : String(opt || '');
+                            return (
+                              <div key={oi} style={{ marginLeft: '12px', fontSize: '9pt' }}>{optText}</div>
+                            );
+                          })}
+                          <p style={{ color: '#059669', fontSize: '9pt', marginTop: '2px' }}>
+                            सही उत्तर: ({correctLetter}) {mcq.explanation ? `- ${mcq.explanation}` : ''}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -1612,6 +1718,15 @@ export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = ({
 
       </div>
     </div>
+  );
+};
+
+export const TopicNotesReaderModal: React.FC<TopicNotesReaderModalProps> = (props) => {
+  if (!props.isOpen || !props.topic) return null;
+  return (
+    <NotesErrorBoundary onClose={props.onClose}>
+      <TopicNotesReaderModalContent {...props} />
+    </NotesErrorBoundary>
   );
 };
 

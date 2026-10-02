@@ -10,6 +10,21 @@ let inMemoryNewsCache = null;
 let lastNewsFetchTime = 0;
 const NEWS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache in memory
 
+// Immediately load disk cache on module startup so cold starts are never empty
+try {
+  if (fs.existsSync(LOCAL_CACHE_PATH)) {
+    const raw = fs.readFileSync(LOCAL_CACHE_PATH, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.articles) && parsed.articles.length > 0) {
+      inMemoryNewsCache = parsed;
+      lastNewsFetchTime = Date.now();
+      console.log(`[NewsService] Preloaded ${parsed.articles.length} news articles from local disk cache ✅`);
+    }
+  }
+} catch (loadErr) {
+  console.warn('[NewsService] Initial disk cache load error:', loadErr.message);
+}
+
 function setInMemoryNewsCache(data) {
   if (data && typeof data === 'object') {
     inMemoryNewsCache = data;
@@ -27,6 +42,17 @@ function getMemoryNewsCache() {
 }
 
 function getFallbackNews() {
+  // If local disk cache is available, return its articles as fallback
+  try {
+    if (fs.existsSync(LOCAL_CACHE_PATH)) {
+      const raw = fs.readFileSync(LOCAL_CACHE_PATH, 'utf-8');
+      const data = JSON.parse(raw);
+      if (data && Array.isArray(data.articles) && data.articles.length > 0) {
+        return data.articles;
+      }
+    }
+  } catch (_) {}
+
   return [
     {
       title: "Chhattisgarh Government Launches Month-Long Seva Sankalp Abhiyan Across All Districts",
@@ -58,7 +84,7 @@ async function getCachedNews(forceRefresh = false) {
   try {
     const firestorePromise = NEWS_DOC.get();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Firestore read timeout')), 3000)
+      setTimeout(() => reject(new Error('Firestore read timeout')), 8000)
     );
 
     const doc = await Promise.race([firestorePromise, timeoutPromise]);

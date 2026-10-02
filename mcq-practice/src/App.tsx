@@ -16,7 +16,6 @@ import {
   Settings,
   ShieldAlert,
   Shield,
-  GraduationCap,
   Flame,
   FileText,
   Landmark,
@@ -75,8 +74,14 @@ const NotificationsModal = lazy(() => import('./components/NotificationsModal').
 
 const TabFallback = () => (
   <div className="flex flex-col items-center justify-center min-h-[350px] w-full py-12 gap-3 text-text-muted">
-    <div className="w-7 h-7 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
-    <span className="text-[10px] font-bold uppercase tracking-wider text-saffron">Loading tab...</span>
+    <div className="relative flex items-center justify-center">
+      <div className="absolute w-20 h-20 rounded-full bg-saffron/10 animate-ping" />
+      <img src="/CG_GURU.png" alt="CG Guru" className="w-16 h-16 object-contain relative z-10 drop-shadow-lg" />
+    </div>
+    <div className="flex items-center gap-2 mt-2">
+      <div className="w-4 h-4 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
+      <span className="text-[11px] font-black uppercase tracking-wider text-saffron">Loading...</span>
+    </div>
   </div>
 );
 
@@ -2613,11 +2618,16 @@ export default function App() {
       {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' && (
         <aside className="hidden md:flex flex-col w-72 bg-bg-s2 border-r border-border/60 shrink-0 fixed top-0 left-0 h-screen z-30">
           {/* Logo & Brand */}
-          <div className="p-6 border-b border-border/60 flex items-center gap-3">
-            <GraduationCap className="w-7 h-7 text-saffron" />
-            <span className="text-lg font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
-              CG Guru
-            </span>
+          <div className="px-5 py-4 border-b border-border/60 flex items-center gap-3">
+            <img src="/CG_GURU.png" alt="CG Guru" loading="eager" decoding="async" className="w-12 h-12 object-contain drop-shadow-md shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-xl font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider leading-tight">
+                CG Guru
+              </span>
+              <span className="text-[9px] font-black text-saffron tracking-widest uppercase">
+                AI Prep Platform
+              </span>
+            </div>
           </div>
 
           {/* Navigation Links */}
@@ -2749,11 +2759,16 @@ export default function App() {
             style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px)) + 0.75rem)' }}
             className="md:hidden sticky top-0 left-0 right-0 bg-bg-s1/95 backdrop-blur-md border-b border-border/60 px-4 pb-3 flex items-center justify-between z-30 shadow-sm shrink-0"
           >
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-6 h-6 text-saffron" />
-              <span className="text-sm font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider">
-                CG Guru
-              </span>
+            <div className="flex items-center gap-2.5">
+              <img src="/CG_GURU.png" alt="CG Guru" loading="eager" decoding="async" className="w-10 h-10 object-contain drop-shadow-sm shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-base font-black bg-gradient-to-r from-saffron to-orange-500 bg-clip-text text-transparent uppercase tracking-wider leading-tight">
+                  CG Guru
+                </span>
+                <span className="text-[8px] font-black text-saffron tracking-wider uppercase leading-none">
+                  AI Prep
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {/* App Download Button */}

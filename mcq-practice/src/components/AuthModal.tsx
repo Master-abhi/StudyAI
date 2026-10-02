@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, User, Key, ShieldAlert, Award, ShieldCheck, Mail, Phone, AtSign } from 'lucide-react';
+import { Lock, User, Key, ShieldAlert, ShieldCheck, Mail, Phone, AtSign } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -366,7 +366,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Banner */}
         <div className="bg-gradient-to-r from-saffron to-orange-600 p-6 text-center text-bg-s1 relative">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-          <Award className="w-12 h-12 mx-auto mb-2 text-bg-s1 animate-bounce" />
+          <img src="/CG_GURU.png" alt="CG Guru" className="w-16 h-16 mx-auto mb-2 object-contain drop-shadow-md rounded-2xl" />
           <h2 className="text-xl font-black uppercase tracking-wider">CG Guru — Exam Prep</h2>
           <p className="text-xs font-semibold opacity-90 mt-1">Smart AI-powered Government Exam Coaching</p>
         </div>
