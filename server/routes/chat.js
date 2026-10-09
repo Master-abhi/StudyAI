@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { chat, chatStream } = require('../services/aiManager');
+const { db } = require('../firebase-admin');
 const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 const { aiRateLimiter } = require('../middleware/rateLimiter');
 
@@ -10,6 +11,37 @@ router.post('/', verifyFirebaseToken, aiRateLimiter, async (req, res) => {
 
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // Check free user limit (max 3 questions/day)
+    if (req.user && req.user.uid) {
+      try {
+        const userDoc = await db.collection('users').doc(req.user.uid).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const isPaid = userData.isPaid === true || userData.plan === 'paid';
+        
+        if (!isPaid) {
+          const now = new Date();
+          const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          const countToday = userData.aiQuestionsDate === today ? (userData.aiQuestionsToday || 0) : 0;
+          
+          if (countToday >= 3) {
+            return res.status(403).json({
+              error: 'आज के 3 निःशुल्क AI Guru प्रश्नों की सीमा पूरी हो चुकी है। असीमित सवालों के लिए Pro Pass में अपग्रेड करें।',
+              limitReached: true,
+              upgradeRequired: true
+            });
+          }
+
+          // Increment daily count
+          await db.collection('users').doc(req.user.uid).set({
+            aiQuestionsDate: today,
+            aiQuestionsToday: countToday + 1
+          }, { merge: true });
+        }
+      } catch (tierCheckErr) {
+        console.warn('[AI Guru Tier Check Error]:', tierCheckErr.message);
+      }
     }
 
     const exam = examName || 'Government Competitive Exam';

@@ -297,6 +297,7 @@ router.post('/config/ai', verifyAdmin, async (req, res) => {
     }
 
     const validModels = [
+      'gemini-3.8-flash',
       'gemini-3.5-flash',
       'gemini-3.5-pro',
       'gemini-3.1-flash-lite',
@@ -2894,22 +2895,6 @@ router.post('/syllabus/save', verifyStaffOrAdmin('syllabus'), async (req, res) =
   }
 });
 
-// DELETE /api/admin/syllabus/:id - Delete a custom syllabus configuration from Firestore
-router.delete('/syllabus/:id', verifyStaffOrAdmin('syllabus'), async (req, res) => {
-  try {
-    const { id } = req.params;
-    await db.collection('syllabi').doc(id).delete();
-    console.log(`[Admin Syllabus Delete] Deleted custom syllabus ${id} ✅`);
-
-    invalidateCache('syllabi_custom_all');
-    await logStaffActivity(req, 'delete_syllabus', { id });
-
-    res.json({ success: true, message: 'Custom syllabus deleted successfully.' });
-  } catch (err) {
-    console.error('[Admin Delete Syllabus Error]:', err.message);
-    res.status(500).json({ error: 'Failed to delete custom syllabus.' });
-  }
-});
 
 // POST /api/admin/syllabus/generate-notes - Generate structured CG GURU premium study notes from educator raw material
 router.post('/syllabus/generate-notes', verifyStaffOrAdmin('syllabus'), async (req, res) => {
@@ -2977,26 +2962,32 @@ router.post('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), upload.single
     }
 
     // 3. Find target topic and attach PDF metadata
+    // 3. Find target topic and attach PDF metadata
     let topicFound = false;
     let oldPdfPath = null;
+
+    const attachPdfToTopic = (top) => {
+      if (top && (top.id === topicId || String(top.id) === String(topicId))) {
+        topicFound = true;
+        oldPdfPath = top.pdfPath;
+        top.pdfPath = storagePath;
+        top.pdfName = req.file.originalname;
+        top.pdfSize = req.file.size;
+        top.pdfUpdatedAt = new Date().toISOString();
+      }
+    };
 
     if (Array.isArray(examObj.subjects)) {
       examObj.subjects.forEach(sub => {
         if (Array.isArray(sub.chapters)) {
           sub.chapters.forEach(chap => {
             if (Array.isArray(chap.topics)) {
-              chap.topics.forEach(top => {
-                if (top.id === topicId) {
-                  topicFound = true;
-                  oldPdfPath = top.pdfPath;
-                  top.pdfPath = storagePath;
-                  top.pdfName = req.file.originalname;
-                  top.pdfSize = req.file.size;
-                  top.pdfUpdatedAt = new Date().toISOString();
-                }
-              });
+              chap.topics.forEach(attachPdfToTopic);
             }
           });
+        }
+        if (Array.isArray(sub.topics)) {
+          sub.topics.forEach(attachPdfToTopic);
         }
       });
     }
@@ -3026,6 +3017,14 @@ router.post('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), upload.single
             }
           });
         }
+        if (Array.isArray(sub.topics)) {
+          sub.topics.forEach(top => {
+            if (top.studyNotes) {
+              top.hasStudyNotes = true;
+              delete top.studyNotes;
+            }
+          });
+        }
       });
     }
     examObj.updatedAt = new Date().toISOString();
@@ -3033,6 +3032,9 @@ router.post('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), upload.single
     await docRef.set(cleanExamObj);
 
     invalidateCache('syllabi_custom_all');
+    invalidateCache('topic_pdf');
+    invalidateCache(topicId);
+    invalidateCache(examId);
     await logStaffActivity(req, 'upload_topic_pdf', { examId, topicId, pdfName: req.file.originalname, storagePath });
 
     res.json({
@@ -3053,52 +3055,66 @@ router.post('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), upload.single
 // DELETE /api/admin/syllabus/topic-pdf - Detach and remove topic PDF from Supabase and Firestore
 router.delete('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), async (req, res) => {
   try {
-    const { examId, topicId } = req.body;
+    const { examId, topicId, examData } = req.body;
     if (!examId || !topicId) return res.status(400).json({ error: 'examId and topicId are required' });
 
     const docRef = db.collection('syllabi').doc(examId);
     const docSnap = await docRef.get();
-    if (!docSnap.exists) {
-      return res.status(404).json({ error: 'Exam syllabus not found in Firestore.' });
+    let examObj = null;
+
+    if (docSnap.exists) {
+      examObj = docSnap.data();
+    } else if (examData) {
+      try {
+        examObj = typeof examData === 'string' ? JSON.parse(examData) : examData;
+      } catch (parseErr) {
+        console.warn('[Parse ExamData Error]:', parseErr.message);
+      }
     }
 
-    const examObj = docSnap.data();
     let topicFound = false;
     let oldPdfPath = null;
 
-    if (Array.isArray(examObj.subjects)) {
+    const detachPdf = (top) => {
+      if (top && (top.id === topicId || String(top.id) === String(topicId))) {
+        topicFound = true;
+        if (top.pdfPath) oldPdfPath = top.pdfPath;
+        delete top.pdfPath;
+        delete top.pdfName;
+        delete top.pdfSize;
+        delete top.pdfUpdatedAt;
+      }
+    };
+
+    if (examObj && Array.isArray(examObj.subjects)) {
       examObj.subjects.forEach(sub => {
         if (Array.isArray(sub.chapters)) {
           sub.chapters.forEach(chap => {
             if (Array.isArray(chap.topics)) {
-              chap.topics.forEach(top => {
-                if (top.id === topicId) {
-                  topicFound = true;
-                  oldPdfPath = top.pdfPath;
-                  delete top.pdfPath;
-                  delete top.pdfName;
-                  delete top.pdfSize;
-                  delete top.pdfUpdatedAt;
-                }
-              });
+              chap.topics.forEach(detachPdf);
             }
           });
         }
+        if (Array.isArray(sub.topics)) {
+          sub.topics.forEach(detachPdf);
+        }
       });
-    }
-
-    if (!topicFound) {
-      return res.status(404).json({ error: `Topic "${topicId}" not found in syllabus.` });
     }
 
     if (oldPdfPath) {
       try { await deleteTopicPdf(oldPdfPath); } catch (_) {}
     }
 
-    examObj.updatedAt = new Date().toISOString();
-    await docRef.set(examObj, { merge: true });
+    if (examObj) {
+      examObj.updatedAt = new Date().toISOString();
+      const cleanExamObj = sanitizeForFirestore(examObj);
+      await docRef.set(cleanExamObj);
+    }
 
     invalidateCache('syllabi_custom_all');
+    invalidateCache('topic_pdf');
+    invalidateCache(topicId);
+    invalidateCache(examId);
     await logStaffActivity(req, 'delete_topic_pdf', { examId, topicId });
 
     res.json({ success: true, message: 'PDF notes detached from topic successfully.', exam: examObj });
@@ -3135,7 +3151,6 @@ router.post('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (req,
     }
 
     // 1. Always save the full formatted study notes in dedicated collection 'topic_study_notes'
-    // Each topic gets its own document (up to 1 MB each, allowing unlimited total notes across topics)
     const cleanNotes = sanitizeForFirestore(studyNotes);
     await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).set({
       examId,
@@ -3144,44 +3159,43 @@ router.post('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (req,
       updatedAt: new Date().toISOString()
     });
 
-    // 2. In the syllabus document (which holds all subjects, chapters, topics for the exam),
-    // only store metadata flags (hasStudyNotes, notesUpdatedAt).
-    // Strip heavy studyNotes from topics in examObj to keep the syllabus document light (<200 KB)
-    // and prevent hitting Firestore's strict 1 MiB (1,048,576 bytes) document size limit.
+    // 2. In syllabus document, only store metadata flags
     let topicFound = false;
+    const markTopicNotes = (top) => {
+      if (top && (top.id === topicId || String(top.id) === String(topicId))) {
+        topicFound = true;
+        top.hasStudyNotes = true;
+        top.notesUpdatedAt = new Date().toISOString();
+      }
+      if (top && top.studyNotes) {
+        top.hasStudyNotes = true;
+        delete top.studyNotes;
+      }
+    };
+
     if (Array.isArray(examObj.subjects)) {
       examObj.subjects.forEach(sub => {
         if (Array.isArray(sub.chapters)) {
           sub.chapters.forEach(chap => {
             if (Array.isArray(chap.topics)) {
-              chap.topics.forEach(top => {
-                if (top.id === topicId) {
-                  topicFound = true;
-                  top.hasStudyNotes = true;
-                  top.notesUpdatedAt = new Date().toISOString();
-                }
-                // Strip heavy studyNotes from all topics in the syllabus document
-                if (top.studyNotes) {
-                  top.hasStudyNotes = true;
-                  delete top.studyNotes;
-                }
-              });
+              chap.topics.forEach(markTopicNotes);
             }
           });
+        }
+        if (Array.isArray(sub.topics)) {
+          sub.topics.forEach(markTopicNotes);
         }
       });
     }
 
-    if (!topicFound) {
-      return res.status(404).json({ error: `Topic "${topicId}" not found in syllabus.` });
-    }
-
     examObj.updatedAt = new Date().toISOString();
     const cleanExamObj = sanitizeForFirestore(examObj);
-    // Write whole doc without { merge: true } so any previous legacy embedded studyNotes are completely purged
     await docRef.set(cleanExamObj);
 
     invalidateCache('syllabi_custom_all');
+    invalidateCache('topic_notes');
+    invalidateCache(topicId);
+    invalidateCache(examId);
     await logStaffActivity(req, 'save_topic_study_notes', { examId, topicId });
 
     res.json({
@@ -3199,63 +3213,116 @@ router.post('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (req,
 // DELETE /api/admin/syllabus/topic-notes - Remove formatted study notes from topic
 router.delete('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (req, res) => {
   try {
-    const { examId, topicId } = req.body;
+    const { examId, topicId, examData, deleteCrossExam } = req.body;
     if (!examId || !topicId) {
       return res.status(400).json({ error: 'examId and topicId are required' });
     }
 
     const docRef = db.collection('syllabi').doc(examId);
     const docSnap = await docRef.get();
-    if (!docSnap.exists) {
-      return res.status(404).json({ error: 'Exam syllabus not found.' });
+    let examObj = null;
+
+    if (docSnap.exists) {
+      examObj = docSnap.data();
+    } else if (examData) {
+      try {
+        examObj = typeof examData === 'string' ? JSON.parse(examData) : examData;
+      } catch (parseErr) {
+        console.warn('[Parse ExamData Error]:', parseErr.message);
+      }
     }
 
-    const examObj = docSnap.data();
     let topicFound = false;
 
-    if (Array.isArray(examObj.subjects)) {
+    const clearTopicNotes = (top) => {
+      if (top && (top.id === topicId || String(top.id) === String(topicId))) {
+        topicFound = true;
+        delete top.studyNotes;
+        delete top.hasStudyNotes;
+        delete top.notesUpdatedAt;
+      }
+      if (top && top.studyNotes) {
+        top.hasStudyNotes = true;
+        delete top.studyNotes;
+      }
+    };
+
+    if (examObj && Array.isArray(examObj.subjects)) {
       examObj.subjects.forEach(sub => {
         if (Array.isArray(sub.chapters)) {
           sub.chapters.forEach(chap => {
             if (Array.isArray(chap.topics)) {
-              chap.topics.forEach(top => {
-                if (top.id === topicId) {
-                  topicFound = true;
-                  delete top.studyNotes;
-                  delete top.hasStudyNotes;
-                  delete top.notesUpdatedAt;
-                }
-                // Also clean up any legacy studyNotes from other topics
-                if (top.studyNotes) {
-                  top.hasStudyNotes = true;
-                  delete top.studyNotes;
-                }
-              });
+              chap.topics.forEach(clearTopicNotes);
             }
           });
+        }
+        if (Array.isArray(sub.topics)) {
+          sub.topics.forEach(clearTopicNotes);
         }
       });
     }
 
-    if (!topicFound) {
-      return res.status(404).json({ error: `Topic "${topicId}" not found in syllabus.` });
+    if (examObj) {
+      examObj.updatedAt = new Date().toISOString();
+      const cleanExamObj = sanitizeForFirestore(examObj);
+      await docRef.set(cleanExamObj);
     }
 
-    examObj.updatedAt = new Date().toISOString();
-    const cleanExamObj = sanitizeForFirestore(examObj);
-    await docRef.set(cleanExamObj);
-
+    // 1. Delete document from 'topic_study_notes'
     try {
       await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).delete();
     } catch (_) {}
 
+    // 2. Also delete any matching copies in 'topic_study_notes'
+    try {
+      const qSnap = await db.collection('topic_study_notes').where('topicId', '==', topicId).get();
+      for (const d of qSnap.docs) {
+        const dData = d.data();
+        if (dData.examId === examId || !dData.examId || d.id === `${examId}_${topicId}` || examId === 'cgv_master' || deleteCrossExam) {
+          await d.ref.delete();
+        }
+      }
+    } catch (_) {}
+
+    // 3. If deleted from or deleteCrossExam is true, also delete cgv_master doc
+    if (examId === 'cgv_master' || deleteCrossExam) {
+      try {
+        await db.collection('topic_study_notes').doc(`cgv_master_${topicId}`).delete();
+      } catch (_) {}
+    }
+
+    // 4. Invalidate all memory and disk caches
     invalidateCache('syllabi_custom_all');
+    invalidateCache('topic_notes');
+    invalidateCache(topicId);
+    invalidateCache(examId);
+
     await logStaffActivity(req, 'delete_topic_study_notes', { examId, topicId });
 
     res.json({ success: true, message: 'Study notes removed from topic.', exam: examObj });
   } catch (err) {
     console.error('[Delete Topic Notes Error]:', err);
     res.status(500).json({ error: err.message || 'Failed to delete study notes.' });
+  }
+});
+
+// DELETE /api/admin/syllabus/:id - Delete a custom syllabus configuration from Firestore
+router.delete('/syllabus/:id', verifyStaffOrAdmin('syllabus'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (id === 'topic-notes' || id === 'topic-pdf') {
+      return next();
+    }
+    await db.collection('syllabi').doc(id).delete();
+    console.log(`[Admin Syllabus Delete] Deleted custom syllabus ${id} ✅`);
+
+    invalidateCache('syllabi_custom_all');
+    await logStaffActivity(req, 'delete_syllabus', { id });
+
+    res.json({ success: true, message: 'Custom syllabus deleted successfully.' });
+  } catch (err) {
+    console.error('[Admin Delete Syllabus Error]:', err.message);
+    res.status(500).json({ error: 'Failed to delete custom syllabus.' });
   }
 });
 
@@ -3987,7 +4054,7 @@ ${chunk}
 
         try {
           const model = genAI.getGenerativeModel({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.8-flash',
             generationConfig: {
               responseMimeType: 'application/json',
               maxOutputTokens: 8192,

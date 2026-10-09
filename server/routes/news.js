@@ -512,6 +512,8 @@ router.post('/refresh', verifyRefreshSecret, async (req, res) => {
     message: 'Automated news scraper is disabled. News updates are managed manually via Admin Panel.',
     disabled: true
   });
+});
+
 router.clearUserRecsCache = () => {
   userRecsCache.clear();
 };

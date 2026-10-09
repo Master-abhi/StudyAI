@@ -2,13 +2,14 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { getTrainingData, getRelevantTrainingData } = require('./trainingData');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy-key');
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3.8-flash';
 
 function resolveModelName(modelName) {
   if (!modelName || typeof modelName !== 'string') return MODEL;
   const name = modelName.trim().toLowerCase();
   
   const validModels = [
+    'gemini-3.8-flash',
     'gemini-2.5-flash',
     'gemini-2.5-pro',
     'gemini-2.0-flash',
@@ -16,12 +17,12 @@ function resolveModelName(modelName) {
     'gemini-1.5-pro'
   ];
 
-  if (validModels.includes(name)) return name;
+  if (name.includes('2.5') || name.includes('2.0') || name.includes('1.5')) {
+    return 'gemini-3.8-flash';
+  }
 
-  if (name.includes('pro')) return 'gemini-2.5-pro';
-  if (name.includes('lite') || name.includes('1.5')) return 'gemini-1.5-flash';
-  
-  return 'gemini-2.5-flash';
+  if (validModels.includes(name)) return name;
+  return 'gemini-3.8-flash';
 }
 
 function getLanguageInstruction(language) {
@@ -606,18 +607,37 @@ Respond with the exact requested JSON format. Include exactly 5 high-quality MCQ
 }
 
 async function generatePdfNotesJson(systemInstruction, prompt, modelName = MODEL) {
-  const model = genAI.getGenerativeModel({
-    model: resolveModelName(modelName),
-    systemInstruction,
-    generationConfig: {
-      responseMimeType: "application/json",
-      maxOutputTokens: 16384,
-      temperature: 0.2
-    }
-  });
+  const chosenModel = resolveModelName(modelName);
+  try {
+    const model = genAI.getGenerativeModel({
+      model: chosenModel,
+      systemInstruction,
+      generationConfig: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 16384,
+        temperature: 0.2
+      }
+    });
 
-  const response = await model.generateContent(prompt);
-  return response.response.text().trim();
+    const response = await model.generateContent(prompt);
+    return response.response.text().trim();
+  } catch (err) {
+    if (chosenModel !== 'gemini-3.8-flash') {
+      console.warn(`[Gemini generatePdfNotesJson] Model ${chosenModel} failed (${err.message}). Retrying with gemini-3.8-flash...`);
+      const fallbackModel = genAI.getGenerativeModel({
+        model: 'gemini-3.8-flash',
+        systemInstruction,
+        generationConfig: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 16384,
+          temperature: 0.2
+        }
+      });
+      const fallbackResponse = await fallbackModel.generateContent(prompt);
+      return fallbackResponse.response.text().trim();
+    }
+    throw err;
+  }
 }
 
 module.exports = { 

@@ -274,6 +274,39 @@ router.get('/data', async (req, res) => {
   }
 });
 
+router.post('/upgrade-plan', async (req, res) => {
+  try {
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const uid = req.user.uid;
+    const { planDuration = '6_months', price = 99 } = req.body || {};
+    
+    // Calculate expiry date
+    const now = new Date();
+    const expiryDate = new Date();
+    if (planDuration === '1_year') {
+      expiryDate.setFullYear(now.getFullYear() + 1);
+    } else {
+      expiryDate.setMonth(now.getMonth() + 6);
+    }
+
+    await db.collection('users').doc(uid).set({
+      plan: 'paid',
+      isPaid: true,
+      planDuration,
+      planPrice: price,
+      planActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      planExpiresAt: admin.firestore.Timestamp.fromDate(expiryDate)
+    }, { merge: true });
+    console.log(`[User Plan Upgrade] User ${uid} upgraded to Pro Pass (${planDuration}, ₹${price}) ✅`);
+    res.json({ success: true, plan: 'paid', isPaid: true, planDuration, message: 'Pro Pass activated successfully' });
+  } catch (err) {
+    console.error('[Upgrade Plan Error]:', err.message);
+    res.status(500).json({ error: 'Failed to upgrade plan' });
+  }
+});
+
 router.post('/sync', async (req, res) => {
   try {
     // Enforce email verification check disabled to allow sync before verification

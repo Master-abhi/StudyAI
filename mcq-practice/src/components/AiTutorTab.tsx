@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, Trash2, StopCircle, 
   Brain, ChevronRight, Globe,
-  Bot, Trees, FileText, Users, Newspaper
+  Bot, Trees, FileText, Users, Newspaper,
+  Crown, Zap, Lock
 } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { canAskAiQuestion, getRemainingAiQuestions, incrementDailyAiQuestions } from '../utils/userTierLimits';
 
 interface ChatMessage {
   id: string;
@@ -13,13 +15,19 @@ interface ChatMessage {
   timestamp: string;
 }
 
-
-
 interface AiTutorTabProps {
   activeExam: any;
+  userPlan?: 'free' | 'paid';
+  onOpenUpgrade?: () => void;
+  currentUser?: any;
 }
 
-export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
+export const AiTutorTab: React.FC<AiTutorTabProps> = ({ 
+  activeExam, 
+  userPlan = 'free', 
+  onOpenUpgrade, 
+  currentUser 
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputVal, setInputVal] = useState<string>('');
   const [generating, setGenerating] = useState<boolean>(false);
@@ -72,7 +80,15 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
     const query = textToSend.trim();
     if (!query) return;
 
-
+    const isPro = userPlan === 'paid';
+    if (!isPro && !canAskAiQuestion(userPlan)) {
+      if (onOpenUpgrade) {
+        onOpenUpgrade();
+      } else {
+        alert('आज के 3 निःशुल्क सवालों की सीमा पूरी हो चुकी है। असीमित AI Guru सवालों के लिए Pro Pass में अपग्रेड करें।');
+      }
+      return;
+    }
 
     setInputVal('');
     const userTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -86,6 +102,10 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     saveChatHistory(updatedMessages);
+
+    if (!isPro) {
+      incrementDailyAiQuestions();
+    }
 
     // Initializing AI Response placeholder
     setGenerating(true);
@@ -125,9 +145,17 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
         content: m.content
       }));
 
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (currentUser) {
+        try {
+          const token = await currentUser.getIdToken();
+          headers['Authorization'] = `Bearer ${token}`;
+        } catch (_) {}
+      }
+
       const response = await fetch(getApiUrl('/api/chat'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           message: query,
           examName,
@@ -139,6 +167,13 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
       });
 
       if (!response.ok) {
+        if (response.status === 403) {
+          const errData = await response.json().catch(() => ({}));
+          if (errData.limitReached && onOpenUpgrade) {
+            onOpenUpgrade();
+          }
+          throw new Error(errData.error || 'दैनिक सीमा पूरी हो चुकी है।');
+        }
         throw new Error('Failed to reach AI Tutor endpoints');
       }
 
@@ -230,6 +265,24 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
         </div>
 
         <div className="flex items-center gap-2.5">
+          {/* Plan Quota Badge */}
+          {userPlan === 'paid' ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-black text-emerald-400">
+              <Crown className="w-3 h-3 fill-emerald-400" />
+              <span>Pro: असीमित सवाल</span>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenUpgrade}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-saffron/15 border border-saffron/30 text-[10px] font-black text-saffron hover:bg-saffron/25 transition-all cursor-pointer shadow-sm"
+              title="Upgrade to Pro for unlimited doubts"
+            >
+              <Zap className="w-3 h-3 fill-saffron" />
+              <span>Free: {getRemainingAiQuestions(userPlan)}/3 सवाल शेष</span>
+              <span className="text-[9px] underline font-bold ml-1 text-white bg-saffron px-1.5 py-0.5 rounded">Pro लें</span>
+            </button>
+          )}
+
           {/* Language toggle */}
           <button
             onClick={() => setChatLanguage(prev => prev === 'hi' ? 'en' : 'hi')}
@@ -321,6 +374,22 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
 
       {/* 3. Message typing input field */}
       <div className="border-t border-border pt-3.5 bg-bg-s1 shrink-0">
+        {userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0 && (
+          <div className="mb-2.5 p-2.5 bg-saffron/10 border border-saffron/30 rounded-lg flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-saffron font-bold">
+              <Lock className="w-4 h-4 shrink-0" />
+              <span>आज के 3 निःशुल्क सवालों की सीमा पूरी हो चुकी है।</span>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenUpgrade}
+              className="px-3 py-1 bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-white rounded font-black text-[10px] uppercase tracking-wider shrink-0 shadow cursor-pointer transition-all active:scale-95"
+            >
+              Pro Pass अनलॉक करें
+            </button>
+          </div>
+        )}
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -328,15 +397,17 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
           }}
           className="flex items-center gap-2.5"
         >
-
-
           <input
             type="text"
-            placeholder="Ask anything about your exam..."
+            placeholder={
+              userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0 
+                ? 'आज के 3 निःशुल्क सवालों की सीमा समाप्त (Pro Pass अनलॉक करें)...' 
+                : 'Ask anything about your exam...'
+            }
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            disabled={generating}
-            className="flex-1 bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-4 py-3 rounded-lg outline-none transition-colors"
+            disabled={generating || (userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0)}
+            className="flex-1 bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-4 py-3 rounded-lg outline-none transition-colors disabled:opacity-60"
           />
 
           {generating ? (
@@ -351,7 +422,7 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({ activeExam }) => {
           ) : (
             <button
               type="submit"
-              disabled={!inputVal.trim()}
+              disabled={!inputVal.trim() || (userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0)}
               className="p-3 bg-saffron hover:bg-orange-500 disabled:opacity-50 text-bg-s1 rounded-lg flex items-center justify-center cursor-pointer transition-colors shadow"
             >
               <Send className="w-4 h-4 fill-bg-s1" />

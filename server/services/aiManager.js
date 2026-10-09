@@ -45,20 +45,20 @@ async function getGeminiConfig() {
     if (doc.exists) {
       const data = doc.data();
       return {
-        test: data.geminiModelTest || 'gemini-2.5-flash',
-        analytics: data.geminiModelAnalytics || 'gemini-2.5-flash',
-        chat: data.geminiModelChat || 'gemini-2.5-flash',
-        news: data.geminiModelNews || 'gemini-2.5-flash'
+        test: data.geminiModelTest || 'gemini-3.8-flash',
+        analytics: data.geminiModelAnalytics || 'gemini-3.8-flash',
+        chat: data.geminiModelChat || 'gemini-3.8-flash',
+        news: data.geminiModelNews || 'gemini-3.8-flash'
       };
     }
   } catch (err) {
     console.error('[aiManager] Failed to read Gemini configuration from Firestore:', err.message);
   }
   return {
-    test: 'gemini-2.5-flash',
-    analytics: 'gemini-2.5-flash',
-    chat: 'gemini-2.5-flash',
-    news: 'gemini-2.5-flash'
+    test: 'gemini-3.8-flash',
+    analytics: 'gemini-3.8-flash',
+    chat: 'gemini-3.8-flash',
+    news: 'gemini-3.8-flash'
   };
 }
 
@@ -521,7 +521,7 @@ Return ONLY the valid JSON object with NO markdown fences.`;
     } else {
       console.log('[generatePdfStudyNotes] Requesting Gemini for study notes generation...');
       if (geminiService && geminiService.generatePdfNotesJson) {
-        responseText = await geminiService.generatePdfNotesJson(systemPrompt, userPrompt, 'gemini-2.5-flash');
+        responseText = await geminiService.generatePdfNotesJson(systemPrompt, userPrompt, 'gemini-3.8-flash');
       } else {
         const testService = await getService('test');
         responseText = await testService.chat(systemPrompt + '\n\n' + userPrompt, 'Study Notes Designer', 'hindi', [], 8000);
@@ -534,7 +534,7 @@ Return ONLY the valid JSON object with NO markdown fences.`;
         // Fallback to Gemini
         console.log('[generatePdfStudyNotes] Falling back to Gemini...');
         if (geminiService && geminiService.generatePdfNotesJson) {
-          responseText = await geminiService.generatePdfNotesJson(systemPrompt, userPrompt, 'gemini-2.5-flash');
+          responseText = await geminiService.generatePdfNotesJson(systemPrompt, userPrompt, 'gemini-3.8-flash');
         } else {
           throw primaryErr;
         }

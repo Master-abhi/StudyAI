@@ -24,6 +24,7 @@ const userRoutes = require('./routes/user');
 const studyIntelligenceRoutes = require('./routes/studyIntelligence');
 const jobsRoutes = require('./routes/jobs');
 const notificationsRoutes = require('./routes/notifications');
+const paymentRoutes = require('./routes/payment');
 const { initJobAlertScheduler } = require('./services/jobAlertScheduler');
 
 const { generalRateLimiter, otpRateLimiter } = require('./middleware/rateLimiter');
@@ -75,10 +76,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api', generalRateLimiter);
 app.use('/api/user/send-otp', otpRateLimiter);
 
-// Direct redirect for Android App APK to Supabase Storage CDN
-const SUPABASE_APK_URL = process.env.SUPABASE_APK_URL || 'https://qduvlyvueztczchfloog.supabase.co/storage/v1/object/public/app/cgguru.apk';
+// Direct redirect for Android App APK to reliable CDN
+const DEFAULT_APK_DOWNLOAD_URL = 'https://raw.githubusercontent.com/Master-abhi/StudyAI/main/cgguru.apk';
+const APK_DOWNLOAD_URL = process.env.APK_DOWNLOAD_URL || process.env.SUPABASE_APK_URL || DEFAULT_APK_DOWNLOAD_URL;
 app.get(['/cgguru.apk', '/download/app', '/api/app/download'], (req, res) => {
-  res.redirect(302, SUPABASE_APK_URL);
+  res.redirect(302, APK_DOWNLOAD_URL);
 });
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -94,6 +96,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/study-intelligence', studyIntelligenceRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/payment', paymentRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

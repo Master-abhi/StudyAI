@@ -34,6 +34,7 @@ interface LandingTabProps {
   onNavigateToTab: (tabId: string) => void;
   currentUser?: any;
   userPlan?: 'free' | 'paid';
+  onOpenUpgrade?: (reason?: string, plan?: '6_months' | '1_year') => void;
 }
 
 export const LandingTab: React.FC<LandingTabProps> = ({
@@ -41,6 +42,7 @@ export const LandingTab: React.FC<LandingTabProps> = ({
   onOpenAuth,
   onNavigateToTab,
   currentUser,
+  onOpenUpgrade,
 }) => {
   const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
   const [demoSelectedOption, setDemoSelectedOption] = useState<number | null>(null);
@@ -106,8 +108,8 @@ export const LandingTab: React.FC<LandingTabProps> = ({
       a: "Yes! CG Guru ek fast modern Web App hai jo Mobile browser, Laptop, Tablet aur PC par smooth chalta hai. Sath hi aap direct hamara lightweight Android APK bhi download kar sakte hain."
     },
     {
-      q: "Launch Welcome Offer (Flat 60% OFF) kaise claim karein?",
-      a: "Pro Pass choose karte samay coupon code 'CGGURU60' apply karein. Isse Annual Pro Pass ₹799 ki jagah sirf ₹299 (matra ₹25/month) me instantly activate ho jayega."
+      q: "Launch Welcome Offer (Special Offer) kaise claim karein?",
+      a: "Pro Pass choose karte samay coupon code 'PRO99' apply karein. Isse 6 Months Pro Pass ₹299 ki jagah sirf ₹99 (matra ₹16.5/month) me instantly activate ho jayega."
     }
   ];
 
@@ -365,18 +367,24 @@ export const LandingTab: React.FC<LandingTabProps> = ({
 
             {/* Price Showcase Card */}
             <div className="w-full lg:w-80 bg-bg-s2 border-2 border-saffron/50 rounded-2xl p-6 text-center shadow-xl shrink-0">
-              <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Annual Pro Pass</div>
+              <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">6 Months Pro Pass</div>
               <div className="flex items-center justify-center gap-2 my-2">
-                <span className="text-sm text-text-muted line-through font-bold">₹799</span>
-                <span className="text-4xl font-black text-greenL">₹299</span>
-                <span className="text-xs text-text-muted font-bold">/ 1 Year</span>
+                <span className="text-sm text-text-muted line-through font-bold">₹299</span>
+                <span className="text-4xl font-black text-greenL">₹99</span>
+                <span className="text-xs text-text-muted font-bold">/ 6 Months</span>
               </div>
               <div className="text-[11px] font-black text-saffron mb-5 bg-saffron/10 py-1.5 rounded-lg">
-                Only ₹25 / month • Unlock All Features
+                Only ₹16.5 / month • Unlock All Features
               </div>
 
               <button
-                onClick={() => setShowOfferModal(true)}
+                onClick={() => {
+                  if (onOpenUpgrade) {
+                    onOpenUpgrade('general', '6_months');
+                  } else {
+                    setShowOfferModal(true);
+                  }
+                }}
                 className="w-full py-3.5 bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg cursor-pointer transition-all flex items-center justify-center gap-2 active:scale-95"
               >
                 <span>Claim Offer Now</span>
@@ -752,112 +760,124 @@ export const LandingTab: React.FC<LandingTabProps> = ({
             </button>
           </div>
 
-          {/* Plan 2: Pro Guru Pass (Featured) */}
+          {/* Plan 2: 6 Months Pro Pass */}
+          <div className="rounded-3xl bg-bg-s2 border border-border p-7 flex flex-col justify-between shadow-lg">
+            <div>
+              <div className="text-xs font-black uppercase tracking-wider text-saffron mb-1">Standard Pro Plan</div>
+              <h3 className="text-xl font-black text-text">6 Months Pro Pass</h3>
+              <p className="text-xs text-text-muted mt-1">6 महीने के लिए कम्पलीट प्रिपरेशन पैकेज</p>
+              
+              <div className="my-6">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm text-text-muted line-through font-bold">₹299</span>
+                  <span className="text-3xl font-black text-saffron">₹99</span>
+                  <span className="text-xs text-text-muted font-bold">/ 6 Months</span>
+                </div>
+                <span className="inline-block mt-1 text-[11px] font-bold text-saffron bg-saffron/10 px-2 py-0.5 rounded">
+                  मात्र ₹16.5/माह • कूपन: PRO99
+                </span>
+              </div>
+
+              <ul className="space-y-3 text-xs text-text-muted mb-8">
+                <li className="flex items-center gap-2 font-bold text-saffron">
+                  <Check className="w-4 h-4 text-saffron shrink-0" />
+                  <span>Free Pass के सभी फीचर्स शामिल</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-greenL shrink-0" />
+                  <span><strong>24/7 Unlimited AI Tutor</strong> (Doubt solving)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-greenL shrink-0" />
+                  <span><strong>Full Mock Tests</strong> (नेगेटिव मार्किंग & CG रैंक)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-greenL shrink-0" />
+                  <span><strong>सभी विषयों के नोट्स & टेस्ट</strong> 100% अनलॉक</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-greenL shrink-0" />
+                  <span>कंप्लीट टाइपिंग स्पीड टेस्ट व PYQs</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => {
+                if (onOpenUpgrade) {
+                  onOpenUpgrade('general', '6_months');
+                } else {
+                  setShowOfferModal(true);
+                }
+              }}
+              className="w-full py-3.5 rounded-xl bg-bg-s3 hover:bg-saffron/20 hover:text-saffron text-text font-bold text-xs uppercase tracking-wider cursor-pointer transition-all border border-border hover:border-saffron/40"
+            >
+              Get 6 Months Pass — ₹99
+            </button>
+          </div>
+
+          {/* Plan 3: 1 Year Pro Pass (Featured - Replaced 699 offer) */}
           <div className="rounded-3xl bg-gradient-to-b from-bg-s2 via-bg-s3/30 to-bg-s2 border-2 border-saffron p-8 flex flex-col justify-between shadow-2xl relative">
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-saffron to-orange-500 text-white text-[10px] font-black uppercase tracking-wider px-4 py-1 rounded-full shadow-md z-10">
               🌟 Most Popular • Best Value
             </div>
 
             <div>
-              <div className="text-xs font-black uppercase tracking-wider text-saffron mb-1">Pro Plan</div>
-              <h3 className="text-2xl font-black text-text">CG Guru Pro Pass</h3>
-              <p className="text-xs text-text-muted mt-1">Serious Aspirants ke liye Complete Selection Package</p>
+              <div className="text-xs font-black uppercase tracking-wider text-saffron mb-1">Annual Pro Plan</div>
+              <h3 className="text-2xl font-black text-text">1 Year Pro Pass</h3>
+              <p className="text-xs text-text-muted mt-1">पूरे 1 साल की वैलिडिटी • Serious Aspirants के लिए</p>
               
               <div className="my-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm text-text-muted line-through font-bold">₹799</span>
-                  <span className="text-4xl font-black text-greenL">₹299</span>
+                  <span className="text-sm text-text-muted line-through font-bold">₹499</span>
+                  <span className="text-4xl font-black text-greenL">₹149</span>
                   <span className="text-xs text-text-muted font-bold">/ 1 Year</span>
                 </div>
-                <span className="inline-block mt-1 text-[11px] font-black text-saffron bg-saffron/10 px-2 py-0.5 rounded">
-                  Coupon CGGURU60 Applied (FLAT 60% OFF)
+                <span className="inline-block mt-1 text-[11px] font-black text-greenL bg-greenL/15 px-2 py-0.5 rounded">
+                  🔥 बेस्ट वैल्यू • मात्र ₹12.4/माह (PRO149)
                 </span>
               </div>
 
               <ul className="space-y-3 text-xs text-text mb-8">
                 <li className="flex items-center gap-2 font-bold text-saffron">
                   <Check className="w-4 h-4 text-saffron shrink-0" />
-                  <span>Free Pass ke sabhi features included</span>
+                  <span>Pro Pass के सभी फीचर्स पूरे 1 साल उपलब्ध</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-greenL shrink-0" />
-                  <span><strong>Unlimited 24/7 AI Tutor</strong> (Instant doubt solving & concept clarity)</span>
+                  <span><strong>24/7 AI Guru Mentorship</strong> (असीमित प्रश्न)</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-greenL shrink-0" />
-                  <span><strong>Last 10 Years PYQs</strong> topic-wise with detailed solutions</span>
+                  <span><strong>CGPSC व Vyapam के 10 साल के PYQs</strong></span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-greenL shrink-0" />
-                  <span><strong>Full-Length Real Mock Tests</strong> (Negative marking & All-CG rank)</span>
+                  <span><strong>अनलिमिटेड फुल लेंथ मॉक टेस्ट्स</strong> & All-CG लाइव रैंक</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-greenL shrink-0" />
-                  <span><strong>Complete Typing Test Suite</strong> (KrutiDev, Mangal, Remington)</span>
+                  <span><strong>सिलेबस के सभी चैप्टर्स के नोट्स & PDFs</strong></span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-greenL shrink-0" />
-                  <span>Weak Area Diagnostic & AI Score Booster</span>
+                  <span>KrutiDev, Mangal व Remington टाइपिंग टेस्ट</span>
                 </li>
               </ul>
             </div>
 
             <button
-              onClick={() => setShowOfferModal(true)}
+              onClick={() => {
+                if (onOpenUpgrade) {
+                  onOpenUpgrade('general', '1_year');
+                } else {
+                  setShowOfferModal(true);
+                }
+              }}
               className="w-full py-4 rounded-xl bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-white font-black text-xs uppercase tracking-wider cursor-pointer shadow-lg hover:shadow-saffron/20 transition-all flex items-center justify-center gap-2 active:scale-95"
             >
-              <span>Claim Offer — ₹299 Only</span>
+              <span>Claim 1 Year Pass — ₹149 Only</span>
               <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Plan 3: Lifetime Pass */}
-          <div className="rounded-3xl bg-bg-s2 border border-border p-7 flex flex-col justify-between shadow-lg">
-            <div>
-              <div className="text-xs font-black uppercase tracking-wider text-gold mb-1">Lifetime Pass</div>
-              <h3 className="text-xl font-black text-text">Lifetime Champion</h3>
-              <p className="text-xs text-text-muted mt-1">Bar-bar recharge aur renewal se complete freedom</p>
-              
-              <div className="my-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-sm text-text-muted line-through font-bold">₹1999</span>
-                  <span className="text-3xl font-black text-gold">₹699</span>
-                  <span className="text-xs text-text-muted font-bold">/ One-time</span>
-                </div>
-                <span className="inline-block mt-1 text-[11px] font-bold text-gold">
-                  Pay Once • Lifetime Unlimited Access
-                </span>
-              </div>
-
-              <ul className="space-y-3 text-xs text-text-muted mb-8">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-gold shrink-0" />
-                  <span>Pro Pass ke sabhi features lifetime available</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-gold shrink-0" />
-                  <span>Future me aane wali new test series free included</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-gold shrink-0" />
-                  <span>Personal AI Study Planner & Revision Scheduler</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-gold shrink-0" />
-                  <span>Priority 1-on-1 Doubt Support</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-gold shrink-0" />
-                  <span>Unlimited Test Re-attempts & PDF Notes Export</span>
-                </li>
-              </ul>
-            </div>
-
-            <button
-              onClick={() => setShowOfferModal(true)}
-              className="w-full py-3 rounded-xl bg-bg-s3 hover:bg-gold/20 hover:text-gold text-text font-bold text-xs uppercase tracking-wider cursor-pointer transition-all border border-border hover:border-gold/40"
-            >
-              Get Lifetime Pass
             </button>
           </div>
 
@@ -1010,7 +1030,7 @@ export const LandingTab: React.FC<LandingTabProps> = ({
             className="px-8 py-4 bg-greenL hover:bg-green-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:shadow-greenL/25 transition-all flex items-center gap-2.5 cursor-pointer shrink-0 active:scale-95"
           >
             <Download className="w-5 h-5" />
-            <span>Download .APK (22 MB)</span>
+            <span>Download .APK</span>
           </a>
         </div>
       </section>
@@ -1096,17 +1116,19 @@ export const LandingTab: React.FC<LandingTabProps> = ({
 
               {/* Price Details */}
               <div className="bg-bg-s1 rounded-2xl p-4 border border-border mb-6">
-                <div className="flex justify-between items-center text-xs text-text-muted mb-2">
-                  <span>Actual Price (1 Year)</span>
-                  <span className="line-through font-bold">₹799</span>
+                <div className="flex justify-between items-center text-xs text-text-muted mb-1.5 pb-2 border-b border-border/40">
+                  <span className="font-bold">6 Months Pass (PRO99)</span>
+                  <div className="flex items-center gap-2">
+                    <span className="line-through text-text-muted">₹299</span>
+                    <span className="font-black text-saffron text-sm">₹99</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-xs text-greenL mb-2">
-                  <span>Coupon Discount (CGGURU60)</span>
-                  <span className="font-bold">- ₹500 (60% OFF)</span>
-                </div>
-                <div className="pt-2 border-t border-border flex justify-between items-center text-sm font-black text-text">
-                  <span>Total Payable Amount</span>
-                  <span className="text-xl text-saffron">₹299</span>
+                <div className="flex justify-between items-center text-xs text-text-muted pt-1">
+                  <span className="font-bold text-greenL">1 Year Pass (PRO149) 🔥</span>
+                  <div className="flex items-center gap-2">
+                    <span className="line-through text-text-muted">₹499</span>
+                    <span className="font-black text-greenL text-sm">₹149</span>
+                  </div>
                 </div>
               </div>
 
@@ -1131,7 +1153,9 @@ export const LandingTab: React.FC<LandingTabProps> = ({
                 <button
                   onClick={() => {
                     setShowOfferModal(false);
-                    if (!currentUser) {
+                    if (onOpenUpgrade) {
+                      onOpenUpgrade('general', '1_year');
+                    } else if (!currentUser) {
                       onOpenAuth();
                     } else {
                       onStartPractice();

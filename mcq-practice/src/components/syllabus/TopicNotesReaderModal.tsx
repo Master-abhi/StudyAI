@@ -14,31 +14,28 @@ export function formatNotesContent(content: any): string {
   if (typeof content !== 'string') return content || '';
   let str = content;
 
-  // If there are no HTML tags, return as-is
-  if (!/<[a-z][\s\S]*>/i.test(str)) {
-    return str;
-  }
-
   // First convert <li>Title: text</li> or <li><b>Title:</b> text</li> into markdown bullet
-  str = str.replace(/<li[^>]*>\s*<strong>([^<]+)<\/strong>\s*:?\s*([\s\S]*?)<\/li>/gi, '\n- **$1:** $2');
-  str = str.replace(/<li[^>]*>\s*<b>([^<]+)<\/b>\s*:?\s*([\s\S]*?)<\/li>/gi, '\n- **$1:** $2');
-  str = str.replace(/<li[^>]*>\s*([^:<]+?)\s*:\s*([\s\S]*?)<\/li>/gi, '\n- **$1:** $2');
-  str = str.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '\n- $1');
+  if (/<[a-z][\s\S]*>/i.test(str)) {
+    str = str.replace(/<li[^>]*>\s*<strong>([^<]+)<\/strong>\s*:?\s*([\s\S]*?)<\/li>/gi, '\n- **$1:** $2');
+    str = str.replace(/<li[^>]*>\s*<b>([^<]+)<\/b>\s*:?\s*([\s\S]*?)<\/li>/gi, '\n- **$1:** $2');
+    str = str.replace(/<li[^>]*>\s*([^:<]+?)\s*:\s*([\s\S]*?)<\/li>/gi, '\n- **$1:** $2');
+    str = str.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '\n- $1');
 
-  // Replace bold & italic tags
-  str = str.replace(/<\/?(b|strong)[^>]*>/gi, '**');
-  str = str.replace(/<\/?(i|em)[^>]*>/gi, '*');
+    // Replace bold & italic tags
+    str = str.replace(/<\/?(b|strong)[^>]*>/gi, '**');
+    str = str.replace(/<\/?(i|em)[^>]*>/gi, '*');
 
-  // Line breaks and paragraphs
-  str = str.replace(/<br\s*\/?>/gi, '\n');
-  str = str.replace(/<p[^>]*>/gi, '\n\n');
-  str = str.replace(/<\/p>/gi, '\n');
+    // Line breaks and paragraphs
+    str = str.replace(/<br\s*\/?>/gi, '\n');
+    str = str.replace(/<p[^>]*>/gi, '\n\n');
+    str = str.replace(/<\/p>/gi, '\n');
 
-  // Remove list wrappers
-  str = str.replace(/<\/?(ul|ol|span|div)[^>]*>/gi, '\n');
+    // Remove list wrappers
+    str = str.replace(/<\/?(ul|ol|span|div)[^>]*>/gi, '\n');
 
-  // Strip any other lingering HTML tags
-  str = str.replace(/<[^>]+>/g, '');
+    // Strip any other lingering HTML tags
+    str = str.replace(/<[^>]+>/g, '');
+  }
 
   // Decode common HTML entities
   str = str
@@ -48,6 +45,19 @@ export function formatNotesContent(content: any): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
+
+  // Format bullet points (•, ●) so each is on its own line as markdown '-'
+  str = str.replace(/([^\n])\s*[•●]\s*/g, '$1\n\n- ');
+  str = str.replace(/^[ \t]*[•●]\s*/gm, '- ');
+
+  // If a numbered list item (1., 2.) is stuck on the same line after sentence ending punctuation, insert newlines
+  str = str.replace(/([^\n\r#])\s*([।!?\.])\s*(\d+\.)\s+(\*\*|[A-Za-z\u0900-\u097F])/g, '$1$2\n\n$3 $4');
+
+  // Ensure numbered list items that start on a new line have a double newline before them so markdown creates proper <ol>
+  str = str.replace(/([^\n])\n[ \t]*(\d+\.)\s+/g, '$1\n\n$2 ');
+
+  // Format Devanagari / English subheadings like (क), (ख) on their own line without #### to have ####
+  str = str.replace(/(?<!#.*)(?:^|\n)[ \t]*\(([क-हa-z0-9])\)\s*(\*\*|[A-Za-z\u0900-\u097F])/gi, '\n\n#### ($1) $2');
 
   // Normalize excessive newlines
   str = str.replace(/\n{3,}/g, '\n\n').trim();
@@ -80,6 +90,31 @@ function normalizeNotes(val: any): any {
         res[k] = normalizeNotes(v);
       }
     }
+    // If an object represents a chapter with content or subsections, ensure sections exists
+    if ((res.content || res.subsections) && !res.sections) {
+      const generatedSections: any[] = [];
+      if (res.content && typeof res.content === 'string') {
+        generatedSections.push({
+          heading: 'विषय व्याख्या एवं अध्ययन विवरण',
+          content: res.content
+        });
+      }
+      if (Array.isArray(res.subsections)) {
+        res.subsections.forEach((sub: any) => {
+          let subContent = '';
+          if (typeof sub.content === 'string') {
+            subContent = sub.content;
+          } else if (Array.isArray(sub.points)) {
+            subContent = sub.points.map((p: any) => `• ${typeof p === 'object' ? JSON.stringify(p) : p}`).join('\n\n');
+          }
+          generatedSections.push({
+            heading: sub.heading || sub.title || 'मुख्य बिंदु',
+            content: formatNotesContent(subContent)
+          });
+        });
+      }
+      res.sections = generatedSections;
+    }
     return res;
   }
   return val;
@@ -97,7 +132,7 @@ function getRowCells(row: any): string[] {
 // Safely extract and normalize sources list from notes (string or string[])
 export function getSourcesList(notes: any): string[] {
   if (!notes) return [];
-  const rawSources = notes.sources || notes.references;
+  const rawSources = notes.sources || notes.references || notes.authoritativeSources;
   let list: string[] = [];
 
   if (Array.isArray(rawSources)) {
@@ -379,6 +414,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
   const allTables: any[] = [];
   if (notes) {
     if (Array.isArray(notes.tables)) allTables.push(...notes.tables);
+    if (Array.isArray(notes.comparativeTables)) allTables.push(...notes.comparativeTables);
     if (Array.isArray(notes.chapters)) {
       notes.chapters.forEach((ch: any) => {
         if (Array.isArray(ch.tables)) allTables.push(...ch.tables);
@@ -906,12 +942,12 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                           )}
 
                           {sec.content && (
-                            <div className="prose prose-sm max-w-none font-normal leading-relaxed text-justify space-y-2.5">
+                            <div className="prose prose-sm max-w-none font-normal leading-relaxed text-left space-y-3">
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
                                   p: ({ children }) => (
-                                    <p className={`my-2 leading-relaxed ${
+                                    <p className={`my-2 leading-relaxed text-left ${
                                       readingTheme === 'dark' ? 'text-slate-200' : readingTheme === 'sepia' ? 'text-[#3F3325]' : 'text-slate-800'
                                     }`}>{children}</p>
                                   ),
@@ -921,44 +957,44 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                     }`}>{children}</strong>
                                   ),
                                   ul: ({ children }) => (
-                                    <ul className="list-disc pl-5 my-2 space-y-1.5">{children}</ul>
+                                    <ul className="list-disc pl-5 my-2.5 space-y-2">{children}</ul>
                                   ),
-                                  ol: ({ children }) => (
-                                    <ol className="list-decimal pl-5 my-2 space-y-1.5">{children}</ol>
+                                  ol: ({ children, start }: any) => (
+                                    <ol start={start} className="list-decimal pl-5 my-2.5 space-y-2">{children}</ol>
                                   ),
-                                  li: ({ children }) => (
-                                    <li className={`leading-relaxed ${
+                                  li: ({ children, value }: any) => (
+                                    <li value={value} className={`leading-relaxed pl-1 ${
                                       readingTheme === 'dark' ? 'text-slate-200' : readingTheme === 'sepia' ? 'text-[#3F3325]' : 'text-slate-800'
                                     }`}>{children}</li>
                                   ),
                                   h1: ({ children }) => (
-                                    <h3 className={`text-base font-black mt-4 mb-1.5 ${
-                                      readingTheme === 'dark' ? 'text-amber-400' : readingTheme === 'sepia' ? 'text-[#8A4A00]' : 'text-amber-700'
+                                    <h3 className={`text-base font-black mt-5 mb-2.5 ${
+                                      readingTheme === 'dark' ? 'text-amber-400' : readingTheme === 'sepia' ? 'text-[#8A4A00]' : 'text-[#B45309]'
                                     }`}>{children}</h3>
                                   ),
                                   h2: ({ children }) => (
-                                    <h4 className={`text-sm font-black mt-3 mb-1 ${
-                                      readingTheme === 'dark' ? 'text-amber-400' : readingTheme === 'sepia' ? 'text-[#8A4A00]' : 'text-amber-700'
+                                    <h4 className={`text-sm font-black mt-4 mb-2 ${
+                                      readingTheme === 'dark' ? 'text-amber-400' : readingTheme === 'sepia' ? 'text-[#8A4A00]' : 'text-[#B45309]'
                                     }`}>{children}</h4>
                                   ),
                                   h3: ({ children }) => (
-                                    <h5 className={`text-xs font-black uppercase tracking-wider mt-2.5 mb-1 ${
-                                      readingTheme === 'dark' ? 'text-amber-300' : readingTheme === 'sepia' ? 'text-[#8A4A00]' : 'text-amber-800'
+                                    <h5 className={`text-sm font-black mt-4 mb-2 ${
+                                      readingTheme === 'dark' ? 'text-amber-300' : readingTheme === 'sepia' ? 'text-[#8A4A00]' : 'text-[#B45309]'
                                     }`}>{children}</h5>
                                   ),
                                   h4: ({ children }) => (
-                                    <h6 className={`text-xs font-bold mt-2 mb-1 ${
-                                      readingTheme === 'dark' ? 'text-slate-100' : readingTheme === 'sepia' ? 'text-[#2A1E11]' : 'text-slate-900'
+                                    <h6 className={`text-xs sm:text-sm font-black mt-3.5 mb-1.5 ${
+                                      readingTheme === 'dark' ? 'text-amber-300' : readingTheme === 'sepia' ? 'text-[#8A4A00]' : 'text-[#B45309]'
                                     }`}>{children}</h6>
                                   ),
                                   blockquote: ({ children }) => (
-                                    <blockquote className={`border-l-4 border-saffron pl-3 py-1 my-2 rounded-r italic text-xs ${
+                                    <blockquote className={`border-l-4 border-saffron pl-3.5 py-1.5 my-2.5 rounded-r italic text-xs ${
                                       readingTheme === 'dark' ? 'bg-[#1E293B] text-slate-300' : 'bg-saffron/10 text-slate-700'
                                     }`}>{children}</blockquote>
                                   )
                                 }}
                               >
-                                {formatNotesContent(sec.content)}
+                                {sec.content}
                               </ReactMarkdown>
                             </div>
                           )}
@@ -1102,37 +1138,89 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                   )}
 
                   {/* Confusion Buster Section */}
-                  {Array.isArray(notes.confusionBuster) && notes.confusionBuster.length > 0 && (
-                    <div className={`p-5 rounded-xl border ${getCardBgClass()} space-y-3`}>
-                      <h4 className="text-sm font-black uppercase tracking-wider text-amber-500 flex items-center gap-2">
-                        ⚠️ सामान्य भ्रम एवं स्पष्टीकरण (Confusion Buster)
-                      </h4>
-                      <div className="divide-y divide-border/40">
-                        {notes.confusionBuster.map((item: any, idx: number) => {
-                          const leftHeading = item.conceptA ? `❌ ${item.conceptA}` : '❌ अक्सर होने वाला भ्रम:';
-                          const leftContent = item.oftenConfused || (item.conceptA ? `${item.conceptA}` : '');
-                          const rightHeading = item.conceptB ? `✔️ ${item.conceptB}` : '✔️ सही एवं प्रामाणिक तथ्य:';
-                          const rightContent = item.correctInformation || item.keyDifference || (item.trickToRemember ? `याद रखने का सूत्र: ${item.trickToRemember}` : '');
-                          return (
-                            <div key={idx} className="py-2.5 grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
-                              <div className={`p-3 rounded-lg border ${
-                                readingTheme === 'dark' ? 'bg-red-950/40 border-red-500/30 text-red-200' : readingTheme === 'sepia' ? 'bg-[#FADBD8]/60 border-red-300 text-[#78281F]' : 'bg-red-50 border-red-200 text-red-900'
-                              }`}>
-                                <span className="font-black block mb-1">{leftHeading}</span>
-                                <span className="leading-relaxed font-medium">{leftContent || item.keyDifference || ''}</span>
+                  {(() => {
+                    const validBusters = Array.isArray(notes.confusionBuster)
+                      ? notes.confusionBuster.filter((item: any) => {
+                          if (!item) return false;
+                          const hasText = item.explanation || item.correctInformation || item.keyDifference || item.oftenConfused || (item.conceptA && item.conceptB);
+                          return Boolean(hasText);
+                        })
+                      : [];
+
+                    if (validBusters.length === 0) return null;
+
+                    return (
+                      <div className={`p-5 rounded-2xl border ${getCardBgClass()} space-y-4`}>
+                        <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
+                          <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-500 flex items-center gap-2">
+                            ⚠️ सामान्य भ्रम एवं स्पष्टीकरण (Confusion Buster)
+                          </h4>
+                          <span className={`text-[10px] font-bold ${readingTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {validBusters.length} महत्वपूर्ण बिंदु
+                          </span>
+                        </div>
+
+                        <div className="space-y-3">
+                          {validBusters.map((item: any, idx: number) => {
+                            const confusionTitle = item.conceptA || item.oftenConfused || 'अक्सर होने वाला भ्रम';
+                            const correctFact = item.conceptB || item.correctInformation || item.keyDifference || '';
+                            const explanation = item.explanation || item.trickToRemember || '';
+
+                            return (
+                              <div
+                                key={idx}
+                                className={`p-4 rounded-xl border space-y-2.5 transition-all text-xs ${
+                                  readingTheme === 'dark'
+                                    ? 'bg-[#151D2E] border-[#2A364F]'
+                                    : readingTheme === 'sepia'
+                                      ? 'bg-[#FAF3E5] border-[#DECBB0]'
+                                      : 'bg-slate-50/90 border-slate-200'
+                                }`}
+                              >
+                                {/* 1. Top Line: Confusion */}
+                                <div className="flex items-start gap-2.5 text-xs sm:text-sm">
+                                  <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400 flex items-center justify-center shrink-0 font-black text-xs">
+                                    ✕
+                                  </span>
+                                  <div className="leading-snug">
+                                    <span className="font-black text-red-600 dark:text-red-400 mr-2">
+                                      भ्रम:
+                                    </span>
+                                    <span className={`font-bold ${
+                                      readingTheme === 'dark' ? 'text-slate-100' : readingTheme === 'sepia' ? 'text-[#3F3325]' : 'text-slate-900'
+                                    }`}>
+                                      {confusionTitle}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* 2. Bottom Block: Clarification / Explanation */}
+                                <div className={`ml-7 p-3 rounded-lg border text-xs leading-relaxed space-y-1.5 ${
+                                  readingTheme === 'dark'
+                                    ? 'bg-emerald-950/30 border-emerald-500/25 text-emerald-200'
+                                    : readingTheme === 'sepia'
+                                      ? 'bg-[#EBF7EE] border-emerald-300/70 text-[#145A32]'
+                                      : 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
+                                }`}>
+                                  <div className="flex items-center gap-1.5 font-black text-emerald-700 dark:text-emerald-400">
+                                    <span>✓ सही तथ्य / स्पष्टीकरण:</span>
+                                    {correctFact && <span className="font-bold underline decoration-emerald-400/50">{correctFact}</span>}
+                                  </div>
+                                  {explanation && (
+                                    <p className={`font-medium ${
+                                      readingTheme === 'dark' ? 'text-slate-200' : readingTheme === 'sepia' ? 'text-[#2C3E2D]' : 'text-slate-800'
+                                    }`}>
+                                      {explanation}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                              <div className={`p-3 rounded-lg border ${
-                                readingTheme === 'dark' ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200' : readingTheme === 'sepia' ? 'bg-[#D4EFDF]/60 border-emerald-300 text-[#145A32]' : 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                              }`}>
-                                <span className="font-black block mb-1">{rightHeading}</span>
-                                <span className="leading-relaxed font-medium">{rightContent || ''}</span>
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Sources & References Citation Card in Theory View */}
                   {allSources.length > 0 && (
@@ -1318,14 +1406,15 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                   </div>
 
                   {/* PYQ Section */}
-                  {Array.isArray(notes.pyqSection) && notes.pyqSection.length > 0 && (
+                  {((Array.isArray(notes.pyqSection) && notes.pyqSection.length > 0) || (Array.isArray(notes.pyqs) && notes.pyqs.length > 0)) && (
                     <div className={`p-5 rounded-xl border ${getCardBgClass()} space-y-3`}>
                       <h4 className="text-sm font-black uppercase tracking-wider text-blue-500 flex items-center gap-2">
                         🏛️ विगत वर्षों के प्रश्न (Previous Year Questions - PYQs)
                       </h4>
                       <div className="space-y-2.5">
-                        {notes.pyqSection.map((pyq: any, idx: number) => {
-                          const examLabel = pyq.examYear || (pyq.examName ? `${pyq.examName}${pyq.year ? ' (' + pyq.year + ')' : ''}` : 'CGPSC / Vyapam');
+                        {(notes.pyqSection || notes.pyqs).map((pyq: any, idx: number) => {
+                          const examLabel = pyq.examYear || (pyq.examName ? `${pyq.examName}${pyq.year ? ' (' + pyq.year + ')' : ''}` : (pyq.exam ? `${pyq.exam}${pyq.year ? ' (' + pyq.year + ')' : ''}` : 'CGPSC / Vyapam'));
+                          const ansText = pyq.answer || pyq.correctAnswer;
                           return (
                             <div key={idx} className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${
                               readingTheme === 'dark' 
@@ -1338,8 +1427,21 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                 <span>{examLabel}</span>
                               </div>
                               <p className="font-bold text-sm leading-snug">{pyq.question}</p>
+                              {Array.isArray(pyq.options) && pyq.options.length > 0 && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 py-1">
+                                  {pyq.options.map((opt: string, oIdx: number) => (
+                                    <div key={oIdx} className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                                      opt === ansText 
+                                        ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 font-bold' 
+                                        : 'border-transparent opacity-75'
+                                    }`}>
+                                      {String.fromCharCode(65 + oIdx)}. {opt}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                               <p className="font-semibold text-[11px] pt-1 border-t border-blue-500/20 text-emerald-600 dark:text-emerald-400">
-                                ✓ उत्तर: {pyq.answer}
+                                ✓ उत्तर: {ansText}
                               </p>
                               {pyq.explanation && (
                                 <p className="text-[11px] opacity-80 pt-0.5">

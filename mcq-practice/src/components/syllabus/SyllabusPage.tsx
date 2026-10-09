@@ -34,6 +34,8 @@ interface SyllabusPageProps {
   onTargetDateChange: (date: string) => void;
   currentUser?: any;
   onOpenAuth?: () => void;
+  userPlan?: 'free' | 'paid';
+  onOpenUpgrade?: (reason?: string, topicName?: string) => void;
 }
 
 type ActiveTab = 'tracker' | 'ai_planner' | 'revision' | 'analytics' | 'strategy';
@@ -53,7 +55,9 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   targetExamDate,
   onTargetDateChange,
   currentUser,
-  onOpenAuth
+  onOpenAuth,
+  userPlan = 'free',
+  onOpenUpgrade
 }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('tracker');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -419,6 +423,8 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
                         subject={subject}
                         topicProgress={topicProgress}
                         isExpanded={expandedSubjectId === subject.id}
+                        userPlan={userPlan}
+                        onOpenUpgrade={(topicName) => onOpenUpgrade && onOpenUpgrade('syllabus_locked', topicName)}
                         onToggleExpand={() => setExpandedSubjectId(expandedSubjectId === subject.id ? null : subject.id)}
                         onToggleActivity={onToggleActivity}
                         onMarkRevised={onMarkRevised}

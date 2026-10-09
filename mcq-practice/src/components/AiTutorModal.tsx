@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Sparkles, User, Brain, HelpCircle, BookOpen } from 'lucide-react';
+import { X, Send, Sparkles, User, Brain, HelpCircle, BookOpen, Crown, Zap, Lock } from 'lucide-react';
 import type { Question } from '../types';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { canAskAiQuestion, getRemainingAiQuestions, incrementDailyAiQuestions } from '../utils/userTierLimits';
 
 interface Message {
   sender: 'user' | 'ai';
@@ -16,13 +17,13 @@ interface Message {
   };
 }
 
-
-
 interface AiTutorModalProps {
   isOpen: boolean;
   onClose: () => void;
   question: Question;
   initialPromptType: 'beginner' | 'mnemonic' | 'similar' | null;
+  userPlan?: 'free' | 'paid';
+  onOpenUpgrade?: () => void;
 }
 
 export const AiTutorModal: React.FC<AiTutorModalProps> = ({
@@ -30,6 +31,8 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
   onClose,
   question,
   initialPromptType,
+  userPlan = 'free',
+  onOpenUpgrade
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -123,6 +126,21 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
     e.preventDefault();
     if (!inputValue.trim()) return;
 
+    const isPro = userPlan === 'paid';
+    if (!isPro && !canAskAiQuestion(userPlan)) {
+      if (onOpenUpgrade) {
+        onClose();
+        onOpenUpgrade();
+      } else {
+        alert('आज के 3 निःशुल्क सवालों की सीमा समाप्त हो चुकी है। असीमित AI Guru सवालों के लिए Pro Pass लें।');
+      }
+      return;
+    }
+
+    if (!isPro) {
+      incrementDailyAiQuestions();
+    }
+
     const query = inputValue.trim();
 
     const userMsg: Message = {
@@ -184,12 +202,33 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
                   <p className="text-[10px] text-text-muted">Instant Doubts & Memory Tricks</p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="p-1 rounded bg-bg-s2 hover:bg-bg-s3 text-text-muted hover:text-text cursor-pointer transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {userPlan === 'paid' ? (
+                  <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Crown className="w-2.5 h-2.5" />
+                    <span>PRO</span>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (onOpenUpgrade) {
+                        onClose();
+                        onOpenUpgrade();
+                      }
+                    }}
+                    className="text-[9px] font-black text-saffron bg-saffron/15 border border-saffron/30 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-pointer hover:bg-saffron/25"
+                  >
+                    <Zap className="w-2.5 h-2.5" />
+                    <span>Free: {getRemainingAiQuestions(userPlan)}/3 शेष</span>
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="p-1 rounded bg-bg-s2 hover:bg-bg-s3 text-text-muted hover:text-text cursor-pointer transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Chat Messages */}
@@ -318,6 +357,26 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
             </div>
 
             {/* Input Form */}
+            {userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0 && (
+              <div className="p-2.5 bg-saffron/10 border-t border-saffron/30 flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-saffron font-bold text-[11px]">
+                  <Lock className="w-3.5 h-3.5 shrink-0" />
+                  <span>3 निःशुल्क सवाल पूरे हो चुके हैं।</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onOpenUpgrade) {
+                      onClose();
+                      onOpenUpgrade();
+                    }
+                  }}
+                  className="px-2.5 py-1 bg-saffron hover:bg-orange-500 text-white rounded font-black text-[10px] uppercase tracking-wider shrink-0 shadow cursor-pointer"
+                >
+                  Pro Pass लें
+                </button>
+              </div>
+            )}
             <form
               onSubmit={handleSendMessage}
               className="p-3 bg-bg-s3 border-t border-border flex items-center gap-2"
@@ -326,12 +385,18 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
                 type="text"
                 value={inputValue}
                 onChange={e => setInputValue(e.target.value)}
-                placeholder="Ask a custom doubt in Hindi or English..."
-                className="flex-1 bg-bg-s2 border border-border focus:border-saffron outline-none text-xs sm:text-sm px-3.5 py-2.5 rounded-md text-text placeholder-text-muted"
+                disabled={userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0}
+                placeholder={
+                  userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0
+                    ? 'दैनिक सीमा पूरी (Pro Pass अनलॉक करें)...'
+                    : 'Ask a custom doubt in Hindi or English...'
+                }
+                className="flex-1 bg-bg-s2 border border-border focus:border-saffron outline-none text-xs sm:text-sm px-3.5 py-2.5 rounded-md text-text placeholder-text-muted disabled:opacity-60"
               />
               <button
                 type="submit"
-                className="p-2.5 rounded-md bg-saffron hover:bg-orange-500 text-bg-s1 transition-colors cursor-pointer"
+                disabled={!inputValue.trim() || (userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0)}
+                className="p-2.5 rounded-md bg-saffron hover:bg-orange-500 disabled:opacity-50 text-bg-s1 transition-colors cursor-pointer"
               >
                 <Send className="w-4 h-4" />
               </button>

@@ -28,7 +28,8 @@ import {
   Keyboard,
   X,
   BellRing,
-  Gift
+  Gift,
+  Zap
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -71,6 +72,15 @@ const SettingsModal = lazy(() => import('./components/SettingsModal').then(m => 
 const TopicStudyModal = lazy(() => import('./components/TopicStudyModal').then(m => ({ default: m.TopicStudyModal })));
 const PublicProfileModal = lazy(() => import('./components/PublicProfileModal').then(m => ({ default: m.PublicProfileModal })));
 const NotificationsModal = lazy(() => import('./components/NotificationsModal').then(m => ({ default: m.NotificationsModal })));
+const UpgradeModal = lazy(() => import('./components/UpgradeModal').then(m => ({ default: m.UpgradeModal })));
+import type { UpgradeReason } from './components/UpgradeModal';
+import { 
+  canTakeMockTest, 
+  canSolveMcq, 
+  getRemainingMcqs, 
+  incrementDailyMockTests, 
+  incrementDailyMcqs 
+} from './utils/userTierLimits';
 
 const TabFallback = () => (
   <div className="flex flex-col items-center justify-center min-h-[350px] w-full py-12 gap-3 text-text-muted">
@@ -492,9 +502,25 @@ export default function App() {
   const [hasSelectedExamThisSession, setHasSelectedExamThisSession] = useState<boolean>(false);
   const [topicProgress, setTopicProgress] = useState<Record<string, any>>({});
   const [serverAnalytics, setServerAnalytics] = useState<any>(null);
-  const [userPlan, setUserPlan] = useState<'free' | 'paid'>('free');
+  const [userPlan, setUserPlanState] = useState<'free' | 'paid'>(() => {
+    try {
+      return (localStorage.getItem('cgguru_user_plan') as 'free' | 'paid') || 'free';
+    } catch {
+      return 'free';
+    }
+  });
 
-  // Topic Study Workspace state
+  const setUserPlan = (plan: 'free' | 'paid') => {
+    setUserPlanState(plan);
+    try {
+      localStorage.setItem('cgguru_user_plan', plan);
+    } catch (_) {}
+  };
+
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState<boolean>(false);
+  const [upgradeModalReason, setUpgradeModalReason] = useState<UpgradeReason>('general');
+  const [upgradeModalTopic, setUpgradeModalTopic] = useState<string>('');
+  const [upgradeModalInitialPlan, setUpgradeModalInitialPlan] = useState<'6_months' | '1_year'>('1_year');
   const [studyModalOpen, setStudyModalOpen] = useState<boolean>(false);
   const [studyTopicParams] = useState<any>({ id: '', name: '', nameHi: '' });
 
@@ -1092,6 +1118,7 @@ export default function App() {
                   localStorage.setItem('examprep_userMobile', data.mobile);
                 }
                 if (data.plan) setUserPlan(data.plan);
+                else if (data.isPaid === true) setUserPlan('paid');
                 if (data.topicProgress && typeof data.topicProgress === 'object') {
                   setTopicProgress(prev => ({ ...prev, ...data.topicProgress }));
                 }
@@ -1861,6 +1888,16 @@ export default function App() {
     if (sessionCompleted) return;
     if (feedbackEnabled && answers[currentIndex] !== null) return;
 
+    // Check Free user daily MCQ limit (30 MCQs/day)
+    if (userPlan !== 'paid' && answers[currentIndex] === null && optIdx !== null) {
+      if (!canSolveMcq(userPlan)) {
+        setUpgradeModalReason('mcq_limit');
+        setUpgradeModalOpen(true);
+        return;
+      }
+      incrementDailyMcqs(1);
+    }
+
     const newAnswers = [...answers];
     if (newAnswers[currentIndex] === optIdx) {
       newAnswers[currentIndex] = null; // Toggle selection off
@@ -1942,6 +1979,24 @@ export default function App() {
     durationMinutes?: number,
     testId?: string
   ) => {
+    // Check Free user daily limits
+    if (userPlan !== 'paid') {
+      if (testMode === 'mock' && !canTakeMockTest(userPlan)) {
+        setUpgradeModalReason('mock_limit');
+        setUpgradeModalOpen(true);
+        return;
+      }
+      if (!canSolveMcq(userPlan)) {
+        setUpgradeModalReason('mcq_limit');
+        setUpgradeModalOpen(true);
+        return;
+      }
+    }
+
+    if (userPlan !== 'paid' && testMode === 'mock') {
+      incrementDailyMockTests();
+    }
+
     const effectiveTestId = testId || `test_${testMode}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     setActiveTestId(effectiveTestId);
     setQuestions(testQuestions);
@@ -2379,6 +2434,11 @@ export default function App() {
             onToggleBookmark={handleToggleBookmark}
             testHistory={testHistory}
             tabVisibility={tabVisibility}
+            userPlan={userPlan}
+            onOpenUpgrade={(reason) => {
+              setUpgradeModalReason(reason as any || 'general');
+              setUpgradeModalOpen(true);
+            }}
           />
         );
       case 'typing':
@@ -2386,7 +2446,17 @@ export default function App() {
           <TypingTest currentUser={currentUser} onSaveResults={saveTypingResults} />
         );
       case 'chat':
-        return <AiTutorTab activeExam={activeExam} />;
+        return (
+          <AiTutorTab 
+            activeExam={activeExam} 
+            userPlan={userPlan}
+            currentUser={currentUser}
+            onOpenUpgrade={() => {
+              setUpgradeModalReason('ai_limit');
+              setUpgradeModalOpen(true);
+            }}
+          />
+        );
       case 'news':
         return (
           <NewsTab
@@ -2586,6 +2656,12 @@ export default function App() {
             onGoBack={() => setActiveTab('home')}
             currentUser={currentUser}
             onOpenAuth={() => setAuthModalOpen(true)}
+            userPlan={userPlan}
+            onOpenUpgrade={(reason, topicName) => {
+              setUpgradeModalReason(reason as any || 'syllabus_locked');
+              setUpgradeModalTopic(topicName || '');
+              setUpgradeModalOpen(true);
+            }}
           />
         );
       case 'landing':
@@ -2602,6 +2678,11 @@ export default function App() {
             }}
             currentUser={currentUser}
             userPlan={userPlan}
+            onOpenUpgrade={(reason?: string, plan?: '6_months' | '1_year') => {
+              setUpgradeModalReason((reason as any) || 'general');
+              if (plan) setUpgradeModalInitialPlan(plan);
+              setUpgradeModalOpen(true);
+            }}
           />
         );
       default:
@@ -3051,6 +3132,25 @@ export default function App() {
                 <div className="flex-1 px-4 py-3 flex flex-col gap-4 overflow-y-auto">
                   {!sessionCompleted ? (
                     <div className="flex flex-col gap-4">
+                      {userPlan !== 'paid' && (
+                        <div className="p-2.5 bg-saffron/10 border border-saffron/30 rounded-xl flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-1.5 font-bold text-text">
+                            <Zap className="w-3.5 h-3.5 fill-saffron text-saffron" />
+                            <span>दैनिक MCQs कोटा: <strong className="text-saffron">{getRemainingMcqs(userPlan)} / 30 शेष</strong></span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUpgradeModalReason('mcq_limit');
+                              setUpgradeModalOpen(true);
+                            }}
+                            className="text-[10px] font-black uppercase text-saffron underline hover:text-orange-500 cursor-pointer"
+                          >
+                            👑 Pro Pass लें
+                          </button>
+                        </div>
+                      )}
+
                       {/* MCQ Card */}
                       <MCQCard
                         question={questions[currentIndex]}
@@ -3329,6 +3429,26 @@ export default function App() {
           onClose={() => setAiModalOpen(false)}
           question={questions[currentIndex]}
           initialPromptType={null}
+          userPlan={userPlan}
+          onOpenUpgrade={() => {
+            setUpgradeModalReason('ai_limit');
+            setUpgradeModalOpen(true);
+          }}
+        />
+
+        {/* Pro Pass Upgrade Modal */}
+        <UpgradeModal
+          isOpen={upgradeModalOpen}
+          onClose={() => setUpgradeModalOpen(false)}
+          reason={upgradeModalReason}
+          topicName={upgradeModalTopic}
+          userPlan={userPlan}
+          currentUser={currentUser}
+          initialPlan={upgradeModalInitialPlan}
+          onOpenAuth={() => setAuthModalOpen(true)}
+          onUpgradeSuccess={() => {
+            setUserPlan('paid');
+          }}
         />
 
         {/* Question Error Reporting Modal Overlay */}

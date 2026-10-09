@@ -3,19 +3,19 @@ const fs = require('fs');
 
 require(path.join(__dirname, '../server/node_modules/dotenv')).config({ path: path.join(__dirname, '../server/.env') });
 const Groq = require(path.join(__dirname, '../server/node_modules/groq-sdk'));
+const { GoogleGenerativeAI } = require(path.join(__dirname, '../server/node_modules/@google/generative-ai'));
 const { db } = require(path.join(__dirname, '../server/firebase-admin'));
 
-const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const metaFilePath = path.join(__dirname, '../server/data_cache/admin_tests_meta.json');
 
 function fixMathText(str) {
   if (!str || typeof str !== 'string') return str;
   let s = str;
-  // Convert standard LaTeX delimiters \(...\) and \[...\] to $...$ and $$...$$
   s = s.replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => `$$${m}$$`);
   s = s.replace(/\\\(([\s\S]*?)\\\)/g, (_, m) => `$${m}$`);
 
-  // Auto-wrap raw LaTeX commands that are missing dollar signs
   const parts = s.split(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g);
   return parts.map((part, idx) => {
     if (idx % 2 === 1) return part;
@@ -31,9 +31,41 @@ function cleanJsonText(raw) {
   return text.trim();
 }
 
+async function generateWithGroq(prompt) {
+  const response = await groqClient.chat.completions.create({
+    model: 'qwen/qwen3.8-27b',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an elite mathematics educator for CG Vyapam and CGPSC. Return ONLY a valid JSON array of 10 objects.'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ],
+    temperature: 0.3,
+    max_tokens: 4096
+  });
+  const text = cleanJsonText(response.choices[0].message.content);
+  return JSON.parse(text);
+}
+
+async function generateWithGemini(prompt) {
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.5-flash-lite',
+    generationConfig: {
+      responseMimeType: 'application/json',
+      temperature: 0.3
+    }
+  });
+  const res = await model.generateContent(prompt);
+  const text = res.response.text();
+  return JSON.parse(text);
+}
+
 async function generate10Questions(topic, chapter, testNum, retries = 3) {
-  const prompt = `You are an elite mathematics educator and question paper setter for CG Vyapam and CGPSC examinations (Patwari, RI, Hostel Warden, ADEO, Sub-Inspector).
-Generate exactly 10 high-quality, authentic Mathematics MCQs in Hindi (with standard English terms where helpful) for:
+  const prompt = `Generate exactly 10 high-quality, authentic Mathematics MCQs in Hindi for CG Vyapam examinations (Patwari, RI, Hostel Warden, ADEO, Sub-Inspector).
 Subject: गणित (Mathematics)
 Chapter: ${chapter}
 Topic: ${topic.nameHi} (${topic.name})
@@ -41,37 +73,33 @@ Subtopics: ${(topic.subtopics || []).join(', ')}
 Test: Test 0${testNum}
 
 CRITICAL RULES:
-1. Exact Exam Level: Realistic word problems and numericals matching CG Vyapam's actual exam questions (variety across easy, moderate, and analytical).
+1. Exact Exam Level: Realistic numerical problems matching CG Vyapam exams (mix of easy, moderate, and analytical).
 2. Exactly 4 distinct options (strings).
-3. "correctIndex": integer (0, 1, 2, or 3). Calculate step-by-step to guarantee 100% mathematical accuracy.
+3. "correctIndex": integer (0, 1, 2, or 3). Calculate step-by-step to guarantee mathematical accuracy.
 4. "explanation": detailed step-by-step solution in Hindi.
 5. "difficulty": "easy", "moderate", or "hard".
-6. MATH FORMATTING:
-   - Always enclose any LaTeX math formula or fraction in single dollar signs like $\\sqrt{50}$, $\\dfrac{7}{8}$, $x^2$, $2\\sqrt{2}$ so it renders cleanly in KaTeX.
-   - Do NOT use unescaped double quotes inside question or explanation text; use single quotes.
-   - Return ONLY a clean, valid JSON array of 10 objects, no markdown fences, no conversational text.
-
-JSON Schema:
+6. Wrap math symbols/fractions in single dollar signs $...$ (e.g. $2:3$, $\\frac{4}{5}$, $\\sqrt{2}$).
+7. Return ONLY a valid JSON array of 10 objects:
 [
   {
-    "question": "प्रश्न विवरण...",
-    "options": ["विकल्प 1", "विकल्प 2", "विकल्प 3", "विकल्प 4"],
+    "question": "प्रश्न...",
+    "options": ["A", "B", "C", "D"],
     "correctIndex": 0,
-    "explanation": "विस्तृत हल चरणबद्ध रूप में...",
+    "explanation": "हल...",
     "difficulty": "moderate"
   }
 ]`;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await client.chat.completions.create({
-        model: 'openai/gpt-oss-120b',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3
-      });
+      let questions;
+      try {
+        questions = await generateWithGroq(prompt);
+      } catch (groqErr) {
+        console.warn(`[Groq failed: ${groqErr.message}]. Trying Gemini fallback...`);
+        questions = await generateWithGemini(prompt);
+      }
 
-      const text = cleanJsonText(response.choices[0].message.content);
-      const questions = JSON.parse(text);
       if (Array.isArray(questions) && questions.length === 10) {
         return questions.map(q => ({
           ...q,

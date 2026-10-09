@@ -8,6 +8,8 @@ interface SubjectCardProps {
   subject: Subject;
   topicProgress: Record<string, TopicProgress>;
   isExpanded: boolean;
+  userPlan?: 'free' | 'paid';
+  onOpenUpgrade?: (topicName?: string) => void;
   onToggleExpand: () => void;
   onToggleActivity: (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => void;
   onMarkRevised: (topicId: string) => void;
@@ -21,6 +23,8 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
   subject,
   topicProgress,
   isExpanded,
+  userPlan = 'free',
+  onOpenUpgrade,
   onToggleExpand,
   onToggleActivity,
   onMarkRevised,
@@ -60,6 +64,19 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
     Low: 'bg-bg-s3 text-text-muted border-border'
   }[subject.importance];
 
+  // Pre-calculate unlocked topics for this subject (First 3 topics are free for Free Plan)
+  const unlockedTopicIds = new Set<string>();
+  let subjectTopicCounter = 0;
+  chapters.forEach(chapter => {
+    const tList = Array.isArray(chapter?.topics) ? chapter.topics : [];
+    tList.forEach(t => {
+      if (userPlan === 'paid' || subjectTopicCounter < 3) {
+        unlockedTopicIds.add(t.id);
+      }
+      subjectTopicCounter++;
+    });
+  });
+
   return (
     <div className={`bg-bg-s2 border rounded-lg shadow-md transition-all duration-300 ${
       isExpanded 
@@ -93,6 +110,16 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
             <span className={`text-[8px] font-black px-2 py-0.5 border rounded uppercase tracking-wider shrink-0 ${importanceStyles}`}>
               {subject.importance} Priority
             </span>
+
+            {userPlan === 'paid' ? (
+              <span className="text-[8px] font-black px-2 py-0.5 border rounded uppercase tracking-wider shrink-0 bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                PRO: ALL UNLOCKED
+              </span>
+            ) : (
+              <span className="text-[8px] font-black px-2 py-0.5 border rounded uppercase tracking-wider shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/30">
+                FREE: 3 TOPICS UNLOCKED
+              </span>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-text-muted font-semibold mt-0.5">
@@ -154,6 +181,9 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
                   <TopicList 
                     chapter={chapter}
                     topicProgress={topicProgress}
+                    unlockedTopicIds={unlockedTopicIds}
+                    userPlan={userPlan}
+                    onOpenUpgrade={onOpenUpgrade}
                     onToggleActivity={onToggleActivity}
                     onMarkRevised={onMarkRevised}
                     onOpenPdf={onOpenPdf}

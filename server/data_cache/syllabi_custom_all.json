@@ -735,7 +735,9 @@
                   "प्राचीन राजवंश",
                   "सांस्कृतिक विकास"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_3",
@@ -746,7 +748,9 @@
                   "अशोक",
                   "अभिलेख"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_4",
@@ -756,7 +760,9 @@
                   "शासन व्यवस्था",
                   "सांस्कृतिक प्रभाव"
                 ],
-                "importanceScore": 7
+                "importanceScore": 7,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_5",
@@ -767,7 +773,9 @@
                   "सिरपुर",
                   "धार्मिक योगदान"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_6",
@@ -777,7 +785,9 @@
                   "राजनीतिक विस्तार",
                   "प्रमुख शासक"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_7",
@@ -788,7 +798,9 @@
                   "रायपुर शाखा",
                   "सांस्कृतिक योगदान"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_8",
@@ -798,7 +810,9 @@
                   "क्षेत्रीय शासन",
                   "सामाजिक स्थिति"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_9",
@@ -809,7 +823,9 @@
                   "प्रशासन",
                   "राजस्व व्यवस्था"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_10",
@@ -819,7 +835,9 @@
                   "ब्रिटिश प्रशासन",
                   "राजनीतिक परिवर्तन"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_11",
@@ -829,7 +847,9 @@
                   "वीर नारायण सिंह",
                   "स्थानीय आंदोलन"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_12",
@@ -840,7 +860,9 @@
                   "भारत छोड़ो आंदोलन",
                   "स्थानीय योगदान"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_hist_13",
@@ -851,7 +873,9 @@
                   "1 नवम्बर 2000",
                   "प्रमुख व्यक्तित्व"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               }
             ]
           },
@@ -868,7 +892,9 @@
                   "देशांतर",
                   "पड़ोसी राज्य"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_geo_2",
@@ -879,7 +905,9 @@
                   "पठारी क्षेत्र",
                   "पर्वतीय क्षेत्र"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:03.374Z"
               },
               {
                 "id": "cg_geo_3",
@@ -892,7 +920,9 @@
                   "हसदेव",
                   "अरपा"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:29:47.809Z"
               },
               {
                 "id": "cg_geo_4",
@@ -903,7 +933,9 @@
                   "गंगरेल",
                   "मिनीमाता परियोजना"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:44:15.770Z"
               },
               {
                 "id": "cg_geo_5",
@@ -914,7 +946,9 @@
                   "तापमान",
                   "वर्षा"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:44:51.513Z"
               },
               {
                 "id": "cg_geo_6",
@@ -925,7 +959,9 @@
                   "लाल मिट्टी",
                   "दोमट मिट्टी"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:45:28.360Z"
               },
               {
                 "id": "cg_geo_7",
@@ -936,7 +972,9 @@
                   "प्रमुख वृक्ष",
                   "लघु वनोपज"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:46:12.694Z"
               },
               {
                 "id": "cg_geo_8",
@@ -947,7 +985,9 @@
                   "कांगेर घाटी",
                   "गुरु घासीदास"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:46:48.942Z"
               },
               {
                 "id": "cg_geo_9",
@@ -958,7 +998,9 @@
                   "अचनकमार",
                   "सीतानदी"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:47:22.898Z"
               },
               {
                 "id": "cg_geo_10",
@@ -970,7 +1012,9 @@
                   "बॉक्साइट",
                   "डोलोमाइट"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:48:07.782Z"
               }
             ]
           },
@@ -989,7 +1033,9 @@
                   "उरांव",
                   "कंवर"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:50:37.582Z"
               },
               {
                 "id": "cg_cul_2",
@@ -1000,7 +1046,9 @@
                   "कमार",
                   "पहाड़ी कोरवा"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:51:32.055Z"
               },
               {
                 "id": "cg_cul_3",
@@ -1012,7 +1060,9 @@
                   "सुआ",
                   "करमा"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:52:26.191Z"
               },
               {
                 "id": "cg_cul_4",
@@ -1023,7 +1073,9 @@
                   "सुआ गीत",
                   "करमा गीत"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:53:12.519Z"
               },
               {
                 "id": "cg_cul_5",
@@ -1035,7 +1087,9 @@
                   "तीजा",
                   "छेरछेरा"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:54:03.380Z"
               },
               {
                 "id": "cg_cul_6",
@@ -1046,7 +1100,9 @@
                   "बस्तर दशहरा",
                   "मड़ई"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:54:52.198Z"
               },
               {
                 "id": "cg_cul_7",
@@ -1057,7 +1113,9 @@
                   "बेलमेटल",
                   "बाँस शिल्प"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:55:55.892Z"
               },
               {
                 "id": "cg_cul_8",
@@ -1068,7 +1126,9 @@
                   "लक्ष्मण मंदिर",
                   "भोरमदेव"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:57:53.964Z"
               }
             ]
           },
@@ -1085,7 +1145,9 @@
                   "फसलें",
                   "कृषि योजनाएँ"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:59:24.106Z"
               },
               {
                 "id": "cg_eco_2",
@@ -1096,7 +1158,9 @@
                   "सीमेंट उद्योग",
                   "विद्युत उद्योग"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T08:59:24.106Z"
               },
               {
                 "id": "cg_eco_3",
@@ -1107,7 +1171,9 @@
                   "जल विद्युत",
                   "सौर ऊर्जा"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:00:13.995Z"
               },
               {
                 "id": "cg_eco_4",
@@ -1117,7 +1183,9 @@
                   "सभी जिले",
                   "सभी संभाग"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:00:13.995Z"
               },
               {
                 "id": "cg_eco_5",
@@ -1129,7 +1197,9 @@
                   "जनपद पंचायत",
                   "जिला पंचायत"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:00:13.995Z"
               },
               {
                 "id": "cg_eco_6",
@@ -1140,7 +1210,9 @@
                   "कृषि योजनाएँ",
                   "शिक्षा योजनाएँ"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:01:27.182Z"
               },
               {
                 "id": "cg_eco_7",
@@ -1151,7 +1223,9 @@
                   "मिनीमाता",
                   "पंडित सुंदरलाल शर्मा"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:01:27.182Z"
               },
               {
                 "id": "cg_eco_8",
@@ -1163,7 +1237,9 @@
                   "राज्य पुरस्कार",
                   "खेल"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:01:27.182Z"
               }
             ]
           },
@@ -1182,7 +1258,9 @@
                   "रतनपुर",
                   "राजिम"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:03:55.393Z"
               },
               {
                 "id": "cg_adv_2",
@@ -1194,7 +1272,9 @@
                   "राजीव लोचन मंदिर",
                   "दंतेश्वरी मंदिर"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:03:55.393Z"
               },
               {
                 "id": "cg_adv_3",
@@ -1207,7 +1287,9 @@
                   "मैत्री बाग",
                   "कुटुमसर गुफा"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:03:55.393Z"
               },
               {
                 "id": "cg_adv_4",
@@ -1220,7 +1302,9 @@
                   "रामझरना",
                   "मंडवा"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:03:55.393Z"
               },
               {
                 "id": "cg_adv_5",
@@ -1231,7 +1315,9 @@
                   "कैलाश गुफा",
                   "दंडक गुफा"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-02T09:03:55.393Z"
               }
             ]
           }
@@ -1272,7 +1358,9 @@
                   "वैदिक समाज",
                   "वैदिक अर्थव्यवस्था"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-06T01:09:19.938Z"
               },
               {
                 "id": "ind_hist_3",
@@ -1282,7 +1370,9 @@
                   "16 महाजनपद",
                   "मगध का उदय"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-06T01:10:32.563Z"
               },
               {
                 "id": "ind_hist_4",
@@ -1293,7 +1383,9 @@
                   "चार आर्य सत्य",
                   "बौद्ध संगीति"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-06T01:12:03.578Z"
               },
               {
                 "id": "ind_hist_5",
@@ -1304,7 +1396,9 @@
                   "त्रिरत्न",
                   "जैन संगीति"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-06T01:18:52.317Z"
               },
               {
                 "id": "ind_hist_6",
@@ -1315,7 +1409,9 @@
                   "अशोक",
                   "मेगस्थनीज"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-06T01:18:52.317Z"
               },
               {
                 "id": "ind_hist_7",
@@ -1326,7 +1422,9 @@
                   "चंद्रगुप्त द्वितीय",
                   "स्वर्ण युग"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-06T01:18:52.317Z"
               },
               {
                 "id": "ind_hist_8",
@@ -1337,7 +1435,9 @@
                   "चेर",
                   "पांड्य"
                 ],
-                "importanceScore": 7
+                "importanceScore": 7,
+                "hasStudyNotes": true,
+                "notesUpdatedAt": "2026-10-06T01:18:52.317Z"
               }
             ]
           },
@@ -5443,6 +5543,6 @@
         ]
       }
     ],
-    "updatedAt": "2026-09-21T17:18:10.026Z"
+    "updatedAt": "2026-10-06T02:02:54.136Z"
   }
 ]

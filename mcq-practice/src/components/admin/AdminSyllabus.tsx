@@ -94,6 +94,7 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [studioTopic, setStudioTopic] = useState<{ topic: any; subjectName: string; examId: string; examName: string } | null>(null);
+  const [, setForceUpdate] = useState<number>(0);
 
     const getApiUrl = (path: string) => {
     const hostname = window.location.hostname;
@@ -145,6 +146,7 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMessage(`Attached "${file.name}" to topic successfully! 📄`);
+        try { localStorage.removeItem('cg_cached_syllabus_time_v1'); } catch (_) {}
         onRefreshExams();
       } else {
         throw new Error(data.error || 'Failed to attach PDF notes to topic.');
@@ -166,18 +168,49 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
       setSuccessMessage('');
 
       const token = await currentUser.getIdToken();
+      const currentExam = exams.find(e => e.id === examId);
+
       const res = await fetch(getApiUrl('/api/admin/syllabus/topic-pdf'), {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ examId, topicId })
+        body: JSON.stringify({ 
+          examId, 
+          topicId,
+          examData: currentExam
+        })
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMessage(`Removed PDF notes from "${topicName}".`);
+        // Optimistically update topic in local exam state immediately
+        if (currentExam && Array.isArray(currentExam.subjects)) {
+          currentExam.subjects.forEach(s => {
+            (s.chapters || []).forEach(c => {
+              (c.topics || []).forEach(t => {
+                if (t.id === topicId || String(t.id) === String(topicId)) {
+                  delete t.pdfPath;
+                  delete t.pdfName;
+                  delete t.pdfSize;
+                  delete t.pdfUpdatedAt;
+                }
+              });
+            });
+            ((s as any).topics || []).forEach((t: any) => {
+              if (t.id === topicId || String(t.id) === String(topicId)) {
+                delete t.pdfPath;
+                delete t.pdfName;
+                delete t.pdfSize;
+                delete t.pdfUpdatedAt;
+              }
+            });
+          });
+        }
+        setForceUpdate(v => v + 1);
+        try { localStorage.removeItem('cg_cached_syllabus_time_v1'); } catch (_) {}
         onRefreshExams();
       } else {
         throw new Error(data.error || 'Failed to remove topic PDF.');
@@ -221,14 +254,22 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
           currentExam.subjects.forEach(s => {
             (s.chapters || []).forEach(c => {
               (c.topics || []).forEach(t => {
-                if (t.id === topicId) {
+                if (t.id === topicId || String(t.id) === String(topicId)) {
                   t.hasStudyNotes = true;
                   t.studyNotes = studyNotes;
                 }
               });
             });
+            ((s as any).topics || []).forEach((t: any) => {
+              if (t.id === topicId || String(t.id) === String(topicId)) {
+                t.hasStudyNotes = true;
+                t.studyNotes = studyNotes;
+              }
+            });
           });
         }
+        setForceUpdate(v => v + 1);
+        try { localStorage.removeItem('cg_cached_syllabus_time_v1'); } catch (_) {}
         onRefreshExams();
       } else {
         throw new Error(data.error || 'Failed to save formatted study notes.');
@@ -248,33 +289,48 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
       setSuccessMessage('');
 
       const token = await currentUser.getIdToken();
+      const currentExam = exams.find(e => e.id === examId);
+
       const res = await fetch(getApiUrl('/api/admin/syllabus/topic-notes'), {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ examId, topicId })
+        body: JSON.stringify({ 
+          examId, 
+          topicId,
+          examData: currentExam,
+          deleteCrossExam: true
+        })
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMessage(`Removed formatted study notes from "${topicName}".`);
         // Optimistically update topic in local exam state immediately
-        const currentExam = exams.find(e => e.id === examId);
         if (currentExam && Array.isArray(currentExam.subjects)) {
           currentExam.subjects.forEach(s => {
             (s.chapters || []).forEach(c => {
               (c.topics || []).forEach(t => {
-                if (t.id === topicId) {
+                if (t.id === topicId || String(t.id) === String(topicId)) {
                   delete t.hasStudyNotes;
                   delete t.studyNotes;
                   delete t.notesUpdatedAt;
                 }
               });
             });
+            ((s as any).topics || []).forEach((t: any) => {
+              if (t.id === topicId || String(t.id) === String(topicId)) {
+                delete t.hasStudyNotes;
+                delete t.studyNotes;
+                delete t.notesUpdatedAt;
+              }
+            });
           });
         }
+        setForceUpdate(v => v + 1);
+        try { localStorage.removeItem('cg_cached_syllabus_time_v1'); } catch (_) {}
         onRefreshExams();
       } else {
         throw new Error(data.error || 'Failed to remove study notes.');

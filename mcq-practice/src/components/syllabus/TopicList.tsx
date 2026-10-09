@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, CheckCircle, RefreshCcw, 
-  ChevronDown, ChevronUp, CheckSquare, Square, FileText, BookOpen
+  ChevronDown, ChevronUp, CheckSquare, Square, FileText, BookOpen, Lock
 } from 'lucide-react';
 import type { Chapter, TopicProgress, Topic } from './syllabusData';
 
 interface TopicListProps {
   chapter: Chapter;
   topicProgress: Record<string, TopicProgress>;
+  unlockedTopicIds?: Set<string>;
+  userPlan?: 'free' | 'paid';
+  onOpenUpgrade?: (topicName?: string) => void;
   onToggleActivity: (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => void;
   onMarkRevised: (topicId: string) => void;
   onOpenPdf?: (topic: Topic) => void;
@@ -20,6 +23,9 @@ interface TopicListProps {
 export const TopicList: React.FC<TopicListProps> = ({
   chapter,
   topicProgress,
+  unlockedTopicIds,
+  userPlan = 'free',
+  onOpenUpgrade,
   onToggleActivity,
   onMarkRevised,
   onOpenPdf,
@@ -51,6 +57,7 @@ export const TopicList: React.FC<TopicListProps> = ({
         };
 
         const isExpanded = expandedTopicId === topic.id;
+        const isLocked = Boolean(unlockedTopicIds && !unlockedTopicIds.has(topic.id) && userPlan !== 'paid');
 
         // Custom styling for topic progress states
         const stateConfig = {
@@ -104,9 +111,17 @@ export const TopicList: React.FC<TopicListProps> = ({
                   {isExpanded ? <ChevronUp className="w-4 h-4 text-saffron" /> : <ChevronDown className="w-4 h-4" />}
                 </div>
                 <div className="flex flex-col gap-1 min-w-0">
-                  <span className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-tight">
-                    {topic.nameHi}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-bold text-text group-hover:text-saffron transition-colors leading-tight">
+                      {topic.nameHi}
+                    </span>
+                    {isLocked && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-0.5 shrink-0">
+                        <Lock className="w-2.5 h-2.5" />
+                        <span>PRO LOCK</span>
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="text-[10px] text-text-muted leading-tight">{topic.name}</span>
                     <span className={`text-[8px] font-black px-1.5 py-0.5 border rounded uppercase tracking-wider ${stateConfig.style} flex items-center gap-1 shrink-0`}>
@@ -117,27 +132,45 @@ export const TopicList: React.FC<TopicListProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (isLocked) {
+                            if (onOpenUpgrade) onOpenUpgrade(topic.nameHi || topic.name);
+                            else alert('यह टॉपिक Pro Pass में उपलब्ध है।');
+                            return;
+                          }
                           if (onOpenNotes) onOpenNotes(topic);
                           else if (topic.pdfPath && onOpenPdf) onOpenPdf(topic);
                         }}
-                        className="text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 flex items-center gap-1 shrink-0 shadow-sm cursor-pointer"
-                        title="Open Interactive Study Notes"
+                        className={`text-[8px] font-black px-1.5 py-0.5 rounded border flex items-center gap-1 shrink-0 shadow-sm cursor-pointer ${
+                          isLocked 
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
+                            : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
+                        }`}
+                        title={isLocked ? "Pro Plan Required" : "Open Interactive Study Notes"}
                       >
-                        <BookOpen className="w-2.5 h-2.5" />
-                        <span>STUDY NOTES</span>
+                        {isLocked ? <Lock className="w-2.5 h-2.5" /> : <BookOpen className="w-2.5 h-2.5" />}
+                        <span>{isLocked ? 'NOTES (LOCKED)' : 'STUDY NOTES'}</span>
                       </button>
                     )}
                     {topic.pdfPath && !topic.hasStudyNotes && !topic.studyNotes && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (isLocked) {
+                            if (onOpenUpgrade) onOpenUpgrade(topic.nameHi || topic.name);
+                            else alert('यह टॉपिक Pro Pass में उपलब्ध है।');
+                            return;
+                          }
                           if (onOpenPdf) onOpenPdf(topic);
                         }}
-                        className="text-[8px] font-black px-1.5 py-0.5 rounded bg-saffron/15 text-saffron border border-saffron/30 hover:bg-saffron/25 flex items-center gap-1 shrink-0 shadow-sm cursor-pointer"
-                        title="Open Attached PDF Notes"
+                        className={`text-[8px] font-black px-1.5 py-0.5 rounded border flex items-center gap-1 shrink-0 shadow-sm cursor-pointer ${
+                          isLocked
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
+                            : 'bg-saffron/15 text-saffron border-saffron/30 hover:bg-saffron/25'
+                        }`}
+                        title={isLocked ? "Pro Plan Required" : "Open Attached PDF Notes"}
                       >
-                        <FileText className="w-2.5 h-2.5" />
-                        <span>PDF NOTES</span>
+                        {isLocked ? <Lock className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
+                        <span>{isLocked ? 'PDF (LOCKED)' : 'PDF NOTES'}</span>
                       </button>
                     )}
                   </div>
@@ -150,15 +183,21 @@ export const TopicList: React.FC<TopicListProps> = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (isLocked) {
+                      if (onOpenUpgrade) onOpenUpgrade(topic.nameHi || topic.name);
+                      return;
+                    }
                     const targetVal = !isCompleted;
                     if (progress.notesRead !== targetVal) onToggleActivity(topic.id, 'notesRead');
                     if (progress.videoWatched !== targetVal) onToggleActivity(topic.id, 'videoWatched');
                     if (progress.mcqCompleted !== targetVal) onToggleActivity(topic.id, 'mcqCompleted');
                   }}
                   className="p-1.5 rounded hover:bg-bg-s2 text-saffron transition-all cursor-pointer"
-                  title={isCompleted ? "Mark Incomplete" : "Mark Completed"}
+                  title={isLocked ? "Pro Plan Required" : isCompleted ? "Mark Incomplete" : "Mark Completed"}
                 >
-                  {isCompleted ? (
+                  {isLocked ? (
+                    <Lock className="w-4 h-4 text-amber-400" />
+                  ) : isCompleted ? (
                     <CheckSquare className="w-5.5 h-5.5 text-saffron fill-saffron/10" />
                   ) : (
                     <Square className="w-5.5 h-5.5 text-text-muted hover:text-text" />
@@ -182,48 +221,64 @@ export const TopicList: React.FC<TopicListProps> = ({
 
                     {/* Interactive Sub-activities Checklist */}
                     <div className="flex flex-col gap-2.5 bg-bg-s2 border border-border/85 p-3 sm:p-3.5 rounded-lg">
-                      <span className="text-[10px] font-black uppercase text-saffron tracking-wider">Required Tasks</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase text-saffron tracking-wider">Required Tasks</span>
+                        {isLocked && (
+                          <span className="text-[9px] font-bold text-amber-400 flex items-center gap-1">
+                            <Lock className="w-3 h-3" />
+                            <span>Pro Pass में अनलॉक होगा</span>
+                          </span>
+                        )}
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3.5 mt-1.5">
                         
                         {/* Task 1: Notes (Opens Interactive Notes Reader Modal or PDF) */}
                         <button
                           onClick={() => {
+                            if (isLocked) {
+                              if (onOpenUpgrade) onOpenUpgrade(topic.nameHi || topic.name);
+                              else alert('यह टॉपिक Pro Pass में उपलब्ध है।');
+                              return;
+                            }
                             if ((topic.hasStudyNotes || topic.studyNotes) && onOpenNotes) {
                               onOpenNotes(topic);
                             } else if (topic.pdfPath && onOpenPdf) {
                               onOpenPdf(topic);
                             } else if (onOpenNotes) {
-                              // If notes reader available, open it directly so user can read or see guidance
                               onOpenNotes(topic);
                             } else {
                               onToggleActivity(topic.id, 'notesRead');
                             }
                           }}
                           className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
-                            progress.notesRead
-                              ? 'bg-saffron-dim/10 border-saffron/30 text-saffron'
-                              : (topic.hasStudyNotes || topic.studyNotes)
-                                ? 'bg-emerald-500/10 border-emerald-500/40 text-text hover:bg-emerald-500/20'
-                                : topic.pdfPath 
-                                  ? 'bg-saffron/10 border-saffron/40 text-text hover:bg-saffron/20'
-                                  : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80'
+                            isLocked
+                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                              : progress.notesRead
+                                ? 'bg-saffron-dim/10 border-saffron/30 text-saffron'
+                                : (topic.hasStudyNotes || topic.studyNotes)
+                                  ? 'bg-emerald-500/10 border-emerald-500/40 text-text hover:bg-emerald-500/20'
+                                  : topic.pdfPath 
+                                    ? 'bg-saffron/10 border-saffron/40 text-text hover:bg-saffron/20'
+                                    : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80'
                           }`}
                         >
-                          {topic.hasStudyNotes || topic.studyNotes ? (
+                          {isLocked ? (
+                            <Lock className="w-4 h-4 shrink-0 text-amber-400" />
+                          ) : topic.hasStudyNotes || topic.studyNotes ? (
                             <BookOpen className="w-4 h-4 shrink-0 text-emerald-400" />
                           ) : (
                             <FileText className={`w-4 h-4 shrink-0 ${topic.pdfPath ? 'text-saffron' : ''}`} />
                           )}
                           <div className="flex flex-col items-start leading-tight min-w-0">
                             <span className="truncate">
-                              {(topic.hasStudyNotes || topic.studyNotes) ? 'Read Study Notes' : topic.pdfPath ? 'Read PDF Notes' : 'Mark Notes Read'}
+                              {isLocked ? 'Notes (Pro Locked)' : (topic.hasStudyNotes || topic.studyNotes) ? 'Read Study Notes' : topic.pdfPath ? 'Read PDF Notes' : 'Mark Notes Read'}
                             </span>
                             <span className="text-[8px] font-normal opacity-75 truncate">
-                              {(topic.hasStudyNotes || topic.studyNotes) ? 'Interactive Reader' : topic.pdfPath ? (topic.pdfName || 'Attached PDF') : 'Study Material'}
+                              {isLocked ? 'Upgrade to Unlock' : (topic.hasStudyNotes || topic.studyNotes) ? 'Interactive Reader' : topic.pdfPath ? (topic.pdfName || 'Attached PDF') : 'Study Material'}
                             </span>
                           </div>
                           <span className="ml-auto text-xs shrink-0">
-                            {progress.notesRead ? '✓' : (topic.hasStudyNotes || topic.studyNotes || topic.pdfPath) ? '📖' : '○'}
+                            {isLocked ? '🔒' : progress.notesRead ? '✓' : (topic.hasStudyNotes || topic.studyNotes || topic.pdfPath) ? '📖' : '○'}
                           </span>
                         </button>
 
@@ -253,6 +308,11 @@ export const TopicList: React.FC<TopicListProps> = ({
                         {/* Task 3: Topic Practice MCQs */}
                         <button
                           onClick={() => {
+                            if (isLocked) {
+                              if (onOpenUpgrade) onOpenUpgrade(topic.nameHi || topic.name);
+                              else alert('यह टॉपिक Pro Pass में उपलब्ध है।');
+                              return;
+                            }
                             if (onOpenPracticeMcqs) {
                               onOpenPracticeMcqs(topic);
                             } else {
@@ -260,17 +320,23 @@ export const TopicList: React.FC<TopicListProps> = ({
                             }
                           }}
                           className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
-                            progress.mcqCompleted
-                              ? 'bg-saffron-dim/10 border-saffron/30 text-saffron'
-                              : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80 hover:border-saffron/40'
+                            isLocked
+                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                              : progress.mcqCompleted
+                                ? 'bg-saffron-dim/10 border-saffron/30 text-saffron'
+                                : 'bg-bg-s3 border-border text-text-muted hover:text-text hover:bg-bg-s3/80 hover:border-saffron/40'
                           }`}
                         >
-                          <CheckCircle className={`w-4 h-4 shrink-0 ${progress.mcqCompleted ? 'text-saffron' : ''}`} />
+                          {isLocked ? (
+                            <Lock className="w-4 h-4 shrink-0 text-amber-400" />
+                          ) : (
+                            <CheckCircle className={`w-4 h-4 shrink-0 ${progress.mcqCompleted ? 'text-saffron' : ''}`} />
+                          )}
                           <div className="flex flex-col items-start leading-tight min-w-0">
-                            <span>Solve Practice MCQs</span>
-                            <span className="text-[8px] font-normal opacity-75">Topic Tests & Quizzes</span>
+                            <span>{isLocked ? 'Practice MCQs (Locked)' : 'Solve Practice MCQs'}</span>
+                            <span className="text-[8px] font-normal opacity-75">{isLocked ? 'Upgrade to Unlock' : 'Topic Tests & Quizzes'}</span>
                           </div>
-                          <span className="ml-auto text-xs shrink-0">{progress.mcqCompleted ? '✓' : '🎯'}</span>
+                          <span className="ml-auto text-xs shrink-0">{isLocked ? '🔒' : progress.mcqCompleted ? '✓' : '🎯'}</span>
                         </button>
 
                       </div>

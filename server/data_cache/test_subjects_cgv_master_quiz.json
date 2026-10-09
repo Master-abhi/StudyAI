@@ -24,14 +24,6 @@
     ]
   },
   {
-    "subject": "Math",
-    "count": 3,
-    "totalQuestions": 15,
-    "modes": [
-      "quiz"
-    ]
-  },
-  {
     "subject": "India GS",
     "count": 3,
     "totalQuestions": 15,
@@ -48,6 +40,14 @@
     ]
   },
   {
+    "subject": "Aptitude & Maths",
+    "count": 2,
+    "totalQuestions": 10,
+    "modes": [
+      "quiz"
+    ]
+  },
+  {
     "subject": "Reasoning",
     "count": 2,
     "totalQuestions": 10,
@@ -59,6 +59,14 @@
     "subject": "Hindi Language",
     "count": 2,
     "totalQuestions": 10,
+    "modes": [
+      "quiz"
+    ]
+  },
+  {
+    "subject": "Mathemetics",
+    "count": 1,
+    "totalQuestions": 5,
     "modes": [
       "quiz"
     ]

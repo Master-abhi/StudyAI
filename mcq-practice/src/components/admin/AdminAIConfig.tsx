@@ -14,10 +14,10 @@ export const AdminAIConfig: React.FC<AdminAIConfigProps> = ({ currentUser }) => 
   const [providerChat, setProviderChat] = useState<string>('gemini');
   const [providerNews, setProviderNews] = useState<string>('gemini');
 
-  const [modelTest, setModelTest] = useState<string>('gemini-2.5-flash');
-  const [modelAnalytics, setModelAnalytics] = useState<string>('gemini-2.5-flash');
-  const [modelChat, setModelChat] = useState<string>('gemini-2.5-flash');
-  const [modelNews, setModelNews] = useState<string>('gemini-2.5-flash');
+  const [modelTest, setModelTest] = useState<string>('gemini-3.8-flash');
+  const [modelAnalytics, setModelAnalytics] = useState<string>('gemini-3.8-flash');
+  const [modelChat, setModelChat] = useState<string>('gemini-3.8-flash');
+  const [modelNews, setModelNews] = useState<string>('gemini-3.8-flash');
 
   const [loadingGet, setLoadingGet] = useState<boolean>(true);
   const [loadingSave, setLoadingSave] = useState<boolean>(false);
@@ -54,10 +54,10 @@ export const AdminAIConfig: React.FC<AdminAIConfigProps> = ({ currentUser }) => 
         setProviderAnalytics(data.providerAnalytics || data.activeAI || 'gemini');
         setProviderChat(data.providerChat || data.activeAI || 'gemini');
         setProviderNews(data.providerNews || data.activeAI || 'gemini');
-        setModelTest(data.geminiModelTest || 'gemini-2.5-flash');
-        setModelAnalytics(data.geminiModelAnalytics || 'gemini-2.5-flash');
-        setModelChat(data.geminiModelChat || 'gemini-2.5-flash');
-        setModelNews(data.geminiModelNews || 'gemini-2.5-flash');
+        setModelTest(data.geminiModelTest || 'gemini-3.8-flash');
+        setModelAnalytics(data.geminiModelAnalytics || 'gemini-3.8-flash');
+        setModelChat(data.geminiModelChat || 'gemini-3.8-flash');
+        setModelNews(data.geminiModelNews || 'gemini-3.8-flash');
       } else {
         throw new Error('Failed to retrieve active AI configurations.');
       }
@@ -117,11 +117,11 @@ export const AdminAIConfig: React.FC<AdminAIConfigProps> = ({ currentUser }) => 
   };
 
   const validGeminiModels = [
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended / Default)' },
-    { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Deep Reasoning & Analysis)' },
-    { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Fast Response)' },
-    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (High Volume / Legacy)' },
-    { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Complex Context)' }
+    { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash (Recommended / Default)' },
+    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+    { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+    { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' }
   ];
 
   return (

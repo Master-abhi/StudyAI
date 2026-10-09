@@ -18,6 +18,11 @@
     ],
     "routes": [
         {
+            "src": "/(cgguru\\.apk|download/app)",
+            "dest": "https://raw.githubusercontent.com/Master-abhi/StudyAI/main/cgguru.apk",
+            "status": 302
+        },
+        {
             "src": "/api/(.*)",
             "dest": "server/server.js"
         },

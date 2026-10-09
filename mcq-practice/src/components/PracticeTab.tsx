@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, ChevronLeft, Zap, BookOpen, Search, SlidersHorizontal, X, Download, CheckCircle2, HardDriveDownload, Loader2, Share2, FolderOpen, Layers } from 'lucide-react';
+import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, ChevronLeft, Zap, BookOpen, Search, SlidersHorizontal, X, Download, CheckCircle2, HardDriveDownload, Loader2, Share2, FolderOpen, Layers, Crown } from 'lucide-react';
 import type { Question } from '../types';
 import { getCanonicalSubject } from '../utils/subjectUtils';
+import { canTakeMockTest, canSolveMcq, getRemainingMockTests, getRemainingMcqs } from '../utils/userTierLimits';
 
 interface ServerTest {
   id: string;
@@ -27,6 +28,8 @@ interface PracticeTabProps {
   currentUser?: any;
   onSaveTypingResults?: (netWpm: number, grossWpm: number, accuracy: number, correctChars: number, incorrectChars: number, language: string, duration: number, topicId: string, topicTitle: string) => void;
   tabVisibility?: Record<string, boolean>;
+  userPlan?: 'free' | 'paid';
+  onOpenUpgrade?: (reason?: string) => void;
 }
 
 export const PracticeTab: React.FC<PracticeTabProps> = ({
@@ -35,7 +38,9 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   bookmarkedQuestions = [],
   onToggleBookmark,
   testHistory = [],
-  tabVisibility
+  tabVisibility,
+  userPlan = 'free',
+  onOpenUpgrade
 }) => {
   const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'offline' | 'saved'>('quiz');
   const [tests, setTests] = useState<ServerTest[]>([]);
@@ -415,6 +420,20 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   }, [activeExam?.id, activeMode]);
 
   const handleStartEducatorTest = async (testId: string, testMode: 'quiz' | 'mock' | 'pyq', subject: string) => {
+    // Check Free user daily limits
+    if (userPlan !== 'paid') {
+      if (testMode === 'mock' && !canTakeMockTest(userPlan)) {
+        if (onOpenUpgrade) onOpenUpgrade('mock_limit');
+        else alert('आज के 3 Mock Tests की सीमा पूरी हो चुकी है। असीमित टेस्ट देने के लिए Pro Pass अनलॉक करें।');
+        return;
+      }
+      if (!canSolveMcq(userPlan)) {
+        if (onOpenUpgrade) onOpenUpgrade('mcq_limit');
+        else alert('आज के 30 MCQs की सीमा पूरी हो चुकी है। असीमित MCQs सॉल्व करने के लिए Pro Pass अनलॉक करें।');
+        return;
+      }
+    }
+
     // Check internal app offline storage first
     if (offlineTests[testId] && Array.isArray(offlineTests[testId].questions) && offlineTests[testId].questions.length > 0) {
       const offlineItem = offlineTests[testId];
@@ -539,6 +558,37 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Plan Quota Banner */}
+      {userPlan === 'paid' ? (
+        <div className="flex items-center justify-between p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+          <div className="flex items-center gap-2">
+            <Crown className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">Pro Pass Active</span>
+          </div>
+          <span className="text-xs font-bold text-text-muted">असीमित Mock Tests और MCQs अनलॉक हैं</span>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 bg-gradient-to-r from-saffron/15 via-amber-500/10 to-orange-500/15 border border-saffron-border/40 rounded-xl shadow-sm">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-black uppercase text-saffron tracking-wider flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5 fill-saffron" />
+              <span>Free Plan: दैनिक उपयोग सीमा</span>
+            </span>
+            <div className="flex items-center gap-3 text-xs font-bold text-text">
+              <span>📝 Mock Tests: <strong className="text-saffron font-black">{getRemainingMockTests(userPlan)}/3</strong> शेष</span>
+              <span>•</span>
+              <span>🎯 MCQs: <strong className="text-saffron font-black">{getRemainingMcqs(userPlan)}/30</strong> शेष</span>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenUpgrade && onOpenUpgrade('general')}
+            className="px-3.5 py-1.5 bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow cursor-pointer self-start sm:self-auto transition-all active:scale-95"
+          >
+            👑 Pro Pass लें
+          </button>
+        </div>
+      )}
 
       {/* 2. Unified Mode selectors */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 shrink-0">
