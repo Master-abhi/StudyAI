@@ -258,7 +258,7 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
   ];
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-lg md:max-w-4xl mx-auto h-full min-h-0 bg-bg-s1 relative font-sans">
+    <div className="flex flex-col w-full h-full min-h-0 bg-bg-s1 relative font-sans">
       
       {/* 1. Header controls */}
       <div className="flex items-center justify-between border-b border-border pb-3 bg-bg-s1 z-10 shrink-0">
@@ -378,18 +378,18 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
         )}
       </div>
 
-      {/* 3. Message typing input field */}
-      <div className="border-t border-border pt-3.5 bg-bg-s1 shrink-0">
+      {/* 3. Message typing input field (Pinned to bottom) */}
+      <div className="border-t border-border pt-3 pb-2 md:pb-0 bg-bg-s1 shrink-0 mt-auto">
         {userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0 && (
-          <div className="mb-2.5 p-2.5 bg-saffron/10 border border-saffron/30 rounded-lg flex items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 text-saffron font-bold">
-              <Lock className="w-4 h-4 shrink-0" />
+          <div className="mb-2 p-2.5 bg-saffron/10 border border-saffron/30 rounded-lg flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-saffron font-bold text-[11px]">
+              <Lock className="w-3.5 h-3.5 shrink-0" />
               <span>आज के 3 निःशुल्क सवालों की सीमा पूरी हो चुकी है।</span>
             </div>
             <button
               type="button"
               onClick={onOpenUpgrade}
-              className="px-3 py-1 bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-white rounded font-black text-[10px] uppercase tracking-wider shrink-0 shadow cursor-pointer transition-all active:scale-95"
+              className="px-2.5 py-1 bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-white rounded font-black text-[10px] uppercase tracking-wider shrink-0 shadow cursor-pointer transition-all active:scale-95"
             >
               Pro Pass अनलॉक करें
             </button>
@@ -401,26 +401,26 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
             e.preventDefault();
             handleSend(inputVal);
           }}
-          className="flex items-center gap-2.5"
+          className="flex items-center gap-2"
         >
           <input
             type="text"
             placeholder={
               userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0 
-                ? 'आज के 3 निःशुल्क सवालों की सीमा समाप्त (Pro Pass अनलॉक करें)...' 
+                ? 'दैनिक सीमा समाप्त (Pro Pass अनलॉक करें)...' 
                 : 'Ask anything about your exam...'
             }
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             disabled={generating || (userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0)}
-            className="flex-1 bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-4 py-3 rounded-lg outline-none transition-colors disabled:opacity-60"
+            className="flex-1 bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3.5 py-2.5 sm:py-3 rounded-lg outline-none transition-colors disabled:opacity-60"
           />
 
           {generating ? (
             <button
               type="button"
               onClick={handleStop}
-              className="p-3 bg-red-600 hover:bg-red-500 text-bg-s1 rounded-lg flex items-center justify-center cursor-pointer transition-colors shadow"
+              className="p-2.5 sm:p-3 bg-red-600 hover:bg-red-500 text-bg-s1 rounded-lg flex items-center justify-center cursor-pointer transition-colors shadow shrink-0"
               title="Stop generation"
             >
               <StopCircle className="w-4 h-4 text-white" />
@@ -429,7 +429,7 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
             <button
               type="submit"
               disabled={!inputVal.trim() || (userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0)}
-              className="p-3 bg-saffron hover:bg-orange-500 disabled:opacity-50 text-bg-s1 rounded-lg flex items-center justify-center cursor-pointer transition-colors shadow"
+              className="p-2.5 sm:p-3 bg-saffron hover:bg-orange-500 disabled:opacity-50 text-bg-s1 rounded-lg flex items-center justify-center cursor-pointer transition-colors shadow shrink-0"
             >
               <Send className="w-4 h-4 fill-bg-s1" />
             </button>

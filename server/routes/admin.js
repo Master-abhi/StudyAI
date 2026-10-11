@@ -2799,6 +2799,117 @@ router.post('/users/:uid/status', verifyAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/users/:uid/details - Full user data (profile, testResults, typingResults, topicProgress, etc.)
+router.get('/users/:uid/details', verifyAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+
+    // 1. Fetch Firebase Auth profile
+    let authUser = null;
+    try {
+      authUser = await authAdmin.getUser(uid);
+    } catch (e) {
+      console.warn(`[Admin User Details] Auth user ${uid} not found:`, e.message);
+    }
+
+    // 2. Fetch Firestore user document
+    const userDoc = await db.collection('users').doc(uid).get();
+    const firestoreData = userDoc.exists ? userDoc.data() : {};
+
+    // 3. Fetch topic mastery records if any
+    const masterySnap = await db.collection('topic_mastery').where('userId', '==', uid).get();
+    const topicMasteryList = masterySnap.docs.map(doc => doc.data());
+
+    res.json({
+      uid,
+      auth: authUser ? {
+        email: authUser.email,
+        displayName: authUser.displayName,
+        phoneNumber: authUser.phoneNumber,
+        photoURL: authUser.photoURL,
+        disabled: authUser.disabled,
+        emailVerified: authUser.emailVerified,
+        creationTime: authUser.metadata.creationTime,
+        lastSignInTime: authUser.metadata.lastSignInTime,
+        customClaims: authUser.customClaims || {}
+      } : null,
+      firestore: firestoreData,
+      topicMastery: topicMasteryList
+    });
+  } catch (err) {
+    console.error('[Admin User Details Error]:', err.message);
+    res.status(500).json({ error: 'Failed to fetch user full details.' });
+  }
+});
+
+// POST /api/admin/users/:uid/profile - Admin updates user profile (name, email, mobile, username)
+router.post('/users/:uid/profile', verifyAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { displayName, email, mobile, username } = req.body;
+
+    const authUpdates = {};
+    const firestoreUpdates = {
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (displayName !== undefined) {
+      const cleanName = String(displayName).trim().slice(0, 100);
+      authUpdates.displayName = cleanName;
+      firestoreUpdates.displayName = cleanName;
+    }
+
+    if (email !== undefined && email.trim()) {
+      const cleanEmail = String(email).trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        return res.status(400).json({ error: 'Invalid email address format' });
+      }
+      authUpdates.email = cleanEmail;
+      firestoreUpdates.email = cleanEmail;
+    }
+
+    if (mobile !== undefined) {
+      firestoreUpdates.mobile = String(mobile).trim().slice(0, 20);
+    }
+
+    if (username !== undefined) {
+      firestoreUpdates.username = String(username).trim().slice(0, 50);
+    }
+
+    // Update in Firebase Auth if needed
+    if (Object.keys(authUpdates).length > 0) {
+      try {
+        await authAdmin.updateUser(uid, authUpdates);
+      } catch (authErr) {
+        console.warn(`[Admin User Profile Auth Update Warning]:`, authErr.message);
+      }
+    }
+
+    // Update in Firestore
+    await db.collection('users').doc(uid).set(firestoreUpdates, { merge: true });
+
+    await logStaffActivity(req, 'admin_update_user_profile', {
+      targetUid: uid,
+      updates: { ...authUpdates, ...firestoreUpdates }
+    });
+
+    console.log(`[Admin User Profile Update] Updated user ${uid} profile ✅`);
+    res.json({
+      success: true,
+      uid,
+      profile: {
+        displayName: firestoreUpdates.displayName,
+        email: firestoreUpdates.email,
+        mobile: firestoreUpdates.mobile,
+        username: firestoreUpdates.username
+      }
+    });
+  } catch (err) {
+    console.error('[Admin Update User Profile Error]:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to update user profile.' });
+  }
+});
+
 // POST /api/admin/users/:uid/email - Admin updates user email directly
 router.post('/users/:uid/email', verifyAdmin, async (req, res) => {
   try {

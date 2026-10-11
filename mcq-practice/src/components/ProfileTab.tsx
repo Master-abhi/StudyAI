@@ -3,7 +3,7 @@ import {
   Flame, Trophy, Award, Star, Clock, 
   CheckCircle2, AlertCircle, History, BookOpen, ChevronRight,
   ArrowRight, Target, Mail, ShieldCheck, ShieldAlert, User,
-  Brain, Cpu, Loader2
+  Brain, Cpu, Loader2, ChevronDown, ChevronUp, Calendar
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
@@ -53,6 +53,7 @@ interface ProfileTabProps {
   tabVisibility?: Record<string, boolean>;
   currentUser?: any;
   userPlan?: 'free' | 'paid';
+  planExpiresAt?: string | null;
   onUploadAvatar?: (file: File) => Promise<string>;
   onVisitProfile?: (uid: string) => void;
 }
@@ -79,10 +80,32 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   rankingData,
   tabVisibility,
   userPlan = 'free',
+  planExpiresAt,
   onUploadAvatar,
   onVisitProfile
 }) => {
   const [uploadingAvatar, setUploadingAvatar] = useState<boolean>(false);
+  const [expandedSections, setExpandedSections] = useState<{
+    strongSubjects: boolean;
+    focusSubjects: boolean;
+    testHistory: boolean;
+    typingHistory: boolean;
+    syllabusTracker: boolean;
+    leaderboard: boolean;
+    achievements: boolean;
+  }>({
+    strongSubjects: false,
+    focusSubjects: false,
+    testHistory: false,
+    typingHistory: false,
+    syllabusTracker: false,
+    leaderboard: false,
+    achievements: false
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -550,8 +573,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                   : 'bg-bg-s3/80 text-text-muted border-border/40'
               }`}>
-                {userPlan === 'paid' ? 'Premium Plan' : 'Free Plan'}
+                {userPlan === 'paid' ? 'Pro pass' : 'Free Plan'}
               </span>
+              {userPlan === 'paid' && planExpiresAt && (
+                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded flex items-center gap-1">
+                  <Calendar className="w-2.5 h-2.5 shrink-0" />
+                  <span>Valid till: {new Date(planExpiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                </span>
+              )}
             </div>
 
             {/* Followers / Following counts */}
@@ -773,12 +802,23 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         {/* 6. Diagnostics: Strong & Weak Areas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Strong Areas */}
-          <div className="p-4.5 bg-greenL/5 border border-greenL/15 hover:border-greenL/30 rounded-xl shadow-md hover:shadow-greenL/5 flex flex-col gap-3 transition-all duration-300 min-h-[260px]">
-            <h5 className="text-[10px] font-black uppercase text-greenL flex items-center gap-1.5 border-b border-greenL/10 pb-2 shrink-0 tracking-wider text-left">
-              <CheckCircle2 className="w-4 h-4 text-greenL" />
-              <span>Strong Subjects / मजबूत विषय</span>
+          <div className="p-4.5 bg-greenL/5 border border-greenL/15 hover:border-greenL/30 rounded-xl shadow-md hover:shadow-greenL/5 flex flex-col gap-3 transition-all duration-300">
+            <h5 className="text-[10px] font-black uppercase text-greenL flex items-center justify-between border-b border-greenL/10 pb-2 shrink-0 tracking-wider text-left">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-greenL" />
+                <span>Strong Subjects / मजबूत विषय</span>
+              </span>
+              {strongSubjects.length > 0 && (
+                <span className="text-[9px] font-bold text-greenL/80 lowercase">
+                  {strongSubjects.length} {strongSubjects.length === 1 ? 'subject' : 'subjects'}
+                </span>
+              )}
             </h5>
-            <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 flex-1">
+            <div className={`flex flex-col gap-2 pr-1 transition-all duration-300 ${
+              expandedSections.strongSubjects 
+                ? 'max-h-[360px] overflow-y-auto' 
+                : 'max-h-[175px] overflow-hidden'
+            }`}>
               {strongSubjects.length > 0 ? (
                 strongSubjects.map((sub, idx) => (
                   <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-greenL/5 border border-greenL/10 hover:border-greenL/25 hover:bg-greenL/10 transition-all duration-200 gap-2.5" title={sub.name}>
@@ -794,15 +834,39 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 <span className="text-xs text-text-muted italic py-6 text-center my-auto">No strong subjects yet</span>
               )}
             </div>
+            {strongSubjects.length > 3 && (
+              <button
+                type="button"
+                onClick={() => toggleSection('strongSubjects')}
+                className="mt-1 pt-2 border-t border-greenL/10 text-[10px] font-black uppercase text-greenL hover:text-greenL/80 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                {expandedSections.strongSubjects ? (
+                  <>Show Less <ChevronUp className="w-3.5 h-3.5" /></>
+                ) : (
+                  <>See More ({strongSubjects.length - 3} more) <ChevronDown className="w-3.5 h-3.5" /></>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Focus Areas */}
-          <div className="p-4.5 bg-redL/5 border border-redL/15 hover:border-redL/30 rounded-xl shadow-md hover:shadow-redL/5 flex flex-col gap-3 transition-all duration-300 min-h-[260px]">
-            <h5 className="text-[10px] font-black uppercase text-redL flex items-center gap-1.5 border-b border-redL/10 pb-2 shrink-0 tracking-wider text-left">
-              <AlertCircle className="w-4 h-4 text-redL" />
-              <span>Focus Subjects / ध्यान देने योग्य</span>
+          <div className="p-4.5 bg-redL/5 border border-redL/15 hover:border-redL/30 rounded-xl shadow-md hover:shadow-redL/5 flex flex-col gap-3 transition-all duration-300">
+            <h5 className="text-[10px] font-black uppercase text-redL flex items-center justify-between border-b border-redL/10 pb-2 shrink-0 tracking-wider text-left">
+              <span className="flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-redL" />
+                <span>Focus Subjects / ध्यान देने योग्य</span>
+              </span>
+              {focusSubjects.length > 0 && (
+                <span className="text-[9px] font-bold text-redL/80 lowercase">
+                  {focusSubjects.length} {focusSubjects.length === 1 ? 'subject' : 'subjects'}
+                </span>
+              )}
             </h5>
-            <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 flex-1">
+            <div className={`flex flex-col gap-2 pr-1 transition-all duration-300 ${
+              expandedSections.focusSubjects 
+                ? 'max-h-[360px] overflow-y-auto' 
+                : 'max-h-[175px] overflow-hidden'
+            }`}>
               {focusSubjects.length > 0 ? (
                 focusSubjects.map((sub, idx) => (
                   <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-redL/5 border border-redL/10 hover:border-redL/25 hover:bg-redL/10 transition-all duration-200 gap-2.5" title={sub.name}>
@@ -818,6 +882,19 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
                 <span className="text-xs text-text-muted italic py-6 text-center my-auto">No focus subjects yet</span>
               )}
             </div>
+            {focusSubjects.length > 3 && (
+              <button
+                type="button"
+                onClick={() => toggleSection('focusSubjects')}
+                className="mt-1 pt-2 border-t border-redL/10 text-[10px] font-black uppercase text-redL hover:text-redL/80 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                {expandedSections.focusSubjects ? (
+                  <>Show Less <ChevronUp className="w-3.5 h-3.5" /></>
+                ) : (
+                  <>See More ({focusSubjects.length - 3} more) <ChevronDown className="w-3.5 h-3.5" /></>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -840,58 +917,77 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               No test attempts completed yet. Take practice quizzes to populate history log.
             </div>
           ) : (
-            <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1.5">
-              {normalizedHistory.map((log, idx) => {
-                const hasQuestions = log.questions && log.questions.length > 0;
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      if (hasQuestions && onReviewTest) {
-                        onReviewTest(log.questions, log.userAnswers || [], log.subject, log.mode);
-                      } else if (!hasQuestions) {
-                        alert("This legacy test log does not have saved question data for review.");
-                      }
-                    }}
-                    disabled={!hasQuestions}
-                    className={`w-full text-left p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3 transition-all ${
-                      hasQuestions 
-                        ? 'hover:bg-bg-s2 hover:border-saffron-border/60 hover:scale-[1.01] cursor-pointer' 
-                        : 'opacity-60 cursor-not-allowed'
-                    }`}
-                  >
-                    <div className="flex flex-col truncate">
-                      <span className="text-text truncate leading-tight flex items-center gap-1.5">
-                        {log.subject}
-                        {hasQuestions && (
-                          <span className="text-[8px] bg-saffron-dim/40 text-saffron border border-saffron-border/30 px-1 py-0.2 rounded font-black uppercase">
-                            Review
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
-                        {log.mode} • C:{log.correct} W:{log.wrong} S:{log.skipped}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`font-black ${
-                        log.percent >= 75 ? 'text-greenL' :
-                        log.percent >= 55 ? 'text-saffron' :
-                        'text-redL'
-                      }`}>
-                        {log.percent}%
-                      </span>
-                      <span className="text-[9px] text-text-muted font-normal">
-                        {new Date(log.timestamp).toLocaleDateString('en-IN', {
-                          day: 'numeric', month: 'short'
-                        })}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              <div className={`flex flex-col gap-2 pr-1.5 transition-all duration-300 ${
+                expandedSections.testHistory 
+                  ? 'max-h-[480px] overflow-y-auto' 
+                  : 'max-h-[195px] overflow-hidden'
+              }`}>
+                {normalizedHistory.map((log, idx) => {
+                  const hasQuestions = log.questions && log.questions.length > 0;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        if (hasQuestions && onReviewTest) {
+                          onReviewTest(log.questions, log.userAnswers || [], log.subject, log.mode);
+                        } else if (!hasQuestions) {
+                          alert("This legacy test log does not have saved question data for review.");
+                        }
+                      }}
+                      disabled={!hasQuestions}
+                      className={`w-full text-left p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3 transition-all ${
+                        hasQuestions 
+                          ? 'hover:bg-bg-s2 hover:border-saffron-border/60 hover:scale-[1.01] cursor-pointer' 
+                          : 'opacity-60 cursor-not-allowed'
+                      }`}
+                    >
+                      <div className="flex flex-col truncate">
+                        <span className="text-text truncate leading-tight flex items-center gap-1.5">
+                          {log.subject}
+                          {hasQuestions && (
+                            <span className="text-[8px] bg-saffron-dim/40 text-saffron border border-saffron-border/30 px-1 py-0.2 rounded font-black uppercase">
+                              Review
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
+                          {log.mode} • C:{log.correct} W:{log.wrong} S:{log.skipped}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`font-black ${
+                          log.percent >= 75 ? 'text-greenL' :
+                          log.percent >= 55 ? 'text-saffron' :
+                          'text-redL'
+                        }`}>
+                          {log.percent}%
+                        </span>
+                        <span className="text-[9px] text-text-muted font-normal">
+                          {new Date(log.timestamp).toLocaleDateString('en-IN', {
+                            day: 'numeric', month: 'short'
+                          })}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {normalizedHistory.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => toggleSection('testHistory')}
+                  className="mt-1 pt-2.5 border-t border-border/50 text-[10px] font-black uppercase text-saffron hover:text-orange-400 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  {expandedSections.testHistory ? (
+                    <>Show Less <ChevronUp className="w-3.5 h-3.5" /></>
+                  ) : (
+                    <>See More ({normalizedHistory.length - 3} more) <ChevronDown className="w-3.5 h-3.5" /></>
+                  )}
+                </button>
+              )}
+            </>
           )}
         </div>
 
@@ -928,43 +1024,62 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 max-h-[380px] overflow-y-auto pr-1.5">
-              {[...typingResults].reverse().map((log, idx) => {
-                return (
-                  <div
-                    key={idx}
-                    className="w-full p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3"
-                  >
-                    <div className="flex flex-col truncate">
-                      <span className="text-text truncate leading-tight flex items-center gap-1.5">
-                        {log.topicTitle}
-                        <span className="text-[8px] bg-saffron-dim/40 text-saffron border border-saffron-border/30 px-1.5 py-0.5 rounded font-black uppercase">
-                          {log.language === 'krutidev' ? 'कृत्तिदेव 010' : 'English'}
+            <>
+              <div className={`flex flex-col gap-2 pr-1.5 transition-all duration-300 ${
+                expandedSections.typingHistory 
+                  ? 'max-h-[480px] overflow-y-auto' 
+                  : 'max-h-[195px] overflow-hidden'
+              }`}>
+                {[...typingResults].reverse().map((log, idx) => {
+                  return (
+                    <div
+                      key={idx}
+                      className="w-full p-3 bg-bg-s3 border border-border rounded-lg flex items-center justify-between text-xs font-semibold gap-3"
+                    >
+                      <div className="flex flex-col truncate">
+                        <span className="text-text truncate leading-tight flex items-center gap-1.5">
+                          {log.topicTitle}
+                          <span className="text-[8px] bg-saffron-dim/40 text-saffron border border-saffron-border/30 px-1.5 py-0.5 rounded font-black uppercase">
+                            {log.language === 'krutidev' ? 'कृत्तिदेव 010' : 'English'}
+                          </span>
                         </span>
-                      </span>
-                      <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
-                        Net: {log.netWpm} WPM • Gross: {log.grossWpm} WPM • Accuracy: {log.accuracy}%
-                      </span>
+                        <span className="text-[9px] text-text-muted mt-1.5 font-bold uppercase tracking-wider leading-none">
+                          Net: {log.netWpm} WPM • Gross: {log.grossWpm} WPM • Accuracy: {log.accuracy}%
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`font-black ${
+                          log.accuracy >= 95 ? 'text-greenL' :
+                          log.accuracy >= 85 ? 'text-saffron' :
+                          'text-redL'
+                        }`}>
+                          {log.accuracy}% Acc
+                        </span>
+                        <span className="text-[9px] text-text-muted font-normal">
+                          {new Date(log.date).toLocaleDateString('en-IN', {
+                            day: 'numeric', month: 'short'
+                          })}
+                        </span>
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`font-black ${
-                        log.accuracy >= 95 ? 'text-greenL' :
-                        log.accuracy >= 85 ? 'text-saffron' :
-                        'text-redL'
-                      }`}>
-                        {log.accuracy}% Acc
-                      </span>
-                      <span className="text-[9px] text-text-muted font-normal">
-                        {new Date(log.date).toLocaleDateString('en-IN', {
-                          day: 'numeric', month: 'short'
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+              {typingResults.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => toggleSection('typingHistory')}
+                  className="mt-1 pt-2.5 border-t border-border/50 text-[10px] font-black uppercase text-saffron hover:text-orange-400 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  {expandedSections.typingHistory ? (
+                    <>Show Less <ChevronUp className="w-3.5 h-3.5" /></>
+                  ) : (
+                    <>See More ({typingResults.length - 3} more) <ChevronDown className="w-3.5 h-3.5" /></>
+                  )}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

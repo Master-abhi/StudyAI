@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, User, Key, ShieldAlert, ShieldCheck, Mail, Phone, AtSign } from 'lucide-react';
+import { Lock, User, Key, ShieldAlert, ShieldCheck, Mail, Phone, AtSign, Smartphone, Laptop, AlertTriangle } from 'lucide-react';
+import { getCurrentDeviceInfo } from '../utils/deviceSession';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -48,6 +49,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Email Verification Pending States
   const [isEmailPending, setIsEmailPending] = useState<boolean>(false);
   const [pendingVerifyEmail, setPendingVerifyEmail] = useState<string>('');
+
+  // Device Limit States (Max 1 Mobile + 1 Computer/Tablet)
+  const [deviceConflict, setDeviceConflict] = useState<any>(null);
+  const [pendingUser, setPendingUser] = useState<any>(null);
 
   // Poll Firebase to check when user verifies their email
   useEffect(() => {
@@ -115,6 +120,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true);
     setError('');
+    setDeviceConflict(null);
+    setPendingUser(null);
 
     try {
       const cred = await firebase.auth().signInWithEmailAndPassword(trimmedEmail, loginPass);
@@ -127,8 +134,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         throw new Error('User session not found.');
       }
 
-      onSuccess(freshUser);
-      onClose();
+      await checkDeviceAndComplete(freshUser);
     } catch (err: any) {
       console.error('[Login Error]:', err);
       let msg = err.message || 'Login failed. Check your email and password.';
@@ -136,8 +142,76 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       else if (err.code === 'auth/wrong-password') msg = 'Incorrect password.';
       else if (err.code === 'auth/invalid-email') msg = 'Invalid email address format.';
       setError(msg);
+      setLoading(false);
+    }
+  };
+
+  const checkDeviceAndComplete = async (user: any, forceReplace = false) => {
+    try {
+      const deviceInfo = getCurrentDeviceInfo();
+      const token = await user.getIdToken(true);
+
+      const res = await fetch(getApiUrl('/api/user/session/register'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          deviceId: deviceInfo.deviceId,
+          deviceType: deviceInfo.deviceType,
+          deviceName: deviceInfo.deviceName,
+          forceReplace
+        })
+      });
+
+      if (res.status === 409) {
+        const data = await res.json();
+        setPendingUser(user);
+        setDeviceConflict({
+          deviceType: data.deviceType,
+          existingDevice: data.existingDevice
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to register device session');
+      }
+
+      // Success: Proceed
+      setDeviceConflict(null);
+      setPendingUser(null);
+      onSuccess(user);
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Device verification failed.');
+      // If error, sign out user from client to prevent unauthorized session
+      const firebase = (window as any).firebase;
+      if (firebase) {
+        try { await firebase.auth().signOut(); } catch (_) {}
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForceSwitchDevice = async () => {
+    if (!pendingUser) return;
+    setLoading(true);
+    setError('');
+    await checkDeviceAndComplete(pendingUser, true);
+  };
+
+  const handleCancelConflict = async () => {
+    setDeviceConflict(null);
+    setPendingUser(null);
+    setError('');
+    const firebase = (window as any).firebase;
+    if (firebase) {
+      try { await firebase.auth().signOut(); } catch (_) {}
     }
   };
 
@@ -180,6 +254,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true);
     setError('');
+    setDeviceConflict(null);
+    setPendingUser(null);
 
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -203,12 +279,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         throw new Error(syncData.error || 'Failed to sync account info.');
       }
 
-      onSuccess(cred.user);
-      onClose();
+      await checkDeviceAndComplete(cred.user);
     } catch (err: any) {
       console.error('[Google Sign In Error]:', err);
       setError(err.message || 'Google Sign-In failed. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
@@ -394,7 +468,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           {/* Validation Alert */}
-          {error && (
+          {error && !deviceConflict && (
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
@@ -417,8 +491,70 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </motion.div>
           )}
 
-          {/* Forms */}
-          {isEmailPending ? (
+          {/* Device Limit Conflict Prompt */}
+          {deviceConflict ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex flex-col gap-3.5 my-1"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-redL shrink-0 mt-0.5">
+                  <AlertTriangle className="w-5 h-5 text-redL" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <h4 className="text-xs font-black uppercase text-redL tracking-wider">
+                    Device Limit Reached (डिवाइस सीमा)
+                  </h4>
+                  <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
+                    आपके अकाउंट की अनुमति: <strong>1 Mobile + 1 Computer/Tablet</strong>।
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-bg-s3/80 border border-border/60 rounded-lg flex flex-col gap-1 text-[11px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted">Already Logged In:</span>
+                  <span className="font-bold text-text flex items-center gap-1">
+                    {deviceConflict.deviceType === 'mobile' ? (
+                      <Smartphone className="w-3.5 h-3.5 text-saffron" />
+                    ) : (
+                      <Laptop className="w-3.5 h-3.5 text-saffron" />
+                    )}
+                    {deviceConflict.existingDevice?.deviceName || 'Active Device'}
+                  </span>
+                </div>
+                {deviceConflict.existingDevice?.lastLogin && (
+                  <span className="text-[9px] text-text-muted">
+                    Last active: {new Date(deviceConflict.existingDevice.lastLogin).toLocaleString('en-IN')}
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[10px] text-text-muted leading-relaxed">
+                क्या आप पुराने डिवाइस से लॉग आउट करके इस नए डिवाइस पर लॉग इन करना चाहते हैं?
+              </p>
+
+              <div className="flex gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={handleForceSwitchDevice}
+                  disabled={loading}
+                  className="flex-1 py-2.5 bg-saffron hover:bg-orange-500 disabled:bg-saffron/50 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-all shadow-md text-center"
+                >
+                  {loading ? 'Switching...' : 'Log Out Other & Continue'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelConflict}
+                  disabled={loading}
+                  className="py-2.5 px-4 bg-bg-s3 hover:bg-bg-s3/80 border border-border text-text text-xs font-black uppercase rounded-lg cursor-pointer transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          ) : isEmailPending ? (
             /* Email Verification Pending View */
             <div className="flex flex-col gap-4 text-center my-1.5">
               <div className="p-4 bg-saffron-dim/10 border border-saffron-border/35 rounded-xl flex flex-col gap-2.5 items-center">

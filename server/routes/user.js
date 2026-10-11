@@ -264,6 +264,126 @@ function cleanTypingResults(value) {
   }).filter(Boolean);
 }
 
+// --- Device Session Control (Policy: Max 1 Mobile + 1 Computer/Tablet) ---
+router.post('/session/verify', async (req, res) => {
+  try {
+    const { deviceId, deviceType, deviceName } = req.body;
+    if (!deviceId) {
+      return res.status(400).json({ error: 'deviceId is required' });
+    }
+    const cleanType = (deviceType === 'desktop' || deviceType === 'mobile') ? deviceType : 'desktop';
+    const userDocRef = db.collection('users').doc(req.user.uid);
+    const userDoc = await userDocRef.get();
+    const data = userDoc.exists ? userDoc.data() : {};
+    const activeDevices = data.activeDevices || {};
+
+    const mobileSlot = activeDevices.mobile || null;
+    const desktopSlot = activeDevices.desktop || null;
+
+    // Check if this device is already the active device for its type
+    const isCurrentActive = 
+      (cleanType === 'mobile' && mobileSlot && mobileSlot.deviceId === deviceId) ||
+      (cleanType === 'desktop' && desktopSlot && desktopSlot.deviceId === deviceId);
+
+    // If current slot is occupied by another device
+    const occupiedSlot = cleanType === 'mobile' ? mobileSlot : desktopSlot;
+    const isOccupiedByOther = occupiedSlot && occupiedSlot.deviceId !== deviceId;
+
+    res.json({
+      allowed: isCurrentActive || !occupiedSlot,
+      isCurrentActive,
+      conflict: !isCurrentActive && !!isOccupiedByOther,
+      deviceType: cleanType,
+      currentSlot: occupiedSlot,
+      activeDevices: {
+        mobile: mobileSlot,
+        desktop: desktopSlot
+      }
+    });
+  } catch (err) {
+    console.error('[Device Session Verify Error]:', err.message);
+    res.status(500).json({ error: 'Failed to verify device session' });
+  }
+});
+
+router.post('/session/register', async (req, res) => {
+  try {
+    const { deviceId, deviceType, deviceName, forceReplace } = req.body;
+    if (!deviceId) {
+      return res.status(400).json({ error: 'deviceId is required' });
+    }
+
+    const cleanType = (deviceType === 'mobile' || deviceType === 'desktop') ? deviceType : 'desktop';
+    const cleanName = cleanString(deviceName, 100) || (cleanType === 'mobile' ? 'Mobile Device' : 'Computer/Tablet');
+    const userDocRef = db.collection('users').doc(req.user.uid);
+    const userDoc = await userDocRef.get();
+    const data = userDoc.exists ? userDoc.data() : {};
+    const activeDevices = { ...(data.activeDevices || {}) };
+
+    const existingSlot = activeDevices[cleanType] || null;
+
+    // If slot occupied by another device and forceReplace not requested
+    if (existingSlot && existingSlot.deviceId !== deviceId && !forceReplace) {
+      return res.status(409).json({
+        error: `A ${cleanType === 'mobile' ? 'mobile' : 'computer/tablet'} is already logged in (${existingSlot.deviceName || cleanType}).`,
+        conflict: true,
+        deviceType: cleanType,
+        existingDevice: existingSlot
+      });
+    }
+
+    // Register/update device slot
+    activeDevices[cleanType] = {
+      deviceId,
+      deviceType: cleanType,
+      deviceName: cleanName,
+      lastLogin: new Date().toISOString(),
+      updatedAt: admin.firestore.Timestamp.now()
+    };
+
+    await userDocRef.set({
+      activeDevices,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    console.log(`[Device Session Registered] User ${req.user.uid} registered on ${cleanType} (${cleanName}, ID: ${deviceId})`);
+
+    res.json({
+      success: true,
+      deviceType: cleanType,
+      activeDevices
+    });
+  } catch (err) {
+    console.error('[Device Session Register Error]:', err.message);
+    res.status(500).json({ error: 'Failed to register device' });
+  }
+});
+
+router.post('/session/logout', async (req, res) => {
+  try {
+    const { deviceId, deviceType } = req.body;
+    const userDocRef = db.collection('users').doc(req.user.uid);
+    const userDoc = await userDocRef.get();
+    if (!userDoc.exists) return res.json({ success: true });
+
+    const data = userDoc.data();
+    const activeDevices = { ...(data.activeDevices || {}) };
+
+    if (deviceType && activeDevices[deviceType] && activeDevices[deviceType].deviceId === deviceId) {
+      delete activeDevices[deviceType];
+    } else {
+      if (activeDevices.mobile && activeDevices.mobile.deviceId === deviceId) delete activeDevices.mobile;
+      if (activeDevices.desktop && activeDevices.desktop.deviceId === deviceId) delete activeDevices.desktop;
+    }
+
+    await userDocRef.set({ activeDevices }, { merge: true });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Device Session Logout Error]:', err.message);
+    res.status(500).json({ error: 'Failed to logout device session' });
+  }
+});
+
 router.get('/data', async (req, res) => {
   try {
     const doc = await db.collection('users').doc(req.user.uid).get();

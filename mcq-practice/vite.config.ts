@@ -56,6 +56,8 @@ export default defineConfig({
   plugins: [react(), syncRootIndexPlugin()],
   base: '/mcq-practice/',
   build: {
+    target: ['es2015', 'chrome49', 'firefox52', 'edge15', 'safari10'],
+    cssTarget: ['chrome49', 'firefox52'],
     outDir: '../public/mcq-practice',
     emptyOutDir: true,
     rollupOptions: {

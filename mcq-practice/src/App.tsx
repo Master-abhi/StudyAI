@@ -81,6 +81,7 @@ import {
   incrementDailyMockTests, 
   incrementDailyMcqs 
 } from './utils/userTierLimits';
+import { getCurrentDeviceInfo } from './utils/deviceSession';
 
 const TabFallback = () => (
   <div className="flex flex-col items-center justify-center min-h-[350px] w-full py-12 gap-3 text-text-muted">
@@ -509,11 +510,27 @@ export default function App() {
       return 'free';
     }
   });
+  const [planExpiresAt, setPlanExpiresAtState] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('cgguru_plan_expires_at');
+    } catch {
+      return null;
+    }
+  });
 
-  const setUserPlan = (plan: 'free' | 'paid') => {
+  const setUserPlan = (plan: 'free' | 'paid', expiresAt?: string | null) => {
     setUserPlanState(plan);
     try {
       localStorage.setItem('cgguru_user_plan', plan);
+      if (expiresAt !== undefined) {
+        if (expiresAt) {
+          localStorage.setItem('cgguru_plan_expires_at', expiresAt);
+          setPlanExpiresAtState(expiresAt);
+        } else {
+          localStorage.removeItem('cgguru_plan_expires_at');
+          setPlanExpiresAtState(null);
+        }
+      }
     } catch (_) {}
   };
 
@@ -1159,8 +1176,19 @@ export default function App() {
                   setUserMobile(data.mobile);
                   localStorage.setItem('examprep_userMobile', data.mobile);
                 }
-                if (data.plan) setUserPlan(data.plan);
-                else if (data.isPaid === true) setUserPlan('paid');
+                let expiryStr: string | null = null;
+                if (data.planExpiresAt) {
+                  if (typeof data.planExpiresAt.toDate === 'function') {
+                    expiryStr = data.planExpiresAt.toDate().toISOString();
+                  } else if (data.planExpiresAt._seconds) {
+                    expiryStr = new Date(data.planExpiresAt._seconds * 1000).toISOString();
+                  } else if (typeof data.planExpiresAt === 'string') {
+                    expiryStr = data.planExpiresAt;
+                  }
+                }
+                if (data.plan) setUserPlan(data.plan, expiryStr);
+                else if (data.isPaid === true) setUserPlan('paid', expiryStr);
+                else setUserPlan('free', null);
                 if (data.topicProgress && typeof data.topicProgress === 'object') {
                   setTopicProgress(prev => ({ ...prev, ...data.topicProgress }));
                 }
@@ -1194,6 +1222,19 @@ export default function App() {
                 if (data.theme) {
                   setTheme(data.theme);
                   localStorage.setItem('cg_theme', data.theme);
+                }
+
+                // Real-time device session check (1 Mobile + 1 Computer/Tablet policy)
+                if (data.activeDevices && typeof data.activeDevices === 'object') {
+                  const currentDev = getCurrentDeviceInfo();
+                  const slot = data.activeDevices[currentDev.deviceType];
+                  if (slot && slot.deviceId && slot.deviceId !== currentDev.deviceId) {
+                    // This device has been superseded by a newer login on another device of same type
+                    console.warn(`[Device Session] Logged out because account logged into another ${currentDev.deviceType === 'mobile' ? 'Mobile' : 'Computer/Tablet'}.`);
+                    alert(`आपका अकाउंट किसी अन्य ${currentDev.deviceType === 'mobile' ? 'Mobile' : 'Computer/Tablet'} (${slot.deviceName || 'Device'}) पर लॉग इन हुआ है। इस डिवाइस से लॉग आउट किया जा रहा है।`);
+                    handleLogout();
+                    return;
+                  }
                 }
               }
             }
@@ -1325,6 +1366,21 @@ export default function App() {
             if (!hasSelectedExamThisSession) {
               setShowFirstTimeExamSelector(true);
             }
+          }
+          let apiExpiryStr: string | null = null;
+          if (profileData.planExpiresAt) {
+            if (typeof profileData.planExpiresAt.toDate === 'function') {
+              apiExpiryStr = profileData.planExpiresAt.toDate().toISOString();
+            } else if (profileData.planExpiresAt._seconds) {
+              apiExpiryStr = new Date(profileData.planExpiresAt._seconds * 1000).toISOString();
+            } else if (typeof profileData.planExpiresAt === 'string') {
+              apiExpiryStr = profileData.planExpiresAt;
+            }
+          }
+          if (profileData.plan) {
+            setUserPlan(profileData.plan, apiExpiryStr);
+          } else if (profileData.isPaid === true) {
+            setUserPlan('paid', apiExpiryStr);
           }
         }
 
@@ -2325,6 +2381,24 @@ export default function App() {
     const firebase = (window as any).firebase;
     if (firebase) {
       try {
+        const user = firebase.auth().currentUser;
+        if (user) {
+          try {
+            const token = await user.getIdToken();
+            const devInfo = getCurrentDeviceInfo();
+            await fetch(getApiUrl('/api/user/session/logout'), {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                deviceId: devInfo.deviceId,
+                deviceType: devInfo.deviceType
+              })
+            }).catch(() => {});
+          } catch (_) {}
+        }
         await firebase.auth().signOut();
         clearSessionStates();
         setIsGuest(false);
@@ -2529,6 +2603,7 @@ export default function App() {
             userName={currentUser?.displayName || 'Guest User'}
             userEmail={currentUser?.email || 'guest@studyworld.app'}
             userPlan={userPlan}
+            planExpiresAt={planExpiresAt}
             streak={streak}
             xp={xp}
             testsGivenCount={testHistory.length}
@@ -2865,6 +2940,22 @@ export default function App() {
                 Sign In
               </button>
             )}
+
+            {/* Desktop Browser Download APK button (Only visible in browser, hidden inside native APK app) */}
+            {!isCapacitorNative() && (
+              <a
+                href={SUPABASE_APK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                download="CG_Guru_App.apk"
+                className="w-full py-2 px-3 rounded-lg bg-saffron/15 hover:bg-saffron/25 border border-saffron/40 text-saffron font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                title="Download CG Guru Android App"
+              >
+                <Smartphone className="w-3.5 h-3.5 shrink-0 text-saffron" />
+                <span>Download App</span>
+                <Download className="w-3.5 h-3.5 shrink-0 text-saffron" />
+              </a>
+            )}
           </div>
         </aside>
       )}
@@ -2872,9 +2963,9 @@ export default function App() {
       {/* Main Content Area Container */}
       <div className={`flex-1 flex flex-col bg-bg-s1 relative transition-all duration-300 ${
         activeTab === 'chat' 
-          ? 'h-[100dvh] md:h-screen overflow-hidden' 
+          ? 'h-[100dvh] max-h-[100dvh] md:h-screen overflow-hidden' 
           : 'min-h-screen'
-      } ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' ? 'pb-24 md:pb-0 md:pl-72' : 'pb-0'}`}>
+      } ${!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' ? (activeTab === 'chat' ? 'pb-20 md:pb-0 md:pl-72' : 'pb-24 md:pb-0 md:pl-72') : 'pb-0'}`}>
         
         {/* Mobile Sticky Top Header (Shown if test workspace is NOT active, hidden on desktop) */}
         {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' && (
@@ -2894,19 +2985,35 @@ export default function App() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* App Update Button (Hidden by default; shown only when update is available) */}
-              {appUpdateAvailable && (
+              {/* If running inside Native APK app: Show only when an update is available */}
+              {isCapacitorNative() ? (
+                appUpdateAvailable && (
+                  <a 
+                    href={appUpdateUrl || SUPABASE_APK_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download="CG_Guru_App.apk"
+                    className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-orange-600 text-bg-s1 font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer transition-all active:scale-[0.96] animate-pulse"
+                    title="Update Available — Download New Version"
+                  >
+                    <Smartphone className="w-3.5 h-3.5 shrink-0" />
+                    <span className="font-extrabold text-[10px]">Update</span>
+                    <Download className="w-3 h-3 shrink-0" />
+                  </a>
+                )
+              ) : (
+                /* If running in Web Browser (Mobile Browser): Always show App Download button */
                 <a 
-                  href={appUpdateUrl || SUPABASE_APK_URL}
+                  href={SUPABASE_APK_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   download="CG_Guru_App.apk"
-                  className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 hover:from-green-600 hover:to-emerald-500 text-white font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer transition-all active:scale-[0.96] animate-pulse"
-                  title="Update Available — Download New Version"
+                  className="px-2.5 py-1.5 rounded-lg bg-saffron/15 border border-saffron/40 hover:bg-saffron/25 text-saffron font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-xs cursor-pointer transition-all active:scale-[0.96]"
+                  title="Download Official Android App"
                 >
-                  <Smartphone className="w-3.5 h-3.5 shrink-0" />
-                  <span className="font-extrabold text-[10px]">Update</span>
-                  <Download className="w-3 h-3 shrink-0" />
+                  <Smartphone className="w-3.5 h-3.5 shrink-0 text-saffron" />
+                  <span className="font-extrabold text-[10px]">App</span>
+                  <Download className="w-3 h-3 shrink-0 text-saffron" />
                 </a>
               )}
 
@@ -2958,12 +3065,13 @@ export default function App() {
           className={`flex-1 flex flex-col min-h-0 ${
             isWorkspaceActive
               ? 'h-[100dvh] max-h-[100dvh] overflow-hidden w-full p-0 gap-0'
-              : (activeTab === 'chat' ? 'h-full max-h-full overflow-hidden ' : 'overflow-y-auto ') + 
-                (activeTab === 'landing'
-                  ? 'w-full p-0 gap-0'
-                  : (activeTab === 'admin' || activeTab === 'staff' 
-                      ? 'px-4 py-4 md:px-8 gap-4 w-full' 
-                      : 'w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40 px-4 py-4 gap-4'))
+              : (activeTab === 'chat' 
+                  ? 'h-full max-h-full overflow-hidden w-full max-w-lg md:max-w-4xl mx-auto px-3 py-2 md:px-6 md:py-4 gap-0' 
+                  : (activeTab === 'landing'
+                      ? 'overflow-y-auto w-full p-0 gap-0'
+                      : (activeTab === 'admin' || activeTab === 'staff' 
+                          ? 'overflow-y-auto px-4 py-4 md:px-8 gap-4 w-full' 
+                          : 'overflow-y-auto w-full max-w-lg md:max-w-7xl md:px-8 mx-auto border-x border-border/40 px-4 py-4 gap-4')))
           }`}
         >
           {/* 1-Tap Notification Permission Banner if permission not granted yet */}

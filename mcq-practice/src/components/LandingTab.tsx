@@ -193,12 +193,12 @@ export const LandingTab: React.FC<LandingTabProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               download="CG_Guru_App.apk"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg-s2 hover:bg-bg-s3 border border-border text-text-muted hover:text-text text-xs font-bold transition-all shadow-sm"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-saffron/10 hover:bg-saffron/20 border border-saffron/30 text-saffron text-xs font-bold transition-all shadow-sm"
               title="Download Android APK"
             >
-              <Smartphone className="w-3.5 h-3.5 text-greenL" />
+              <Smartphone className="w-3.5 h-3.5 text-saffron" />
               <span className="font-bold">APK</span>
-              <Download className="w-3 h-3" />
+              <Download className="w-3 h-3 text-saffron" />
             </a>
           )}
 
@@ -295,12 +295,12 @@ export const LandingTab: React.FC<LandingTabProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               download="CG_Guru_App.apk"
-              className="px-5 py-4 bg-bg-s2 hover:bg-bg-s3 border border-border text-text-muted hover:text-text font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 shadow-sm"
+              className="px-5 py-4 bg-saffron/10 hover:bg-saffron/20 border border-saffron/40 text-saffron font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 shadow-sm"
               title="Download Android APK directly"
             >
-              <Smartphone className="w-4 h-4 text-greenL" />
+              <Smartphone className="w-4 h-4 text-saffron" />
               <span>Download APK</span>
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 text-saffron" />
             </a>
           )}
         </div>
@@ -1017,8 +1017,8 @@ export const LandingTab: React.FC<LandingTabProps> = ({
         <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
           <div className="bg-gradient-to-r from-bg-s2 via-bg-s3 to-bg-s2 border border-border rounded-3xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left shadow-lg">
             <div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-black text-greenL uppercase tracking-wider mb-2">
-                <Smartphone className="w-4 h-4" />
+              <span className="inline-flex items-center gap-1.5 text-xs font-black text-saffron uppercase tracking-wider mb-2">
+                <Smartphone className="w-4 h-4 text-saffron" />
                 Practice Anytime, Anywhere on Mobile
               </span>
               <h3 className="text-2xl sm:text-3xl font-black text-text mb-2">
@@ -1034,7 +1034,7 @@ export const LandingTab: React.FC<LandingTabProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               download="CG_Guru_App.apk"
-              className="px-8 py-4 bg-greenL hover:bg-green-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:shadow-greenL/25 transition-all flex items-center gap-2.5 cursor-pointer shrink-0 active:scale-95"
+              className="px-8 py-4 bg-saffron hover:bg-orange-600 text-bg-s1 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:shadow-saffron/25 transition-all flex items-center gap-2.5 cursor-pointer shrink-0 active:scale-95"
             >
               <Download className="w-5 h-5" />
               <span>Download .APK</span>

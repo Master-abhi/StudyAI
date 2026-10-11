@@ -15,6 +15,58 @@
     <meta name="apple-mobile-web-app-title" content="CG Guru" />
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" />
+    <!-- Core Polyfills for Windows 7 Legacy Browsers (Chrome 49-109, Firefox 52-115, Opera 36-95) -->
+    <script>
+      (function() {
+        if (typeof globalThis === 'undefined') {
+          window.globalThis = window;
+        }
+        if (typeof queueMicrotask === 'undefined') {
+          window.queueMicrotask = function(cb) {
+            Promise.resolve().then(cb).catch(function(err) {
+              setTimeout(function() { throw err; }, 0);
+            });
+          };
+        }
+        if (!Array.prototype.flat) {
+          Array.prototype.flat = function(depth) {
+            depth = isNaN(depth) ? 1 : Number(depth);
+            return depth ? Array.prototype.reduce.call(this, function(acc, cur) {
+              if (Array.isArray(cur)) {
+                acc.push.apply(acc, depth > 1 ? Array.prototype.flat.call(cur, depth - 1) : cur);
+              } else {
+                acc.push(cur);
+              }
+              return acc;
+            }, []) : Array.prototype.slice.call(this);
+          };
+        }
+        if (!Array.prototype.flatMap) {
+          Array.prototype.flatMap = function(callback, thisArg) {
+            return Array.prototype.map.call(this, callback, thisArg).flat();
+          };
+        }
+        if (!Object.fromEntries) {
+          Object.fromEntries = function(entries) {
+            if (!entries || !entries[Symbol.iterator]) { throw new TypeError('Object.fromEntries requires an iterable'); }
+            var obj = {};
+            for (var pair of entries) {
+              if (Object(pair) !== pair) { throw new TypeError('iterable elements must be pairs'); }
+              obj[pair[0]] = pair[1];
+            }
+            return obj;
+          };
+        }
+        if (!String.prototype.replaceAll) {
+          String.prototype.replaceAll = function(str, newStr) {
+            if (Object.prototype.toString.call(str).toLowerCase() === '[object regexp]') {
+              return this.replace(str, newStr);
+            }
+            return this.replace(new RegExp(str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newStr);
+          };
+        }
+      })();
+    </script>
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
