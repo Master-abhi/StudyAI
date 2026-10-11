@@ -104,20 +104,40 @@ async function getService(feature) {
 
 async function chat(message, examName, language, history = []) {
   const service = await getService('chat');
-  if (service === geminiService) {
-    const config = await getGeminiConfig();
-    return service.chat(message, examName, language, history, config.chat);
+  try {
+    if (service === geminiService) {
+      const config = await getGeminiConfig();
+      return await service.chat(message, examName, language, history, config.chat);
+    }
+    return await service.chat(message, examName, language, history);
+  } catch (primaryErr) {
+    console.warn(`[aiManager:chat] Primary provider failed: ${primaryErr.message}. Falling back to alternate provider...`);
+    const fallbackService = service === geminiService ? groqService : geminiService;
+    if (fallbackService === geminiService) {
+      const config = await getGeminiConfig();
+      return await fallbackService.chat(message, examName, language, history, config.chat);
+    }
+    return await fallbackService.chat(message, examName, language, history);
   }
-  return service.chat(message, examName, language, history);
 }
 
 async function chatStream(message, examName, language, history = []) {
   const service = await getService('chat');
-  if (service === geminiService) {
-    const config = await getGeminiConfig();
-    return service.chatStream(message, examName, language, history, config.chat);
+  try {
+    if (service === geminiService) {
+      const config = await getGeminiConfig();
+      return await service.chatStream(message, examName, language, history, config.chat);
+    }
+    return await service.chatStream(message, examName, language, history);
+  } catch (primaryErr) {
+    console.warn(`[aiManager:chatStream] Primary provider failed: ${primaryErr.message}. Falling back to alternate provider...`);
+    const fallbackService = service === geminiService ? groqService : geminiService;
+    if (fallbackService === geminiService) {
+      const config = await getGeminiConfig();
+      return await fallbackService.chatStream(message, examName, language, history, config.chat);
+    }
+    return await fallbackService.chatStream(message, examName, language, history);
   }
-  return service.chatStream(message, examName, language, history);
 }
 
 async function generateTest(examId, examName, subject, mode, questionCount, language, examSubjects = [], syllabusContext = null) {

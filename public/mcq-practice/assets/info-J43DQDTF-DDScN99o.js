@@ -1,1 +1,0 @@
-import{g as e}from"./vendor-mermaid-CkdJzOT-.js";export{e as createInfoServices};

@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { chat, chatStream } = require('../services/aiManager');
 const { db } = require('../firebase-admin');
-const { verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
+const { optionalFirebaseToken } = require('../middleware/verifyFirebaseToken');
 const { aiRateLimiter } = require('../middleware/rateLimiter');
 
-router.post('/', verifyFirebaseToken, aiRateLimiter, async (req, res) => {
+router.post('/', optionalFirebaseToken, aiRateLimiter, async (req, res) => {
   try {
     const { message, examName, language, history, stream } = req.body;
 

@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 
 interface MarkdownRendererProps {
   content: string;
@@ -90,86 +91,6 @@ const MermaidDiagram = React.memo(({ code }: { code: string }) => {
 });
 MermaidDiagram.displayName = 'MermaidDiagram';
 
-const PlotlyChart = React.memo(({ code }: { code: string }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadAndRender = async () => {
-      try {
-        let chartData;
-        try {
-          chartData = JSON.parse(code);
-        } catch (e) {
-          throw new Error('Invalid JSON in Plotly code block');
-        }
-
-        let Plotly = (window as any).Plotly;
-        if (!Plotly) {
-          await new Promise<void>((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.plot.ly/plotly-2.32.0.min.js';
-            script.async = true;
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Failed to load Plotly.js from CDN'));
-            document.head.appendChild(script);
-          });
-          Plotly = (window as any).Plotly;
-        }
-
-        if (cancelled || !ref.current || !Plotly) return;
-
-        const layout = {
-          paper_bgcolor: '#0B0E14',
-          plot_bgcolor: '#0B0E14',
-          font: {
-            color: '#F0F4FA',
-            family: 'Inter, system-ui, sans-serif',
-            size: 11
-          },
-          margin: { t: 40, r: 20, l: 40, b: 40 },
-          autosize: true,
-          showlegend: true,
-          ...chartData.layout
-        };
-
-        const config = {
-          responsive: true,
-          displayModeBar: false
-        };
-
-        Plotly.newPlot(ref.current, chartData.data || [], layout, config);
-        setError(null);
-      } catch (err: any) {
-        if (!cancelled) {
-          setError(err.message || 'Failed to render Plotly chart');
-        }
-      }
-    };
-
-    loadAndRender();
-    return () => {
-      cancelled = true;
-    };
-  }, [code]);
-
-  if (error) {
-    return (
-      <pre className="my-4 overflow-x-auto rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-400">
-        [Chart Error] {error}
-      </pre>
-    );
-  }
-
-  return (
-    <div className="my-4 overflow-x-auto rounded-lg border border-border bg-[#0B0E14] p-2">
-      <div ref={ref} className="w-full min-h-[300px]" />
-    </div>
-  );
-});
-PlotlyChart.displayName = 'PlotlyChart';
 
 
 
@@ -289,7 +210,7 @@ export const MarkdownRenderer = React.memo(({ content, className = '', pClassNam
     <div className={`markdown-content select-text font-sans ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[rehypeRaw, rehypeKatex]}
         components={{
           h1: ({ node, ...props }) => (
             <h1 className="text-sm font-black my-2.5 text-saffron border-b border-border pb-1 uppercase tracking-wider" {...props} />
@@ -344,9 +265,9 @@ export const MarkdownRenderer = React.memo(({ content, className = '', pClassNam
               return null;
             }
 
-            // ── Plotly block: render as Chart ──
+            // ── Plotly block: ignore/remove ──
             if (lang === 'plotly') {
-              return <PlotlyChart code={String(children).trim()} />;
+              return null;
             }
 
             const inline = !match;

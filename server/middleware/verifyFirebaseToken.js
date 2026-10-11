@@ -79,4 +79,25 @@ const verifyStaffOrAdmin = (requiredRole) => {
   };
 };
 
-module.exports = { verifyFirebaseToken, verifyAdmin, verifyStaffOrAdmin };
+/**
+ * Middleware: optionally verify Firebase ID token.
+ * If provided and valid, sets req.user. If absent or invalid, sets req.user = null and proceeds.
+ */
+const optionalFirebaseToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    req.user = null;
+    return next();
+  }
+  const idToken = authHeader.split('Bearer ')[1];
+  try {
+    const decoded = await authAdmin.verifyIdToken(idToken);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    req.user = null;
+    next();
+  }
+};
+
+module.exports = { verifyFirebaseToken, verifyAdmin, verifyStaffOrAdmin, optionalFirebaseToken };

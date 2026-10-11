@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Upload, Link, CheckCircle, AlertCircle, RefreshCw, Eye } from 'lucide-react';
+import { Sparkles, Upload, Link, CheckCircle, AlertCircle, RefreshCw, Eye, Smartphone } from 'lucide-react';
 
 interface AdminBrandingProps {
   currentUser: any;
@@ -9,6 +9,9 @@ interface AdminBrandingProps {
 export const AdminBranding: React.FC<AdminBrandingProps> = ({ currentUser, configApiUrl }) => {
   const [websiteLogo, setWebsiteLogo] = useState<string>('');
   const [appLogo, setAppLogo] = useState<string>('');
+  const [appUpdateAvailable, setAppUpdateAvailable] = useState<boolean>(false);
+  const [appUpdateUrl, setAppUpdateUrl] = useState<string>('');
+  const [appUpdateVersion, setAppUpdateVersion] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [uploadingWeb, setUploadingWeb] = useState<boolean>(false);
@@ -26,6 +29,9 @@ export const AdminBranding: React.FC<AdminBrandingProps> = ({ currentUser, confi
         const data = await res.json();
         setWebsiteLogo(data.websiteLogo || '');
         setAppLogo(data.appLogo || '');
+        setAppUpdateAvailable(!!data.appUpdateAvailable);
+        setAppUpdateUrl(data.appUpdateUrl || '');
+        setAppUpdateVersion(data.appUpdateVersion || '');
       } else {
         throw new Error('Failed to fetch branding config');
       }
@@ -107,7 +113,13 @@ export const AdminBranding: React.FC<AdminBrandingProps> = ({ currentUser, confi
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ websiteLogo, appLogo })
+        body: JSON.stringify({ 
+          websiteLogo, 
+          appLogo,
+          appUpdateAvailable,
+          appUpdateUrl,
+          appUpdateVersion
+        })
       });
 
       if (!res.ok) {
@@ -298,6 +310,60 @@ export const AdminBranding: React.FC<AdminBrandingProps> = ({ currentUser, confi
               </div>
             </div>
           </div>
+        </div>
+
+        {/* 3. App Update Notification & Control Section */}
+        <div className="bg-[#121620] border border-white/5 rounded-xl p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">App Update Notification / ऐप अपडेट सेटिंग्स</h4>
+                <p className="text-[11px] text-[#a0aec0]">Control when users in the mobile app see the "Update" button</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox"
+                checked={appUpdateAvailable}
+                onChange={(e) => setAppUpdateAvailable(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-[#2d3748] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-[#cbd5e0] mb-1.5">
+                Update APK Download URL (Optional)
+              </label>
+              <input 
+                type="url"
+                value={appUpdateUrl}
+                onChange={(e) => setAppUpdateUrl(e.target.value)}
+                placeholder="Leave blank to use default APK URL..."
+                className="w-full px-3 py-2 text-xs bg-[#1a202c] border border-white/10 rounded-lg text-white placeholder-[#718096] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[#cbd5e0] mb-1.5">
+                Version Label (e.g. v1.1.0)
+              </label>
+              <input 
+                type="text"
+                value={appUpdateVersion}
+                onChange={(e) => setAppUpdateVersion(e.target.value)}
+                placeholder="e.g. v1.1.0"
+                className="w-full px-3 py-2 text-xs bg-[#1a202c] border border-white/10 rounded-lg text-white placeholder-[#718096] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+              />
+            </div>
+          </div>
+          <p className="text-[11px] text-[#718096] italic">
+            * Jab yeh toggle ON hoga, tabhi mobile app me users ko top header me "Update" button show hoga. Normal time par yeh button hide rahega.
+          </p>
         </div>
 
         <div className="flex justify-end pt-4 border-t border-white/5">

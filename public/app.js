@@ -2200,9 +2200,13 @@ async function sendMessage() {
     const examData = getExamData(currentExam);
     const examName = examData ? examData.fullName || examData.name : 'Government Exam';
 
+    const authHeaders = await getAuthHeaders();
     const response = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders
+      },
       body: JSON.stringify({
         message,
         examName,
@@ -2378,13 +2382,14 @@ function parseMarkdownTables(text) {
         tableHtml = '<div class="table-container"><table class="markdown-table">';
         tableHtml += '<thead><tr>' + tableHeaders.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
         tableHtml += '<tbody>';
-        tableRows.forEach(row => {
-          tableHtml += '<tr>';
-          for (let j = 0; j < tableHeaders.length; j++) {
-            tableHtml += `<td>${row[j] || ''}</td>`;
-          }
-          tableHtml += '</tr>';
-        });
+          tableRows.forEach(row => {
+            tableHtml += '<tr>';
+            for (let j = 0; j < tableHeaders.length; j++) {
+              const cell = (row[j] || '').replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+              tableHtml += `<td>${cell}</td>`;
+            }
+            tableHtml += '</tr>';
+          });
         tableHtml += '</tbody></table></div>';
         
         resultLines.push(tableHtml);
@@ -2403,7 +2408,8 @@ function parseMarkdownTables(text) {
     tableRows.forEach(row => {
       tableHtml += '<tr>';
       for (let j = 0; j < tableHeaders.length; j++) {
-        tableHtml += `<td>${row[j] || ''}</td>`;
+        const cell = (row[j] || '').replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+        tableHtml += `<td>${cell}</td>`;
       }
       tableHtml += '</tr>';
     });
@@ -2419,6 +2425,8 @@ function formatMarkdown(text) {
   
   // 1. Escape HTML to prevent injection
   let html = escapeHtml(text);
+  // Restore safe <br> tags so line breaks render as real breaks instead of literal "<br>"
+  html = html.replace(/&lt;br\s*\/?&gt;/gi, '<br>');
 
   // 2. Parse multiline code blocks FIRST so they aren't mangled by HTML spacing
   const codeBlocks = [];

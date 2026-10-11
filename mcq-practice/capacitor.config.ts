@@ -18,9 +18,7 @@ const config: CapacitorConfig = {
       launchShowDuration: 1500,
       launchAutoHide: true,
       backgroundColor: '#121620',
-      showSpinner: true,
-      androidSpinnerStyle: 'large',
-      spinnerColor: '#ffffff'
+      showSpinner: false
     }
   }
 };

@@ -216,7 +216,27 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
   const [loadedNotes, setLoadedNotes] = useState<any>(null);
   const [error, setError] = useState<string>('');
   const [checkedChecklist, setCheckedChecklist] = useState<Record<number, boolean>>({});
+  const [isSavedOffline, setIsSavedOffline] = useState<boolean>(false);
+  const [offlineToast, setOfflineToast] = useState<string | null>(null);
   const printAreaRef = useRef<HTMLDivElement>(null);
+
+  // Check offline status & fallback loading
+  useEffect(() => {
+    if (!topic) return;
+    try {
+      const saved = localStorage.getItem(`cg_offline_notes_${topic.id}`);
+      if (saved) {
+        setIsSavedOffline(true);
+        if (!topic.studyNotes && !loadedNotes) {
+          setLoadedNotes(normalizeNotes(JSON.parse(saved)));
+        }
+      } else {
+        setIsSavedOffline(false);
+      }
+    } catch (e) {
+      console.warn('[Offline Notes Check Error]:', e);
+    }
+  }, [topic]);
 
   // Fetch notes if not already loaded in topic.studyNotes
   useEffect(() => {
@@ -236,11 +256,23 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
         if (res.ok && data.studyNotes) {
           setLoadedNotes(normalizeNotes(data.studyNotes));
         } else {
-          setError(data.error || 'No formatted study notes found for this topic.');
+          // If network response failed, try localStorage offline fallback
+          const saved = localStorage.getItem(`cg_offline_notes_${topic.id}`);
+          if (saved) {
+            setLoadedNotes(normalizeNotes(JSON.parse(saved)));
+          } else {
+            setError(data.error || 'No formatted study notes found for this topic.');
+          }
         }
       } catch (err: any) {
         console.error('[Fetch Notes Error]:', err);
-        setError(err.message || 'Could not load formatted study notes.');
+        // Fallback to offline saved notes if network fails
+        const saved = localStorage.getItem(`cg_offline_notes_${topic.id}`);
+        if (saved) {
+          setLoadedNotes(normalizeNotes(JSON.parse(saved)));
+        } else {
+          setError(err.message || 'Could not load formatted study notes.');
+        }
       } finally {
         setLoading(false);
       }
@@ -264,83 +296,45 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  const handlePrint = () => {
-    if (!printAreaRef.current) return;
-    const content = printAreaRef.current.innerHTML;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) return;
-
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html lang="hi">
-        <head>
-          <meta charset="utf-8">
-          <title>${topic.nameHi || topic.name} - CG GURU Study Notes</title>
-          <style>
-            @page {
-              size: A4;
-              margin: 12mm 15mm;
-            }
-            body {
-              font-family: 'Segoe UI', Arial, sans-serif;
-              color: #1E293B;
-              background: #FFFFFF;
-              line-height: 1.6;
-              font-size: 10pt;
-              margin: 0;
-              padding: 0;
-            }
-            h1, h2, h3, h4 {
-              color: #0F172A;
-              margin-top: 1em;
-              margin-bottom: 0.4em;
-            }
-            table {
-              border-collapse: collapse;
-              width: 100%;
-              margin: 10px 0;
-            }
-            th, td {
-              border: 1px solid #CBD5E1;
-              padding: 6px 10px;
-              font-size: 9pt;
-            }
-            th {
-              background-color: #1E3A8A;
-              color: #FFFFFF;
-            }
-            .avoid-break {
-              page-break-inside: avoid;
-            }
-          </style>
-        </head>
-        <body>
-          ${content}
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 2000);
-    }, 300);
+  const handleToggleOfflineSave = () => {
+    if (!notes || !topic) return;
+    try {
+      const storageKey = `cg_offline_notes_${topic.id}`;
+      const indexKey = 'cg_saved_offline_notes_list';
+      
+      if (isSavedOffline) {
+        // Remove from offline
+        localStorage.removeItem(storageKey);
+        const savedList = JSON.parse(localStorage.getItem(indexKey) || '[]');
+        const updatedList = savedList.filter((item: any) => item.id !== topic.id);
+        localStorage.setItem(indexKey, JSON.stringify(updatedList));
+        setIsSavedOffline(false);
+        setOfflineToast('नोट्स ऑफलाइन स्टोरेज से हटा दिए गए');
+      } else {
+        // Save to offline
+        localStorage.setItem(storageKey, JSON.stringify(notes));
+        const savedList = JSON.parse(localStorage.getItem(indexKey) || '[]');
+        const updatedList = [
+          {
+            id: topic.id,
+            name: topic.name,
+            nameHi: topic.nameHi,
+            subjectName,
+            examName,
+            savedAt: new Date().toISOString()
+          },
+          ...savedList.filter((item: any) => item.id !== topic.id)
+        ];
+        localStorage.setItem(indexKey, JSON.stringify(updatedList));
+        setIsSavedOffline(true);
+        setOfflineToast('नोट्स ऐप में ऑफलाइन सेव हो गए हैं ✅');
+      }
+      setTimeout(() => setOfflineToast(null), 3000);
+    } catch (e: any) {
+      console.error('[Offline Save Error]:', e);
+      setOfflineToast('ऑफलाइन सेव करने में समस्या आई');
+      setTimeout(() => setOfflineToast(null), 3000);
+    }
   };
 
   const getThemeClass = () => {
@@ -428,8 +422,19 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
     <div className="fixed inset-0 z-[9999] flex flex-col bg-black/85 animate-fade-in select-none">
       <div className={`w-full h-full flex flex-col overflow-hidden font-sans transition-colors duration-200 ${getThemeClass()}`}>
         
-        {/* Top Header Bar */}
-        <div className={`px-3 sm:px-6 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 sm:gap-3 shrink-0 ${getHeaderBgClass()}`}>
+        {/* Offline save toast feedback */}
+        {offlineToast && (
+          <div className="fixed top-14 sm:top-16 left-1/2 -translate-x-1/2 z-[10000] bg-slate-900/95 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg border border-slate-700/80 flex items-center gap-2 animate-bounce">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{offlineToast}</span>
+          </div>
+        )}
+
+        {/* Top Header Bar with Safe-Area padding to prevent notification bar overlap */}
+        <div 
+          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 32px)' }} 
+          className={`px-3 sm:px-6 pb-2.5 sm:py-3 border-b flex items-center justify-between gap-2 sm:gap-3 shrink-0 ${getHeaderBgClass()}`}
+        >
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {/* Sidebar Toggle Button */}
             <button
@@ -468,7 +473,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
             </div>
           </div>
 
-          {/* Controls: Font Size, Theme, Save, Complete, Close */}
+          {/* Controls: Font Size, Theme, Save Offline, Complete, Close */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             
             {/* Font Size Adjust */}
@@ -525,21 +530,32 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
               </button>
             </div>
 
-            {/* Save Notes Button (Replaces Print) */}
+            {/* Save Offline in App Button */}
             <button
-              onClick={handlePrint}
+              onClick={handleToggleOfflineSave}
               disabled={!notes}
               className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                readingTheme === 'dark' 
-                  ? 'bg-[#1E293B] border-[#334155] text-slate-200 hover:text-white hover:bg-[#283548]' 
-                  : readingTheme === 'sepia' 
-                    ? 'bg-[#E5D2B1] border-[#C9B38F] text-[#3F3325] hover:bg-[#D9C4A1]' 
-                    : 'bg-[#F1F5F9] border-[#E2E8F0] text-slate-700 hover:text-slate-900 hover:bg-slate-200'
+                isSavedOffline
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                  : readingTheme === 'dark' 
+                    ? 'bg-[#1E293B] border-[#334155] text-slate-200 hover:text-white hover:bg-[#283548]' 
+                    : readingTheme === 'sepia' 
+                      ? 'bg-[#E5D2B1] border-[#C9B38F] text-[#3F3325] hover:bg-[#D9C4A1]' 
+                      : 'bg-[#F1F5F9] border-[#E2E8F0] text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
-              title="Save Notes as PDF"
+              title={isSavedOffline ? "Saved Offline (Tap to remove)" : "Save Offline in App"}
             >
-              <Save className="w-3.5 h-3.5 text-saffron" />
-              <span className="hidden xs:inline sm:inline">Save</span>
+              {isSavedOffline ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span className="hidden xs:inline sm:inline text-emerald-600 dark:text-emerald-400">Saved</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5 text-saffron shrink-0" />
+                  <span className="hidden xs:inline sm:inline">Save</span>
+                </>
+              )}
             </button>
 
             {/* Mark as Studied Button */}
@@ -587,7 +603,9 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
 
           {/* Left Sidebar for Tabs and Chapters */}
           {notes && (
-            <aside className={`${
+            <aside 
+              style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 32px)' }}
+              className={`${
               isSidebarOpen ? 'translate-x-0' : '-translate-x-full sm:hidden'
             } fixed sm:static inset-y-0 left-0 z-40 sm:z-auto w-72 sm:w-64 md:w-72 shrink-0 border-r flex flex-col h-full overflow-hidden transition-transform duration-200 ease-in-out ${
               readingTheme === 'dark' 

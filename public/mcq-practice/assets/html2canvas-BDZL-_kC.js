@@ -1,1 +1,0 @@
-import{t as e}from"./AdminSyllabus-pajsOnZt.js";export default e();

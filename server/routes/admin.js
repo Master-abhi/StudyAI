@@ -348,13 +348,16 @@ router.post('/config/ai', verifyAdmin, async (req, res) => {
 
 // ── Branding / Logo Config Routes ──
 
-// GET /api/admin/config/branding - Retrieve website and app logo URLs (publicly readable)
+// GET /api/admin/config/branding - Retrieve website, app logo and app update configuration (publicly readable)
 router.get('/config/branding', async (req, res) => {
   try {
     const doc = await db.collection('config').doc('branding').get();
     const defaultBranding = {
       websiteLogo: '',
-      appLogo: ''
+      appLogo: '',
+      appUpdateAvailable: false,
+      appUpdateUrl: '',
+      appUpdateVersion: ''
     };
     if (doc.exists) {
       const data = doc.data();
@@ -367,19 +370,27 @@ router.get('/config/branding', async (req, res) => {
   }
 });
 
-// POST /api/admin/config/branding - Save branding configuration (admin only)
+// POST /api/admin/config/branding - Save branding & app update configuration (admin only)
 router.post('/config/branding', verifyAdmin, async (req, res) => {
   try {
-    const { websiteLogo, appLogo } = req.body;
+    const { websiteLogo, appLogo, appUpdateAvailable, appUpdateUrl, appUpdateVersion } = req.body;
     await db.collection('config').doc('branding').set({
       websiteLogo: websiteLogo || '',
       appLogo: appLogo || '',
+      appUpdateAvailable: !!appUpdateAvailable,
+      appUpdateUrl: appUpdateUrl || '',
+      appUpdateVersion: appUpdateVersion || '',
       updatedAt: new Date().toISOString(),
       updatedBy: req.user.uid
     }, { merge: true });
 
-    await logStaffActivity(req, 'update_branding_config', { websiteLogo, appLogo });
-    res.json({ success: true, message: 'Branding logo configuration updated successfully.' });
+    await logStaffActivity(req, 'update_branding_config', { 
+      websiteLogo, 
+      appLogo, 
+      appUpdateAvailable: !!appUpdateAvailable, 
+      appUpdateUrl: appUpdateUrl || '' 
+    });
+    res.json({ success: true, message: 'Branding and App Update configuration updated successfully.' });
   } catch (err) {
     console.error('[Admin Config Branding POST Error]:', err.message);
     res.status(500).json({ error: 'Failed to update branding configuration' });

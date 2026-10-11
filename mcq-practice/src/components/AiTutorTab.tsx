@@ -167,14 +167,15 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
       });
 
       if (!response.ok) {
-        if (response.status === 403) {
-          const errData = await response.json().catch(() => ({}));
-          if (errData.limitReached && onOpenUpgrade) {
+        let errMsg = 'Failed to reach AI Tutor endpoints';
+        try {
+          const errData = await response.json();
+          if (response.status === 403 && errData.limitReached && onOpenUpgrade) {
             onOpenUpgrade();
           }
-          throw new Error(errData.error || 'दैनिक सीमा पूरी हो चुकी है।');
-        }
-        throw new Error('Failed to reach AI Tutor endpoints');
+          errMsg = errData.error || errMsg;
+        } catch (_) {}
+        throw new Error(errMsg);
       }
 
       const reader = response.body?.getReader();
@@ -194,6 +195,9 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
+              if (data.type === 'error') {
+                throw new Error(data.content || 'Error from AI service');
+              }
               if (data.type === 'text') {
                 accumulatedContent += data.content;
                 setMessages(prev => prev.map(m => {
@@ -203,8 +207,10 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
                   return m;
                 }));
               }
-            } catch (jsonErr) {
-              // Ignore partial parsing errors
+            } catch (jsonErr: any) {
+              if (jsonErr.message && !jsonErr.message.includes('JSON')) {
+                throw jsonErr;
+              }
             }
           }
         }

@@ -704,6 +704,47 @@ export default function App() {
     }
   };
 
+  const [appUpdateAvailable, setAppUpdateAvailable] = useState<boolean>(() => {
+    return localStorage.getItem('cg_app_update_available') === 'true';
+  });
+  const [appUpdateUrl, setAppUpdateUrl] = useState<string>(() => {
+    return localStorage.getItem('cg_app_update_url') || SUPABASE_APK_URL;
+  });
+
+  const fetchAppUpdateConfig = async () => {
+    try {
+      const firebase = (window as any).firebase;
+      if (firebase) {
+        try {
+          const doc = await firebase.firestore().collection('config').doc('branding').get();
+          if (doc.exists) {
+            const data = doc.data();
+            const hasUpdate = !!data?.appUpdateAvailable;
+            setAppUpdateAvailable(hasUpdate);
+            localStorage.setItem('cg_app_update_available', String(hasUpdate));
+            if (data?.appUpdateUrl) {
+              setAppUpdateUrl(data.appUpdateUrl);
+              localStorage.setItem('cg_app_update_url', data.appUpdateUrl);
+            }
+            return;
+          }
+        } catch (_) {}
+      }
+
+      const res = await fetch(getApiUrl('/api/admin/config/branding'));
+      if (res.ok) {
+        const data = await res.json();
+        const hasUpdate = !!data?.appUpdateAvailable;
+        setAppUpdateAvailable(hasUpdate);
+        localStorage.setItem('cg_app_update_available', String(hasUpdate));
+        if (data?.appUpdateUrl) {
+          setAppUpdateUrl(data.appUpdateUrl);
+          localStorage.setItem('cg_app_update_url', data.appUpdateUrl);
+        }
+      }
+    } catch (_) {}
+  };
+
   // Notifications Listener & Automatic Unread Count Calculation
   useEffect(() => {
     const checkAndSubscribe = async () => {
@@ -802,6 +843,7 @@ export default function App() {
     fetchCustomSyllabi();
     fetchTabVisibility();
     fetchExamVisibility();
+    fetchAppUpdateConfig();
   }, [activeTab]);
 
   // Ensure active exam is valid and visible for regular users
@@ -2725,7 +2767,7 @@ export default function App() {
               { id: 'landing', label: 'Features & Offers', icon: Gift, isOffer: true }
             ].filter(item => tabVisibility[item.id] !== false).map(item => {
               const Icon = item.icon;
-              const isSelected = activeTab === item.id || (item.id === 'home' && activeTab === 'syllabus');
+              const isSelected = activeTab === item.id;
               const isOffer = (item as any).isOffer;
               return (
                 <button
@@ -2852,19 +2894,21 @@ export default function App() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* App Download Button */}
-              <a 
-                href={SUPABASE_APK_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                download="CG_Guru_App.apk"
-                className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-saffron text-bg-s1 font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer transition-all active:scale-[0.96]"
-                title="Download Android App (APK)"
-              >
-                <Smartphone className="w-3.5 h-3.5 shrink-0" />
-                <span className="font-extrabold text-[10px]">App</span>
-                <Download className="w-3 h-3 shrink-0" />
-              </a>
+              {/* App Update Button (Hidden by default; shown only when update is available) */}
+              {appUpdateAvailable && (
+                <a 
+                  href={appUpdateUrl || SUPABASE_APK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download="CG_Guru_App.apk"
+                  className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 hover:from-green-600 hover:to-emerald-500 text-white font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer transition-all active:scale-[0.96] animate-pulse"
+                  title="Update Available — Download New Version"
+                >
+                  <Smartphone className="w-3.5 h-3.5 shrink-0" />
+                  <span className="font-extrabold text-[10px]">Update</span>
+                  <Download className="w-3 h-3 shrink-0" />
+                </a>
+              )}
 
               {/* Notifications Button */}
               <button
@@ -2890,6 +2934,19 @@ export default function App() {
                 title="Settings"
               >
                 <Settings className="w-4 h-4" />
+              </button>
+
+              {/* Profile Tab Button (Right side of Settings modal button) */}
+              <button
+                onClick={() => setActiveTab('profile')}
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer hover:border-saffron-border/50 ${
+                  activeTab === 'profile'
+                    ? 'bg-saffron/15 border-saffron text-saffron shadow-sm'
+                    : 'bg-bg-s2 border-border text-text-muted hover:text-text'
+                }`}
+                title="Profile"
+              >
+                <User className="w-4 h-4" />
               </button>
             </div>
           </header>
@@ -3336,13 +3393,13 @@ export default function App() {
             {[
               { id: 'home', label: 'Home', icon: Home },
               { id: 'practice', label: 'Tests', icon: Trophy },
+              { id: 'syllabus', label: 'Syllabus', icon: BookOpen },
               { id: 'chat', label: 'AI Guru', icon: MessageSquare },
               { id: 'news', label: 'News', icon: Newspaper },
-              { id: 'jobs', label: 'Jobs', icon: Briefcase },
-              { id: 'profile', label: 'Profile', icon: User }
+              { id: 'jobs', label: 'Jobs', icon: Briefcase }
             ].filter(tab => tabVisibility[tab.id] !== false).map(tab => {
               const Icon = tab.icon;
-              const isSelected = activeTab === tab.id || (tab.id === 'home' && activeTab === 'syllabus');
+              const isSelected = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}

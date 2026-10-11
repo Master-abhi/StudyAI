@@ -1,5 +1,6 @@
 const Groq = require('groq-sdk');
 const { getTrainingData, getRelevantTrainingData } = require('./trainingData');
+const { getRelevantSyllabusKnowledge } = require('./syllabusKnowledgeService');
 
 const client = new Groq({
   apiKey: process.env.GROQ_API_KEY
@@ -34,9 +35,8 @@ function cleanGroqResponse(text, originalMessage) {
 const PREFERRED_GROQ_MODELS = [
   process.env.GROQ_MODEL,
   'openai/gpt-oss-120b',
-  'qwen/qwen3.6-27b',
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant'
+  'qwen/qwen3.8-27b',
+  'openai/gpt-oss-20b'
 ].filter(Boolean);
 
 let cachedGroqModel = null;
@@ -82,16 +82,7 @@ ${getLanguageInstruction(language)}
 7. **Exam Relevance**: Clearly explain how the topic connects to the specific **${examName}** exam and its syllabus. When generating MCQs, provide exactly 4 distinct options (A, B, C, D) with a detailed conceptual explanation for the correct answer, and explain why the incorrect options are wrong.
 8. **Factual Correction of User Inputs**: If the user provides incorrect facts, wrong districts, or incorrect locations for any place, wildlife sanctuary, national park, or event in Chhattisgarh in their query, prompt, or reference materials, you MUST correct them in your response. Do NOT repeat or propagate the user's factual errors. Explain the correction politely.
 9. **Do NOT Echo Prompt or Guidelines**: Do NOT repeat, reprint, or echo the user's input prompt, instructions, checklists, or guidelines in your response. Do NOT include any greeting or welcoming phrase (no "नमस्ते", "प्रिय विद्यार्थी", "Hello", etc.). Begin your response directly with the topic heading or actual educational content.
-10. **Plotly Graph Support**: Whenever data can be visualized as a chart (e.g. comparing populations, timelines, statistics, demographic distributions, state revenue, budget expenditures), or when the user asks for a chart/graph/plot, you MUST generate a Plotly chart inside a fenced code block with the language tag \`plotly\`. The content must be a valid JSON object matching the Plotly specifications (containing "data" and "layout" properties). Do NOT output other text inside the code block.
-    Example:
-    \`\`\`plotly
-    {
-      "data": [
-        { "x": ["Tribes", "Agriculture", "Services"], "y": [40, 35, 25], "type": "bar", "marker": { "color": "#ff9933" } }
-      ],
-      "layout": { "title": "Chhattisgarh Sector Contribution (%)" }
-    }
-    \`\`\`
+10. **Data Presentation & Clean Formatting**: Present numerical data, statistics, demographics, budgets, and comparisons using clean markdown tables or structured bullet points. Do NOT generate Plotly charts or graphs. Do NOT write raw HTML tags like \`<br>\`, \`<br/>\`, or \`<p>\` inside table cells or text — use standard markdown line breaks or bullet points instead.
 11. **KaTeX Math Support**: For all mathematical formulas, equations, or scientific notation, you MUST use LaTeX/KaTeX formatting with appropriate delimiters:
     - Use single dollar signs \`$...\` for inline math equations, e.g., \`$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$\`.
     - Use double dollar signs \`$$...$$\` for block math equations.
@@ -103,9 +94,12 @@ ${getLanguageInstruction(language)}
 }
 
 async function chat(message, examName, language, history = [], maxTokens = 4000) {
-  const allTrainingData = await getTrainingData();
+  const [allTrainingData, syllabusNotes] = await Promise.all([
+    getTrainingData(),
+    getRelevantSyllabusKnowledge(message, examName)
+  ]);
   const relevantData = getRelevantTrainingData(message, allTrainingData);
-  const systemPrompt = getExamSystemPrompt(examName, language) + relevantData;
+  const systemPrompt = getExamSystemPrompt(examName, language) + (syllabusNotes ? `\n\n${syllabusNotes}` : '') + relevantData;
 
   const messages = [
     { role: 'system', content: systemPrompt }
@@ -138,9 +132,12 @@ async function chat(message, examName, language, history = [], maxTokens = 4000)
 }
 
 async function chatStream(message, examName, language, history = []) {
-  const allTrainingData = await getTrainingData();
+  const [allTrainingData, syllabusNotes] = await Promise.all([
+    getTrainingData(),
+    getRelevantSyllabusKnowledge(message, examName)
+  ]);
   const relevantData = getRelevantTrainingData(message, allTrainingData);
-  const systemPrompt = getExamSystemPrompt(examName, language) + relevantData;
+  const systemPrompt = getExamSystemPrompt(examName, language) + (syllabusNotes ? `\n\n${syllabusNotes}` : '') + relevantData;
 
   const messages = [
     { role: 'system', content: systemPrompt }

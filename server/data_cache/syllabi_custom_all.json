@@ -935,7 +935,7 @@
                 ],
                 "importanceScore": 9,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:44:15.770Z"
+                "notesUpdatedAt": "2026-10-10T16:55:36.821Z"
               },
               {
                 "id": "cg_geo_5",
@@ -948,7 +948,7 @@
                 ],
                 "importanceScore": 10,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:44:51.513Z"
+                "notesUpdatedAt": "2026-10-10T17:04:36.298Z"
               },
               {
                 "id": "cg_geo_6",
@@ -961,7 +961,7 @@
                 ],
                 "importanceScore": 10,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:45:28.360Z"
+                "notesUpdatedAt": "2026-10-10T17:11:16.429Z"
               },
               {
                 "id": "cg_geo_7",
@@ -974,7 +974,7 @@
                 ],
                 "importanceScore": 10,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:46:12.694Z"
+                "notesUpdatedAt": "2026-10-10T17:15:51.071Z"
               },
               {
                 "id": "cg_geo_8",
@@ -987,7 +987,7 @@
                 ],
                 "importanceScore": 10,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:46:48.942Z"
+                "notesUpdatedAt": "2026-10-10T17:19:40.628Z"
               },
               {
                 "id": "cg_geo_9",
@@ -1000,7 +1000,7 @@
                 ],
                 "importanceScore": 9,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:47:22.898Z"
+                "notesUpdatedAt": "2026-10-10T17:20:53.218Z"
               },
               {
                 "id": "cg_geo_10",
@@ -1014,7 +1014,7 @@
                 ],
                 "importanceScore": 10,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:48:07.782Z"
+                "notesUpdatedAt": "2026-10-10T17:29:22.267Z"
               }
             ]
           },
@@ -1035,7 +1035,7 @@
                 ],
                 "importanceScore": 10,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:50:37.582Z"
+                "updatedAt": "2026-10-11T02:17:30.750Z"
               },
               {
                 "id": "cg_cul_2",
@@ -1048,7 +1048,7 @@
                 ],
                 "importanceScore": 10,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:51:32.055Z"
+                "updatedAt": "2026-10-11T02:20:45.572Z"
               },
               {
                 "id": "cg_cul_3",
@@ -1062,7 +1062,7 @@
                 ],
                 "importanceScore": 10,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:52:26.191Z"
+                "updatedAt": "2026-10-11T02:33:11.058Z"
               },
               {
                 "id": "cg_cul_4",
@@ -1075,7 +1075,7 @@
                 ],
                 "importanceScore": 8,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:53:12.519Z"
+                "updatedAt": "2026-10-11T02:34:36.547Z"
               },
               {
                 "id": "cg_cul_5",
@@ -1089,7 +1089,7 @@
                 ],
                 "importanceScore": 10,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:54:03.380Z"
+                "updatedAt": "2026-10-11T02:37:10.385Z"
               },
               {
                 "id": "cg_cul_6",
@@ -1102,7 +1102,7 @@
                 ],
                 "importanceScore": 10,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:54:52.198Z"
+                "updatedAt": "2026-10-11T02:39:25.382Z"
               },
               {
                 "id": "cg_cul_7",
@@ -1115,7 +1115,7 @@
                 ],
                 "importanceScore": 9,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:55:55.892Z"
+                "updatedAt": "2026-10-11T02:41:08.890Z"
               },
               {
                 "id": "cg_cul_8",
@@ -1128,7 +1128,7 @@
                 ],
                 "importanceScore": 9,
                 "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:57:53.964Z"
+                "updatedAt": "2026-10-11T02:43:29.059Z"
               }
             ]
           },
@@ -1145,9 +1145,7 @@
                   "फसलें",
                   "कृषि योजनाएँ"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:59:24.106Z"
+                "importanceScore": 10
               },
               {
                 "id": "cg_eco_2",
@@ -1158,9 +1156,7 @@
                   "सीमेंट उद्योग",
                   "विद्युत उद्योग"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T08:59:24.106Z"
+                "importanceScore": 10
               },
               {
                 "id": "cg_eco_3",
@@ -1171,9 +1167,7 @@
                   "जल विद्युत",
                   "सौर ऊर्जा"
                 ],
-                "importanceScore": 9,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:00:13.995Z"
+                "importanceScore": 9
               },
               {
                 "id": "cg_eco_4",
@@ -1183,9 +1177,7 @@
                   "सभी जिले",
                   "सभी संभाग"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:00:13.995Z"
+                "importanceScore": 10
               },
               {
                 "id": "cg_eco_5",
@@ -1197,9 +1189,7 @@
                   "जनपद पंचायत",
                   "जिला पंचायत"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:00:13.995Z"
+                "importanceScore": 10
               },
               {
                 "id": "cg_eco_6",
@@ -1210,9 +1200,7 @@
                   "कृषि योजनाएँ",
                   "शिक्षा योजनाएँ"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:01:27.182Z"
+                "importanceScore": 10
               },
               {
                 "id": "cg_eco_7",
@@ -1223,9 +1211,7 @@
                   "मिनीमाता",
                   "पंडित सुंदरलाल शर्मा"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:01:27.182Z"
+                "importanceScore": 10
               },
               {
                 "id": "cg_eco_8",
@@ -1237,9 +1223,7 @@
                   "राज्य पुरस्कार",
                   "खेल"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:01:27.182Z"
+                "importanceScore": 10
               }
             ]
           },
@@ -1258,9 +1242,7 @@
                   "रतनपुर",
                   "राजिम"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:03:55.393Z"
+                "importanceScore": 10
               },
               {
                 "id": "cg_adv_2",
@@ -1272,9 +1254,7 @@
                   "राजीव लोचन मंदिर",
                   "दंतेश्वरी मंदिर"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:03:55.393Z"
+                "importanceScore": 10
               },
               {
                 "id": "cg_adv_3",
@@ -1287,9 +1267,7 @@
                   "मैत्री बाग",
                   "कुटुमसर गुफा"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:03:55.393Z"
+                "importanceScore": 10
               },
               {
                 "id": "cg_adv_4",
@@ -1302,9 +1280,7 @@
                   "रामझरना",
                   "मंडवा"
                 ],
-                "importanceScore": 10,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:03:55.393Z"
+                "importanceScore": 10
               },
               {
                 "id": "cg_adv_5",
@@ -1315,9 +1291,7 @@
                   "कैलाश गुफा",
                   "दंडक गुफा"
                 ],
-                "importanceScore": 8,
-                "hasStudyNotes": true,
-                "notesUpdatedAt": "2026-10-02T09:03:55.393Z"
+                "importanceScore": 8
               }
             ]
           }
@@ -5543,6 +5517,6 @@
         ]
       }
     ],
-    "updatedAt": "2026-10-06T02:02:54.136Z"
+    "updatedAt": "2026-10-11T02:43:29.059Z"
   }
 ]
