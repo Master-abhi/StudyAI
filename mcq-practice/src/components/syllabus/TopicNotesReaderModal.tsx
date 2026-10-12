@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { 
   X, BookOpen, CheckCircle2, 
   Sparkles, FileText, Check, Copy, 
@@ -13,6 +14,16 @@ import type { Topic } from './syllabusData';
 export function formatNotesContent(content: any): string {
   if (typeof content !== 'string') return content || '';
   let str = content;
+
+  // Protect markdown table blocks before regex alterations
+  const tableBlocks: string[] = [];
+  str = str.replace(/(?:^|\n)(\|[^\n]+\|\n\|[-:\s|]+\|\n(?:\|[^\n]+\|\n?)*)/g, (match) => {
+    const cleanTable = match
+      .replace(/<br\s*\/?>/gi, ' <br/> ')
+      .replace(/([^\n])\s*[•●]\s*/g, '$1 <br/> • ');
+    tableBlocks.push(cleanTable);
+    return `\n\n__MD_TABLE_BLOCK_${tableBlocks.length - 1}__\n\n`;
+  });
 
   // First convert <li>Title: text</li> or <li><b>Title:</b> text</li> into markdown bullet
   if (/<[a-z][\s\S]*>/i.test(str)) {
@@ -58,6 +69,11 @@ export function formatNotesContent(content: any): string {
 
   // Format Devanagari / English subheadings like (क), (ख) on their own line without #### to have ####
   str = str.replace(/(?<!#.*)(?:^|\n)[ \t]*\(([क-हa-z0-9])\)\s*(\*\*|[A-Za-z\u0900-\u097F])/gi, '\n\n#### ($1) $2');
+
+  // Restore table blocks intact
+  tableBlocks.forEach((tb, i) => {
+    str = str.replace(`__MD_TABLE_BLOCK_${i}__`, tb.trim());
+  });
 
   // Normalize excessive newlines
   str = str.replace(/\n{3,}/g, '\n\n').trim();
@@ -211,7 +227,24 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
   const [revealedExplanations, setRevealedExplanations] = useState<Record<number, boolean>>({});
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('base');
-  const [readingTheme, setReadingTheme] = useState<'light' | 'dark' | 'sepia'>('light');
+  const [readingTheme, setReadingTheme] = useState<'light' | 'dark' | 'sepia'>(() => {
+    try {
+      // 1. Check if user explicitly set a saved reading theme
+      const savedReadingTheme = localStorage.getItem('cg_notes_reading_theme');
+      if (savedReadingTheme === 'dark' || savedReadingTheme === 'light' || savedReadingTheme === 'sepia') {
+        return savedReadingTheme;
+      }
+      // 2. Otherwise default to app theme (cg_theme or document theme)
+      const appTheme = localStorage.getItem('cg_theme');
+      const isHtmlLight = document.documentElement.getAttribute('data-theme') === 'light';
+      if (appTheme === 'light' || isHtmlLight) {
+        return 'light';
+      }
+      return 'dark'; // CG Guru defaults to dark theme
+    } catch {
+      return 'dark';
+    }
+  });
   const [loading, setLoading] = useState<boolean>(false);
   const [loadedNotes, setLoadedNotes] = useState<any>(null);
   const [error, setError] = useState<string>('');
@@ -387,22 +420,69 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
 
   const renderCardText = (text: string) => {
     if (!text) return null;
-    const cleaned = text
+    let cleaned = text
       .trim()
       .replace(/^[💡⭐🧠📌🔍•-]\s*/, '')
       .replace(/^["'“]([\*\_]{2}[^*_]+?[\*\_]{2}[:\s]*?)["'”]/g, '$1')
       .replace(/(^|\s)["'“]([\*\_]{2}[^*_]+?[\*\_]{2}[:\s]*?)["'”]/g, '$1$2');
+
+    // Clean up excessive or malformed br tags (e.g., `<br/> <br/> •` -> `<br/> •`)
+    cleaned = cleaned
+      .replace(/^(?:\s*<br\s*\/?>\s*)+/gi, '')
+      .replace(/(?:\s*<br\s*\/?>\s*)+$/gi, '')
+      .replace(/(?:<br\s*\/?>\s*){2,}/gi, '<br/>');
+
     return (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw]}
         components={{
-          p: ({ children }) => <span className="leading-relaxed font-medium">{children}</span>,
+          p: ({ children }) => <span className="leading-relaxed font-medium inline-block">{children}</span>,
           strong: ({ children }) => <strong className="font-black text-inherit">{children}</strong>
         }}
       >
         {cleaned}
       </ReactMarkdown>
     );
+  };
+
+  const parseMarkdownTables = (text: string) => {
+    if (!text || typeof text !== 'string') return [];
+    const tables: any[] = [];
+    const lines = text.split('\n');
+    let currentTable: any = null;
+    let lastHeading = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('#')) {
+        lastHeading = line.replace(/^#+\s*/, '');
+      }
+      if (line.startsWith('|') && line.endsWith('|')) {
+        if (!currentTable) {
+          currentTable = { title: lastHeading || 'तुलनात्मक सारणी', headers: [], rows: [] };
+        }
+        const cells = line.slice(1, -1).split('|').map(c => c.trim());
+        if (cells.every(c => /^:?-+:?$/.test(c))) {
+          // separator line, skip
+        } else if (currentTable.headers.length === 0) {
+          currentTable.headers = cells;
+        } else {
+          currentTable.rows.push(cells);
+        }
+      } else {
+        if (currentTable) {
+          if (currentTable.headers.length > 0 && currentTable.rows.length > 0) {
+            tables.push(currentTable);
+          }
+          currentTable = null;
+        }
+      }
+    }
+    if (currentTable && currentTable.headers.length > 0 && currentTable.rows.length > 0) {
+      tables.push(currentTable);
+    }
+    return tables;
   };
 
   const allTables: any[] = [];
@@ -412,6 +492,18 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
     if (Array.isArray(notes.chapters)) {
       notes.chapters.forEach((ch: any) => {
         if (Array.isArray(ch.tables)) allTables.push(...ch.tables);
+        if (ch.content && typeof ch.content === 'string') {
+          const parsed = parseMarkdownTables(ch.content);
+          if (parsed.length > 0) allTables.push(...parsed);
+        }
+        if (Array.isArray(ch.sections)) {
+          ch.sections.forEach((sec: any) => {
+            if (sec.content && typeof sec.content === 'string') {
+              const parsed = parseMarkdownTables(sec.content);
+              if (parsed.length > 0) allTables.push(...parsed);
+            }
+          });
+        }
       });
     }
   }
@@ -430,10 +522,10 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
           </div>
         )}
 
-        {/* Top Header Bar with Safe-Area padding to prevent notification bar overlap */}
+        {/* Top Header Bar with Safe-Area padding on mobile and clean padding on desktop */}
         <div 
-          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 32px)' }} 
-          className={`px-3 sm:px-6 pb-2.5 sm:py-3 border-b flex items-center justify-between gap-2 sm:gap-3 shrink-0 ${getHeaderBgClass()}`}
+          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)' }} 
+          className={`px-3 sm:px-6 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 sm:gap-3 shrink-0 ${getHeaderBgClass()}`}
         >
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {/* Sidebar Toggle Button */}
@@ -508,21 +600,30 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
               readingTheme === 'dark' ? 'bg-[#1E293B] border-[#334155]' : readingTheme === 'sepia' ? 'bg-[#E5D2B1] border-[#C9B38F]' : 'bg-[#F1F5F9] border-[#E2E8F0]'
             }`}>
               <button
-                onClick={() => setReadingTheme('light')}
+                onClick={() => {
+                  setReadingTheme('light');
+                  try { localStorage.setItem('cg_notes_reading_theme', 'light'); } catch (_) {}
+                }}
                 className={`p-1.5 rounded transition-colors cursor-pointer ${readingTheme === 'light' ? 'bg-white text-saffron shadow-xs' : 'opacity-70 hover:opacity-100'}`}
-                title="Light Mode (Default)"
+                title="Light Mode"
               >
                 <Sun className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => setReadingTheme('sepia')}
+                onClick={() => {
+                  setReadingTheme('sepia');
+                  try { localStorage.setItem('cg_notes_reading_theme', 'sepia'); } catch (_) {}
+                }}
                 className={`p-1.5 rounded transition-colors cursor-pointer ${readingTheme === 'sepia' ? 'bg-[#D6C19D] text-[#3F3325] shadow-xs' : 'opacity-70 hover:opacity-100'}`}
                 title="Warm Sepia Mode"
               >
                 <Sparkles className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => setReadingTheme('dark')}
+                onClick={() => {
+                  setReadingTheme('dark');
+                  try { localStorage.setItem('cg_notes_reading_theme', 'dark'); } catch (_) {}
+                }}
                 className={`p-1.5 rounded transition-colors cursor-pointer ${readingTheme === 'dark' ? 'bg-[#0F172A] text-amber-400 shadow-xs' : 'opacity-70 hover:opacity-100'}`}
                 title="Dark Mode"
               >
@@ -604,7 +705,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
           {/* Left Sidebar for Tabs and Chapters */}
           {notes && (
             <aside 
-              style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 32px)' }}
+              style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)' }}
               className={`${
               isSidebarOpen ? 'translate-x-0' : '-translate-x-full sm:hidden'
             } fixed sm:static inset-y-0 left-0 z-40 sm:z-auto w-72 sm:w-64 md:w-72 shrink-0 border-r flex flex-col h-full overflow-hidden transition-transform duration-200 ease-in-out ${
@@ -963,6 +1064,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                             <div className="prose prose-sm max-w-none font-normal leading-relaxed text-left space-y-3">
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeRaw]}
                                 components={{
                                   p: ({ children }) => (
                                     <p className={`my-2 leading-relaxed text-left ${
@@ -1009,6 +1111,52 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                     <blockquote className={`border-l-4 border-saffron pl-3.5 py-1.5 my-2.5 rounded-r italic text-xs ${
                                       readingTheme === 'dark' ? 'bg-[#1E293B] text-slate-300' : 'bg-saffron/10 text-slate-700'
                                     }`}>{children}</blockquote>
+                                  ),
+                                  table: ({ children }) => (
+                                    <div className={`overflow-x-auto rounded-xl border my-4 ${
+                                      readingTheme === 'dark' ? 'border-[#2A364F] bg-[#111827]' : readingTheme === 'sepia' ? 'border-[#DECBB0] bg-[#F7EEDC]' : 'border-[#CBD5E1] bg-white'
+                                    } shadow-2xs`}>
+                                      <table className="w-full text-left text-xs border-collapse">
+                                        {children}
+                                      </table>
+                                    </div>
+                                  ),
+                                  thead: ({ children }) => (
+                                    <thead className={
+                                      readingTheme === 'dark' ? 'bg-[#1E293B] text-slate-100 font-black border-b border-[#2A364F]' : readingTheme === 'sepia' ? 'bg-[#E5D2B1] text-[#3F3325] font-black border-b border-[#DECBB0]' : 'bg-slate-100 text-slate-900 font-black border-b border-slate-300'
+                                    }>
+                                      {children}
+                                    </thead>
+                                  ),
+                                  tbody: ({ children }) => (
+                                    <tbody>
+                                      {children}
+                                    </tbody>
+                                  ),
+                                  tr: ({ children }) => (
+                                    <tr className={`border-b last:border-b-0 ${
+                                      readingTheme === 'dark' 
+                                        ? 'border-[#2A364F]/70 hover:bg-[#1E293B]/50' 
+                                        : readingTheme === 'sepia' 
+                                          ? 'border-[#DECBB0]/70 hover:bg-[#EFE2C8]' 
+                                          : 'border-slate-200 hover:bg-slate-50'
+                                    }`}>
+                                      {children}
+                                    </tr>
+                                  ),
+                                  th: ({ children }) => (
+                                    <th className={`p-2.5 border-r last:border-r-0 font-black ${
+                                      readingTheme === 'dark' ? 'border-[#2A364F]' : readingTheme === 'sepia' ? 'border-[#DECBB0]' : 'border-slate-200'
+                                    }`}>
+                                      {children}
+                                    </th>
+                                  ),
+                                  td: ({ children }) => (
+                                    <td className={`p-2.5 border-r last:border-r-0 font-medium ${
+                                      readingTheme === 'dark' ? 'border-[#2A364F]/60 text-slate-200' : readingTheme === 'sepia' ? 'border-[#DECBB0]/60 text-[#3F3325]' : 'border-slate-200 text-slate-800'
+                                    }`}>
+                                      {children}
+                                    </td>
                                   )
                                 }}
                               >
@@ -1314,7 +1462,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                     <th key={hIdx} className={`p-2.5 border-r last:border-r-0 ${
                                       readingTheme === 'dark' ? 'border-[#2A364F]' : readingTheme === 'sepia' ? 'border-[#DECBB0]' : 'border-slate-200'
                                     }`}>
-                                      {h}
+                                      {renderCardText(h)}
                                     </th>
                                   ))}
                                 </tr>
@@ -1335,7 +1483,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                       <td key={cellIdx} className={`p-2.5 border-r last:border-r-0 font-medium ${
                                         readingTheme === 'dark' ? 'border-[#2A364F]/60 text-slate-200' : readingTheme === 'sepia' ? 'border-[#DECBB0]/60 text-[#3F3325]' : 'border-slate-200 text-slate-800'
                                       }`}>
-                                        {cell}
+                                        {renderCardText(cell)}
                                       </td>
                                     ))}
                                   </tr>
