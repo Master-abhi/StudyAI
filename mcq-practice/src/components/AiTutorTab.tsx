@@ -20,25 +20,33 @@ interface AiTutorTabProps {
   userPlan?: 'free' | 'paid';
   onOpenUpgrade?: () => void;
   currentUser?: any;
+  onOpenAuth?: () => void;
 }
 
 export const AiTutorTab: React.FC<AiTutorTabProps> = ({ 
   activeExam, 
   userPlan = 'free', 
   onOpenUpgrade, 
-  currentUser 
+  currentUser,
+  onOpenAuth
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputVal, setInputVal] = useState<string>('');
   const [generating, setGenerating] = useState<boolean>(false);
   const [chatLanguage, setChatLanguage] = useState<'hi' | 'en'>('hi');
 
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Auto-scroll
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Auto-scroll messages list directly (never scroll window/parent containers)
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior
+      });
+    }
   };
 
   useEffect(() => {
@@ -79,6 +87,12 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
   const handleSend = async (textToSend: string) => {
     const query = textToSend.trim();
     if (!query) return;
+
+    if (!currentUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to ask AI Guru.');
+      return;
+    }
 
     const isPro = userPlan === 'paid';
     if (!isPro && !canAskAiQuestion(userPlan)) {
@@ -258,7 +272,7 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
   ];
 
   return (
-    <div className="flex flex-col w-full h-full min-h-0 bg-bg-s1 relative font-sans">
+    <div className="flex-1 flex flex-col w-full h-full max-h-full min-h-0 bg-bg-s1 relative font-sans overflow-hidden">
       
       {/* 1. Header controls */}
       <div className="flex items-center justify-between border-b border-border pb-3 bg-bg-s1 z-10 shrink-0">
@@ -312,7 +326,7 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
       </div>
 
       {/* 2. Messages panel */}
-      <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 min-h-0 no-scrollbar py-2">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 min-h-0 no-scrollbar py-2">
         {messages.length === 0 ? (
           /* Welcome panel */
           <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-bg-s2 border border-border rounded-xl shadow-md my-auto gap-4">
@@ -379,7 +393,7 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
       </div>
 
       {/* 3. Message typing input field (Pinned to bottom) */}
-      <div className="border-t border-border pt-3 pb-2 md:pb-0 bg-bg-s1 shrink-0 mt-auto">
+      <div className="border-t border-border pt-2.5 pb-2 md:pb-1 bg-bg-s1 shrink-0 z-20 mt-auto">
         {userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0 && (
           <div className="mb-2 p-2.5 bg-saffron/10 border border-saffron/30 rounded-lg flex items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2 text-saffron font-bold text-[11px]">
@@ -412,26 +426,31 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
             }
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
+            onFocus={() => {
+              setTimeout(() => {
+                scrollToBottom('auto');
+              }, 250);
+            }}
             disabled={generating || (userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0)}
-            className="flex-1 bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-3.5 py-2.5 sm:py-3 rounded-lg outline-none transition-colors disabled:opacity-60"
+            className="flex-1 bg-bg-s3 text-xs text-text border border-border focus:border-saffron px-4 py-2.5 sm:py-3 rounded-full outline-none transition-colors disabled:opacity-60 shadow-inner"
           />
 
           {generating ? (
             <button
               type="button"
               onClick={handleStop}
-              className="p-2.5 sm:p-3 bg-red-600 hover:bg-red-500 text-bg-s1 rounded-lg flex items-center justify-center cursor-pointer transition-colors shadow shrink-0"
+              className="w-10 h-10 sm:w-11 sm:h-11 bg-red-600 hover:bg-red-500 text-bg-s1 rounded-full flex items-center justify-center cursor-pointer transition-colors shadow shrink-0"
               title="Stop generation"
             >
-              <StopCircle className="w-4 h-4 text-white" />
+              <StopCircle className="w-4.5 h-4.5 text-white" />
             </button>
           ) : (
             <button
               type="submit"
               disabled={!inputVal.trim() || (userPlan !== 'paid' && getRemainingAiQuestions(userPlan) <= 0)}
-              className="p-2.5 sm:p-3 bg-saffron hover:bg-orange-500 disabled:opacity-50 text-bg-s1 rounded-lg flex items-center justify-center cursor-pointer transition-colors shadow shrink-0"
+              className="w-10 h-10 sm:w-11 sm:h-11 bg-saffron hover:bg-orange-500 disabled:opacity-50 text-bg-s1 rounded-full flex items-center justify-center cursor-pointer transition-transform active:scale-95 shadow shrink-0"
             >
-              <Send className="w-4 h-4 fill-bg-s1" />
+              <Send className="w-4.5 h-4.5 fill-bg-s1" />
             </button>
           )}
         </form>

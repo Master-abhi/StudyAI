@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { getMcqCorrectLetter } from '../syllabus/TopicNotesReaderModal';
 
 // Cleans pasted HTML from Word, Excel, Docs, or Web
 function sanitizePastedHtml(html: string): string {
@@ -1831,9 +1832,9 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
                   {Array.isArray(studyData?.confusionBuster) && studyData.confusionBuster.length > 0 && (
                     <div className="flex flex-col gap-4 bg-white p-8 rounded-2xl border border-[#D9E0E8] shadow-sm avoid-break">
                       <div className="flex items-center gap-2 text-[#17375E] border-b border-[#D9E0E8] pb-3">
-                        <span className="text-lg">⚠️</span>
+                        <span className="text-lg">💡</span>
                         <h3 className="text-base font-black uppercase tracking-wider">
-                          Confusion Buster (प्रायः होने वाले भ्रम एवं सटीक तथ्य)
+                          सामान्य स्पष्टीकरण
                         </h3>
                       </div>
 
@@ -1841,7 +1842,7 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
                         <thead>
                           <tr className="bg-[#17375E] text-white">
                             <th className="p-3 text-left font-black w-1/2 border border-[#D9E0E8]/40">
-                              अक्सर होने वाला भ्रम (Often Confused)
+                              स्पष्टीकरण
                             </th>
                             <th className="p-3 text-left font-black w-1/2 border border-[#D9E0E8]/40 bg-[#E88A00]">
                               सटीक तथ्य एवं प्रमाण (Correct Information)
@@ -1851,8 +1852,8 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
                         <tbody>
                           {studyData.confusionBuster.map((item: any, iIdx: number) => (
                             <tr key={iIdx} className={iIdx % 2 === 1 ? 'bg-[#F5F7FA]' : 'bg-white'}>
-                              <td className="p-3 border border-[#D9E0E8] font-medium text-red-700 bg-red-500/5">
-                                ❌ {item.oftenConfused}
+                              <td className="p-3 border border-[#D9E0E8] font-medium text-slate-800 bg-amber-500/5">
+                                💡 {item.oftenConfused}
                               </td>
                               <td className="p-3 border border-[#D9E0E8] font-medium text-[#2E9B6F] bg-[#2E9B6F]/5">
                                 ✓ {item.correctInformation}
@@ -1913,18 +1914,18 @@ export const TopicPdfStudioModal: React.FC<TopicPdfStudioModalProps> = ({
                         {studyData.mcqs.map((mcq: any, mIdx: number) => (
                           <div key={mIdx} className="p-4 bg-[#F5F7FA] border border-[#D9E0E8] rounded-xl flex flex-col gap-2.5">
                             <span className="font-black text-[#17375E] leading-snug">
-                              Q{mIdx + 1}. {mcq.q}
+                              Q{mIdx + 1}. {mcq.q || mcq.question}
                             </span>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                               {Array.isArray(mcq.options) && mcq.options.map((opt: string, oIdx: number) => (
                                 <span key={oIdx} className="p-2 bg-white rounded border border-[#D9E0E8] text-[#202938]">
-                                  {opt}
+                                  {typeof opt === 'object' && opt !== null ? ((opt as any).text || JSON.stringify(opt)) : String(opt || '')}
                                 </span>
                               ))}
                             </div>
                             <div className="mt-1 pt-2 border-t border-[#D9E0E8] flex flex-col gap-1">
                               <span className="text-[11px] font-black text-[#2E9B6F]">
-                                सही उत्तर: विकल्प ({mcq.correct})
+                                सही उत्तर: विकल्प ({getMcqCorrectLetter(mcq)})
                               </span>
                               {mcq.explanation && (
                                 <span className="text-[10.5px] text-[#667085] leading-relaxed">

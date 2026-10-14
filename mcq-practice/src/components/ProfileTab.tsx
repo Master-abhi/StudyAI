@@ -3,7 +3,7 @@ import {
   Flame, Trophy, Award, Star, Clock, 
   CheckCircle2, AlertCircle, History, BookOpen, ChevronRight,
   ArrowRight, Target, Mail, ShieldCheck, ShieldAlert, User,
-  Brain, Cpu, Loader2, ChevronDown, ChevronUp, Calendar
+  Brain, Cpu, Loader2, ChevronDown, ChevronUp, Calendar, Lock
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
@@ -52,6 +52,7 @@ interface ProfileTabProps {
   rankingData?: any;
   tabVisibility?: Record<string, boolean>;
   currentUser?: any;
+  onOpenAuth?: () => void;
   userPlan?: 'free' | 'paid';
   planExpiresAt?: string | null;
   onUploadAvatar?: (file: File) => Promise<string>;
@@ -60,6 +61,7 @@ interface ProfileTabProps {
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
   currentUser,
+  onOpenAuth,
   userName,
   userEmail,
   streak,
@@ -522,6 +524,31 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full max-w-lg md:max-w-5xl mx-auto pb-16 font-sans">
       
+      {/* Guest Mode Exploration Notice */}
+      {(!currentUser || isGuest) && (
+        <div className="md:col-span-12 p-4 md:p-5 bg-gradient-to-r from-saffron/15 via-orange-500/10 to-amber-500/15 border border-saffron/30 rounded-xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-saffron/20 border border-saffron/40 flex items-center justify-center text-saffron shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <h4 className="text-sm font-black text-text uppercase tracking-wide">
+                Guest Mode — Create an Account to Save Progress
+              </h4>
+              <p className="text-xs text-text-muted mt-0.5">
+                Sign up or log in to track your test scores, maintain study streaks, earn ranks, and access notes.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onOpenAuth}
+            className="px-5 py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 font-black text-xs uppercase tracking-wider rounded-lg shadow cursor-pointer transition-all active:scale-95 shrink-0 self-stretch sm:self-auto text-center"
+          >
+            Log In / Sign Up
+          </button>
+        </div>
+      )}
+
       {/* 1. Enhanced Profile Header Hero (Spans full width of the desktop dashboard grid) */}
       <div className="md:col-span-12 p-6 md:p-8 bg-bg-s2 border border-border rounded-xl shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0">
         <div className="absolute top-0 right-0 w-48 h-48 bg-saffron-dim/10 rounded-full blur-3xl pointer-events-none" />

@@ -24,6 +24,8 @@ interface AiTutorModalProps {
   initialPromptType: 'beginner' | 'mnemonic' | 'similar' | null;
   userPlan?: 'free' | 'paid';
   onOpenUpgrade?: () => void;
+  currentUser?: any;
+  onOpenAuth?: () => void;
 }
 
 export const AiTutorModal: React.FC<AiTutorModalProps> = ({
@@ -32,7 +34,9 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
   question,
   initialPromptType,
   userPlan = 'free',
-  onOpenUpgrade
+  onOpenUpgrade,
+  currentUser,
+  onOpenAuth
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -125,6 +129,15 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
+
+    const firebase = (window as any).firebase;
+    const fbUser = currentUser || firebase?.auth()?.currentUser;
+    if (!fbUser) {
+      onClose();
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to ask AI Guru.');
+      return;
+    }
 
     const isPro = userPlan === 'paid';
     if (!isPro && !canAskAiQuestion(userPlan)) {

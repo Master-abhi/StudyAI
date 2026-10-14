@@ -22,6 +22,7 @@ interface DashboardTabProps {
   topicProgress: Record<string, any>;
   tabVisibility?: Record<string, boolean>;
   currentUser?: any;
+  onOpenAuth?: () => void;
   getApiUrl: (path: string) => string;
   onSelectArticle?: (article: any) => void;
   onClaimDailyBonus?: (amount: number) => void;
@@ -43,6 +44,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   topicProgress,
   tabVisibility,
   currentUser,
+  onOpenAuth,
   getApiUrl,
   onSelectArticle,
   onClaimDailyBonus
@@ -194,6 +196,26 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       {/* Left Column: Greet, Target Exam, Daily Tasks */}
       <div className="flex flex-col gap-6 md:col-span-7">
 
+        {/* Guest Mode Exploration Banner */}
+        {!currentUser && (
+          <div className="bg-gradient-to-r from-saffron/15 via-orange-500/10 to-amber-500/15 border border-saffron/30 rounded-xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-saffron/20 border border-saffron/40 flex items-center justify-center text-saffron shrink-0">
+                <Sparkles className="w-4.5 h-4.5" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-black text-text truncate">You are exploring in Guest Mode</span>
+                <span className="text-[10px] text-text-muted truncate">Log in or sign up to attempt tests, read notes & save progress.</span>
+              </div>
+            </div>
+            <button
+              onClick={onOpenAuth}
+              className="px-3.5 py-1.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-[11px] font-black uppercase rounded-lg shrink-0 cursor-pointer shadow transition-all active:scale-95"
+            >
+              Log In
+            </button>
+          </div>
+        )}
 
         {/* 1. Hero Greet Panel */}
         <div className="p-6 bg-gradient-to-br from-bg-s2 to-bg-s1 border border-border rounded-xl shadow-lg relative overflow-hidden flex flex-col gap-4">

@@ -160,6 +160,70 @@ export function getSourcesList(notes: any): string[] {
   return list;
 }
 
+// Safely determine correct option letter ('A', 'B', 'C', 'D'...) from various question schemas
+export function getMcqCorrectLetter(mcq: any): string {
+  if (!mcq) return 'A';
+
+  // 1. Numeric index properties: correctAnswer, correctIndex, correct, answer, ans (0-based)
+  const numericProps = [mcq.correctAnswer, mcq.correctIndex, mcq.correct, mcq.answer, mcq.ans];
+  for (const val of numericProps) {
+    if (typeof val === 'number' && !isNaN(val) && val >= 0 && val < 26) {
+      return String.fromCharCode(65 + val);
+    }
+    if (typeof val === 'string' && /^[0-9]+$/.test(val.trim())) {
+      const parsed = parseInt(val.trim(), 10);
+      if (parsed >= 0 && parsed < 26) {
+        return String.fromCharCode(65 + parsed);
+      }
+    }
+  }
+
+  // 2. Letter representation: "A", "B", "C", "D" or "(A)", "(B)", etc.
+  const stringProps = [mcq.correct, mcq.correctAnswer, mcq.correctOption, mcq.answer, mcq.ans];
+  for (const raw of stringProps) {
+    if (typeof raw === 'string' && raw.trim()) {
+      const trimmed = raw.trim();
+      const letterMatch = trimmed.match(/^\(?([A-Za-z])\)?$/);
+      if (letterMatch) {
+        return letterMatch[1].toUpperCase();
+      }
+      const hindiMatch = trimmed.match(/^\(?([क-घ])\)?$/);
+      if (hindiMatch) {
+        const hindiMap: Record<string, string> = { 'क': 'A', 'ख': 'B', 'ग': 'C', 'घ': 'D' };
+        return hindiMap[hindiMatch[1]] || 'A';
+      }
+    }
+  }
+
+  // 3. String matching against options text
+  if (Array.isArray(mcq.options)) {
+    for (const raw of stringProps) {
+      if (typeof raw === 'string' && raw.trim()) {
+        const cleanRaw = raw.trim().toLowerCase();
+        const foundIdx = mcq.options.findIndex((opt: any) => {
+          const optText = (typeof opt === 'object' && opt !== null ? (opt.text || '') : String(opt || '')).trim().toLowerCase();
+          return optText === cleanRaw || (optText.length > 3 && cleanRaw.includes(optText)) || (cleanRaw.length > 3 && optText.includes(cleanRaw));
+        });
+        if (foundIdx >= 0) {
+          return String.fromCharCode(65 + foundIdx);
+        }
+      }
+    }
+  }
+
+  // 4. Try parsing from explanation if it explicitly mentions "सही उत्तर: विकल्प (B)" or similar
+  if (typeof mcq.explanation === 'string' && mcq.explanation) {
+    const explMatch = mcq.explanation.match(/(?:सही उत्तर|उत्तर|Correct Answer|Option)[\s\:\-\–]*\(?([A-Da-dक-घ])\)?/i);
+    if (explMatch) {
+      const ch = explMatch[1].toUpperCase();
+      const hindiMap: Record<string, string> = { 'क': 'A', 'ख': 'B', 'ग': 'C', 'घ': 'D' };
+      return hindiMap[ch] || ch;
+    }
+  }
+
+  return 'A';
+}
+
 class NotesErrorBoundary extends React.Component<{ children: React.ReactNode; onClose: () => void }, { hasError: boolean; error: string }> {
   constructor(props: any) {
     super(props);
@@ -270,6 +334,12 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
       console.warn('[Offline Notes Check Error]:', e);
     }
   }, [topic]);
+
+  // Reset quiz answers when switching topics or reopening
+  useEffect(() => {
+    setSelectedAnswers({});
+    setRevealedExplanations({});
+  }, [topic?.id, isOpen]);
 
   // Fetch notes if not already loaded in topic.studyNotes
   useEffect(() => {
@@ -1319,7 +1389,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                       <div className={`p-5 rounded-2xl border ${getCardBgClass()} space-y-4`}>
                         <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
                           <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-500 flex items-center gap-2">
-                            ⚠️ सामान्य भ्रम एवं स्पष्टीकरण (Confusion Buster)
+                            💡 सामान्य स्पष्टीकरण
                           </h4>
                           <span className={`text-[10px] font-bold ${readingTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
                             {validBusters.length} महत्वपूर्ण बिंदु
@@ -1328,9 +1398,9 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
 
                         <div className="space-y-3">
                           {validBusters.map((item: any, idx: number) => {
-                            const confusionTitle = item.conceptA || item.oftenConfused || 'अक्सर होने वाला भ्रम';
-                            const correctFact = item.conceptB || item.correctInformation || item.keyDifference || '';
-                            const explanation = item.explanation || item.trickToRemember || '';
+                            const confusionTitle = item.confusion || item.point || item.title || item.conceptA || item.oftenConfused || `महत्वपूर्ण बिंदु ${idx + 1}`;
+                            const correctFact = item.correctFact || item.clarification || item.conceptB || item.correctInformation || item.keyDifference || '';
+                            const explanation = item.explanation || item.details || item.trickToRemember || '';
 
                             return (
                               <div
@@ -1343,14 +1413,14 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                       : 'bg-slate-50/90 border-slate-200'
                                 }`}
                               >
-                                {/* 1. Top Line: Confusion */}
+                                {/* 1. Top Line: Explanation */}
                                 <div className="flex items-start gap-2.5 text-xs sm:text-sm">
-                                  <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400 flex items-center justify-center shrink-0 font-black text-xs">
-                                    ✕
+                                  <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 flex items-center justify-center shrink-0 font-black text-xs">
+                                    💡
                                   </span>
                                   <div className="leading-snug">
-                                    <span className="font-black text-red-600 dark:text-red-400 mr-2">
-                                      भ्रम:
+                                    <span className="font-black text-amber-600 dark:text-amber-400 mr-2">
+                                      स्पष्टीकरण:
                                     </span>
                                     <span className={`font-bold ${
                                       readingTheme === 'dark' ? 'text-slate-100' : readingTheme === 'sepia' ? 'text-[#3F3325]' : 'text-slate-900'
@@ -1668,11 +1738,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                     notes.mcqs.map((mcq: any, qIdx: number) => {
                       const userChoice = selectedAnswers[qIdx];
                       const isRevealed = revealedExplanations[qIdx];
-                      const correctLetter = typeof mcq.correct === 'number'
-                        ? String.fromCharCode(65 + mcq.correct)
-                        : typeof mcq.correctIndex === 'number'
-                          ? String.fromCharCode(65 + mcq.correctIndex)
-                          : (mcq.correct || 'A').toString().trim().toUpperCase().charAt(0);
+                      const correctLetter = getMcqCorrectLetter(mcq);
 
                       return (
                         <div key={qIdx} className={`p-5 rounded-xl border ${getCardBgClass()} space-y-3.5`}>
@@ -1942,11 +2008,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                   <div className="avoid-break" style={{ marginBottom: '20px' }}>
                     <h3 style={{ color: '#1E3A8A' }}>अभ्यास प्रश्न (MCQs)</h3>
                     {notes.mcqs.map((mcq: any, idx: number) => {
-                      const correctLetter = typeof mcq.correct === 'number'
-                        ? String.fromCharCode(65 + mcq.correct)
-                        : typeof mcq.correctIndex === 'number'
-                          ? String.fromCharCode(65 + mcq.correctIndex)
-                          : (mcq.correct || 'A').toString().trim().toUpperCase().charAt(0);
+                      const correctLetter = getMcqCorrectLetter(mcq);
                       return (
                         <div key={idx} style={{ marginBottom: '10px' }}>
                           <p><strong>Q{idx + 1}. {mcq.q || mcq.question}</strong></p>

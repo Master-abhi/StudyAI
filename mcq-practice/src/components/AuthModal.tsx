@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, User, Key, ShieldAlert, ShieldCheck, Mail, Phone, AtSign, Smartphone, Laptop, AlertTriangle } from 'lucide-react';
+import { Lock, User, Key, ShieldAlert, ShieldCheck, Mail, Phone, AtSign, Smartphone, Laptop, AlertTriangle, X } from 'lucide-react';
 import { getCurrentDeviceInfo } from '../utils/deviceSession';
 
 interface AuthModalProps {
@@ -435,8 +435,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md bg-bg-s2 border border-border rounded-xl shadow-2xl overflow-hidden"
+        className="w-full max-w-md bg-bg-s2 border border-border rounded-xl shadow-2xl overflow-hidden relative"
       >
+        {/* Close button to allow users to dismiss and continue exploring */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-3.5 right-3.5 p-1.5 rounded-full bg-black/25 hover:bg-black/50 text-white transition-all cursor-pointer z-30 shadow"
+          title="Close / Continue Exploring"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
         {/* Banner */}
         <div className="bg-gradient-to-r from-saffron to-orange-600 p-6 text-center text-bg-s1 relative">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />

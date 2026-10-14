@@ -29,7 +29,8 @@ import {
   X,
   BellRing,
   Gift,
-  Zap
+  Zap,
+  Lock
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -967,15 +968,9 @@ export default function App() {
         setAuthModalOpen(false);
       } else {
         setCurrentUser(null);
-        // Show auth blocking modal on start if not guest
-        const guestFlag = localStorage.getItem('cg_is_guest') === 'true';
-        if (guestFlag) {
-          setIsGuest(true);
-        } else {
-          clearSessionStates();
-          setIsGuest(false);
-          setAuthModalOpen(true);
-        }
+        // Allow new users to freely explore the app without blocking auth modal
+        setIsGuest(true);
+        setAuthModalOpen(false);
       }
     });
 
@@ -1053,11 +1048,7 @@ export default function App() {
       } else if (showFirstTimeExamSelector) {
         setShowFirstTimeExamSelector(false);
       } else if (authModalOpen) {
-        if (isGuest || currentUser) {
-          setAuthModalOpen(false);
-        } else {
-          import('@capacitor/app').then(({ App: CapApp }) => CapApp.exitApp());
-        }
+        setAuthModalOpen(false);
       } else {
         if (data.canGoBack) {
           window.history.back();
@@ -1544,6 +1535,11 @@ export default function App() {
   };
 
   const handleStartRandomPractice = async (modeType: 'quiz' | 'mock') => {
+    if (!currentUser || isGuest) {
+      setAuthModalOpen(true);
+      return;
+    }
+
     try {
       // 1. Try to fetch available tests from server
       const res = await fetch(getApiUrl(`/api/tests?examId=${activeExamId}`));
@@ -1774,6 +1770,11 @@ export default function App() {
   }, [streakLastDate]);
 
   const onToggleActivity = async (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => {
+    if (!currentUser || isGuest) {
+      setAuthModalOpen(true);
+      return;
+    }
+
     const { streak: currentStreakVal } = recordStudyActivity();
     const todayKey = new Date().toISOString().split('T')[0];
     setTopicProgress(prev => {
@@ -1862,6 +1863,11 @@ export default function App() {
   };
 
   const onMarkRevised = async (topicId: string) => {
+    if (!currentUser || isGuest) {
+      setAuthModalOpen(true);
+      return;
+    }
+
     const { streak: currentStreakVal } = recordStudyActivity();
     const todayKey = new Date().toISOString().split('T')[0];
     localStorage.setItem(`cg_topic_completed_${todayKey}`, 'true');
@@ -2010,6 +2016,11 @@ export default function App() {
   };
 
   const handleReportQuestion = (question: Question) => {
+    if (!currentUser || isGuest) {
+      setAuthModalOpen(true);
+      return;
+    }
+
     setReportingQuestion(question);
     setReportReason('');
     setReportModalOpen(true);
@@ -2050,6 +2061,11 @@ export default function App() {
   };
 
   const handleToggleBookmark = (question: Question) => {
+    if (!currentUser || isGuest) {
+      setAuthModalOpen(true);
+      return;
+    }
+
     setBookmarks(prev => {
       const exists = prev.some(q => q.question === question.question || (question.id && q.id === question.id));
       const updated = exists 
@@ -2077,6 +2093,11 @@ export default function App() {
     durationMinutes?: number,
     testId?: string
   ) => {
+    if (!currentUser || isGuest) {
+      setAuthModalOpen(true);
+      return;
+    }
+
     // Check Free user daily limits
     if (userPlan !== 'paid') {
       if (testMode === 'mock' && !canTakeMockTest(userPlan)) {
@@ -2401,8 +2422,8 @@ export default function App() {
         }
         await firebase.auth().signOut();
         clearSessionStates();
-        setIsGuest(false);
-        setAuthModalOpen(true);
+        setIsGuest(true);
+        setAuthModalOpen(false);
       } catch (e) {
         console.error('Sign out error', e);
       }
@@ -2431,6 +2452,11 @@ export default function App() {
   const dailyBonusAwardedRef = useRef<string | null>(null);
 
   const handleClaimDailyBonus = async (bonusAmount: number = 20) => {
+    if (!currentUser || isGuest) {
+      setAuthModalOpen(true);
+      return;
+    }
+
     const todayKey = new Date().toISOString().split('T')[0];
     const bonusClaimedKey = `cg_daily_bonus_claimed_${todayKey}`;
     if (dailyBonusAwardedRef.current === todayKey || localStorage.getItem(bonusClaimedKey) === 'true') {
@@ -2512,7 +2538,7 @@ export default function App() {
       case 'home':
         return (
           <DashboardTab
-            userName={currentUser?.displayName || 'Aspirant'}
+            userName={currentUser?.displayName || 'Guest Explorer'}
             streak={streak}
             xp={xp}
             completedTopicsCount={completedCount}
@@ -2524,6 +2550,10 @@ export default function App() {
             onSelectExam={handleSelectExam}
             onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
             onStartPracticeMode={async (modeType) => {
+              if (!currentUser || isGuest) {
+                setAuthModalOpen(true);
+                return;
+              }
               if (modeType === 'quiz' || modeType === 'mock') {
                 await handleStartRandomPractice(modeType);
               } else {
@@ -2533,6 +2563,7 @@ export default function App() {
             topicProgress={topicProgress}
             tabVisibility={tabVisibility}
             currentUser={currentUser}
+            onOpenAuth={() => setAuthModalOpen(true)}
             getApiUrl={getApiUrl}
             onSelectArticle={(art) => {
               setInitialSelectedArticle(art);
@@ -2551,6 +2582,8 @@ export default function App() {
             testHistory={testHistory}
             tabVisibility={tabVisibility}
             userPlan={userPlan}
+            currentUser={currentUser}
+            onOpenAuth={() => setAuthModalOpen(true)}
             onOpenUpgrade={(reason) => {
               setUpgradeModalReason(reason as any || 'general');
               setUpgradeModalOpen(true);
@@ -2559,7 +2592,11 @@ export default function App() {
         );
       case 'typing':
         return (
-          <TypingTest currentUser={currentUser} onSaveResults={saveTypingResults} />
+          <TypingTest
+            currentUser={currentUser}
+            onSaveResults={saveTypingResults}
+            onOpenAuth={() => setAuthModalOpen(true)}
+          />
         );
       case 'chat':
         return (
@@ -2567,6 +2604,7 @@ export default function App() {
             activeExam={activeExam} 
             userPlan={userPlan}
             currentUser={currentUser}
+            onOpenAuth={() => setAuthModalOpen(true)}
             onOpenUpgrade={() => {
               setUpgradeModalReason('ai_limit');
               setUpgradeModalOpen(true);
@@ -2579,7 +2617,12 @@ export default function App() {
             currentUser={currentUser}
             initialArticle={initialSelectedArticle}
             onClearInitialArticle={() => setInitialSelectedArticle(null)}
+            onOpenAuth={() => setAuthModalOpen(true)}
             onAskAi={(promptText) => {
+              if (!currentUser || isGuest) {
+                setAuthModalOpen(true);
+                return;
+              }
               setActiveTab('chat');
               // Short delay to allow chat client to mount
               setTimeout(() => {
@@ -2600,6 +2643,7 @@ export default function App() {
         return (
           <ProfileTab
             currentUser={currentUser}
+            onOpenAuth={() => setAuthModalOpen(true)}
             userName={currentUser?.displayName || 'Guest User'}
             userEmail={currentUser?.email || 'guest@studyworld.app'}
             userPlan={userPlan}
@@ -2810,7 +2854,7 @@ export default function App() {
   const isWorkspaceActive = isTestActive && rulesAccepted;
 
   return (
-    <div className="min-h-screen bg-bg-s0 text-text flex flex-col md:flex-row items-stretch select-none font-sans overflow-x-hidden relative">
+    <div className={`${activeTab === 'chat' ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'} bg-bg-s0 text-text flex flex-col md:flex-row items-stretch select-none font-sans overflow-x-hidden relative`}>
       
       {/* Desktop Left Sidebar Navigation */}
       {!isTestActive && activeTab !== 'admin' && activeTab !== 'staff' && activeTab !== 'landing' && (
@@ -2894,14 +2938,14 @@ export default function App() {
 
           {/* Sidebar Bottom Profile/Settings */}
           <div className="p-4 border-t border-border/60 bg-bg-s3/40 flex flex-col gap-3">
-            {currentUser || isGuest ? (
+            {currentUser && !isGuest ? (
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-saffron hover:bg-orange-500 rounded-full flex items-center justify-center font-black text-bg-s1 select-none shadow">
-                  {((currentUser?.displayName || 'Guest User')[0]).toUpperCase()}
+                  {((currentUser?.displayName || 'User')[0]).toUpperCase()}
                 </div>
                 <div className="flex-1 flex flex-col min-w-0">
                   <span className="text-xs font-bold text-text truncate">
-                    {currentUser?.displayName || 'Guest User'}
+                    {currentUser?.displayName || 'User'}
                   </span>
                   <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1">
                     <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500/10" />
@@ -2935,9 +2979,10 @@ export default function App() {
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="w-full py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-all text-center"
+                className="w-full py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-all text-center flex items-center justify-center gap-2 shadow-sm"
               >
-                Sign In
+                <Lock className="w-3.5 h-3.5" />
+                <span>Log In / Sign Up</span>
               </button>
             )}
 
@@ -3055,6 +3100,16 @@ export default function App() {
               >
                 <User className="w-4 h-4" />
               </button>
+
+              {/* Mobile Header Quick Log In button for Guests */}
+              {(!currentUser || isGuest) && (
+                <button
+                  onClick={() => setAuthModalOpen(true)}
+                  className="px-2.5 py-1 rounded-lg bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95 ml-1"
+                >
+                  Log In
+                </button>
+              )}
             </div>
           </header>
         )}
@@ -3066,7 +3121,7 @@ export default function App() {
             isWorkspaceActive
               ? 'h-[100dvh] max-h-[100dvh] overflow-hidden w-full p-0 gap-0'
               : (activeTab === 'chat' 
-                  ? 'h-full max-h-full overflow-hidden w-full max-w-lg md:max-w-4xl mx-auto px-3 py-2 md:px-6 md:py-4 gap-0' 
+                  ? 'flex-1 min-h-0 overflow-hidden w-full max-w-lg md:max-w-4xl mx-auto px-3 py-2 md:px-6 md:py-3 gap-0' 
                   : (activeTab === 'landing'
                       ? 'overflow-y-auto w-full p-0 gap-0'
                       : (activeTab === 'admin' || activeTab === 'staff' 
@@ -3167,7 +3222,7 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
                 transition={{ duration: 0.15 }}
-                className="flex-1 flex flex-col min-h-0"
+                className={`flex-1 flex flex-col min-h-0 ${activeTab === 'chat' ? 'h-full overflow-hidden' : ''}`}
               >
                 <Suspense fallback={<TabFallback />}>
                   {renderTabContent()}
@@ -3595,6 +3650,8 @@ export default function App() {
           question={questions[currentIndex]}
           initialPromptType={null}
           userPlan={userPlan}
+          currentUser={currentUser}
+          onOpenAuth={() => setAuthModalOpen(true)}
           onOpenUpgrade={() => {
             setUpgradeModalReason('ai_limit');
             setUpgradeModalOpen(true);

@@ -589,6 +589,7 @@ export type TypingFontLayout = 'vedmata' | 'krutidev' | 'mangal' | 'english';
 
 interface TypingTestProps {
   currentUser?: any;
+  onOpenAuth?: () => void;
   onSaveResults?: (
     netWpm: number,
     grossWpm: number,
@@ -602,7 +603,7 @@ interface TypingTestProps {
   ) => void;
 }
 
-export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResults }) => {
+export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResults, onOpenAuth }) => {
   // Candidate Profile State
   const candidateName = currentUser?.displayName || 'Guest Candidate';
 
@@ -716,6 +717,12 @@ export const TypingTest: React.FC<TypingTestProps> = ({ currentUser, onSaveResul
 
   // Start Test
   const handleStartTest = () => {
+    if (!currentUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to attempt live typing tests.');
+      return;
+    }
+
     const text = getTopicText(selectedTopic, layoutMode);
     const words = text.trim().split(/\s+/).filter(w => w.length > 0);
     setTargetWords(words);

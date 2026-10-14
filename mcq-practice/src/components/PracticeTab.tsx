@@ -26,6 +26,7 @@ interface PracticeTabProps {
   onToggleBookmark?: (question: Question) => void;
   testHistory?: any[];
   currentUser?: any;
+  onOpenAuth?: () => void;
   onSaveTypingResults?: (netWpm: number, grossWpm: number, accuracy: number, correctChars: number, incorrectChars: number, language: string, duration: number, topicId: string, topicTitle: string) => void;
   tabVisibility?: Record<string, boolean>;
   userPlan?: 'free' | 'paid';
@@ -40,7 +41,9 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   testHistory = [],
   tabVisibility,
   userPlan = 'free',
-  onOpenUpgrade
+  onOpenUpgrade,
+  currentUser,
+  onOpenAuth
 }) => {
   const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'offline' | 'saved'>('quiz');
   const [tests, setTests] = useState<ServerTest[]>([]);
@@ -105,6 +108,11 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
 
   const handleSaveTestOffline = async (testSummary: ServerTest, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (!currentUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to download tests offline.');
+      return;
+    }
     setDownloadingTestId(testSummary.id);
     try {
       const res = await fetch(getApiUrl(`/api/tests/${testSummary.id}`));
@@ -420,6 +428,12 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   }, [activeExam?.id, activeMode]);
 
   const handleStartEducatorTest = async (testId: string, testMode: 'quiz' | 'mock' | 'pyq', subject: string) => {
+    if (!currentUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to attempt tests.');
+      return;
+    }
+
     // Check Free user daily limits
     if (userPlan !== 'paid') {
       if (testMode === 'mock' && !canTakeMockTest(userPlan)) {

@@ -92,14 +92,32 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   };
 
   const handleOpenPracticeMcqs = (topic: Topic, subjectName: string) => {
+    const fbUser = currentUser || (window as any).firebase?.auth()?.currentUser;
+    if (!fbUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to access topic tests.');
+      return;
+    }
     setSelectedTopicForTests({ topic, subjectName });
   };
 
   const handleOpenLectures = (topic: Topic, subjectName: string) => {
+    const fbUser = currentUser || (window as any).firebase?.auth()?.currentUser;
+    if (!fbUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to watch video lectures.');
+      return;
+    }
     setSelectedLectureTopic({ topic, subjectName });
   };
 
   const handleOpenStudyNotes = (topic: Topic, subjectName: string) => {
+    const fbUser = currentUser || (window as any).firebase?.auth()?.currentUser;
+    if (!fbUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to read study notes.');
+      return;
+    }
     setSelectedNotesTopic({ topic, subjectName });
   };
 
@@ -182,6 +200,13 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   const activeExam = (exams && exams.length > 0 ? exams.find(e => e.id === activeExamId) || exams[0] : null) || fallbackExam;
 
   const handleQuickAction = (actionText: string, subjectId: string, topicId: string) => {
+    const fbUser = currentUser || (window as any).firebase?.auth()?.currentUser;
+    if (!fbUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to use syllabus study features.');
+      return;
+    }
+
     const subjects = Array.isArray(activeExam?.subjects) ? activeExam.subjects : [];
     const subject = subjects.find((s: Subject) => s.id === subjectId);
     const subjectName = subject ? subject.name : (activeExam?.name || '');

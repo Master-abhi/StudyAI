@@ -102,9 +102,10 @@ interface NewsTabProps {
   onAskAi: (promptText: string) => void;
   initialArticle?: any;
   onClearInitialArticle?: () => void;
+  onOpenAuth?: () => void;
 }
 
-export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialArticle, onClearInitialArticle }) => {
+export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialArticle, onClearInitialArticle, onOpenAuth }) => {
   const [activeSubTab, setActiveSubTab] = useState<'hub' | 'capsules' | 'analytics' | 'saved'>('hub');
   
   // Hub states
@@ -185,6 +186,12 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
 
   // Save Bookmarks
   const handleSaveArticle = async (article: Article) => {
+    if (!currentUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to bookmark notes.');
+      return;
+    }
+
     let updated;
     const isSaved = savedArticles.some(a => a.title === article.title);
     if (isSaved) {
@@ -806,6 +813,11 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                   <div className="flex gap-3 border-t border-border/40 pt-3 mt-1 flex-wrap">
                     <button
                       onClick={() => {
+                        if (!currentUser) {
+                          if (onOpenAuth) onOpenAuth();
+                          else alert('Please log in or sign up to take revision quizzes.');
+                          return;
+                        }
                         // Triggers fake MCQ test from capsule
                         if (capsuleData[activeCapsuleFilter].length > 0) {
                           setSelectedArticle(capsuleData[activeCapsuleFilter][0]);
@@ -822,6 +834,11 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                     </button>
                     <button
                       onClick={() => {
+                        if (!currentUser) {
+                          if (onOpenAuth) onOpenAuth();
+                          else alert('Please log in or sign up to generate study notes PDF.');
+                          return;
+                        }
                         alert('Revision Capsule generated! Summary note saved to local coach files.');
                       }}
                       className="px-4 py-2 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1.5 text-text"

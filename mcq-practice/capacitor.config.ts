@@ -18,6 +18,7 @@ const config: CapacitorConfig = {
       launchShowDuration: 1500,
       launchAutoHide: true,
       backgroundColor: '#121620',
+      androidScaleType: 'CENTER_CROP',
       showSpinner: false
     }
   }
