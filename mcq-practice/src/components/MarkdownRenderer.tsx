@@ -95,7 +95,7 @@ MermaidDiagram.displayName = 'MermaidDiagram';
 
 
 // Convert raw expressions like x^2 = 4ay, y^2 = -4ax, (a+b)^2, 10^-5, \(...\), \sqrt{...}, \dfrac{...} etc. to KaTeX math
-const formatSuperscriptsAndMath = (text: string): string => {
+export const formatSuperscriptsAndMath = (text: string): string => {
   if (!text) return '';
 
   let normalized = text;

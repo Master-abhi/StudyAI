@@ -1,0 +1,1 @@
+import{L as e}from"./vendor-math-DOrGoBX6.js";import{a as t}from"./index-dEF3PJkT.js";var n=class extends t{show(t){return e(function*(){})()}hide(t){return e(function*(){})()}};export{n as SplashScreenWeb};

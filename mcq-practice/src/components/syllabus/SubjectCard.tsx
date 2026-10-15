@@ -17,6 +17,7 @@ interface SubjectCardProps {
   onOpenNotes?: (topic: Topic, subjectName: string) => void;
   onOpenLectures?: (topic: Topic, subjectName: string) => void;
   onOpenPracticeMcqs?: (topic: Topic, subjectName: string) => void;
+  onOpen3DMap?: (stateId?: string) => void;
 }
 
 export const SubjectCard: React.FC<SubjectCardProps> = ({
@@ -31,7 +32,8 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
   onOpenPdf,
   onOpenNotes,
   onOpenLectures,
-  onOpenPracticeMcqs
+  onOpenPracticeMcqs,
+  onOpen3DMap
 }) => {
   // Count total topics and completed topics in this subject
   let totalTopics = 0;
@@ -190,6 +192,7 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({
                     onOpenNotes={(t) => onOpenNotes && onOpenNotes(t, subject.name)}
                     onOpenLectures={(t) => onOpenLectures && onOpenLectures(t, subject.name)}
                     onOpenPracticeMcqs={(t) => onOpenPracticeMcqs && onOpenPracticeMcqs(t, subject.name)}
+                    onOpen3DMap={onOpen3DMap}
                   />
 
                 </div>

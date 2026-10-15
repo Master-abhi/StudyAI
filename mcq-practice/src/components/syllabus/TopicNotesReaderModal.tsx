@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
+import { formatSuperscriptsAndMath } from '../MarkdownRenderer';
 import { 
   X, BookOpen, CheckCircle2, 
   Sparkles, FileText, Check, Copy, 
@@ -44,8 +47,8 @@ export function formatNotesContent(content: any): string {
     // Remove list wrappers
     str = str.replace(/<\/?(ul|ol|span|div)[^>]*>/gi, '\n');
 
-    // Strip any other lingering HTML tags
-    str = str.replace(/<[^>]+>/g, '');
+    // Strip any other lingering HTML tags safely without removing inequality symbols
+    str = str.replace(/<\/?(?:p|div|span|ul|ol|li|b|i|strong|em|br|hr|h[1-6]|table|thead|tbody|tr|th|td|a|small|sub|sup)[^>]*>/gi, '');
   }
 
   // Decode common HTML entities
@@ -270,6 +273,7 @@ export interface TopicNotesReaderModalProps {
   onMarkComplete?: () => void;
   isCompleted?: boolean;
   onOpenPdf?: (topic: Topic) => void;
+  onOpen3DMap?: (stateId?: string) => void;
 }
 
 export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> = ({
@@ -282,7 +286,8 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
   getApiUrl = (p: string) => p,
   onMarkComplete,
   isCompleted = false,
-  onOpenPdf
+  onOpenPdf,
+  onOpen3DMap
 }) => {
   const [activeTab, setActiveTab] = useState<'theory' | 'tables' | 'revision' | 'mcqs' | 'sources'>('theory');
   const [selectedChapterIdx, setSelectedChapterIdx] = useState<number | null>(null);
@@ -488,9 +493,10 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
     }
   };
 
-  const renderCardText = (text: string) => {
+  const renderCardText = (text: any) => {
     if (!text) return null;
-    let cleaned = text
+    const strText = typeof text === 'string' ? text : String(text || '');
+    let cleaned = strText
       .trim()
       .replace(/^[💡⭐🧠📌🔍•-]\s*/, '')
       .replace(/^["'“]([\*\_]{2}[^*_]+?[\*\_]{2}[:\s]*?)["'”]/g, '$1')
@@ -502,10 +508,12 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
       .replace(/(?:\s*<br\s*\/?>\s*)+$/gi, '')
       .replace(/(?:<br\s*\/?>\s*){2,}/gi, '<br/>');
 
+    cleaned = formatSuperscriptsAndMath(cleaned);
+
     return (
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeRaw, rehypeKatex]}
         components={{
           p: ({ children }) => <span className="leading-relaxed font-medium inline-block">{children}</span>,
           strong: ({ children }) => <strong className="font-black text-inherit">{children}</strong>
@@ -729,6 +737,18 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
               )}
             </button>
 
+            {/* 3D Map Explorer Button */}
+            {onOpen3DMap && (topic?.id === 'geo-ind-3d-map' || topic?.name?.toLowerCase().includes('3d') || topic?.nameHi?.includes('मानचित्र') || topic?.nameHi?.includes('भूगोल')) && (
+              <button
+                onClick={() => onOpen3DMap()}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black bg-gradient-to-r from-saffron to-amber-500 text-slate-950 hover:brightness-110 shadow-sm transition-all cursor-pointer"
+                title="3D Interactive India Map खोलें"
+              >
+                <span>🗺️</span>
+                <span className="hidden sm:inline">3D Map खोलें</span>
+              </button>
+            )}
+
             {/* Mark as Studied Button */}
             {onMarkComplete && (
               <button
@@ -813,7 +833,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                   {[
                     { id: 'theory', label: '📖 Theory & Chapters', count: notes.chapters?.length || 1 },
                     { id: 'tables', label: '📊 Comparative Tables', count: allTables.length },
-                    { id: 'revision', label: '⚡ Rapid Revision & Facts', count: (notes.oneLinerRevision || notes.rapidRevision || []).length },
+                    { id: 'revision', label: '⚡ Rapid Revision & Facts', count: (Array.isArray(notes.oneLinerRevision) ? notes.oneLinerRevision.length : 0) + (Array.isArray(notes.rapidRevision) ? notes.rapidRevision.length : 0) || ((notes.oneLinerRevision || notes.rapidRevision || []).length) },
                     { id: 'mcqs', label: '🎯 Exam MCQs & Quiz', count: notes.mcqs?.length || 0 },
                     ...(allSources.length > 0 ? [{ id: 'sources', label: '📚 Sources & References', count: allSources.length }] : [])
                   ].map(tab => {
@@ -917,7 +937,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                           </span>
                           <div className="flex flex-col min-w-0 flex-1">
                             <span className="truncate font-bold leading-tight">
-                              {ch.chapterTitle || ch.title}
+                              {ch.titleHi || ch.chapterTitle || ch.title}
                             </span>
                             <span className={`text-[10px] mt-0.5 truncate ${
                               isSelected ? 'text-white/80' : 'opacity-70'
@@ -992,20 +1012,53 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                       <Sparkles className="w-3.5 h-3.5" /> Topic Overview & Exam Relevance
                     </span>
                     <span className={`text-[11px] font-bold ${readingTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {notes.targetExams || examName}
+                      {Array.isArray(notes.targetExams) ? notes.targetExams.join(' • ') : (notes.targetExams || examName)}
                     </span>
                   </div>
 
-                  {(notes.overview.introduction || notes.overview.intro) && (
-                    <p className={`font-medium text-justify leading-relaxed ${
-                      readingTheme === 'dark' ? 'text-slate-200' : readingTheme === 'sepia' ? 'text-[#3F3325]' : 'text-slate-800'
-                    }`}>
-                      {notes.overview.introduction || notes.overview.intro}
-                    </p>
+                  {(() => {
+                    const overviewText = typeof notes.overview === 'string'
+                      ? notes.overview
+                      : (notes.overview?.introduction || notes.overview?.intro || notes.overview?.summary || notes.overview?.description || '');
+                    if (!overviewText) return null;
+                    return (
+                      <div className={`font-medium text-justify leading-relaxed ${
+                        readingTheme === 'dark' ? 'text-slate-200' : readingTheme === 'sepia' ? 'text-[#3F3325]' : 'text-slate-800'
+                      }`}>
+                        {renderCardText(overviewText)}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Key Terminology Pills/Cards */}
+                  {Array.isArray(notes.keyTerminology) && notes.keyTerminology.length > 0 && (
+                    <div className="pt-2.5 border-t border-border/40">
+                      <span className={`text-[10px] font-black uppercase tracking-wider block mb-2 ${
+                        readingTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                      }`}>महत्वपूर्ण शब्दावली एवं अवधारणाएं (Key Concepts):</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {notes.keyTerminology.map((termItem: any, idx: number) => {
+                          const term = typeof termItem === 'object' && termItem !== null ? (termItem.termHi || termItem.term || termItem.label || '') : String(termItem || '');
+                          const meaning = typeof termItem === 'object' && termItem !== null ? (termItem.hiMeaning || termItem.meaning || termItem.def || termItem.value || '') : '';
+                          return (
+                            <div key={idx} className={`p-2.5 rounded-lg border text-xs flex flex-col gap-0.5 ${
+                              readingTheme === 'dark'
+                                ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200'
+                                : readingTheme === 'sepia'
+                                  ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]'
+                                  : 'bg-slate-50 border-slate-200 text-slate-800'
+                            }`}>
+                              <span className="font-black text-saffron">{renderCardText(term)}</span>
+                              {meaning && <div className="text-[11px] font-medium leading-relaxed opacity-90">{renderCardText(meaning)}</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
 
                   {/* Quick Facts Pills */}
-                  {Array.isArray(notes.overview.quickFacts) && notes.overview.quickFacts.length > 0 && (
+                  {notes.overview && typeof notes.overview === 'object' && Array.isArray(notes.overview.quickFacts) && notes.overview.quickFacts.length > 0 && (
                     <div className="pt-2.5 border-t border-border/40">
                       <span className={`text-[10px] font-black uppercase tracking-wider block mb-2 ${
                         readingTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'
@@ -1046,7 +1099,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                         </span>
                         <div className="flex flex-col min-w-0">
                           <span className="text-xs sm:text-sm font-black truncate">
-                            अध्याय {selectedChapterIdx + 1} / {notes.chapters.length}: {notes.chapters[selectedChapterIdx].chapterTitle || notes.chapters[selectedChapterIdx].title}
+                            अध्याय {selectedChapterIdx + 1} / {notes.chapters.length}: {notes.chapters[selectedChapterIdx].titleHi || notes.chapters[selectedChapterIdx].chapterTitle || notes.chapters[selectedChapterIdx].title}
                           </span>
                           <span className="text-[10px] text-text-muted">
                             {notes.chapters[selectedChapterIdx].sections?.length || 0} अनुभाग अध्ययन हेतु उपलब्ध
@@ -1079,7 +1132,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                         <h3 className={`text-lg sm:text-xl font-black ${
                           readingTheme === 'dark' ? 'text-white' : readingTheme === 'sepia' ? 'text-[#2A1E11]' : 'text-slate-900'
                         }`}>
-                          {chapter.chapterTitle || chapter.title || chapter.titleHi || `अध्याय ${actualIdx + 1}`}
+                          {chapter.titleHi || chapter.chapterTitle || chapter.title || `अध्याय ${actualIdx + 1}`}
                         </h3>
                         {chapter.description && (
                           <p className={`text-xs mt-1 font-medium ${
@@ -1133,8 +1186,8 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                           {sec.content && (
                             <div className="prose prose-sm max-w-none font-normal leading-relaxed text-left space-y-3">
                               <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeRaw]}
+                                remarkPlugins={[remarkGfm, remarkMath]}
+                                rehypePlugins={[rehypeRaw, rehypeKatex]}
                                 components={{
                                   p: ({ children }) => (
                                     <p className={`my-2 leading-relaxed text-left ${
@@ -1230,7 +1283,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                   )
                                 }}
                               >
-                                {sec.content}
+                                {formatSuperscriptsAndMath(sec.content)}
                               </ReactMarkdown>
                             </div>
                           )}
@@ -1297,7 +1350,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                         <th key={hIdx} className={`p-2.5 border-r last:border-r-0 ${
                                           readingTheme === 'dark' ? 'border-[#2A364F]' : readingTheme === 'sepia' ? 'border-[#DECBB0]' : 'border-slate-200'
                                         }`}>
-                                          {h}
+                                          {renderCardText(h)}
                                         </th>
                                       ))}
                                     </tr>
@@ -1318,7 +1371,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                           <td key={cellIdx} className={`p-2.5 border-r last:border-r-0 font-medium ${
                                             readingTheme === 'dark' ? 'border-[#2A364F]/60 text-slate-200' : readingTheme === 'sepia' ? 'border-[#DECBB0]/60 text-[#3F3325]' : 'border-slate-200 text-slate-800'
                                           }`}>
-                                            {cell}
+                                            {renderCardText(cell)}
                                           </td>
                                         ))}
                                       </tr>
@@ -1343,8 +1396,18 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                         disabled={selectedChapterIdx === 0}
                         className={`px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                           selectedChapterIdx === 0
-                            ? 'opacity-40 cursor-not-allowed border-transparent'
-                            : 'border-border hover:border-saffron bg-bg-s2 shadow-xs'
+                            ? 'opacity-30 cursor-not-allowed border-transparent ' + (
+                                readingTheme === 'dark' 
+                                  ? 'bg-[#1E293B]/40 text-slate-500' 
+                                  : readingTheme === 'sepia' 
+                                    ? 'bg-[#EFE2C8]/50 text-[#7D6B58]' 
+                                    : 'bg-slate-100 text-slate-400'
+                              )
+                            : readingTheme === 'dark'
+                              ? 'bg-[#1E293B] border-[#334155] text-slate-200 hover:border-saffron hover:bg-[#1E293B]/80 shadow-xs'
+                              : readingTheme === 'sepia'
+                                ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325] hover:border-amber-600 hover:bg-[#E5D2B1] shadow-xs'
+                                : 'bg-white border-slate-200 text-slate-800 hover:border-saffron hover:bg-slate-50 shadow-xs'
                         }`}
                       >
                         <ChevronLeft className="w-4 h-4" />
@@ -1353,7 +1416,13 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
 
                       <button
                         onClick={() => setSelectedChapterIdx(null)}
-                        className="text-xs font-bold text-text-muted hover:text-saffron transition-colors cursor-pointer"
+                        className={`text-xs font-bold transition-colors cursor-pointer ${
+                          readingTheme === 'dark' 
+                            ? 'text-slate-400 hover:text-saffron' 
+                            : readingTheme === 'sepia' 
+                              ? 'text-[#7D6B58] hover:text-amber-800' 
+                              : 'text-slate-500 hover:text-saffron'
+                        }`}
                       >
                         सभी अध्याय देखें (All)
                       </button>
@@ -1363,8 +1432,18 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                         disabled={selectedChapterIdx === notes.chapters.length - 1}
                         className={`px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                           selectedChapterIdx === notes.chapters.length - 1
-                            ? 'opacity-40 cursor-not-allowed border-transparent'
-                            : 'border-border hover:border-saffron bg-bg-s2 shadow-xs'
+                            ? 'opacity-30 cursor-not-allowed border-transparent ' + (
+                                readingTheme === 'dark' 
+                                  ? 'bg-[#1E293B]/40 text-slate-500' 
+                                  : readingTheme === 'sepia' 
+                                    ? 'bg-[#EFE2C8]/50 text-[#7D6B58]' 
+                                    : 'bg-slate-100 text-slate-400'
+                              )
+                            : readingTheme === 'dark'
+                              ? 'bg-[#1E293B] border-[#334155] text-slate-200 hover:border-saffron hover:bg-[#1E293B]/80 shadow-xs'
+                              : readingTheme === 'sepia'
+                                ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325] hover:border-amber-600 hover:bg-[#E5D2B1] shadow-xs'
+                                : 'bg-white border-slate-200 text-slate-800 hover:border-saffron hover:bg-slate-50 shadow-xs'
                         }`}
                       >
                         <span>अगला अध्याय</span>
@@ -1422,11 +1501,11 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                     <span className="font-black text-amber-600 dark:text-amber-400 mr-2">
                                       स्पष्टीकरण:
                                     </span>
-                                    <span className={`font-bold ${
+                                    <div className={`font-bold inline-block ${
                                       readingTheme === 'dark' ? 'text-slate-100' : readingTheme === 'sepia' ? 'text-[#3F3325]' : 'text-slate-900'
                                     }`}>
-                                      {confusionTitle}
-                                    </span>
+                                      {renderCardText(confusionTitle)}
+                                    </div>
                                   </div>
                                 </div>
 
@@ -1440,14 +1519,14 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                 }`}>
                                   <div className="flex items-center gap-1.5 font-black text-emerald-700 dark:text-emerald-400">
                                     <span>✓ सही तथ्य / स्पष्टीकरण:</span>
-                                    {correctFact && <span className="font-bold underline decoration-emerald-400/50">{correctFact}</span>}
+                                    {correctFact && <span className="font-bold underline decoration-emerald-400/50">{renderCardText(correctFact)}</span>}
                                   </div>
                                   {explanation && (
-                                    <p className={`font-medium ${
+                                    <div className={`font-medium ${
                                       readingTheme === 'dark' ? 'text-slate-200' : readingTheme === 'sepia' ? 'text-[#2C3E2D]' : 'text-slate-800'
                                     }`}>
-                                      {explanation}
-                                    </p>
+                                      {renderCardText(explanation)}
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -1588,15 +1667,18 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                         ...(Array.isArray(notes.rapidRevision) ? notes.rapidRevision : [])
                       ].map((item: any, idx: number) => {
                         let text = '';
-                        let badge = '';
                         if (typeof item === 'object' && item !== null) {
-                          if (item.fact) {
-                            text = item.fact;
-                            badge = item.category || item.examTag || '';
+                          if (item.topic && item.detail) {
+                            text = `${item.topic}: ${item.detail}`;
+                          } else if (item.fact) {
+                            text = item.category ? `${item.category}: ${item.fact}` : item.fact;
                           } else if (item.prompt) {
                             text = `${item.prompt} → ${item.recallAnswer || ''}`;
+                          } else if (item.text || item.title) {
+                            text = item.tag ? `${item.tag}: ${item.text || item.title}` : (item.text || item.title);
                           } else {
-                            text = item.text || item.title || JSON.stringify(item);
+                            const entries = Object.entries(item).filter(([k]) => !k.startsWith('_'));
+                            text = entries.map(([k, v]) => `${k}: ${v}`).join(' | ');
                           }
                         } else {
                           text = String(item || '');
@@ -1617,13 +1699,8 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                               <span className="w-5 h-5 rounded-full bg-saffron/15 text-saffron font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">
                                 {idx + 1}
                               </span>
-                              <div className="flex flex-col gap-1 min-w-0">
-                                <span className="font-semibold leading-relaxed">{text}</span>
-                                {badge && (
-                                  <span className="text-[10px] font-bold text-saffron bg-saffron/10 px-1.5 py-0.5 rounded w-fit border border-saffron/20">
-                                    {badge}
-                                  </span>
-                                )}
+                              <div className="flex-1 min-w-0 font-semibold leading-relaxed">
+                                {renderCardText(text)}
                               </div>
                             </div>
                             <button
@@ -1662,27 +1739,30 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                               <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
                                 <span>{examLabel}</span>
                               </div>
-                              <p className="font-bold text-sm leading-snug">{pyq.question}</p>
+                              <div className="font-bold text-sm leading-snug">{renderCardText(pyq.question)}</div>
                               {Array.isArray(pyq.options) && pyq.options.length > 0 && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 py-1">
                                   {pyq.options.map((opt: string, oIdx: number) => (
-                                    <div key={oIdx} className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                                    <div key={oIdx} className={`px-2 py-0.5 rounded text-[11px] font-medium border flex items-center gap-1.5 ${
                                       opt === ansText 
                                         ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 font-bold' 
                                         : 'border-transparent opacity-75'
                                     }`}>
-                                      {String.fromCharCode(65 + oIdx)}. {opt}
+                                      <span>{String.fromCharCode(65 + oIdx)}.</span>
+                                      <div className="inline-block">{renderCardText(opt)}</div>
                                     </div>
                                   ))}
                                 </div>
                               )}
-                              <p className="font-semibold text-[11px] pt-1 border-t border-blue-500/20 text-emerald-600 dark:text-emerald-400">
-                                ✓ उत्तर: {ansText}
-                              </p>
+                              <div className="font-semibold text-[11px] pt-1 border-t border-blue-500/20 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                <span>✓ उत्तर:</span>
+                                <div className="inline-block">{renderCardText(ansText)}</div>
+                              </div>
                               {pyq.explanation && (
-                                <p className="text-[11px] opacity-80 pt-0.5">
-                                  <strong>व्याख्या:</strong> {pyq.explanation}
-                                </p>
+                                <div className="text-[11px] opacity-80 pt-0.5 flex items-start gap-1">
+                                  <strong className="shrink-0">व्याख्या:</strong>
+                                  <div className="inline-block">{renderCardText(pyq.explanation)}</div>
+                                </div>
                               )}
                             </div>
                           );
@@ -1748,7 +1828,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                 {qIdx + 1}
                               </span>
                               <h4 className="text-sm sm:text-base font-bold leading-snug">
-                                {mcq.q || mcq.question}
+                                {renderCardText(mcq.q || mcq.question)}
                               </h4>
                             </div>
                           </div>
@@ -1786,7 +1866,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                   }`}>
                                     {letter}
                                   </span>
-                                  <span className="leading-snug">{optText}</span>
+                                  <div className="leading-snug">{renderCardText(optText)}</div>
                                 </button>
                               );
                             })}
@@ -1801,9 +1881,10 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                 <span>सही उत्तर: विकल्प ({correctLetter})</span>
                               </div>
                               {mcq.explanation && (
-                                <p className="leading-relaxed pl-6 opacity-90">
-                                  <strong>व्याख्या:</strong> {mcq.explanation}
-                                </p>
+                                <div className="leading-relaxed pl-6 opacity-90 flex items-start gap-1">
+                                  <strong className="shrink-0">व्याख्या:</strong>
+                                  <div className="inline-block">{renderCardText(mcq.explanation)}</div>
+                                </div>
                               )}
                             </div>
                           )}
@@ -1932,7 +2013,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                 {notes.overview && (
                   <div style={{ marginBottom: '16px' }}>
                     <h3 style={{ color: '#1E3A8A' }}>परिचय एवं परीक्षा प्रासंगिकता</h3>
-                    <p>{notes.overview.introduction || notes.overview.intro}</p>
+                    <p>{typeof notes.overview === 'string' ? notes.overview : (notes.overview.introduction || notes.overview.intro || notes.overview.summary || notes.overview.description || '')}</p>
                   </div>
                 )}
 
@@ -1994,7 +2075,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                         ...(Array.isArray(notes.rapidRevision) ? notes.rapidRevision : [])
                       ].map((item: any, idx: number) => {
                         const text = typeof item === 'object' && item !== null
-                          ? (item.fact || (item.prompt ? `${item.prompt} → ${item.recallAnswer || ''}` : JSON.stringify(item)))
+                          ? (item.fact || (item.prompt ? `${item.prompt} → ${item.recallAnswer || ''}` : (item.topic && item.detail ? `${item.topic}: ${item.detail}` : (item.text || item.title || Object.values(item).join(' - ')))))
                           : String(item || '');
                         return (
                           <li key={idx} style={{ marginBottom: '4px' }}>{text}</li>

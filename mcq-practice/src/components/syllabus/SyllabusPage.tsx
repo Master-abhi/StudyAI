@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, BrainCircuit, RefreshCw, BarChart3, 
-  Lightbulb, Search, Filter, HelpCircle
+  Lightbulb, Search, Filter, HelpCircle,
+  Map, Globe, Compass, ChevronDown, ChevronUp, Sparkles
 } from 'lucide-react';
 
 import { SyllabusHeader } from './SyllabusHeader';
@@ -16,6 +17,7 @@ import { PdfViewerModal } from './PdfViewerModal';
 import { LecturesModal } from './LecturesModal';
 import { TopicTestsModal } from './TopicTestsModal';
 import { TopicNotesReaderModal } from './TopicNotesReaderModal';
+import { IndiaMap3DModal } from './IndiaMap3DModal';
 import type { Exam, Subject, Chapter, Topic } from './syllabusData';
 
 interface SyllabusPageProps {
@@ -75,6 +77,16 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
 
   // Formatted In-App Study Notes Reader State
   const [selectedNotesTopic, setSelectedNotesTopic] = useState<{ topic: Topic; subjectName: string } | null>(null);
+
+  // 3D Map Explorer State
+  const [is3DMapOpen, setIs3DMapOpen] = useState<boolean>(false);
+  const [initialMapStateId, setInitialMapStateId] = useState<string | undefined>(undefined);
+  const [isMapsSectionOpen, setIsMapsSectionOpen] = useState<boolean>(false);
+
+  const handleOpen3DMap = (stateId?: string) => {
+    setInitialMapStateId(stateId);
+    setIs3DMapOpen(true);
+  };
 
   const getApiUrl = (p: string) => {
     const hostname = window.location.hostname;
@@ -441,6 +453,117 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
 
                 {/* List of Subjects */}
                 <div className="flex flex-col gap-4">
+                  {/* 🗺️ 'मानचित्र' (3D Maps Explorer) Section - Positioned right above CG GK */}
+                  {(!searchQuery || 'मानचित्र map maps भूगोल geography 3d chhattisgarh cg india भारत'.toLowerCase().includes(searchQuery.toLowerCase().trim())) && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="border-2 border-saffron/40 hover:border-saffron/80 bg-gradient-to-r from-bg-s2 via-[#0c1a2f] to-bg-s2 rounded-xl overflow-hidden shadow-lg transition-all"
+                    >
+                      {/* Header: Clickable to toggle map section */}
+                      <button
+                        onClick={() => setIsMapsSectionOpen(!isMapsSectionOpen)}
+                        className="w-full px-4 py-3.5 flex items-center justify-between text-left transition-colors cursor-pointer group hover:bg-white/5"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-saffron to-amber-500 flex items-center justify-center font-black text-slate-950 shadow-md group-hover:scale-105 transition-transform shrink-0">
+                            <Map className="w-5 h-5 text-slate-950" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm sm:text-base font-black text-text tracking-wide group-hover:text-saffron transition-colors">
+                                मानचित्र (Maps Explorer)
+                              </h3>
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-saffron/20 text-saffron border border-saffron/40 flex items-center gap-1">
+                                <Sparkles className="w-2.5 h-2.5" />
+                                3D Interactive
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-text-muted mt-0.5">
+                              भारत एवं छत्तीसगढ़ के उच्च परिशुद्धता 3D व विषयवार मानचित्र
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[11px] font-bold text-saffron hidden sm:inline">
+                            {isMapsSectionOpen ? 'बंद करें' : 'क्लिक करें व देखें'}
+                          </span>
+                          <div className="p-1.5 rounded-lg bg-bg-s3 border border-border group-hover:border-saffron transition-colors">
+                            {isMapsSectionOpen ? (
+                              <ChevronUp className="w-4 h-4 text-saffron" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-text-muted group-hover:text-saffron" />
+                            )}
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Expandable Body */}
+                      <AnimatePresence>
+                        {isMapsSectionOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="overflow-hidden border-t border-border/70 p-3 bg-[#071221]/80 space-y-2.5"
+                          >
+                            {/* 1. India 3D Map Card */}
+                            <div className="px-3.5 py-2.5 bg-bg-s2 border border-sky-500/30 hover:border-sky-500/60 rounded-xl flex items-center justify-between gap-3 shadow transition-all">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="p-2 rounded-lg bg-sky-500/15 text-sky-400 shrink-0">
+                                  <Globe className="w-4 h-4" />
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                  <span className="text-xs sm:text-sm font-bold text-sky-200">
+                                    🇮🇳 भारत 3D मानचित्र
+                                  </span>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
+                                    Survey 2020
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => handleOpen3DMap()}
+                                className="px-3.5 py-1.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs rounded-lg shadow hover:shadow-sky-500/30 hover:scale-102 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                              >
+                                <Globe className="w-3.5 h-3.5" />
+                                <span>मैप खोलें</span>
+                              </button>
+                            </div>
+
+                            {/* 2. Chhattisgarh Map Card */}
+                            <div className="px-3.5 py-2.5 bg-bg-s2 border border-saffron/40 hover:border-saffron/70 rounded-xl flex items-center justify-between gap-3 shadow transition-all">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="p-2 rounded-lg bg-saffron/15 text-saffron shrink-0">
+                                  <Compass className="w-4 h-4" />
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                  <span className="text-xs sm:text-sm font-bold text-amber-200">
+                                    🗺️ छत्तीसगढ़ 3D मानचित्र (Seahorse Shape)
+                                  </span>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-saffron/20 text-amber-300 font-bold">
+                                    33 जिले
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => handleOpen3DMap('CG')}
+                                className="px-3.5 py-1.5 bg-gradient-to-r from-saffron to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-lg shadow hover:shadow-saffron/30 hover:scale-102 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                              >
+                                <Compass className="w-3.5 h-3.5 text-slate-950" />
+                                <span>मैप खोलें</span>
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  )}
+
                   {filteredSubjects.length > 0 ? (
                     filteredSubjects.map((subject: Subject) => (
                       <SubjectCard
@@ -457,6 +580,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
                         onOpenNotes={handleOpenStudyNotes}
                         onOpenLectures={handleOpenLectures}
                         onOpenPracticeMcqs={handleOpenPracticeMcqs}
+                        onOpen3DMap={handleOpen3DMap}
                       />
                     ))
                   ) : (
@@ -588,6 +712,14 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
         }}
         isCompleted={Boolean(selectedNotesTopic && topicProgress[selectedNotesTopic.topic.id]?.notesRead)}
         onOpenPdf={handleOpenPdf}
+        onOpen3DMap={handleOpen3DMap}
+      />
+
+      {/* 3D Interactive Map of India (Survey of India 2020) Modal */}
+      <IndiaMap3DModal
+        isOpen={is3DMapOpen}
+        onClose={() => setIs3DMapOpen(false)}
+        initialStateId={initialMapStateId}
       />
 
     </div>

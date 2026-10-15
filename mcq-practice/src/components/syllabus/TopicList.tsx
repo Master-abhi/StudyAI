@@ -18,6 +18,7 @@ interface TopicListProps {
   onOpenNotes?: (topic: Topic) => void;
   onOpenLectures?: (topic: Topic) => void;
   onOpenPracticeMcqs?: (topic: Topic) => void;
+  onOpen3DMap?: (stateId?: string) => void;
 }
 
 export const TopicList: React.FC<TopicListProps> = ({
@@ -31,7 +32,8 @@ export const TopicList: React.FC<TopicListProps> = ({
   onOpenPdf,
   onOpenNotes,
   onOpenLectures,
-  onOpenPracticeMcqs
+  onOpenPracticeMcqs,
+  onOpen3DMap
 }) => {
   const [expandedTopicId, setExpandedTopicId] = useState<string | null>(null);
 
@@ -171,6 +173,18 @@ export const TopicList: React.FC<TopicListProps> = ({
                       >
                         {isLocked ? <Lock className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
                         <span>{isLocked ? 'PDF (LOCKED)' : 'PDF NOTES'}</span>
+                      </button>
+                    )}
+                    {(topic.id === 'geo-ind-3d-map' || topic.name.toLowerCase().includes('3d')) && onOpen3DMap && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpen3DMap();
+                        }}
+                        className="text-[8px] font-black px-1.5 py-0.5 rounded border flex items-center gap-1 shrink-0 shadow-sm cursor-pointer bg-gradient-to-r from-saffron/20 to-sky-500/20 text-saffron border-saffron/40 hover:bg-saffron/30"
+                        title="Open 3D India Map Explorer"
+                      >
+                        <span>🗺️ 3D MAP EXPLORER</span>
                       </button>
                     )}
                   </div>
@@ -338,6 +352,25 @@ export const TopicList: React.FC<TopicListProps> = ({
                           </div>
                           <span className="ml-auto text-xs shrink-0">{isLocked ? '🔒' : progress.mcqCompleted ? '✓' : '🎯'}</span>
                         </button>
+
+                        {/* Task 4: 3D Map Explorer for Geography & 3D Topics */}
+                        {(topic.id === 'geo-ind-3d-map' || topic.name.toLowerCase().includes('3d')) && onOpen3DMap && (
+                          <button
+                            onClick={() => onOpen3DMap()}
+                            className="col-span-1 sm:col-span-3 flex items-center justify-between p-2.5 sm:p-3 rounded-lg border border-saffron/40 bg-gradient-to-r from-saffron/15 via-amber-500/10 to-sky-500/15 text-saffron hover:from-saffron/25 hover:to-sky-500/25 transition-all cursor-pointer shadow-sm"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="text-lg sm:text-xl">🗺️</span>
+                              <div className="flex flex-col text-left">
+                                <span className="text-xs font-black text-white">3D Interactive Map: भारत एवं छत्तीसगढ़ 3D मानचित्र एक्सप्लोरर</span>
+                                <span className="text-[10px] text-slate-300">Survey of India 2020 सीमाएं, 3D नदियां, पर्वतमालाएं एवं 33 जिले</span>
+                              </div>
+                            </div>
+                            <span className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-gradient-to-r from-saffron to-amber-500 text-slate-950 shadow shrink-0">
+                              3D खोलें ↗
+                            </span>
+                          </button>
+                        )}
 
                       </div>
 

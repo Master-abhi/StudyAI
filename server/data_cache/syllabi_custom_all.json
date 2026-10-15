@@ -1798,7 +1798,8 @@
                   "मौद्रिक नीति",
                   "वाणिज्यिक बैंक"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "ind_eco_3",
@@ -1809,7 +1810,8 @@
                   "प्रत्यक्ष कर",
                   "अप्रत्यक्ष कर"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "ind_eco_4",
@@ -1819,7 +1821,8 @@
                   "WPI",
                   "CPI"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -1838,7 +1841,8 @@
                   "WTO",
                   "WHO"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "ind_misc_2",
@@ -1849,7 +1853,8 @@
                   "GHI",
                   "SDG"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "ind_misc_3",
@@ -1860,7 +1865,8 @@
                   "राष्ट्रीय पुरस्कार",
                   "अंतरराष्ट्रीय पुरस्कार"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "ind_misc_4",
@@ -1870,7 +1876,8 @@
                   "राष्ट्रीय दिवस",
                   "अंतरराष्ट्रीय दिवस"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -1888,7 +1895,8 @@
                   "ग्रहण",
                   "ऋतुएँ"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "ind_adv_geo_2",
@@ -1899,7 +1907,8 @@
                   "भूमध्य रेखा",
                   "ग्रीनविच रेखा"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               },
               {
                 "id": "ind_adv_geo_3",
@@ -1909,7 +1918,8 @@
                   "सात महाद्वीप",
                   "पाँच महासागर"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "ind_adv_geo_4",
@@ -1921,7 +1931,8 @@
                   "प्रेयरी",
                   "स्टेपी"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               }
             ]
           }
@@ -1948,7 +1959,8 @@
                   "Derived Units",
                   "Measurement"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_2",
@@ -1959,7 +1971,8 @@
                   "Velocity",
                   "Acceleration"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_3",
@@ -1970,7 +1983,8 @@
                   "Second Law",
                   "Third Law"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_4",
@@ -1981,7 +1995,8 @@
                   "Potential Energy",
                   "Power"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_5",
