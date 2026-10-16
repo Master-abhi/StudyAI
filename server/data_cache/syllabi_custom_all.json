@@ -2446,7 +2446,8 @@
                   "Soil",
                   "Noise"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "env_4",

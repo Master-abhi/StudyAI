@@ -5,7 +5,7 @@ import {
   X, RotateCcw, Waves, Mountain, MapPin, Tag,
   BarChart2, Image as ImageIcon, Search, ArrowLeft,
   Maximize2, Minimize2, Compass, CheckCircle2,
-  Route, Train, BookOpen, Globe
+  Route, Train, BookOpen, Globe, Sun, Moon, Info
 } from 'lucide-react';
 import {
   HIGHWAYS_DATA,
@@ -1510,6 +1510,20 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
   const [popHeightActive, setPopHeightActive] = useState(false);
   const [showRefMap, setShowRefMap] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showInfoPanel, setShowInfoPanel] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
+  const [isLightMode, setIsLightMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('map3d_theme');
+    if (saved === 'light') return true;
+    if (saved === 'dark') return false;
+    const appTheme = localStorage.getItem('cg_theme');
+    if (appTheme === 'light') return true;
+    return false; // Always default to Dark Mode
+  });
+
+  const isLightModeRef = useRef(isLightMode);
+  useEffect(() => {
+    isLightModeRef.current = isLightMode;
+  }, [isLightMode]);
 
   // Deep-dive Category Tab for State
   const [stateTab, setStateTab] = useState<'OVERVIEW' | 'HISTORY' | 'GEOGRAPHY' | 'POLITICS' | 'ENVIRONMENT' | 'WILDLIFE' | 'WATER' | 'RELIEF' | 'ECONOMY'>('OVERVIEW');
@@ -1534,6 +1548,11 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     renderer: THREE.WebGLRenderer | null;
     controls: OrbitControls | null;
     animFrameId: number | null;
+    gridHelper: THREE.GridHelper | null;
+    ambientLight: THREE.AmbientLight | null;
+    dirLight: THREE.DirectionalLight | null;
+    hemiLight: THREE.HemisphereLight | null;
+    floorPlane: THREE.Mesh | null;
     stateMeshes: THREE.Mesh[];
     riverMeshes: THREE.Mesh[];
     mountainMeshes: THREE.Mesh[];
@@ -1550,6 +1569,15 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     railwaysGroup: THREE.Group | null;
     districtGroup: THREE.Group | null;
     refLinesGroup: THREE.Group | null;
+    cgRiversGroup: THREE.Group | null;
+    cgMountainsGroup: THREE.Group | null;
+    cgHighwaysGroup: THREE.Group | null;
+    cgRailwaysGroup: THREE.Group | null;
+    cgRiverMeshes: THREE.Mesh[];
+    cgMountainMeshes: THREE.Mesh[];
+    cgHighwayMeshes: THREE.Mesh[];
+    cgRailwayMeshes: THREE.Object3D[];
+    cgFlowParticles: { mesh: THREE.Mesh; curve: THREE.CatmullRomCurve3; t: number }[];
     selectedMesh: THREE.Mesh | null;
   }>({
     scene: null,
@@ -1557,6 +1585,11 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     renderer: null,
     controls: null,
     animFrameId: null,
+    gridHelper: null,
+    ambientLight: null,
+    dirLight: null,
+    hemiLight: null,
+    floorPlane: null,
     stateMeshes: [],
     riverMeshes: [],
     mountainMeshes: [],
@@ -1573,6 +1606,15 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     railwaysGroup: null,
     districtGroup: null,
     refLinesGroup: null,
+    cgRiversGroup: null,
+    cgMountainsGroup: null,
+    cgHighwaysGroup: null,
+    cgRailwaysGroup: null,
+    cgRiverMeshes: [],
+    cgMountainMeshes: [],
+    cgHighwayMeshes: [],
+    cgRailwayMeshes: [],
+    cgFlowParticles: [],
     selectedMesh: null
   });
 
@@ -1750,8 +1792,8 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
       }
     });
 
-    // Outer border
-    const outerPts = stateBoundaryPoly.map(([x, y]) => new THREE.Vector3(x, y, 0.88));
+    // Outer border elevated slightly above district surface
+    const outerPts = stateBoundaryPoly.map(([x, y]) => new THREE.Vector3(x, y, 1.01));
     outerPts.push(outerPts[0]);
     const outerBorder = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(outerPts),
@@ -1759,105 +1801,344 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     );
     districtGrp.add(outerBorder);
 
-    // If viewing Chhattisgarh, render authentic 3D geographical features (Rivers, Tropic of Cancer, IST 82.5°E, Peaks)
+    // If viewing Chhattisgarh, render authentic 3D geographical features (Rivers, Mountain Peaks, Roads, Railway Tracks, Tropic of Cancer, IST)
     if (st.id === 'CG') {
-      // 1. 3D Rivers of Chhattisgarh
+      const cgRiversGrp = new THREE.Group();
+      const cgMountainsGrp = new THREE.Group();
+      const cgHighwaysGrp = new THREE.Group();
+      const cgRailwaysGrp = new THREE.Group();
+      const cgRefLinesGrp = new THREE.Group();
+
+      const cgRiverMeshes: THREE.Mesh[] = [];
+      const cgMountainMeshes: THREE.Mesh[] = [];
+      const cgHighwayMeshes: THREE.Mesh[] = [];
+      const cgRailwayMeshes: THREE.Object3D[] = [];
+      const cgFlowParticles: { mesh: THREE.Mesh; curve: THREE.CatmullRomCurve3; t: number }[] = [];
+
+      // 1. 3D Rivers of Chhattisgarh (Elevated at Z = 1.02 so they rest cleanly on top of districts)
       const cgRivers = [
         {
           name: "महानदी (Mahanadi)",
-          path: [[81.78, 20.55], [81.82, 20.65], [81.72, 21.00], [81.95, 21.35], [82.35, 21.45], [82.60, 21.65], [82.85, 21.68], [83.35, 21.60], [83.60, 21.50]]
+          length: "851 किमी (छ.ग. में 286 किमी)",
+          origin: "सिहावा पर्वत (धमतरी) → राजिम → शिवरीनारायण → ओडिशा",
+          path: [[81.92, 20.35], [81.82, 20.65], [81.78, 20.95], [81.88, 21.05], [82.00, 21.32], [82.35, 21.48], [82.60, 21.65], [82.85, 21.68], [83.35, 21.60], [83.60, 21.50]]
         },
         {
           name: "शिवनाथ नदी (Shivnath)",
+          length: "290 किमी (छ.ग. में सर्वाधिक बहने वाली नदी)",
+          origin: "पानाबरस पहाड़ी (मोहला-मानपुर) → दुर्ग → शिवरीनारायण संगम",
           path: [[80.65, 20.55], [80.78, 20.85], [80.95, 21.15], [81.30, 21.20], [81.52, 21.65], [81.80, 21.70], [82.55, 21.65]]
         },
         {
           name: "हसदेव नदी (Hasdeo)",
-          path: [[82.15, 23.50], [82.38, 23.10], [82.62, 22.55], [82.68, 22.30], [82.58, 21.85], [82.65, 21.65]]
+          length: "176 किमी",
+          origin: "कोरिया (देवगढ़ पहाड़ी) → कोरबा (मिनीमाता बांगो बांध) → चांपा",
+          path: [[82.20, 23.45], [82.38, 23.10], [82.62, 22.55], [82.68, 22.30], [82.58, 21.85], [82.65, 21.65]]
         },
         {
           name: "इंद्रावती नदी (Indravati)",
+          length: "264 किमी (बस्तर की जीवनरेखा)",
+          origin: "कालाहांडी → जगदलपुर (चित्रकोट जलप्रपात) → बारसूर → भोपालपटनम",
           path: [[82.30, 19.20], [81.95, 19.10], [81.65, 19.18], [81.25, 19.10], [80.75, 18.90], [80.30, 18.80]]
         },
         {
           name: "अरपा नदी (Arpa)",
+          length: "100 किमी",
+          origin: "खोंगसरा (गौरेला-पेंड्रा-मरवाही) → बिलासपुर नगर → मानिकचौरी",
           path: [[81.88, 22.75], [82.02, 22.40], [82.15, 22.15], [82.10, 21.80]]
         },
         {
           name: "सबरी नदी (Sabari)",
-          path: [[81.75, 18.65], [81.60, 18.35], [81.40, 17.78]]
+          length: "173 किमी",
+          origin: "बैलाडीला → सुकमा → कोण्टा → गोदावरी संगम",
+          path: [[81.80, 18.75], [81.75, 18.65], [81.60, 18.35], [81.40, 17.78]]
         },
         {
           name: "रिहंद नदी (Rihand)",
+          length: "145 किमी (सरगुजा की जीवनरेखा)",
+          origin: "मैनपाट → अंबिकापुर → सूरजपुर → रिहंद जलाशय (उ.प्र.)",
           path: [[83.15, 22.85], [82.95, 23.35], [82.85, 23.75], [82.90, 24.10]]
+        },
+        {
+          name: "मांड नदी (Mand)",
+          length: "173 किमी",
+          origin: "मैनपाट → धर्मजयगढ़ → रायगढ़ → चंद्रपुर (महानदी संगम)",
+          path: [[83.25, 22.80], [83.18, 22.45], [83.12, 22.05], [83.35, 21.65]]
+        },
+        {
+          name: "ईब नदी (Eeb)",
+          length: "87 किमी (छ.ग. में - स्वर्ण कण)",
+          origin: "खुर्जा पहाड़ी (जशपुर) → ओडिशा → महानदी",
+          path: [[83.85, 23.05], [83.92, 22.70], [83.95, 22.25], [83.90, 21.85]]
         }
       ];
 
-      cgRivers.forEach(rv => {
-        const pts = rv.path.map(([ln, lt]) => new THREE.Vector3((ln - cLon) * scale, (lt - cLat) * scale * 1.08, 0.89));
+      cgRivers.forEach((rv, rIdx) => {
+        const pts = rv.path.map(([ln, lt]) => new THREE.Vector3((ln - cLon) * scale, (lt - cLat) * scale * 1.08, 1.02));
         const curve = new THREE.CatmullRomCurve3(pts);
-        const tubeGeo = new THREE.TubeGeometry(curve, 32, 0.045, 6, false);
-        const tubeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+        const tubeGeo = new THREE.TubeGeometry(curve, 42, 0.055, 8, false);
+        const tubeMat = new THREE.MeshStandardMaterial({
+          color: 0x0284c7,
+          emissive: 0x0369a1,
+          emissiveIntensity: 0.65,
+          roughness: 0.2
+        });
         const riverTube = new THREE.Mesh(tubeGeo, tubeMat);
-        districtGrp.add(riverTube);
+        riverTube.userData = { kind: "RIVER", data: rv };
+        cgRiversGrp.add(riverTube);
+        cgRiverMeshes.push(riverTube);
+
+        // Water flow animated particles
+        for (let i = 0; i < 3; i++) {
+          const drop = new THREE.Mesh(
+            new THREE.SphereGeometry(0.08, 6, 6),
+            new THREE.MeshBasicMaterial({ color: 0xe0f2fe })
+          );
+          cgRiversGrp.add(drop);
+          cgFlowParticles.push({ mesh: drop, curve: curve, t: i * 0.33 });
+        }
+
+        // River Labels
+        if (labelsContainerRef.current && (rIdx < 4 || rv.name.includes("महानदी") || rv.name.includes("शिवनाथ") || rv.name.includes("इंद्रावती"))) {
+          const midPt = curve.getPoint(0.5);
+          const div = document.createElement("div");
+          div.className = "absolute transform -translate-x-1/2 -translate-y-1/2 text-[9px] font-bold text-sky-100 bg-sky-950/90 px-1.5 py-0.5 rounded shadow pointer-events-none border border-sky-600";
+          div.textContent = "🌊 " + rv.name.split(" (")[0];
+          labelsContainerRef.current.appendChild(div);
+          r.labelElements.push({
+            el: div,
+            pos3D: midPt.clone().add(new THREE.Vector3(0, 0, 0.2)),
+            type: 'district',
+            stateId: 'CG'
+          });
+        }
       });
 
-      // 2. कर्क रेखा (Tropic of Cancer - 23.5°N)
+      // 2. 3D Mountain Peaks of Chhattisgarh (Base Z = 0.97, prominent 3D cones)
+      const cgPeaks = [
+        { name: "गौरलाटा (1225m - सर्वोच्च शिखर)", peak: "गौरलाटा 1225m", lon: 83.82, lat: 23.88, h: 0.65, color: 0xf59e0b, note: "सामरी पाट (बलरामपुर) - छत्तीसगढ़ का सर्वोच्च शिखर" },
+        { name: "नंदीराज (1210m - बैलाडीला)", peak: "नंदीराज 1210m", lon: 81.25, lat: 18.75, h: 0.60, color: 0xe2e8f0, note: "बैलाडीला श्रेणी (दंतेवाड़ा) - दक्षिण छ.ग. का सर्वोच्च शिखर" },
+        { name: "बदरगढ़ (1176m - मैकल श्रेणी)", peak: "बदरगढ़ 1176m", lon: 81.10, lat: 22.15, h: 0.55, color: 0xd97706, note: "मैकल श्रेणी (कबीरधाम)" },
+        { name: "मैनपाट (1152m - छ.ग. का शिमला)", peak: "मैनपाट 1152m", lon: 83.25, lat: 22.80, h: 0.52, color: 0x10b981, note: "सरगुजा - तिब्बती शरणार्थी स्थल एवं पर्यटन केंद्र" },
+        { name: "देवगढ़ (1033m - चांगभखार)", peak: "देवगढ़ 1033m", lon: 82.25, lat: 23.55, h: 0.48, color: 0x78350f, note: "कोरिया जिला - हसदेव नदी का उद्गम क्षेत्र" },
+        { name: "लाफागढ़ / चैतुरगढ़ (1048m)", peak: "लाफागढ़ 1048m", lon: 82.30, lat: 22.45, h: 0.48, color: 0x64748b, note: "कोरबा - छत्तीसगढ़ का कश्मीर / महिषासुरमर्दिनी मंदिर" },
+        { name: "दल्हा पहाड़ (720m)", peak: "दल्हा पहाड़ 720m", lon: 82.40, lat: 21.95, h: 0.40, color: 0xb45309, note: "जांजगीर-चांपा (अकलतरा)" }
+      ];
+
+      cgPeaks.forEach(pk => {
+        const pkBase = new THREE.Vector3((pk.lon - cLon) * scale, (pk.lat - cLat) * scale * 1.08, 0.97 + pk.h / 2);
+        const coneGeo = new THREE.ConeGeometry(0.24, pk.h, 6);
+        coneGeo.rotateX(Math.PI / 2);
+        const cone = new THREE.Mesh(
+          coneGeo,
+          new THREE.MeshStandardMaterial({ color: pk.color, roughness: 0.6, flatShading: true })
+        );
+        cone.position.copy(pkBase);
+
+        // Peak Snowy/Gold Summit Cap
+        const capGeo = new THREE.ConeGeometry(0.12, pk.h * 0.4, 6);
+        capGeo.rotateX(Math.PI / 2);
+        const cap = new THREE.Mesh(
+          capGeo,
+          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
+        );
+        cap.position.set(0, 0, pk.h * 0.3);
+        cone.add(cap);
+
+        cone.userData = { kind: "MOUNTAIN", data: pk };
+        cgMountainsGrp.add(cone);
+        cgMountainMeshes.push(cone);
+
+        if (labelsContainerRef.current) {
+          const div = document.createElement("div");
+          div.className = "absolute transform -translate-x-1/2 -translate-y-1/2 text-[9px] font-bold text-amber-100 bg-amber-950/90 px-1.5 py-0.5 rounded shadow pointer-events-none border border-amber-600";
+          div.textContent = "🏔️ " + pk.peak;
+          labelsContainerRef.current.appendChild(div);
+          r.labelElements.push({
+            el: div,
+            pos3D: pkBase.clone().add(new THREE.Vector3(0, 0, pk.h / 2 + 0.2)),
+            type: 'district',
+            stateId: 'CG'
+          });
+        }
+      });
+
+      // 3. 3D Roads / Highways of Chhattisgarh (Surface Z = 1.03)
+      const cgHighways = [
+        {
+          code: "NH-53",
+          name: "ग्रेट ईस्टर्न रोड (NH-53)",
+          corridor: "मुम्बई - नागपुर - राजनांदगांव - दुर्ग - रायपुर - आरंग - सरायपाली - कोलकाता",
+          lengthKm: 322,
+          path: [[80.55, 21.05], [81.03, 21.10], [81.28, 21.19], [81.63, 21.25], [81.97, 21.20], [82.55, 21.28], [82.99, 21.32], [83.25, 21.35]]
+        },
+        {
+          code: "NH-30",
+          name: "उत्तर-दक्षिण मुख्य धमनी (NH-30)",
+          corridor: "कोण्टा - सुकमा - जगदलपुर - कांकेर - धमतरी - रायपुर - सिमगा - बिलासपुर - कवर्धा - चिल्फी",
+          lengthKm: 636,
+          path: [[81.38, 17.78], [81.65, 18.40], [82.03, 19.07], [81.67, 19.58], [81.49, 20.27], [81.55, 20.70], [81.63, 21.25], [81.70, 21.62], [82.15, 22.08], [81.23, 22.02], [81.05, 22.18]]
+        },
+        {
+          code: "NH-130",
+          name: "रायपुर - बिलासपुर - अंबिकापुर एक्सप्रेसवे (NH-130)",
+          corridor: "रायपुर - सिमगा - बिलासपुर - कटघोरा - अंबिकापुर - रामानुजगंज",
+          lengthKm: 395,
+          path: [[81.63, 21.25], [81.70, 21.62], [82.15, 22.08], [82.55, 22.50], [83.05, 22.95], [83.18, 23.12], [83.35, 23.80]]
+        },
+        {
+          code: "NH-43",
+          name: "मनेंद्रगढ़ - अंबिकापुर - जशपुर मार्ग (NH-43)",
+          corridor: "कटनी - मनेंद्रगढ़ - सूरजपुर - अंबिकापुर - पत्थलगांव - जशपुर नगर - गुमला",
+          lengthKm: 314,
+          path: [[82.20, 23.20], [82.55, 23.25], [82.85, 23.15], [83.18, 23.12], [83.70, 22.55], [84.14, 22.88], [84.35, 22.90]]
+        }
+      ];
+
+      cgHighways.forEach(hw => {
+        const pts = hw.path.map(([ln, lt]) => new THREE.Vector3((ln - cLon) * scale, (lt - cLat) * scale * 1.08, 1.03));
+        const curve = new THREE.CatmullRomCurve3(pts);
+        const tubeGeo = new THREE.TubeGeometry(curve, 52, 0.05, 6, false);
+        const tubeMat = new THREE.MeshStandardMaterial({
+          color: 0xf59e0b,
+          emissive: 0xd97706,
+          emissiveIntensity: 0.65,
+          roughness: 0.3
+        });
+        const mesh = new THREE.Mesh(tubeGeo, tubeMat);
+        mesh.userData = { kind: "HIGHWAY", data: hw };
+        cgHighwaysGrp.add(mesh);
+        cgHighwayMeshes.push(mesh);
+
+        // Junction nodes
+        hw.path.forEach(([ln, lt], pIdx) => {
+          if (pIdx % 2 === 0) {
+            const jPos = new THREE.Vector3((ln - cLon) * scale, (lt - cLat) * scale * 1.08, 1.05);
+            const node = new THREE.Mesh(
+              new THREE.SphereGeometry(0.07, 6, 6),
+              new THREE.MeshBasicMaterial({ color: 0xfef08a })
+            );
+            node.position.copy(jPos);
+            cgHighwaysGrp.add(node);
+          }
+        });
+      });
+
+      // 4. 3D Railways of Chhattisgarh (SECR Zone - Surface Z = 1.03 with distinct dot cross-ties)
+      const cgRailways = [
+        {
+          name: "हावड़ा - मुंबई मेन ट्रंक लाइन (SECR)",
+          zone: "द.पू.म. रेलवे (SECR जोन मुख्यालय बिलासपुर)",
+          route: "रायगढ़ - चांपा - बिलासपुर - भाटापारा - रायपुर - दुर्ग - राजनांदगांव - डोंगरगढ़",
+          lengthKm: 410,
+          path: [[83.60, 21.75], [83.39, 21.89], [82.65, 22.05], [82.15, 22.08], [81.95, 21.73], [81.63, 21.25], [81.28, 21.19], [81.03, 21.10], [80.75, 21.18], [80.55, 21.22]]
+        },
+        {
+          name: "बिलासपुर - कटनी कोयला कॉरिडोर",
+          zone: "SECR बिलासपुर मंडल (कोयला ढुलाई का मुख्य मार्ग)",
+          route: "बिलासपुर - कोटा - खोंगसरा - पेंड्रा रोड - अनूपपुर",
+          lengthKm: 152,
+          path: [[82.15, 22.08], [82.02, 22.30], [81.90, 22.55], [81.85, 22.75], [81.80, 23.05]]
+        },
+        {
+          name: "के.के. रेलवे लाइन (किरंदुल - कोत्तावलसा)",
+          zone: "ईस्ट कोस्ट रेलवे (बैलाडीला आयरन ओर फ्रेट लाइन - 58 सुरंगें)",
+          route: "किरंदुल - बचेली - दंतेवाड़ा - तोकापाल - जगदलपुर - कोरापुट - विशाखापट्टनम",
+          lengthKm: 180,
+          path: [[81.22, 18.60], [81.28, 18.70], [81.35, 18.90], [81.80, 19.05], [82.03, 19.08], [82.35, 19.12]]
+        },
+        {
+          name: "दुर्ग - दल्ली राजहरा - रावघाट लाइन",
+          zone: "भिलाई स्टील प्लांट (BSP) लौह अयस्क आपूर्ति लाइन",
+          route: "दुर्ग - बालोद - दल्ली राजहरा - भानुप्रतापपुर - अंतागढ़",
+          lengthKm: 140,
+          path: [[81.28, 21.19], [81.20, 20.90], [81.08, 20.58], [81.12, 20.30], [81.18, 20.10]]
+        }
+      ];
+
+      cgRailways.forEach(rl => {
+        const pts = rl.path.map(([ln, lt]) => new THREE.Vector3((ln - cLon) * scale, (lt - cLat) * scale * 1.08, 1.03));
+        const curve = new THREE.CatmullRomCurve3(pts);
+        const tubeGeo = new THREE.TubeGeometry(curve, 48, 0.042, 6, false);
+        const tubeMat = new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x0284c7,
+          emissiveIntensity: 0.75,
+          roughness: 0.25
+        });
+        const trackMesh = new THREE.Mesh(tubeGeo, tubeMat);
+        trackMesh.userData = { kind: "RAILWAY", data: rl };
+        cgRailwaysGrp.add(trackMesh);
+        cgRailwayMeshes.push(trackMesh);
+
+        // Dot railroad sleepers/ties along the track so it looks unmistakably like a railway track
+        const divisions = 24;
+        for (let i = 0; i <= divisions; i++) {
+          const pt = curve.getPoint(i / divisions);
+          const tie = new THREE.Mesh(
+            new THREE.BoxGeometry(0.09, 0.09, 0.05),
+            new THREE.MeshBasicMaterial({ color: 0xffffff })
+          );
+          tie.position.set(pt.x, pt.y, 1.05);
+          cgRailwaysGrp.add(tie);
+        }
+      });
+
+      // 5. कर्क रेखा (Tropic of Cancer - 23.5°N)
       const cancerPts = [
-        new THREE.Vector3((81.75 - cLon) * scale, (23.5 - cLat) * scale * 1.08, 0.90),
-        new THREE.Vector3((83.85 - cLon) * scale, (23.5 - cLat) * scale * 1.08, 0.90)
+        new THREE.Vector3((81.75 - cLon) * scale, (23.5 - cLat) * scale * 1.08, 1.02),
+        new THREE.Vector3((83.85 - cLon) * scale, (23.5 - cLat) * scale * 1.08, 1.02)
       ];
       const cancerLine = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(cancerPts),
         new THREE.LineDashedMaterial({ color: 0xf59e0b, dashSize: 0.35, gapSize: 0.18, linewidth: 2 })
       );
       cancerLine.computeLineDistances();
-      districtGrp.add(cancerLine);
+      cgRefLinesGrp.add(cancerLine);
 
-      // 3. भारतीय मानक समय रेखा (IST 82.5°E)
+      // 6. भारतीय मानक समय रेखा (IST 82.5°E)
       const istPts = [
-        new THREE.Vector3((82.5 - cLon) * scale, (24.1 - cLat) * scale * 1.08, 0.90),
-        new THREE.Vector3((82.5 - cLon) * scale, (20.0 - cLat) * scale * 1.08, 0.90)
+        new THREE.Vector3((82.5 - cLon) * scale, (24.1 - cLat) * scale * 1.08, 1.02),
+        new THREE.Vector3((82.5 - cLon) * scale, (17.8 - cLat) * scale * 1.08, 1.02)
       ];
       const istLine = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(istPts),
         new THREE.LineDashedMaterial({ color: 0x06b6d4, dashSize: 0.35, gapSize: 0.18, linewidth: 2 })
       );
       istLine.computeLineDistances();
-      districtGrp.add(istLine);
+      cgRefLinesGrp.add(istLine);
 
-      // 4. Crossing Point (कोरिया / सूरजपुर कटान स्थल ⭐)
-      const crossPos = new THREE.Vector3((82.5 - cLon) * scale, (23.5 - cLat) * scale * 1.08, 0.95);
+      // 7. Crossing Point (कोरिया / सूरजपुर कटान स्थल ⭐)
+      const crossPos = new THREE.Vector3((82.5 - cLon) * scale, (23.5 - cLat) * scale * 1.08, 1.06);
       const crossMesh = new THREE.Mesh(
         new THREE.OctahedronGeometry(0.22, 0),
         new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xd97706, roughness: 0.2, metalness: 0.8 })
       );
       crossMesh.position.copy(crossPos);
-      districtGrp.add(crossMesh);
+      cgRefLinesGrp.add(crossMesh);
 
-      // 5. Major Mountain Peaks
-      const cgPeaks = [
-        { name: "गौरलाटा (1225m - सर्वोच्च शिखर)", lon: 83.82, lat: 23.88, h: 0.32, color: 0xf59e0b },
-        { name: "नंदीराज (1210m - बैलाडीला)", lon: 81.25, lat: 18.75, h: 0.28, color: 0xe2e8f0 },
-        { name: "बदरगढ़ (1176m - मैकल श्रेणी)", lon: 81.10, lat: 22.15, h: 0.25, color: 0xd97706 },
-        { name: "मैनपाट (1152m - छ.ग. का शिमला)", lon: 83.25, lat: 22.80, h: 0.24, color: 0x10b981 }
-      ];
+      // Add to districtGrp
+      cgRiversGrp.visible = showRivers;
+      cgMountainsGrp.visible = showMountains;
+      cgHighwaysGrp.visible = showHighways;
+      cgRailwaysGrp.visible = showRailways;
+      districtGrp.add(cgRiversGrp, cgMountainsGrp, cgHighwaysGrp, cgRailwaysGrp, cgRefLinesGrp);
 
-      cgPeaks.forEach(pk => {
-        const pkPos = new THREE.Vector3((pk.lon - cLon) * scale, (pk.lat - cLat) * scale * 1.08, 0.88 + pk.h / 2);
-        const cone = new THREE.Mesh(
-          new THREE.ConeGeometry(0.18, pk.h, 6),
-          new THREE.MeshStandardMaterial({ color: pk.color, roughness: 0.6 })
-        );
-        cone.rotateX(Math.PI / 2);
-        cone.position.copy(pkPos);
-        districtGrp.add(cone);
-      });
+      // Update refs
+      r.cgRiversGroup = cgRiversGrp;
+      r.cgMountainsGroup = cgMountainsGrp;
+      r.cgHighwaysGroup = cgHighwaysGrp;
+      r.cgRailwaysGroup = cgRailwaysGrp;
+      r.cgRiverMeshes = cgRiverMeshes;
+      r.cgMountainMeshes = cgMountainMeshes;
+      r.cgHighwayMeshes = cgHighwayMeshes;
+      r.cgRailwayMeshes = cgRailwayMeshes;
+      r.cgFlowParticles = cgFlowParticles;
     }
 
     handleResetCamera();
     if (districts.length > 0) {
-      selectDistrict(districts[0], st);
+      selectDistrict(districts[0], st, false);
     }
   };
 
@@ -1871,6 +2152,17 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     setIsDistrictMode(false);
     setActiveDistrictState(null);
     setCgDivFilter('ALL');
+
+    // Clean up CG feature references
+    r.cgFlowParticles = [];
+    r.cgRiverMeshes = [];
+    r.cgMountainMeshes = [];
+    r.cgHighwayMeshes = [];
+    r.cgRailwayMeshes = [];
+    r.cgRiversGroup = null;
+    r.cgMountainsGroup = null;
+    r.cgHighwaysGroup = null;
+    r.cgRailwaysGroup = null;
 
     // Remove all district labels from DOM & array
     r.labelElements = r.labelElements.filter(l => {
@@ -1921,57 +2213,62 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     const mesh = r.stateMeshes.find(m => m.userData.data?.id === st.id);
     if (mesh) {
       r.selectedMesh = mesh;
-      (mesh.material as THREE.MeshStandardMaterial).emissive.setHex(0x221100);
-      mesh.userData.targetPosZ = 1.35;
+      (mesh.material as THREE.MeshStandardMaterial).emissive.setHex(0x1e3a8a);
+      mesh.userData.targetPosZ = 0;
     }
     setSelectedEntity(st);
     setEntityType('STATE');
     setStateTab('OVERVIEW');
+    setShowInfoPanel(true);
   };
 
-  const selectDistrict = (d: DistrictData, st: StateData) => {
+  const selectDistrict = (d: DistrictData, st: StateData, openPanel = true) => {
     clearSelection();
     const r = threeRefs.current;
     const mesh = r.districtMeshes.find(m => m.userData.data?.id === d.id);
     if (mesh) {
       r.selectedMesh = mesh;
-      (mesh.material as THREE.MeshStandardMaterial).emissive.setHex(0x552200);
-      mesh.userData.targetPosZ = 0.75;
+      (mesh.material as THREE.MeshStandardMaterial).emissive.setHex(0x1e3a8a);
+      mesh.userData.targetPosZ = 0;
     }
     setSelectedEntity({ district: d, state: st });
     setEntityType('DISTRICT');
+    if (openPanel) setShowInfoPanel(true);
   };
 
   const selectRiver = (rv: RiverData) => {
     clearSelection();
     setSelectedEntity(rv);
     setEntityType('RIVER');
+    setShowInfoPanel(true);
   };
 
   const selectMountain = (mtn: MountainData) => {
     clearSelection();
     setSelectedEntity(mtn);
     setEntityType('MOUNTAIN');
+    setShowInfoPanel(true);
   };
 
   const selectHighway = (hw: HighwayData) => {
-    if (isDistrictMode) exitDistrictView();
     clearSelection();
     setSelectedEntity(hw);
     setEntityType('HIGHWAY');
+    setShowInfoPanel(true);
   };
 
   const selectRailway = (rl: RailwayData) => {
-    if (isDistrictMode) exitDistrictView();
     clearSelection();
     setSelectedEntity(rl);
     setEntityType('RAILWAY');
+    setShowInfoPanel(true);
   };
 
   const showOverview = () => {
     clearSelection();
     setSelectedEntity(null);
     setEntityType('OVERVIEW');
+    setShowInfoPanel(true);
   };
 
   // Initialize Three.js Scene
@@ -1982,13 +2279,16 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
 
+    const isLight = isLightModeRef.current;
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(isLight ? 0xf0f7ff : 0x050d18);
     const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
     camera.position.set(0, -24, 35);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(isLight ? 0xf0f7ff : 0x050d18, 1);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.innerHTML = '';
@@ -2001,9 +2301,11 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     controls.minDistance = 6;
     controls.maxDistance = 65;
 
-    // Lighting (Warm Studio Setup matching screenshot 1 & 2)
-    scene.add(new THREE.AmbientLight(0xffffff, 0.72));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.95);
+    // Lighting (Warm Studio / Daylight Setup)
+    const ambientLight = new THREE.AmbientLight(0xffffff, isLight ? 1.05 : 0.72);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(isLight ? 0xfffaf0 : 0xffffff, isLight ? 1.15 : 0.95);
     dirLight.position.set(16, -26, 38);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
@@ -2017,20 +2319,31 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     dirLight.shadow.bias = -0.0005;
     scene.add(dirLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
+    const hemiLight = new THREE.HemisphereLight(
+      isLight ? 0xffffff : 0x38bdf8,
+      isLight ? 0xdbeafe : 0x0284c7,
+      isLight ? 0.45 : 0.25
+    );
+    scene.add(hemiLight);
+
+    const fillLight = new THREE.DirectionalLight(0xffffff, isLight ? 0.45 : 0.35);
     fillLight.position.set(-18, 18, 22);
     scene.add(fillLight);
 
     // Soft Studio Shadow Floor Plane
     const floorGeo = new THREE.PlaneGeometry(100, 100);
-    const floorMat = new THREE.ShadowMaterial({ opacity: 0.22 });
+    const floorMat = new THREE.ShadowMaterial({ opacity: isLight ? 0.08 : 0.22 });
     const shadowPlane = new THREE.Mesh(floorGeo, floorMat);
     shadowPlane.position.z = -0.01;
     shadowPlane.receiveShadow = true;
     scene.add(shadowPlane);
 
     // Grid Floor
-    const gridHelper = new THREE.GridHelper(64, 48, 0x1e3a5f, 0x091930);
+    const gridHelper = new THREE.GridHelper(
+      64, 48,
+      isLight ? 0xbae6fd : 0x1e3a5f,
+      isLight ? 0xe2e8f0 : 0x091930
+    );
     gridHelper.rotation.x = Math.PI / 2;
     gridHelper.position.z = -0.15;
     scene.add(gridHelper);
@@ -2117,8 +2430,8 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
       const material = new THREE.MeshStandardMaterial({
         color: HIGH_POLY_STATE_COLORS[st.id] || st.mapColor,
-        roughness: 0.38,
-        metalness: 0.04
+        roughness: isLight ? 0.28 : 0.38,
+        metalness: isLight ? 0.08 : 0.04
       });
 
       const mesh = new THREE.Mesh(geometry, material);
@@ -2345,6 +2658,11 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
       renderer,
       controls,
       animFrameId: null,
+      gridHelper,
+      ambientLight,
+      dirLight,
+      hemiLight,
+      floorPlane: shadowPlane,
       stateMeshes,
       riverMeshes,
       mountainMeshes,
@@ -2361,6 +2679,15 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
       railwaysGroup,
       districtGroup,
       refLinesGroup,
+      cgRiversGroup: null,
+      cgMountainsGroup: null,
+      cgHighwaysGroup: null,
+      cgRailwaysGroup: null,
+      cgRiverMeshes: [],
+      cgMountainMeshes: [],
+      cgHighwayMeshes: [],
+      cgRailwayMeshes: [],
+      cgFlowParticles: [],
       selectedMesh: null
     };
 
@@ -2384,6 +2711,11 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
       if (!isDist && flags.showRivers) {
         flowParticles.forEach(fp => {
           fp.t = (fp.t + 0.0035) % 1.0;
+          fp.mesh.position.copy(fp.curve.getPoint(fp.t));
+        });
+      } else if (isDist && flags.showRivers) {
+        threeRefs.current.cgFlowParticles.forEach(fp => {
+          fp.t = (fp.t + 0.004) % 1.0;
           fp.mesh.position.copy(fp.curve.getPoint(fp.t));
         });
       }
@@ -2478,12 +2810,21 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
       activeStateId: activeDistrictState?.id || null
     };
 
-    const { riversGroup, mountainsGroup, capitalsGroup, highwaysGroup, railwaysGroup } = threeRefs.current;
+    const {
+      riversGroup, mountainsGroup, capitalsGroup, highwaysGroup, railwaysGroup,
+      cgRiversGroup, cgMountainsGroup, cgHighwaysGroup, cgRailwaysGroup
+    } = threeRefs.current;
     if (riversGroup) riversGroup.visible = showRivers && !isDistrictMode;
     if (mountainsGroup) mountainsGroup.visible = showMountains && !isDistrictMode;
     if (capitalsGroup) capitalsGroup.visible = showCapitals && !isDistrictMode;
     if (highwaysGroup) highwaysGroup.visible = showHighways && !isDistrictMode;
     if (railwaysGroup) railwaysGroup.visible = showRailways && !isDistrictMode;
+
+    if (cgRiversGroup) cgRiversGroup.visible = showRivers;
+    if (cgMountainsGroup) cgMountainsGroup.visible = showMountains;
+    if (cgHighwaysGroup) cgHighwaysGroup.visible = showHighways;
+    if (cgRailwaysGroup) cgRailwaysGroup.visible = showRailways;
+
     if (labelsContainerRef.current) {
       labelsContainerRef.current.style.display = showLabels ? 'block' : 'none';
     }
@@ -2497,6 +2838,68 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
       m.userData.targetScaleZ = popHeightActive ? Math.max(0.5, (pop / 235) * 5.2) : 1.0;
     });
   }, [popHeightActive]);
+
+  // Dynamically update Three.js theme when toggling Light / Dark mode
+  useEffect(() => {
+    localStorage.setItem('map3d_theme', isLightMode ? 'light' : 'dark');
+    const r = threeRefs.current;
+    if (!r.scene || !r.renderer) return;
+
+    // Background & Clear Color
+    const bgHex = isLightMode ? 0xf0f7ff : 0x050d18;
+    r.scene.background = new THREE.Color(bgHex);
+    r.renderer.setClearColor(bgHex, 1);
+
+    // Dynamic Lights Tuning (Vibrant Daylight vs Deep Cosmic Midnight)
+    if (r.ambientLight) {
+      r.ambientLight.intensity = isLightMode ? 1.05 : 0.72;
+    }
+    if (r.dirLight) {
+      r.dirLight.intensity = isLightMode ? 1.15 : 0.95;
+      r.dirLight.color.setHex(isLightMode ? 0xfffaf0 : 0xffffff);
+    }
+    if (r.hemiLight) {
+      r.hemiLight.intensity = isLightMode ? 0.45 : 0.25;
+      r.hemiLight.color.setHex(isLightMode ? 0xffffff : 0x38bdf8);
+      r.hemiLight.groundColor.setHex(isLightMode ? 0xdbeafe : 0x0284c7);
+    }
+    if (r.floorPlane && r.floorPlane.material) {
+      (r.floorPlane.material as THREE.ShadowMaterial).opacity = isLightMode ? 0.08 : 0.22;
+    }
+
+    // Refresh Grid Helper
+    if (r.gridHelper && r.scene) {
+      r.scene.remove(r.gridHelper);
+      r.gridHelper.geometry.dispose();
+      (r.gridHelper.material as THREE.Material).dispose();
+      const newGrid = new THREE.GridHelper(
+        64, 48,
+        isLightMode ? 0xbae6fd : 0x1e3a5f,
+        isLightMode ? 0xe2e8f0 : 0x091930
+      );
+      newGrid.rotation.x = Math.PI / 2;
+      newGrid.position.z = -0.15;
+      r.scene.add(newGrid);
+      r.gridHelper = newGrid;
+    }
+
+    // Specular vibrance on state & district meshes (glossy & sharp in light mode, deep & rich in dark mode)
+    r.stateMeshes.forEach(m => {
+      if (m.material && m.material instanceof THREE.MeshStandardMaterial) {
+        m.material.roughness = isLightMode ? 0.28 : 0.38;
+        m.material.metalness = isLightMode ? 0.08 : 0.04;
+        m.material.needsUpdate = true;
+      }
+    });
+
+    r.districtMeshes.forEach(m => {
+      if (m.material && m.material instanceof THREE.MeshStandardMaterial) {
+        m.material.roughness = isLightMode ? 0.25 : 0.35;
+        m.material.metalness = isLightMode ? 0.10 : 0.08;
+        m.material.needsUpdate = true;
+      }
+    });
+  }, [isLightMode]);
 
   // Pointer & Raycasting Handlers
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -2521,19 +2924,29 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
     let targets: THREE.Object3D[] = [];
     if (isDistrictMode) {
-      targets = r.districtMeshes;
+      if (showRailways && r.cgRailwayMeshes) targets.push(...r.cgRailwayMeshes);
+      if (showHighways && r.cgHighwayMeshes) targets.push(...r.cgHighwayMeshes);
+      if (showRivers && r.cgRiverMeshes) targets.push(...r.cgRiverMeshes);
+      if (showMountains && r.cgMountainMeshes) targets.push(...r.cgMountainMeshes);
+      targets.push(...r.districtMeshes);
     } else {
-      targets = [...r.stateMeshes];
+      if (showRailways) targets.push(...r.railwayMeshes);
+      if (showHighways) targets.push(...r.highwayMeshes);
       if (showRivers) targets.push(...r.riverMeshes);
       if (showMountains) targets.push(...r.mountainMeshes);
-      if (showHighways) targets.push(...r.highwayMeshes);
-      if (showRailways) targets.push(...r.railwayMeshes);
+      targets.push(...r.stateMeshes);
     }
 
     const hits = raycaster.intersectObjects(targets, false);
     if (hits.length > 0) {
-      const obj = hits[0].object as THREE.Mesh;
-      const kind = obj.userData.kind;
+      // Prioritize clicking features (railway, highway, river, mountain) over underlying state
+      const featureHit = hits.find(h => {
+        const k = h.object.userData?.kind;
+        return k === 'RAILWAY' || k === 'HIGHWAY' || k === 'RIVER' || k === 'MOUNTAIN';
+      });
+      const chosenHit = featureHit || hits[0];
+      const obj = chosenHit.object as THREE.Mesh;
+      const kind = obj.userData?.kind;
       if (kind === "STATE") selectState(obj.userData.data);
       else if (kind === "RIVER") selectRiver(obj.userData.data);
       else if (kind === "MOUNTAIN") selectMountain(obj.userData.data);
@@ -2579,52 +2992,66 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
     let targets: THREE.Object3D[] = [];
     if (isDistrictMode) {
-      targets = r.districtMeshes;
+      if (showRailways && r.cgRailwayMeshes) targets.push(...r.cgRailwayMeshes);
+      if (showHighways && r.cgHighwayMeshes) targets.push(...r.cgHighwayMeshes);
+      if (showRivers && r.cgRiverMeshes) targets.push(...r.cgRiverMeshes);
+      if (showMountains && r.cgMountainMeshes) targets.push(...r.cgMountainMeshes);
+      targets.push(...r.districtMeshes);
     } else {
-      targets = [...r.stateMeshes];
+      if (showRailways) targets.push(...r.railwayMeshes);
+      if (showHighways) targets.push(...r.highwayMeshes);
       if (showRivers) targets.push(...r.riverMeshes);
       if (showMountains) targets.push(...r.mountainMeshes);
-      if (showHighways) targets.push(...r.highwayMeshes);
-      if (showRailways) targets.push(...r.railwayMeshes);
+      targets.push(...r.stateMeshes);
     }
 
     const hits = raycaster.intersectObjects(targets, false);
 
+    // Completely prevent state mesh from lifting up along Z on hover!
+    // All states stay firmly flat at targetPosZ = 0 so they never bury or block rivers, roads, and tracks.
     if (!isDistrictMode) {
       r.stateMeshes.forEach(m => {
-        if (m !== r.selectedMesh) {
-          m.userData.targetPosZ = 0;
+        if (m !== r.selectedMesh && m.material && m.material instanceof THREE.MeshStandardMaterial) {
+          m.material.emissive.setHex(0x000000);
         }
+        m.userData.targetPosZ = 0;
       });
-      if (hits.length > 0 && hits[0].object.userData.kind === 'STATE') {
-        const hoveredMesh = hits[0].object as THREE.Mesh;
-        if (hoveredMesh !== r.selectedMesh) {
-          hoveredMesh.userData.targetPosZ = 0.45;
-        }
-      }
     }
 
     if (hits.length > 0) {
-      const obj = hits[0].object as THREE.Mesh;
-      const kind = obj.userData.kind;
-      const d = obj.userData.data;
+      // Prioritize features (railway, highway, river, mountain) over underlying state
+      const featureHit = hits.find(h => {
+        const k = h.object.userData?.kind;
+        return k === 'RAILWAY' || k === 'HIGHWAY' || k === 'RIVER' || k === 'MOUNTAIN';
+      });
+      const activeHit = featureHit || hits[0];
+      const obj = activeHit.object as THREE.Mesh;
+      const kind = obj.userData?.kind;
+      const d = obj.userData?.data;
+
+      // Subtle emissive glow on hovered state without moving it
+      if (kind === 'STATE' && obj !== r.selectedMesh && obj.material && obj.material instanceof THREE.MeshStandardMaterial) {
+        obj.material.emissive.setHex(isLightModeRef.current ? 0x1e293b : 0x1e3a5f);
+      }
 
       tooltip.style.display = "block";
       tooltip.style.left = e.clientX + 14 + "px";
       tooltip.style.top = e.clientY + 14 + "px";
 
+      const subTextCls = isLightModeRef.current ? "text-slate-600" : "text-slate-400";
+
       if (kind === "STATE") {
-        tooltip.innerHTML = `<strong>${d.name}</strong><br/><span class="text-slate-400 text-xs">राजधानी: ${d.capital}<br/>(विस्तृत संपूर्ण जानकारी एवं जिला मैप हेतु क्लिक करें)</span>`;
+        tooltip.innerHTML = `<strong>${d.name}</strong><br/><span class="${subTextCls} text-xs">राजधानी: ${d.capital}<br/>(विस्तृत संपूर्ण जानकारी एवं जिला मैप हेतु क्लिक करें)</span>`;
       } else if (kind === "RIVER") {
-        tooltip.innerHTML = `<strong class="text-sky-400">🌊 ${d.name}</strong><br/><span class="text-slate-400 text-xs">लंबाई: ${d.length}</span>`;
+        tooltip.innerHTML = `<strong class="${isLightModeRef.current ? 'text-sky-700' : 'text-sky-400'}">🌊 ${d.name}</strong><br/><span class="${subTextCls} text-xs">लंबाई: ${d.length}</span>`;
       } else if (kind === "MOUNTAIN") {
-        tooltip.innerHTML = `<strong class="text-amber-400">🏔️ ${d.name}</strong><br/><span class="text-slate-400 text-xs">शिखर: ${d.peak}</span>`;
+        tooltip.innerHTML = `<strong class="${isLightModeRef.current ? 'text-amber-700' : 'text-amber-400'}">🏔️ ${d.name}</strong><br/><span class="${subTextCls} text-xs">शिखर: ${d.peak}</span>`;
       } else if (kind === "DISTRICT") {
-        tooltip.innerHTML = `<strong>📍 ${d.name}</strong><br/><span class="text-slate-400 text-xs">मुख्यालय: ${d.hq} | ${d.div}</span>`;
+        tooltip.innerHTML = `<strong>📍 ${d.name}</strong><br/><span class="${subTextCls} text-xs">मुख्यालय: ${d.hq} | ${d.div}</span>`;
       } else if (kind === "HIGHWAY") {
-        tooltip.innerHTML = `<strong class="text-amber-400">🛣️ ${d.code} (${d.name.split(' (')[0]})</strong><br/><span class="text-slate-400 text-xs">${d.corridor}<br/>लंबाई: ${d.lengthKm} किमी</span>`;
+        tooltip.innerHTML = `<strong class="${isLightModeRef.current ? 'text-amber-700' : 'text-amber-400'}">🛣️ ${d.code} (${d.name.split(' (')[0]})</strong><br/><span class="${subTextCls} text-xs">${d.corridor}<br/>लंबाई: ${d.lengthKm} किमी</span>`;
       } else if (kind === "RAILWAY") {
-        tooltip.innerHTML = `<strong class="text-sky-300">🚆 ${d.name}</strong><br/><span class="text-slate-400 text-xs">${d.zone}<br/>लंबाई: ${d.lengthKm} किमी</span>`;
+        tooltip.innerHTML = `<strong class="${isLightModeRef.current ? 'text-sky-700' : 'text-sky-300'}">🚆 ${d.name}</strong><br/><span class="${subTextCls} text-xs">${d.zone}<br/>लंबाई: ${d.lengthKm} किमी</span>`;
       }
     } else {
       tooltip.style.display = "none";
@@ -2660,40 +3087,115 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
   });
 
   return (
-    <div className={`fixed inset-0 z-[9999] flex flex-col bg-[#07111e] text-slate-100 overflow-hidden font-sans select-none ${isFullscreen ? 'p-0' : 'p-2 sm:p-4'}`}>
+    <div className={`fixed inset-0 z-[9999] flex flex-col overflow-hidden font-sans select-none transition-colors duration-200 ${
+      isLightMode ? 'bg-slate-300/80 text-slate-900' : 'bg-[#030811] text-slate-100'
+    } ${isFullscreen ? 'p-0' : 'pt-[max(env(safe-area-inset-top),0.5rem)] px-1 sm:px-3 pb-1 sm:pb-3'}`}>
       
       {/* Container Card */}
-      <div className="relative w-full h-full flex flex-col bg-[#0b1728]/95 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+      <div className={`relative w-full h-full flex flex-col backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden transition-colors duration-200 ${
+        isLightMode ? 'bg-[#f0f7ff]/98 border border-sky-200' : 'bg-[#050d18]/98 border border-slate-800'
+      }`}>
         
         {/* Top Control Bar */}
-        <header className="px-3.5 py-2.5 bg-[#0e1e36]/90 border-b border-slate-800/90 flex flex-wrap items-center justify-between gap-2.5 z-20 shrink-0">
-          
-          {/* Logo & Title */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-saffron to-amber-500 flex items-center justify-center font-black text-slate-950 shadow-md">
-              🗺️
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs sm:text-sm font-black tracking-wide bg-gradient-to-r from-saffron via-white to-emerald-400 bg-clip-text text-transparent uppercase">
-                  Survey of India 2020 — 3D Map
-                </span>
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-saffron/15 text-saffron border border-saffron/30 rounded">
-                  CG GURU
-                </span>
+        <header className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 border-b flex flex-col gap-1.5 z-20 shrink-0 transition-colors duration-200 ${
+          isLightMode ? 'bg-white/95 border-slate-200 text-slate-800 shadow-sm' : 'bg-[#081322]/95 border-slate-800/90 text-slate-100'
+        }`}>
+          {/* Top Row: Brand & Quick Action Controls */}
+          <div className="flex items-center justify-between gap-2 w-full">
+            {/* Logo & Title */}
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-saffron to-amber-500 flex items-center justify-center font-black text-slate-950 shadow-md shrink-0 text-sm">
+                🗺️
               </div>
-              <p className="text-[10px] text-slate-400 hidden sm:block">
-                28 राज्य, 8 UT, नदियां, पर्वतमालाएं, राष्ट्रीय राजमार्ग एवं रेलवे नेटवर्क
-              </p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-xs sm:text-sm font-black tracking-wide uppercase truncate ${
+                    isLightMode ? 'text-slate-900' : 'bg-gradient-to-r from-saffron via-white to-emerald-400 bg-clip-text text-transparent'
+                  }`}>
+                    {isDistrictMode && activeDistrictState ? `${activeDistrictState.name} 3D मैप` : 'Survey of India 2020'}
+                  </span>
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-saffron/15 text-saffron border border-saffron/30 rounded shrink-0">
+                    CG GURU
+                  </span>
+                </div>
+                <p className={`text-[10px] hidden sm:block truncate ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  28 राज्य, 8 UT, नदियां, पर्वतमालाएं, राष्ट्रीय राजमार्ग एवं रेलवे नेटवर्क
+                </p>
+              </div>
+            </div>
+
+            {/* Top Right Quick Controls */}
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Info Panel Toggle */}
+              <button
+                onClick={() => setShowInfoPanel(!showInfoPanel)}
+                className={`px-2 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer ${
+                  showInfoPanel
+                    ? 'bg-saffron text-slate-950 border-saffron shadow-sm'
+                    : isLightMode
+                      ? 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                      : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:border-saffron/50'
+                }`}
+                title={showInfoPanel ? "विवरण छुपाएं" : "विवरण देखें"}
+              >
+                <Info className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{showInfoPanel ? "विवरण छुपाएं" : "विवरण"}</span>
+              </button>
+
+              {/* Light / Dark Mode Toggle */}
+              <button
+                onClick={() => setIsLightMode(!isLightMode)}
+                className={`p-1.5 sm:px-2.5 sm:py-1 text-xs font-bold rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isLightMode
+                    ? 'bg-amber-100 text-amber-950 border-amber-300 hover:bg-amber-200 shadow-sm'
+                    : 'bg-slate-800/80 text-amber-400 border-slate-700 hover:border-amber-400/50'
+                }`}
+                title={isLightMode ? "डार्क मोड सक्रिय करें" : "लाइट मोड सक्रिय करें"}
+              >
+                {isLightMode ? <Moon className="w-3.5 h-3.5 text-slate-800" /> : <Sun className="w-3.5 h-3.5 text-amber-400" />}
+                <span className="hidden sm:inline">{isLightMode ? "डार्क मोड" : "लाइट मोड"}</span>
+              </button>
+
+              <button
+                onClick={handleResetCamera}
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                  isLightMode
+                    ? 'bg-white text-slate-700 hover:text-slate-950 border-slate-300 hover:bg-slate-100 shadow-sm'
+                    : 'bg-slate-800/80 text-slate-300 hover:text-white border-slate-700 hover:border-slate-500'
+                }`}
+                title="Reset 3D View"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                  isLightMode
+                    ? 'bg-white text-slate-700 hover:text-slate-950 border-slate-300 hover:bg-slate-100 shadow-sm'
+                    : 'bg-slate-800/80 text-slate-300 hover:text-white border-slate-700 hover:border-slate-500'
+                }`}
+                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              >
+                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              </button>
+
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg bg-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/30 transition-all cursor-pointer"
+                title="Close 3D Map"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center flex-wrap gap-1.5">
+          {/* Bottom Row: Horizontally Scrollable Feature Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full pb-0.5 text-xs">
             {isDistrictMode && activeDistrictState && (
               <button
                 onClick={exitDistrictView}
-                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white flex items-center gap-1 shadow transition-all cursor-pointer"
+                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white flex items-center gap-1 shadow transition-all cursor-pointer shrink-0"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>भारत मैप (Back)</span>
@@ -2702,10 +3204,12 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             <button
               onClick={showOverview}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer shrink-0 ${
                 entityType === 'OVERVIEW'
                   ? 'bg-saffron text-slate-950 border-saffron shadow-sm'
-                  : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:border-saffron/50'
+                  : isLightMode
+                    ? 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:border-saffron/50'
               }`}
             >
               🇮🇳 भारत परिचय
@@ -2713,12 +3217,15 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             <button
               onClick={() => setShowHighways(!showHighways)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
                 showHighways
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-                  : 'bg-slate-800/80 text-slate-400 border-slate-700'
+                  ? isLightMode
+                    ? 'bg-amber-100 text-amber-900 border-amber-400'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                  : isLightMode
+                    ? 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                    : 'bg-slate-800/80 text-slate-400 border-slate-700'
               }`}
-              title="राष्ट्रीय राजमार्ग (NH 44, NH 27, NH 48, NH 19, NH 16, NH 53, NH 30)"
             >
               <Route className="w-3.5 h-3.5" />
               <span>3D हाईवेज</span>
@@ -2726,12 +3233,15 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             <button
               onClick={() => setShowRailways(!showRailways)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
                 showRailways
-                  ? 'bg-sky-500/20 text-sky-300 border-sky-500/50'
-                  : 'bg-slate-800/80 text-slate-400 border-slate-700'
+                  ? isLightMode
+                    ? 'bg-sky-100 text-sky-900 border-sky-400'
+                    : 'bg-sky-500/20 text-sky-300 border-sky-500/50'
+                  : isLightMode
+                    ? 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                    : 'bg-slate-800/80 text-slate-400 border-slate-700'
               }`}
-              title="भारतीय रेल नेटवर्क ट्रंक लाइन्स (SECR बिलासपुर, दिल्ली-मुंबई, दिल्ली-हावड़ा)"
             >
               <Train className="w-3.5 h-3.5" />
               <span>3D रेलवे</span>
@@ -2739,10 +3249,14 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             <button
               onClick={() => setShowRivers(!showRivers)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
                 showRivers
-                  ? 'bg-sky-500/20 text-sky-400 border-sky-500/50'
-                  : 'bg-slate-800/80 text-slate-400 border-slate-700'
+                  ? isLightMode
+                    ? 'bg-sky-100 text-sky-900 border-sky-400'
+                    : 'bg-sky-500/20 text-sky-400 border-sky-500/50'
+                  : isLightMode
+                    ? 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                    : 'bg-slate-800/80 text-slate-400 border-slate-700'
               }`}
             >
               <Waves className="w-3.5 h-3.5" />
@@ -2751,10 +3265,14 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             <button
               onClick={() => setShowMountains(!showMountains)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
                 showMountains
-                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/50'
-                  : 'bg-slate-800/80 text-slate-400 border-slate-700'
+                  ? isLightMode
+                    ? 'bg-amber-100 text-amber-900 border-amber-400'
+                    : 'bg-amber-500/20 text-amber-400 border-amber-500/50'
+                  : isLightMode
+                    ? 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                    : 'bg-slate-800/80 text-slate-400 border-slate-700'
               }`}
             >
               <Mountain className="w-3.5 h-3.5" />
@@ -2763,10 +3281,14 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             <button
               onClick={() => setShowCapitals(!showCapitals)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
                 showCapitals
-                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
-                  : 'bg-slate-800/80 text-slate-400 border-slate-700'
+                  ? isLightMode
+                    ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
+                    : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
+                  : isLightMode
+                    ? 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                    : 'bg-slate-800/80 text-slate-400 border-slate-700'
               }`}
             >
               <MapPin className="w-3.5 h-3.5" />
@@ -2775,10 +3297,14 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             <button
               onClick={() => setShowLabels(!showLabels)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
                 showLabels
-                  ? 'bg-purple-500/20 text-purple-400 border-purple-500/50'
-                  : 'bg-slate-800/80 text-slate-400 border-slate-700'
+                  ? isLightMode
+                    ? 'bg-purple-100 text-purple-900 border-purple-400'
+                    : 'bg-purple-500/20 text-purple-400 border-purple-500/50'
+                  : isLightMode
+                    ? 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                    : 'bg-slate-800/80 text-slate-400 border-slate-700'
               }`}
             >
               <Tag className="w-3.5 h-3.5" />
@@ -2787,10 +3313,12 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             <button
               onClick={() => setPopHeightActive(!popHeightActive)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
                 popHeightActive
                   ? 'bg-saffron text-slate-950 border-saffron'
-                  : 'bg-slate-800/80 text-slate-300 border-slate-700'
+                  : isLightMode
+                    ? 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    : 'bg-slate-800/80 text-slate-300 border-slate-700'
               }`}
             >
               <BarChart2 className="w-3.5 h-3.5" />
@@ -2799,38 +3327,18 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             <button
               onClick={() => setShowRefMap(!showRefMap)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
                 showRefMap
-                  ? 'bg-saffron/20 text-saffron border-saffron'
-                  : 'bg-slate-800/80 text-slate-300 border-slate-700'
+                  ? isLightMode
+                    ? 'bg-amber-100 text-amber-900 border-amber-400'
+                    : 'bg-saffron/20 text-saffron border-saffron'
+                  : isLightMode
+                    ? 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    : 'bg-slate-800/80 text-slate-300 border-slate-700'
               }`}
             >
               <ImageIcon className="w-3.5 h-3.5" />
               <span>Official 2020 Map</span>
-            </button>
-
-            <button
-              onClick={handleResetCamera}
-              className="p-1.5 rounded-lg bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 transition-all cursor-pointer"
-              title="Reset 3D View"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-1.5 rounded-lg bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 transition-all cursor-pointer"
-              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-            >
-              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            </button>
-
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white border border-rose-500/30 transition-all cursor-pointer"
-              title="Close 3D Map"
-            >
-              <X className="w-4 h-4" />
             </button>
           </div>
         </header>
@@ -2841,7 +3349,9 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
           {/* 3D Canvas */}
           <div
             ref={canvasContainerRef}
-            className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"
+            className={`absolute inset-0 z-0 cursor-grab active:cursor-grabbing transition-colors duration-300 ${
+              isLightMode ? 'bg-[#f0f7ff]' : 'bg-[#050d18]'
+            }`}
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerMove={handlePointerMove}
@@ -2857,34 +3367,46 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
           {/* Tooltip */}
           <div
             ref={tooltipRef}
-            className="fixed pointer-events-none z-50 bg-slate-950/95 border border-saffron/60 text-slate-100 p-2.5 rounded-lg text-xs shadow-2xl backdrop-blur hidden max-w-xs"
+            className={`fixed pointer-events-none z-50 p-2.5 rounded-lg text-xs backdrop-blur hidden max-w-xs transition-colors ${
+              isLightMode
+                ? 'bg-white/95 border border-saffron text-slate-900 shadow-xl shadow-slate-300/50'
+                : 'bg-slate-950/95 border border-saffron/60 text-slate-100 shadow-2xl'
+            }`}
           />
 
           {/* Left Sidebar: Entity Search & Lists */}
-          <aside className="absolute top-3 left-3 bottom-3 w-64 bg-[#0a1526]/90 border border-slate-800 rounded-xl backdrop-blur-md shadow-2xl flex flex-col overflow-hidden z-10 hidden md:flex">
+          <aside className={`absolute top-3 left-3 bottom-3 w-64 border rounded-xl backdrop-blur-md shadow-2xl flex flex-col overflow-hidden z-10 hidden md:flex transition-colors duration-200 ${
+            isLightMode ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#0a1526]/90 border-slate-800 text-slate-100'
+          }`}>
             
             {/* Header */}
-            <div className="p-2.5 border-b border-slate-800">
+            <div className={`p-2.5 border-b ${isLightMode ? 'border-slate-200' : 'border-slate-800'}`}>
               <span className="text-[11px] font-black text-saffron uppercase tracking-wider block">
                 {isDistrictMode && activeDistrictState
                   ? `${activeDistrictState.short} के ${activeDistrictState.id === 'CG' ? 'जिले' : 'क्षेत्र/मंडल'} (${filteredDistricts.length})`
                   : 'भारत भू-भाग (28 राज्य + 8 UT)'}
               </span>
               <div className="relative mt-2">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Search className={`w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 ${isLightMode ? 'text-slate-400' : 'text-slate-500'}`} />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={isDistrictMode ? "जिला खोजें..." : "राज्य, नदी, पर्वत खोजें..."}
-                  className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-saffron"
+                  className={`w-full rounded-lg pl-8 pr-2.5 py-1.5 text-xs focus:outline-none focus:border-saffron transition ${
+                    isLightMode
+                      ? 'bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white'
+                      : 'bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500'
+                  }`}
                 />
               </div>
             </div>
 
             {/* Division Filter Chips in CG District View */}
             {isDistrictMode && activeDistrictState?.id === 'CG' && (
-              <div className="px-2.5 py-1.5 border-b border-slate-800/80 flex items-center gap-1 overflow-x-auto no-scrollbar text-[10px] font-bold">
+              <div className={`px-2.5 py-1.5 border-b flex items-center gap-1 overflow-x-auto no-scrollbar text-[10px] font-bold ${
+                isLightMode ? 'border-slate-200' : 'border-slate-800/80'
+              }`}>
                 {[
                   { id: 'ALL', label: 'सभी 33' },
                   { id: 'सरगुजा', label: 'सरगुजा (6)' },
@@ -2899,7 +3421,9 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                     className={`px-2 py-0.5 rounded whitespace-nowrap transition cursor-pointer ${
                       cgDivFilter === divItem.id
                         ? 'bg-saffron text-slate-950 font-black shadow-sm'
-                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                        : isLightMode
+                          ? 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                          : 'bg-slate-800 text-slate-400 hover:text-white'
                     }`}
                   >
                     {divItem.label}
@@ -2910,11 +3434,17 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             {/* Filter Chips */}
             {!isDistrictMode && (
-              <div className="px-2.5 py-1.5 border-b border-slate-800/80 flex items-center gap-1 overflow-x-auto text-[10px] font-bold">
+              <div className={`px-2.5 py-1.5 border-b flex items-center gap-1 overflow-x-auto text-[10px] font-bold ${
+                isLightMode ? 'border-slate-200' : 'border-slate-800/80'
+              }`}>
                 <button
                   onClick={() => setFilterTab('ALL')}
                   className={`px-2 py-0.5 rounded whitespace-nowrap transition cursor-pointer ${
-                    filterTab === 'ALL' ? 'bg-sky-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-400 hover:text-white'
+                    filterTab === 'ALL'
+                      ? 'bg-sky-500 text-slate-950 font-black'
+                      : isLightMode
+                        ? 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
                   States/UT ({STATES_DATA.length})
@@ -2922,7 +3452,11 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                 <button
                   onClick={() => setFilterTab('HIGHWAYS')}
                   className={`px-2 py-0.5 rounded whitespace-nowrap transition cursor-pointer ${
-                    filterTab === 'HIGHWAYS' ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-400 hover:text-white'
+                    filterTab === 'HIGHWAYS'
+                      ? 'bg-amber-400 text-slate-950 font-black'
+                      : isLightMode
+                        ? 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
                   🛣️ हाईवेज ({HIGHWAYS_DATA.length})
@@ -2930,7 +3464,11 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                 <button
                   onClick={() => setFilterTab('RAILWAYS')}
                   className={`px-2 py-0.5 rounded whitespace-nowrap transition cursor-pointer ${
-                    filterTab === 'RAILWAYS' ? 'bg-sky-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-400 hover:text-white'
+                    filterTab === 'RAILWAYS'
+                      ? 'bg-sky-400 text-slate-950 font-black'
+                      : isLightMode
+                        ? 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
                   🚆 रेलवे ({RAILWAYS_DATA.length})
@@ -2938,7 +3476,11 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                 <button
                   onClick={() => setFilterTab('RIVERS')}
                   className={`px-2 py-0.5 rounded whitespace-nowrap transition cursor-pointer ${
-                    filterTab === 'RIVERS' ? 'bg-sky-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-400 hover:text-white'
+                    filterTab === 'RIVERS'
+                      ? 'bg-sky-500 text-slate-950 font-black'
+                      : isLightMode
+                        ? 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
                   🌊 नदियां ({RIVERS_DATA.length})
@@ -2946,7 +3488,11 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                 <button
                   onClick={() => setFilterTab('MTNS')}
                   className={`px-2 py-0.5 rounded whitespace-nowrap transition cursor-pointer ${
-                    filterTab === 'MTNS' ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-400 hover:text-white'
+                    filterTab === 'MTNS'
+                      ? 'bg-amber-500 text-slate-950 font-black'
+                      : isLightMode
+                        ? 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
                   🏔️ पर्वत ({MOUNTAINS_DATA.length})
@@ -2963,12 +3509,16 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                     onClick={() => selectDistrict(d, activeDistrictState!)}
                     className={`px-2.5 py-2 rounded-lg flex items-center justify-between text-left transition cursor-pointer ${
                       selectedEntity?.district?.id === d.id
-                        ? 'bg-saffron/20 border-l-3 border-saffron text-amber-200 font-bold'
-                        : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
+                        ? isLightMode
+                          ? 'bg-amber-100 border-l-4 border-amber-600 text-amber-950 font-bold shadow-sm'
+                          : 'bg-saffron/20 border-l-3 border-saffron text-amber-200 font-bold'
+                        : isLightMode
+                          ? 'bg-slate-100/70 hover:bg-slate-200/90 text-slate-700'
+                          : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
                     }`}
                   >
                     <span className="truncate pr-1">{d.name}</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-400 shrink-0">{d.hq}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-500 shrink-0 font-bold">{d.hq}</span>
                   </button>
                 ))
               ) : filterTab === 'ALL' ? (
@@ -2978,12 +3528,16 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                     onClick={() => selectState(st)}
                     className={`px-2.5 py-2 rounded-lg flex items-center justify-between text-left transition cursor-pointer ${
                       selectedEntity?.id === st.id
-                        ? 'bg-saffron/20 border-l-3 border-saffron text-amber-200 font-bold'
-                        : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
+                        ? isLightMode
+                          ? 'bg-amber-100 border-l-4 border-amber-600 text-amber-950 font-bold shadow-sm'
+                          : 'bg-saffron/20 border-l-3 border-saffron text-amber-200 font-bold'
+                        : isLightMode
+                          ? 'bg-slate-100/70 hover:bg-slate-200/90 text-slate-700'
+                          : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
                     }`}
                   >
                     <span className="truncate pr-1">{st.name}</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-400 shrink-0">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-500 shrink-0 font-bold">
                       {st.id === 'CG' ? '33 जिले' : st.type}
                     </span>
                   </button>
@@ -2995,15 +3549,19 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                     onClick={() => selectHighway(hw)}
                     className={`px-2.5 py-2 rounded-lg flex items-center justify-between text-left transition cursor-pointer ${
                       selectedEntity?.id === hw.id
-                        ? 'bg-amber-500/25 border-l-3 border-amber-400 text-amber-200 font-bold'
-                        : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
+                        ? isLightMode
+                          ? 'bg-amber-100 border-l-4 border-amber-600 text-amber-950 font-bold shadow-sm'
+                          : 'bg-amber-500/25 border-l-3 border-amber-400 text-amber-200 font-bold'
+                        : isLightMode
+                          ? 'bg-slate-100/70 hover:bg-slate-200/90 text-slate-700'
+                          : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
                     }`}
                   >
                     <div className="truncate pr-1">
-                      <span className="block font-bold text-amber-300">{hw.code}</span>
-                      <span className="text-[10px] text-slate-400 block truncate">{hw.corridor}</span>
+                      <span className={`block font-bold ${isLightMode ? 'text-amber-800' : 'text-amber-300'}`}>{hw.code}</span>
+                      <span className={`text-[10px] block truncate ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`}>{hw.corridor}</span>
                     </div>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 shrink-0 font-bold">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 shrink-0 font-bold">
                       {hw.lengthKm} km
                     </span>
                   </button>
@@ -3015,15 +3573,19 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                     onClick={() => selectRailway(rl)}
                     className={`px-2.5 py-2 rounded-lg flex items-center justify-between text-left transition cursor-pointer ${
                       selectedEntity?.id === rl.id
-                        ? 'bg-sky-500/25 border-l-3 border-sky-400 text-sky-200 font-bold'
-                        : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
+                        ? isLightMode
+                          ? 'bg-sky-100 border-l-4 border-sky-600 text-sky-950 font-bold shadow-sm'
+                          : 'bg-sky-500/25 border-l-3 border-sky-400 text-sky-200 font-bold'
+                        : isLightMode
+                          ? 'bg-slate-100/70 hover:bg-slate-200/90 text-slate-700'
+                          : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
                     }`}
                   >
                     <div className="truncate pr-1">
-                      <span className="block font-bold text-sky-300 truncate">{rl.name}</span>
-                      <span className="text-[10px] text-slate-400 block truncate">{rl.zone}</span>
+                      <span className={`block font-bold truncate ${isLightMode ? 'text-sky-800' : 'text-sky-300'}`}>{rl.name}</span>
+                      <span className={`text-[10px] block truncate ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`}>{rl.zone}</span>
                     </div>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 shrink-0 font-bold">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-600 shrink-0 font-bold">
                       {rl.lengthKm} km
                     </span>
                   </button>
@@ -3035,12 +3597,16 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                     onClick={() => selectRiver(rv)}
                     className={`px-2.5 py-2 rounded-lg flex items-center justify-between text-left transition cursor-pointer ${
                       selectedEntity?.id === rv.id
-                        ? 'bg-sky-500/25 border-l-3 border-sky-400 text-sky-200 font-bold'
-                        : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
+                        ? isLightMode
+                          ? 'bg-sky-100 border-l-4 border-sky-600 text-sky-950 font-bold shadow-sm'
+                          : 'bg-sky-500/25 border-l-3 border-sky-400 text-sky-200 font-bold'
+                        : isLightMode
+                          ? 'bg-slate-100/70 hover:bg-slate-200/90 text-slate-700'
+                          : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
                     }`}
                   >
                     <span className="truncate pr-1">🌊 {rv.name}</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-400 shrink-0">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-600 shrink-0 font-bold">
                       {rv.length.split(' ')[0]}
                     </span>
                   </button>
@@ -3052,12 +3618,16 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
                     onClick={() => selectMountain(mtn)}
                     className={`px-2.5 py-2 rounded-lg flex items-center justify-between text-left transition cursor-pointer ${
                       selectedEntity?.id === mtn.id
-                        ? 'bg-amber-500/25 border-l-3 border-amber-400 text-amber-200 font-bold'
-                        : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
+                        ? isLightMode
+                          ? 'bg-amber-100 border-l-4 border-amber-600 text-amber-950 font-bold shadow-sm'
+                          : 'bg-amber-500/25 border-l-3 border-amber-400 text-amber-200 font-bold'
+                        : isLightMode
+                          ? 'bg-slate-100/70 hover:bg-slate-200/90 text-slate-700'
+                          : 'bg-slate-900/40 hover:bg-slate-800/80 text-slate-300'
                     }`}
                   >
                     <span className="truncate pr-1">🏔️ {mtn.name}</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 shrink-0">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 shrink-0 font-bold">
                       Peak
                     </span>
                   </button>
@@ -3067,7 +3637,7 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
             {/* Quick Drill to Chhattisgarh */}
             {!isDistrictMode && (
-              <div className="p-2 border-t border-slate-800 bg-saffron/10">
+              <div className={`p-2 border-t ${isLightMode ? 'border-slate-200 bg-amber-500/10' : 'border-slate-800 bg-saffron/10'}`}>
                 <button
                   onClick={() => {
                     const cg = STATES_DATA.find(s => s.id === 'CG');
@@ -3082,7 +3652,30 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
           </aside>
 
           {/* Right Panel: Detailed Comprehensive Information */}
-          <aside className="absolute top-3 right-3 bottom-3 w-80 sm:w-96 bg-[#0a1526]/95 border border-slate-800 rounded-xl backdrop-blur-md shadow-2xl p-4 overflow-y-auto flex flex-col gap-3.5 z-10">
+          <aside className={`absolute z-20 transition-all duration-200 overflow-y-auto flex flex-col gap-3.5 border shadow-2xl backdrop-blur-md ${
+            showInfoPanel ? 'flex' : 'hidden md:flex'
+          } ${
+            'md:top-3 md:right-3 md:bottom-3 md:w-80 lg:w-96 md:rounded-xl md:p-4'
+          } ${
+            'max-md:fixed max-md:inset-x-2 max-md:bottom-2 max-md:top-auto max-md:max-h-[65vh] max-md:rounded-2xl max-md:p-3.5 max-md:z-30'
+          } ${
+            isLightMode ? 'map3d-light-panel' : 'bg-[#0a1526]/95 border-slate-800 text-slate-100'
+          }`}>
+
+            {/* Mobile / Desktop Header with Close Button */}
+            <div className="flex items-center justify-between border-b pb-2 border-slate-700/60 shrink-0">
+              <span className="text-[11px] font-black uppercase text-saffron tracking-wider">
+                {entityType === 'OVERVIEW' ? '🇮🇳 भारत सामान्य परिचय' : entityType === 'STATE' ? `${selectedEntity?.name} विवरण` : entityType === 'DISTRICT' ? `${selectedEntity?.district?.name} जिला` : 'विवरण'}
+              </span>
+              <button
+                onClick={() => setShowInfoPanel(false)}
+                className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white transition flex items-center gap-1 text-xs font-bold cursor-pointer"
+                title="विवरण छुपाएं"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>मैप देखें (Close)</span>
+              </button>
+            </div>
             
             {entityType === 'OVERVIEW' && (
               <>
@@ -3600,9 +4193,22 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
           </aside>
 
+          {/* Floating Mobile Info Pill when drawer is closed */}
+          {!showInfoPanel && (
+            <button
+              onClick={() => setShowInfoPanel(true)}
+              className="md:hidden absolute bottom-3 right-3 z-20 px-3.5 py-2 rounded-xl bg-gradient-to-r from-saffron to-amber-500 text-slate-950 font-black text-xs shadow-2xl flex items-center gap-1.5 border border-amber-300 hover:scale-105 active:scale-95 transition cursor-pointer"
+            >
+              <Info className="w-4 h-4" />
+              <span>{entityType === 'STATE' && selectedEntity ? `${selectedEntity.name} विवरण` : 'विवरण (Info)'}</span>
+            </button>
+          )}
+
           {/* Official 2020 Map Modal (PIP) */}
           {showRefMap && (
-            <div className="absolute bottom-4 left-4 w-72 sm:w-96 h-80 sm:h-96 bg-[#0a1526] border-2 border-saffron rounded-2xl shadow-2xl flex flex-col overflow-hidden z-30">
+            <div className={`absolute bottom-4 left-4 w-72 sm:w-96 h-80 sm:h-96 border-2 border-saffron rounded-2xl shadow-2xl flex flex-col overflow-hidden z-30 ${
+              isLightMode ? 'bg-white text-slate-800' : 'bg-[#0a1526] text-slate-100'
+            }`}>
               <div className="p-2.5 bg-saffron/20 border-b border-saffron/40 flex items-center justify-between text-xs font-bold text-amber-200">
                 <span>🇮🇳 Official Survey of India (2020)</span>
                 <button

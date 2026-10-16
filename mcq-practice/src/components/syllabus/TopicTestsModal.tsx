@@ -22,11 +22,15 @@ interface TopicTestsModalProps {
   topicName: string;
   topicNameHi?: string;
   subjectName?: string;
+  topicId?: string;
   examId?: string;
   onStartTest: (testId: string, mode: 'quiz' | 'mock' | 'pyq', subject: string) => void | Promise<void>;
   onMarkComplete?: () => void;
   isCompleted?: boolean;
 }
+
+// Module-level in-memory cache for instant 0ms topic tests switching
+const clientTopicTestsCache = new Map<string, TopicTestItem[]>();
 
 export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
   isOpen,
@@ -34,6 +38,7 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
   topicName,
   topicNameHi,
   subjectName,
+  topicId,
   examId,
   onStartTest,
   onMarkComplete,
@@ -60,6 +65,14 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
   };
 
   const fetchTopicTests = async () => {
+    const cacheKey = `${examId || 'all'}_${topicId || topicName || 'unknown'}`;
+    const cached = clientTopicTestsCache.get(cacheKey);
+    if (cached) {
+      setTests(cached);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -68,6 +81,7 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
       if (topicName) params.append('topicName', topicName);
       if (topicNameHi) params.append('topicNameHi', topicNameHi);
       if (subjectName) params.append('subjectName', subjectName);
+      if (topicId) params.append('topicId', topicId);
       if (examId) params.append('examId', examId);
 
       const res = await fetch(getApiUrl(`/api/syllabus/topic-tests?${params.toString()}`));
@@ -75,6 +89,7 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
 
       if (res.ok && data.success && Array.isArray(data.tests)) {
         setTests(data.tests);
+        clientTopicTestsCache.set(cacheKey, data.tests);
       } else {
         throw new Error(data.error || 'Failed to search topic tests.');
       }

@@ -458,28 +458,28 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
                     <motion.div 
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="border-2 border-saffron/40 hover:border-saffron/80 bg-gradient-to-r from-bg-s2 via-[#0c1a2f] to-bg-s2 rounded-xl overflow-hidden shadow-lg transition-all"
+                      className="border-2 border-saffron/30 hover:border-saffron/60 bg-gradient-to-r from-bg-s2 via-saffron/5 to-bg-s2 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all"
                     >
                       {/* Header: Clickable to toggle map section */}
                       <button
                         onClick={() => setIsMapsSectionOpen(!isMapsSectionOpen)}
-                        className="w-full px-4 py-3.5 flex items-center justify-between text-left transition-colors cursor-pointer group hover:bg-white/5"
+                        className="w-full px-4 py-3.5 flex items-center justify-between text-left transition-colors cursor-pointer group hover:bg-saffron/5"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-saffron to-amber-500 flex items-center justify-center font-black text-slate-950 shadow-md group-hover:scale-105 transition-transform shrink-0">
-                            <Map className="w-5 h-5 text-slate-950" />
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-saffron to-amber-500 flex items-center justify-center font-black text-white shadow-md group-hover:scale-105 transition-transform shrink-0">
+                            <Map className="w-5 h-5 text-white" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="text-sm sm:text-base font-black text-text tracking-wide group-hover:text-saffron transition-colors">
                                 मानचित्र (Maps Explorer)
                               </h3>
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-saffron/20 text-saffron border border-saffron/40 flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-saffron/15 text-saffron border border-saffron/30 flex items-center gap-1">
                                 <Sparkles className="w-2.5 h-2.5" />
                                 3D Interactive
                               </span>
                             </div>
-                            <p className="text-[11px] text-text-muted mt-0.5">
+                            <p className="text-[11px] text-text-muted mt-0.5 font-medium">
                               भारत एवं छत्तीसगढ़ के उच्च परिशुद्धता 3D व विषयवार मानचित्र
                             </p>
                           </div>
@@ -507,19 +507,19 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.25 }}
-                            className="overflow-hidden border-t border-border/70 p-3 bg-[#071221]/80 space-y-2.5"
+                            className="overflow-hidden border-t border-border/60 p-3 bg-bg-s3/40 space-y-2.5"
                           >
                             {/* 1. India 3D Map Card */}
-                            <div className="px-3.5 py-2.5 bg-bg-s2 border border-sky-500/30 hover:border-sky-500/60 rounded-xl flex items-center justify-between gap-3 shadow transition-all">
+                            <div className="px-3.5 py-3 bg-bg-s2 hover:bg-bg-s1 border border-sky-500/25 hover:border-sky-500/50 rounded-xl flex items-center justify-between gap-3 shadow-xs transition-all">
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="p-2 rounded-lg bg-sky-500/15 text-sky-400 shrink-0">
+                                <div className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 shrink-0">
                                   <Globe className="w-4 h-4" />
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap min-w-0">
-                                  <span className="text-xs sm:text-sm font-bold text-sky-200">
+                                  <span className="text-xs sm:text-sm font-bold text-text">
                                     🇮🇳 भारत 3D मानचित्र
                                   </span>
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-700 dark:text-sky-300 font-mono font-bold">
                                     Survey 2020
                                   </span>
                                 </div>
@@ -527,7 +527,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
 
                               <button
                                 onClick={() => handleOpen3DMap()}
-                                className="px-3.5 py-1.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs rounded-lg shadow hover:shadow-sky-500/30 hover:scale-102 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                                className="px-3.5 py-1.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs rounded-lg shadow-sm hover:shadow-sky-500/30 hover:scale-102 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
                               >
                                 <Globe className="w-3.5 h-3.5" />
                                 <span>मैप खोलें</span>
@@ -535,16 +535,16 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
                             </div>
 
                             {/* 2. Chhattisgarh Map Card */}
-                            <div className="px-3.5 py-2.5 bg-bg-s2 border border-saffron/40 hover:border-saffron/70 rounded-xl flex items-center justify-between gap-3 shadow transition-all">
+                            <div className="px-3.5 py-3 bg-bg-s2 hover:bg-bg-s1 border border-saffron/30 hover:border-saffron/60 rounded-xl flex items-center justify-between gap-3 shadow-xs transition-all">
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="p-2 rounded-lg bg-saffron/15 text-saffron shrink-0">
+                                <div className="p-2 rounded-lg bg-saffron/10 text-saffron shrink-0">
                                   <Compass className="w-4 h-4" />
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap min-w-0">
-                                  <span className="text-xs sm:text-sm font-bold text-amber-200">
+                                  <span className="text-xs sm:text-sm font-bold text-text">
                                     🗺️ छत्तीसगढ़ 3D मानचित्र (Seahorse Shape)
                                   </span>
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-saffron/20 text-amber-300 font-bold">
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-saffron/15 text-saffron font-bold">
                                     33 जिले
                                   </span>
                                 </div>
@@ -552,7 +552,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
 
                               <button
                                 onClick={() => handleOpen3DMap('CG')}
-                                className="px-3.5 py-1.5 bg-gradient-to-r from-saffron to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-lg shadow hover:shadow-saffron/30 hover:scale-102 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                                className="px-3.5 py-1.5 bg-gradient-to-r from-saffron to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-lg shadow-sm hover:shadow-saffron/30 hover:scale-102 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
                               >
                                 <Compass className="w-3.5 h-3.5 text-slate-950" />
                                 <span>मैप खोलें</span>
@@ -651,6 +651,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
         topicName={selectedTopicForTests?.topic.name || ''}
         topicNameHi={selectedTopicForTests?.topic.nameHi}
         subjectName={selectedTopicForTests?.subjectName}
+        topicId={selectedTopicForTests?.topic.id}
         examId={activeExamId}
         onStartTest={async (testId, mode, subject) => {
           await onStartPractice(subject, testId, mode);

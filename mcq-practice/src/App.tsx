@@ -45,10 +45,11 @@ import { AiTutorModal } from './components/AiTutorModal';
 import { 
   requestPushNotificationPermission, 
   registerServiceWorker, 
-  sendSystemPushNotification,
   ensureNotificationChannel,
+  setupBackgroundMotivationalNotifications,
   scheduleRecurringReminders,
   scheduleJobDeadlineNotifications,
+  initNativePushNotifications,
   isCapacitorNative
 } from './services/pushNotificationService';
 
@@ -609,7 +610,7 @@ export default function App() {
   })();
   const activeExam = visibleExams.find(e => e.id === activeExamId) || visibleExams[0];
 
-    const getApiUrl = (path: string) => {
+    const getApiUrl = (path: string = '') => {
     const hostname = window.location.hostname;
     const isLocal = hostname === 'localhost' || 
                     hostname === '127.0.0.1' || 
@@ -763,20 +764,39 @@ export default function App() {
     } catch (_) {}
   };
 
-  // Notifications Listener & Automatic Unread Count Calculation
+  // Notifications Listener & Background Scheduler Setup
   useEffect(() => {
+    let appStateListenerSub: any = null;
+
     const checkAndSubscribe = async () => {
-      // 1. Ensure Notification Channel, Request Permission & Register SW
-      ensureNotificationChannel();
-      requestPushNotificationPermission();
+      // 1. Ensure Notification Channel & Request Permissions
+      await ensureNotificationChannel();
+      await requestPushNotificationPermission();
       registerServiceWorker();
-      scheduleRecurringReminders();
+
+      // 2. Initialize Native Push (FCM) & Deep Link Action Listeners
+      initNativePushNotifications(getApiUrl());
+
+      // 3. Schedule 7-day rolling background motivational notifications in Android AlarmManager
+      // These will ring and show banners even when the app is completely closed/killed!
+      setupBackgroundMotivationalNotifications();
+
+      // Setup App State listener: When user minimizes or leaves the app, ensure fresh background alarms are locked in
+      if (isCapacitorNative()) {
+        try {
+          const { App: CapApp } = await import('@capacitor/app');
+          appStateListenerSub = await CapApp.addListener('appStateChange', ({ isActive }) => {
+            if (!isActive) {
+              setupBackgroundMotivationalNotifications();
+            }
+          });
+        } catch (_) {}
+      }
 
       // Check if browser permission needs user gesture prompt
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && !isCapacitorNative()) {
         setNotificationPermissionNeeded(true);
       }
-
 
       const getReadIds = (): string[] => {
         try {
@@ -801,10 +821,10 @@ export default function App() {
         const unreadNotifs = validNotifs.filter(n => !currentReadIds.includes(n.id));
         setUnreadNotificationsCount(unreadNotifs.length);
 
-        // Schedule future job deadlines in Android AlarmManager so alarms trigger when app is closed
+        // Schedule future job deadline reminders in Android AlarmManager so alarms trigger when app is closed
         scheduleJobDeadlineNotifications(validNotifs);
 
-        // Display In-App Floating Toast for the latest unread alert so user sees it immediately on app launch!
+        // Display In-App Floating Toast for the latest unread alert so user sees it inside the app
         if (unreadNotifs.length > 0) {
           const topAlert = unreadNotifs[0];
           const dismissedId = sessionStorage.getItem('cgguru_dismissed_toast');
@@ -812,17 +832,6 @@ export default function App() {
             setLatestNotificationAlert(topAlert);
           }
         }
-
-        // Send Push Notification for ALL unread alerts directly to device Status Bar
-        unreadNotifs.forEach(notif => {
-          sendSystemPushNotification(
-            notif.title || '📢 CG Guru Notification',
-            notif.message || 'New announcement available!',
-            '/icon-192.png',
-            notif.actionUrl || '/jobs',
-            notif.id
-          );
-        });
       };
 
       const fetchNotificationsApi = async () => {
@@ -837,16 +846,19 @@ export default function App() {
         } catch (e) {}
       };
 
-      // 1. Initial API fetch from cached server endpoint
+      // Initial API fetch from cached server endpoint
       await fetchNotificationsApi();
 
-      // 2. Periodic background check (every 5 mins) to keep notifications updated without burning Firestore quota
+      // Periodic check while app is open (every 5 mins)
       const pollInterval = setInterval(() => {
         fetchNotificationsApi();
       }, 5 * 60 * 1000);
 
       return () => {
         clearInterval(pollInterval);
+        if (appStateListenerSub && typeof appStateListenerSub.remove === 'function') {
+          appStateListenerSub.remove();
+        }
       };
     };
 

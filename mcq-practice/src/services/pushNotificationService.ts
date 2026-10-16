@@ -1,4 +1,5 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 export const isCapacitorNative = (): boolean => {
   return typeof window !== 'undefined' && 
@@ -15,8 +16,8 @@ export const ensureNotificationChannel = async () => {
     try {
       await LocalNotifications.createChannel({
         id: 'cgguru_alerts',
-        name: 'CG Guru Alerts & Job Updates',
-        description: 'Notifications for tests, new job alerts, exams and announcements',
+        name: 'CG Guru Alerts & Study Reminders',
+        description: 'Notifications for tests, practice streaks, exams and job alerts',
         importance: 5, // IMPORTANCE_HIGH (makes sound and shows banner)
         visibility: 1, // VISIBILITY_PUBLIC (visible on lockscreen)
         vibration: true,
@@ -36,13 +37,22 @@ export const requestPushNotificationPermission = async (): Promise<boolean> => {
   try {
     if (isCapacitorNative()) {
       await ensureNotificationChannel();
+      let granted = false;
       try {
         const localPerm = await LocalNotifications.requestPermissions();
-        return localPerm.display === 'granted';
+        if (localPerm.display === 'granted') granted = true;
       } catch (permErr) {
         console.warn('[LocalNotifications requestPermissions Warning]:', permErr);
-        return false;
       }
+
+      try {
+        const pushPerm = await PushNotifications.requestPermissions();
+        if (pushPerm.receive === 'granted') granted = true;
+      } catch (pushErr) {
+        console.warn('[PushNotifications requestPermissions Warning]:', pushErr);
+      }
+
+      return granted;
     } else if (typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'granted') {
         return true;
@@ -56,6 +66,315 @@ export const requestPushNotificationPermission = async (): Promise<boolean> => {
     console.error('[Push Permission Request Error]:', err);
   }
   return false;
+};
+
+let pushListenersInitialized = false;
+
+/**
+ * Initializes Native Push Notifications (FCM / Remote Push) and Local Notification click listeners
+ */
+export const initNativePushNotifications = async (apiUrl?: string) => {
+  if (!isCapacitorNative() || pushListenersInitialized) return;
+  pushListenersInitialized = true;
+
+  try {
+    await ensureNotificationChannel();
+
+    // 1. Setup Local Notification Action Listener (deep link navigation when user taps banner)
+    try {
+      await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+        const targetUrl = action.notification.extra?.url;
+        console.log('[Local Notification Clicked]:', targetUrl);
+        if (targetUrl && typeof window !== 'undefined') {
+          window.location.href = targetUrl;
+        }
+      });
+    } catch (err) {
+      console.warn('[LocalNotification Click Listener Error]:', err);
+    }
+
+    // 2. Setup FCM Remote Push Notifications
+    try {
+      const permStatus = await PushNotifications.checkPermissions();
+      if (permStatus.receive === 'prompt' || permStatus.receive === 'prompt-with-rationale') {
+        await PushNotifications.requestPermissions();
+      }
+
+      // Register device with APNs / FCM
+      await PushNotifications.register();
+
+      // Listen for FCM Device Token
+      await PushNotifications.addListener('registration', async (token) => {
+        console.log('[FCM Registration Success] Device Token:', token.value?.substring(0, 20) + '...');
+        if (apiUrl && token.value) {
+          try {
+            await fetch(`${apiUrl}/api/notifications/fcm-token`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                token: token.value,
+                platform: 'android'
+              })
+            });
+            console.log('[FCM Token Sync] Device token synced to backend ✅');
+          } catch (syncErr) {
+            console.warn('[FCM Token Sync Error]:', syncErr);
+          }
+        }
+      });
+
+      await PushNotifications.addListener('registrationError', (err) => {
+        console.warn('[FCM Registration Error]:', err.error);
+      });
+
+      // Handle push notification tap when app is in background or closed
+      await PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+        const data = notification.notification.data;
+        const targetUrl = data?.actionUrl || data?.url;
+        console.log('[Remote Push Clicked]:', targetUrl);
+        if (targetUrl && typeof window !== 'undefined') {
+          window.location.href = targetUrl;
+        }
+      });
+
+    } catch (pushInitErr) {
+      console.warn('[PushNotifications Registration Warning]:', pushInitErr);
+    }
+  } catch (err) {
+    console.warn('[initNativePushNotifications Error]:', err);
+  }
+};
+
+/**
+ * Motivational Notification templates for rolling background alarms
+ */
+const MOTIVATIONAL_MORNING_MESSAGES = [
+  {
+    title: '☀️ CG Guru: आज का Daily MCQ Test तैयार है!',
+    body: '10 मिनट अभ्यास करें और अपनी तैयारी जांचें। आपकी मेहनत ही आपकी रैंक तय करेगी! 🎯',
+    url: '/tests'
+  },
+  {
+    title: '🏆 Target CG Exams: रोज़ 15 मिनट अभ्यास',
+    body: 'नियमित अभ्यास करने वाले छात्र ही मेरिट लिस्ट में आते हैं। आज का टेस्ट अभी शुरू करें!',
+    url: '/tests'
+  },
+  {
+    title: '📚 CG GK & Current Affairs Live',
+    body: 'नए महत्वपूर्ण प्रश्न अपडेट हो चुके हैं। 5 सवाल हल करके अपनी तैयारी परखें ⚡',
+    url: '/tests'
+  },
+  {
+    title: '🔥 Daily Practice Streak जारी रखें!',
+    body: 'आज का क्विज़ हल करें और अपनी लगातार पढ़ाई की स्ट्रीक को आगे बढ़ाएं 🚀',
+    url: '/tests'
+  },
+  {
+    title: '💡 Exam Preparation Booster',
+    body: 'सिलेबस के अनुसार महत्वपूर्ण MCQs उपलब्ध हैं। अपनी कमज़ोरियों को मज़बूती में बदलें!',
+    url: '/syllabus'
+  },
+  {
+    title: '⚡ Quick 5-Minute Challenge',
+    body: 'क्या आप आज 5 में से 5 सही उत्तर दे सकते हैं? टेस्ट शुरू करें और खुद को चुनौती दें!',
+    url: '/tests'
+  },
+  {
+    title: '📝 Weekly Practice & Revision',
+    body: 'सप्ताह भर की तैयारी का आंकलन करें। CG Guru पर नया फुल लेंथ मॉक टेस्ट दें 🌟',
+    url: '/tests'
+  }
+];
+
+const MOTIVATIONAL_EVENING_MESSAGES = [
+  {
+    title: '🔥 Streak Alert: आज का अभ्यास बाकी है!',
+    body: 'सोने से पहले 5 मिनट में आज का टेस्ट पूरा करें और अपनी डेली स्ट्रीक टूटने न दें ⏳',
+    url: '/tests'
+  },
+  {
+    title: '🧠 Evening Revision: दिनभर की पढ़ाई का टेस्ट लें',
+    body: 'आज जो भी पढ़ा, उसके 10 प्रश्न हल करके देखें कितना याद रहा! 🎯',
+    url: '/tests'
+  },
+  {
+    title: '⚡ 5-Minute Quick Quiz Break',
+    body: 'दिनभर की थकान के बाद 5 आसान सवालों का जवाब देकर अपना स्कोर और रैंक सुधारें 🏆',
+    url: '/tests'
+  },
+  {
+    title: '🎯 CG Guru Mock Test Series',
+    body: 'हज़ारों छात्र अभ्यास कर रहे हैं। अपनी राज्य स्तरीय रैंक देखने के लिए टेस्ट दें!',
+    url: '/tests'
+  },
+  {
+    title: '📖 सोने से पहले 1 छोटा टेस्ट',
+    body: 'हर रोज़ का छोटा प्रयास ही परीक्षा के दिन बड़ी रैंक दिलाता है। शुभ रात्रि अभ्यास करें ✨',
+    url: '/tests'
+  },
+  {
+    title: '🔥 Daily Practice: Streak Protection',
+    body: 'सिर्फ 5 मिनट निकालें, सवाल हल करें और अपनी तैयारी को सबसे आगे रखें 🚀',
+    url: '/tests'
+  },
+  {
+    title: '📊 अपनी रैंक और प्रगति देखें',
+    body: 'सप्ताह की तैयारी का विश्लेषण करें और कल के लिए नया टारगेट सेट करें!',
+    url: '/tests'
+  }
+];
+
+/**
+ * Schedules a rolling 7-day queue of background motivational notifications
+ * directly into Android's AlarmManager.
+ * These notifications ring and show banners EVEN WHEN THE APP IS COMPLETELY CLOSED!
+ */
+export const setupBackgroundMotivationalNotifications = async () => {
+  if (!isCapacitorNative()) return;
+
+  try {
+    await ensureNotificationChannel();
+    const hasPerm = await LocalNotifications.checkPermissions();
+    if (hasPerm.display !== 'granted') return;
+
+    const pending = await LocalNotifications.getPending();
+    const pendingIds = new Set(pending.notifications.map(n => n.id));
+
+    const scheduledList: any[] = [];
+    const now = new Date();
+
+    // Schedule 7 days of morning (8:30 AM) and evening (7:30 PM) reminders
+    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+      // 1. Morning Reminder (8:30 AM)
+      const morningDate = new Date(now);
+      morningDate.setDate(morningDate.getDate() + dayOffset);
+      morningDate.setHours(8, 30, 0, 0);
+
+      const morningId = 81000 + (dayOffset * 2) + 1;
+      if (morningDate.getTime() > now.getTime() + 60000 && !pendingIds.has(morningId)) {
+        const morningTemplate = MOTIVATIONAL_MORNING_MESSAGES[dayOffset % MOTIVATIONAL_MORNING_MESSAGES.length];
+        scheduledList.push({
+          id: morningId,
+          title: morningTemplate.title,
+          body: morningTemplate.body,
+          channelId: 'cgguru_alerts',
+          schedule: { 
+            at: morningDate,
+            allowWhileIdle: true
+          },
+          sound: 'default',
+          extra: { url: morningTemplate.url }
+        });
+      }
+
+      // 2. Evening Reminder (7:30 PM)
+      const eveningDate = new Date(now);
+      eveningDate.setDate(eveningDate.getDate() + dayOffset);
+      eveningDate.setHours(19, 30, 0, 0);
+
+      const eveningId = 81000 + (dayOffset * 2) + 2;
+      if (eveningDate.getTime() > now.getTime() + 60000 && !pendingIds.has(eveningId)) {
+        const eveningTemplate = MOTIVATIONAL_EVENING_MESSAGES[dayOffset % MOTIVATIONAL_EVENING_MESSAGES.length];
+        scheduledList.push({
+          id: eveningId,
+          title: eveningTemplate.title,
+          body: eveningTemplate.body,
+          channelId: 'cgguru_alerts',
+          schedule: { 
+            at: eveningDate,
+            allowWhileIdle: true
+          },
+          sound: 'default',
+          extra: { url: eveningTemplate.url }
+        });
+      }
+    }
+
+    if (scheduledList.length > 0) {
+      await LocalNotifications.schedule({ notifications: scheduledList });
+      console.log(`[Native Push] Queued ${scheduledList.length} motivational reminders in Android AlarmManager for next 7 days ✅`);
+    }
+  } catch (err) {
+    console.warn('[Setup Background Notifications Error]:', err);
+  }
+};
+
+/**
+ * Backward compatibility alias
+ */
+export const scheduleRecurringReminders = setupBackgroundMotivationalNotifications;
+
+/**
+ * Schedules future job deadline alerts into Android's AlarmManager
+ * so user gets alerted before and on the deadline day even if the app is closed!
+ */
+export const scheduleJobDeadlineNotifications = async (notifs: any[]) => {
+  if (!isCapacitorNative() || !Array.isArray(notifs)) return;
+
+  try {
+    await ensureNotificationChannel();
+    const hasPerm = await LocalNotifications.checkPermissions();
+    if (hasPerm.display !== 'granted') return;
+
+    const pending = await LocalNotifications.getPending();
+    const pendingIds = new Set(pending.notifications.map(n => n.id));
+
+    const scheduledAlerts: any[] = [];
+    const nowMs = Date.now();
+
+    for (const notif of notifs) {
+      const deadlineStr = notif.lastDate || notif.deadline || notif.expiresAt;
+      if (!deadlineStr) continue;
+
+      // 1. Day of deadline at 9:00 AM
+      const deadlineDate = new Date(deadlineStr);
+      deadlineDate.setHours(9, 0, 0, 0);
+      const alertId = Math.floor(Math.abs(hashString(`deadline_${notif.id}`)) % 2147483647);
+
+      if (deadlineDate.getTime() > nowMs && !pendingIds.has(alertId)) {
+        scheduledAlerts.push({
+          id: alertId,
+          title: `⚠️ Last Date Today: ${notif.title}`,
+          body: notif.message || 'Today is the last date to apply. Check details now!',
+          channelId: 'cgguru_alerts',
+          schedule: { 
+            at: deadlineDate,
+            allowWhileIdle: true
+          },
+          sound: 'default',
+          extra: { url: notif.actionUrl || '/jobs' }
+        });
+      }
+
+      // 2. 2 Days before deadline at 11:00 AM
+      const twoDaysBefore = new Date(deadlineDate);
+      twoDaysBefore.setDate(twoDaysBefore.getDate() - 2);
+      twoDaysBefore.setHours(11, 0, 0, 0);
+      const alert2DaysId = Math.floor(Math.abs(hashString(`deadline_2d_${notif.id}`)) % 2147483647);
+
+      if (twoDaysBefore.getTime() > nowMs && !pendingIds.has(alert2DaysId)) {
+        scheduledAlerts.push({
+          id: alert2DaysId,
+          title: `⏳ सिर्फ 2 दिन शेष: ${notif.title}`,
+          body: 'अंतिम तिथि नज़दीक है। जल्द आवेदन करें और विवरण देखें!',
+          channelId: 'cgguru_alerts',
+          schedule: { 
+            at: twoDaysBefore,
+            allowWhileIdle: true
+          },
+          sound: 'default',
+          extra: { url: notif.actionUrl || '/jobs' }
+        });
+      }
+    }
+
+    if (scheduledAlerts.length > 0) {
+      await LocalNotifications.schedule({ notifications: scheduledAlerts });
+      console.log(`[Native Push] Scheduled ${scheduledAlerts.length} future deadline alerts in Android AlarmManager ✅`);
+    }
+  } catch (err) {
+    console.warn('[Schedule Job Deadlines Error]:', err);
+  }
 };
 
 /**
@@ -92,6 +411,7 @@ export const registerServiceWorker = async () => {
 
 /**
  * Triggers a System Push Notification directly to the Device Status Bar / Notification Center
+ * (Used for immediate alerts when desired)
  */
 export const sendSystemPushNotification = async (
   title: string,
@@ -117,7 +437,6 @@ export const sendSystemPushNotification = async (
     if (isCapacitorNative()) {
       await ensureNotificationChannel();
 
-      // Trigger Native Android Status Bar Notification via Capacitor
       let hasPerm = await LocalNotifications.checkPermissions();
       if (hasPerm.display !== 'granted') {
         hasPerm = await LocalNotifications.requestPermissions();
@@ -160,7 +479,6 @@ export const sendSystemPushNotification = async (
                 data: { url },
                 tag: notifHash
               } as any);
-              console.log('[Web Push] Displayed system status bar notification via Service Worker');
               return;
             }
           } catch (swErr) {
@@ -179,106 +497,10 @@ export const sendSystemPushNotification = async (
           if (url) window.location.href = url;
           n.close();
         };
-        console.log('[Web Push] Displayed direct browser notification');
       }
     }
   } catch (err) {
     console.error('[Send Push Notification Error]:', err);
-  }
-};
-
-/**
- * Schedules recurring daily background notifications in Android's AlarmManager
- * so that notifications arrive even when the app is completely closed!
- */
-export const scheduleRecurringReminders = async () => {
-  if (!isCapacitorNative()) return;
-
-  try {
-    await ensureNotificationChannel();
-    const hasPerm = await LocalNotifications.checkPermissions();
-    if (hasPerm.display !== 'granted') return;
-
-    // Check if daily reminder is already scheduled
-    const pending = await LocalNotifications.getPending();
-    const hasDaily = pending.notifications.some(n => n.id === 99901);
-
-    if (!hasDaily) {
-      const nextMorning = new Date();
-      nextMorning.setHours(9, 0, 0, 0);
-      if (nextMorning.getTime() <= Date.now()) {
-        nextMorning.setDate(nextMorning.getDate() + 1);
-      }
-
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: 99901,
-            title: '🎯 CG Guru: Daily Practice Alert',
-            body: 'Naye tests aur current affairs updates live hain. Apni daily study complete karein!',
-            channelId: 'cgguru_alerts',
-            schedule: {
-              at: nextMorning,
-              repeats: true,
-              every: 'day'
-            },
-            extra: { url: '/tests' }
-          }
-        ]
-      });
-      console.log('[Native Push] Daily 9 AM reminder scheduled in Android AlarmManager ✅');
-    }
-  } catch (err) {
-    console.warn('[Schedule Recurring Reminder Error]:', err);
-  }
-};
-
-/**
- * Schedules future job deadline alerts into Android's AlarmManager
- * so user gets alerted on the deadline day even if the app is closed!
- */
-export const scheduleJobDeadlineNotifications = async (notifs: any[]) => {
-  if (!isCapacitorNative() || !Array.isArray(notifs)) return;
-
-  try {
-    await ensureNotificationChannel();
-    const hasPerm = await LocalNotifications.checkPermissions();
-    if (hasPerm.display !== 'granted') return;
-
-    const pending = await LocalNotifications.getPending();
-    const pendingIds = new Set(pending.notifications.map(n => n.id));
-
-    const scheduledAlerts: any[] = [];
-    const nowMs = Date.now();
-
-    for (const notif of notifs) {
-      const deadlineStr = notif.lastDate || notif.deadline || notif.expiresAt;
-      if (!deadlineStr) continue;
-
-      // Calculate 9:00 AM on deadline date
-      const deadlineDate = new Date(deadlineStr);
-      deadlineDate.setHours(9, 0, 0, 0);
-
-      const alertId = Math.floor(Math.abs(hashString(`deadline_${notif.id}`)) % 2147483647);
-
-      if (deadlineDate.getTime() > nowMs && !pendingIds.has(alertId)) {
-        scheduledAlerts.push({
-          id: alertId,
-          title: `⚠️ Last Date Today: ${notif.title}`,
-          body: notif.message || 'Today is the last date to apply. Check details now!',
-          channelId: 'cgguru_alerts',
-          schedule: { at: deadlineDate },
-          extra: { url: notif.actionUrl || '/jobs' }
-        });
-      }
-    }
-
-    if (scheduledAlerts.length > 0) {
-      await LocalNotifications.schedule({ notifications: scheduledAlerts });
-      console.log(`[Native Push] Scheduled ${scheduledAlerts.length} future deadline alerts in Android AlarmManager ✅`);
-    }
-  } catch (err) {
-    console.warn('[Schedule Job Deadlines Error]:', err);
   }
 };
 

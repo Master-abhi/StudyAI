@@ -202,13 +202,18 @@ router.get('/topic-pdf-url', verifyFirebaseToken, async (req, res) => {
 // GET /api/syllabus/topic-notes - Get formatted interactive study notes for a topic
 router.get('/topic-notes', async (req, res) => {
   try {
-    const { examId, topicId, topicName, topicNameHi } = req.query;
+    const { examId, topicId, topicName, topicNameHi, refresh } = req.query;
     if (!topicId && !topicName && !topicNameHi) {
       return res.status(400).json({ error: 'topicId or topicName is required' });
     }
 
     const cacheKey = `topic_notes_${examId || 'all'}_${topicId || topicName || 'unknown'}`;
-    const result = await safeFirestoreQuery(cacheKey, async () => {
+    if (refresh === 'true') {
+      invalidateCache(cacheKey);
+      if (topicId) invalidateCache(topicId);
+    }
+
+    let result = await safeFirestoreQuery(cacheKey, async () => {
       // 1. Fast lookup: Check specified exam first
       if (examId && topicId) {
         const cachedSnap = await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).get();
@@ -330,6 +335,17 @@ router.get('/topic-notes', async (req, res) => {
       return res.status(404).json({ error: 'No formatted study notes found for this topic.' });
     }
 
+    if (result && result.studyNotes && !result.studyNotes.overview && topicId) {
+      try {
+        const directSnap = await db.collection('topic_study_notes').doc(`cgv_master_${topicId}`).get();
+        if (directSnap.exists && directSnap.data()?.studyNotes?.overview) {
+          result.studyNotes.overview = desanitizeFromFirestore(directSnap.data().studyNotes.overview);
+          const { saveCache } = require('../services/firestoreCache');
+          saveCache(cacheKey, result);
+        }
+      } catch (_) {}
+    }
+
     res.json(result);
   } catch (err) {
     console.error('[Get Topic Study Notes Error]:', err.message);
@@ -441,61 +457,134 @@ router.get('/topic-lectures', async (req, res) => {
 // GET /api/syllabus/topic-tests - Search available Quizzes/Mock tests for a specific topic
 router.get('/topic-tests', async (req, res) => {
   try {
-    const { topicName, topicNameHi, subjectName, examId } = req.query;
+    const { topicName, topicNameHi, subjectName, examId, topicId } = req.query;
 
-    const keywords = [
-      (topicNameHi || '').trim().toLowerCase(),
-      (topicName || '').trim().toLowerCase(),
-      (subjectName || '').trim().toLowerCase()
-    ].filter(Boolean);
+    const norm = str => (str || '')
+      .toLowerCase()
+      .replace(/\(.*?\)/g, ' ')
+      .replace(/\[.*?\]/g, ' ')
+      .replace(/[\/—\-–:|]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
-    if (keywords.length === 0) {
+    const rawHi = (topicNameHi || '').trim();
+    const rawEn = (topicName || '').trim();
+
+    // Generic words to exclude if they appear alone
+    const stopWords = new Set([
+      'test', 'mock', 'quiz', 'paper', 'questions', 'mcqs',
+      'and', 'the', 'for', 'part', 'class', 'series', 'exam',
+      'का', 'की', 'के', 'में', 'पर', 'एवं', 'तथा', 'और', 'से', 'भाग', 'प्रश्न'
+    ]);
+
+    // Extract specific topic parts if separated by dash/hyphen (e.g. "भारतीय इतिहास — प्राचीन भारत" -> ["प्राचीन भारत"])
+    const hiParts = rawHi.split(/[—\-–|:]/).map(p => p.trim()).filter(Boolean);
+    const enParts = rawEn.split(/[—\-–|:]/).map(p => p.trim()).filter(Boolean);
+
+    // Build target search phrases for the specific topic (strictly topic names, NOT subjectName!)
+    const targetPhrases = new Set();
+    [rawHi, rawEn, ...hiParts, ...enParts].forEach(p => {
+      const n = norm(p);
+      if (n.length >= 3 && !stopWords.has(n)) {
+        targetPhrases.add(n);
+      }
+    });
+
+    if (targetPhrases.size === 0 && !topicId) {
       return res.json({ success: true, tests: [] });
     }
 
-    // Fetch tests from Firestore (with fallback/supplement from cached files)
-    const rawTests = [];
-    try {
-      const snapshot = await db.collection('tests').get();
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data) rawTests.push({ ...data, id: data.id || doc.id });
-      });
-    } catch (dbErr) {
-      console.warn('[topic-tests DB Warning]:', dbErr.message);
-    }
+    // 1. Ultra-fast Catalog Loading with 30-min in-memory & disk cache
+    const rawTests = await safeFirestoreQuery('topic_tests_catalog', async () => {
+      const fs = require('fs');
+      const path = require('path');
+      const cacheDir = path.join(__dirname, '../data_cache');
+      const catalogMap = new Map();
 
-    // Load from local tests cache for CG VYAPAM BASICS and all tests
-    const fs = require('fs');
-    const path = require('path');
-    const cacheFiles = [
-      path.join(__dirname, '../data_cache/tests_cgv_master.json'),
-      path.join(__dirname, '../data_cache/tests_all.json')
-    ];
-    for (const cf of cacheFiles) {
-      if (fs.existsSync(cf)) {
+      // Read pre-cached test lists from disk first (takes ~3ms)
+      if (fs.existsSync(cacheDir)) {
         try {
-          const cached = JSON.parse(fs.readFileSync(cf, 'utf8'));
-          if (Array.isArray(cached)) {
-            for (const ct of cached) {
-              if (ct && !rawTests.some(t => t.id === ct.id)) {
-                rawTests.push(ct);
+          const baseFiles = fs.readdirSync(cacheDir).filter(f => 
+            (f.startsWith('tests_base_') || f.startsWith('admin_tests_meta') || f.startsWith('tests_')) && 
+            f.endsWith('.json')
+          );
+          for (const cf of baseFiles) {
+            try {
+              const cached = JSON.parse(fs.readFileSync(path.join(cacheDir, cf), 'utf8'));
+              if (Array.isArray(cached)) {
+                for (const ct of cached) {
+                  if (ct && ct.id && !catalogMap.has(ct.id)) {
+                    catalogMap.set(ct.id, {
+                      id: ct.id,
+                      title: ct.title || '',
+                      topic: ct.topic || ct.topicName || ct.topicNameHi || ct.subTopic || '',
+                      topicId: ct.topicId || '',
+                      topicIds: ct.topicIds || [],
+                      examId: ct.examId || (ct.examIds && ct.examIds[0]) || '',
+                      examIds: ct.examIds || (ct.examId ? [ct.examId] : []),
+                      examName: ct.examName || '',
+                      subject: ct.subject || 'General Knowledge',
+                      mode: ct.mode || 'quiz',
+                      totalQuestions: ct.questions ? ct.questions.length : (ct.totalQuestions || 10),
+                      durationMinutes: ct.durationMinutes || (ct.mode === 'mock' ? 120 : 15),
+                      totalMarks: ct.totalMarks || (ct.questions ? ct.questions.length : 10),
+                      createdAt: ct.createdAt || ''
+                    });
+                  }
+                }
               }
-            }
+            } catch (_) {}
           }
         } catch (_) {}
       }
-    }
+
+      if (catalogMap.size > 0) {
+        return Array.from(catalogMap.values());
+      }
+
+      // Fallback: lightweight field projection from Firestore (avoids downloading questions)
+      try {
+        const snapshot = await db.collection('tests').select(
+          'id', 'title', 'topic', 'topicId', 'topicIds', 'topicName', 'topicNameHi', 
+          'subject', 'mode', 'examId', 'examIds', 'examName', 'totalQuestions', 
+          'durationMinutes', 'totalMarks', 'createdAt'
+        ).get();
+        snapshot.forEach(doc => {
+          const d = doc.data() || {};
+          catalogMap.set(d.id || doc.id, {
+            id: d.id || doc.id,
+            title: d.title || '',
+            topic: d.topic || d.topicName || d.topicNameHi || d.subTopic || '',
+            topicId: d.topicId || '',
+            topicIds: d.topicIds || [],
+            examId: d.examId || (d.examIds && d.examIds[0]) || '',
+            examIds: d.examIds || (d.examId ? [d.examId] : []),
+            examName: d.examName || '',
+            subject: d.subject || 'General Knowledge',
+            mode: d.mode || 'quiz',
+            totalQuestions: d.totalQuestions || 10,
+            durationMinutes: d.durationMinutes || (d.mode === 'mock' ? 120 : 15),
+            totalMarks: d.totalMarks || 10,
+            createdAt: d.createdAt || ''
+          });
+        });
+      } catch (dbErr) {
+        console.warn('[topic-tests DB Warning]:', dbErr.message);
+      }
+
+      return Array.from(catalogMap.values());
+    }, [], 30 * 60 * 1000);
 
     const matchingTests = [];
 
     rawTests.forEach(t => {
       if (!t) return;
 
-      const title = (t.title || '').toLowerCase();
-      const subject = (t.subject || '').toLowerCase();
-      
-      // Automatic cross-exam access: CG VYAPAM BASICS ('cgv_master') tests are accessible to all exams!
+      const titleNorm = norm(t.title);
+      const testTopicNorm = norm(t.topic || t.topicName || t.topicNameHi || t.subTopic);
+      const testTopicId = (t.topicId || '').trim();
+
+      // Exam scope filter
       const examMatch = !examId || 
         t.examId === examId || 
         (Array.isArray(t.examIds) && t.examIds.includes(examId)) ||
@@ -503,48 +592,78 @@ router.get('/topic-tests', async (req, res) => {
         t.examName === 'CG VYAPAM BASICS' ||
         (Array.isArray(t.examIds) && (t.examIds.includes('cgv_master') || t.examIds.includes('CG VYAPAM BASICS')));
 
+      if (!examMatch) return;
+
+      // EXCLUDE generic mixed tests from topic tests
+      if (titleNorm.startsWith('mixed subjects') || titleNorm.startsWith('full syllabus') || titleNorm.startsWith('grand mock')) {
+        return;
+      }
+
       let matched = false;
       let matchScore = 0;
 
-      // Match topic name in title, subject, or questions
-      for (const kw of keywords) {
-        if (!kw || kw.length < 2) continue;
-        if (title.includes(kw)) {
-          matched = true;
-          matchScore += 10;
-        }
-        if (subject.includes(kw)) {
-          matched = true;
-          matchScore += 5;
-        }
+      // 1. Exact Topic ID match
+      if (topicId && (testTopicId === topicId || (Array.isArray(t.topicIds) && t.topicIds.includes(topicId)))) {
+        matched = true;
+        matchScore += 50;
       }
 
-      // If not yet matched, check questions array for topic relevance
-      if (!matched && Array.isArray(t.questions)) {
-        for (const q of t.questions) {
-          const qText = (q.question || '').toLowerCase();
-          const qExp = (q.explanation || '').toLowerCase();
-          const qTopic = (q.topic || '').toLowerCase();
-          for (const kw of keywords) {
-            if (qText.includes(kw) || qExp.includes(kw) || qTopic.includes(kw)) {
+      // 2. Match topic field or test title
+      if (!matched) {
+        for (const phrase of targetPhrases) {
+          // If test has explicit topic field
+          if (testTopicNorm) {
+            if (testTopicNorm === phrase) {
               matched = true;
-              matchScore += 3;
+              matchScore += 40;
+              break;
+            }
+            if (testTopicNorm.includes(phrase) || phrase.includes(testTopicNorm)) {
+              matched = true;
+              matchScore += 30;
               break;
             }
           }
-          if (matched) break;
+
+          // If test title matches topic phrase
+          if (titleNorm.includes(phrase)) {
+            matched = true;
+            matchScore += 20;
+            break;
+          }
         }
       }
 
-      if (matched && examMatch) {
+      // 3. If questions array exists, check question topic tags (strictly q.topic, NOT generic text match)
+      if (!matched && Array.isArray(t.questions) && t.questions.length > 0) {
+        let matchingQCount = 0;
+        for (const q of t.questions) {
+          const qTopic = norm(q.topic || q.subTopic);
+          if (qTopic) {
+            for (const phrase of targetPhrases) {
+              if (qTopic === phrase || qTopic.includes(phrase)) {
+                matchingQCount++;
+                break;
+              }
+            }
+          }
+        }
+        // If at least 40% of questions belong to this topic
+        if (matchingQCount >= Math.max(1, Math.floor(t.questions.length * 0.4))) {
+          matched = true;
+          matchScore += 15;
+        }
+      }
+
+      if (matched) {
         matchingTests.push({
           id: t.id,
           title: t.title || `${t.subject || 'Practice'} ${t.mode === 'mock' ? 'Mock Test' : t.mode === 'pyq' ? 'PYQ Paper' : 'Quiz'}`,
           subject: t.subject || 'General Knowledge',
           mode: t.mode || 'quiz',
-          totalQuestions: t.questions ? t.questions.length : (t.pattern?.totalQuestions || 5),
-          durationMinutes: t.pattern?.durationMinutes || (t.mode === 'mock' ? 120 : 15),
-          totalMarks: t.pattern?.totalMarks || (t.questions ? t.questions.length : 5),
+          totalQuestions: t.questions ? t.questions.length : (t.totalQuestions || t.pattern?.totalQuestions || 10),
+          durationMinutes: t.durationMinutes || t.pattern?.durationMinutes || (t.mode === 'mock' ? 120 : 15),
+          totalMarks: t.totalMarks || t.pattern?.totalMarks || (t.questions ? t.questions.length : 10),
           createdAt: t.createdAt,
           matchScore
         });

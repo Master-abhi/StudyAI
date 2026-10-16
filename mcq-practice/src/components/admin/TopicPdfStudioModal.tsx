@@ -55,7 +55,18 @@ function getSourcesList(data: any): string[] {
   let list: string[] = [];
 
   if (Array.isArray(rawSources)) {
-    list = rawSources.map((s: any) => String(s || '').trim()).filter(Boolean);
+    list = rawSources.map((s: any) => {
+      if (!s) return '';
+      if (typeof s === 'string') return s.trim();
+      if (typeof s === 'object') {
+        const title = s.title || s.name || s.source || '';
+        const authority = s.authority || s.author || s.type || '';
+        const notes = s.notes ? ` — ${s.notes}` : '';
+        if (title && authority) return `${title} (${authority})${notes}`;
+        return (title || authority || '') + notes;
+      }
+      return String(s || '').trim();
+    }).filter(Boolean);
   } else if (typeof rawSources === 'string' && rawSources.trim()) {
     list = rawSources.split(/[\n•,;]+/).map((s: string) => s.trim()).filter(Boolean);
   }

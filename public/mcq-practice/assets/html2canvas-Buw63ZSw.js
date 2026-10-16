@@ -1,1 +1,0 @@
-import{t as e}from"./AdminSyllabus-BmkHoFJS.js";export default e();

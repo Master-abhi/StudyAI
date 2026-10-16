@@ -18,14 +18,28 @@ export function formatNotesContent(content: any): string {
   if (typeof content !== 'string') return content || '';
   let str = content;
 
-  // Protect markdown table blocks before regex alterations
-  const tableBlocks: string[] = [];
+  // Protect code blocks, math blocks ($$..$$), and markdown tables before regex alterations
+  const protectedBlocks: string[] = [];
+
+  // Protect code blocks
+  str = str.replace(/(?:^|\n)(```[\s\S]*?```)/g, (match) => {
+    protectedBlocks.push(match);
+    return `\n\n__PROTECTED_BLOCK_${protectedBlocks.length - 1}__\n\n`;
+  });
+
+  // Protect display math blocks ($$...$$)
+  str = str.replace(/(?:^|\n)(\$\$[\s\S]*?\$\$)/g, (match) => {
+    protectedBlocks.push(match);
+    return `\n\n__PROTECTED_BLOCK_${protectedBlocks.length - 1}__\n\n`;
+  });
+
+  // Protect markdown table blocks
   str = str.replace(/(?:^|\n)(\|[^\n]+\|\n\|[-:\s|]+\|\n(?:\|[^\n]+\|\n?)*)/g, (match) => {
     const cleanTable = match
       .replace(/<br\s*\/?>/gi, ' <br/> ')
       .replace(/([^\n])\s*[•●]\s*/g, '$1 <br/> • ');
-    tableBlocks.push(cleanTable);
-    return `\n\n__MD_TABLE_BLOCK_${tableBlocks.length - 1}__\n\n`;
+    protectedBlocks.push(cleanTable);
+    return `\n\n__PROTECTED_BLOCK_${protectedBlocks.length - 1}__\n\n`;
   });
 
   // First convert <li>Title: text</li> or <li><b>Title:</b> text</li> into markdown bullet
@@ -73,9 +87,9 @@ export function formatNotesContent(content: any): string {
   // Format Devanagari / English subheadings like (क), (ख) on their own line without #### to have ####
   str = str.replace(/(?<!#.*)(?:^|\n)[ \t]*\(([क-हa-z0-9])\)\s*(\*\*|[A-Za-z\u0900-\u097F])/gi, '\n\n#### ($1) $2');
 
-  // Restore table blocks intact
-  tableBlocks.forEach((tb, i) => {
-    str = str.replace(`__MD_TABLE_BLOCK_${i}__`, tb.trim());
+  // Restore protected blocks intact
+  protectedBlocks.forEach((pb, i) => {
+    str = str.replace(`__PROTECTED_BLOCK_${i}__`, pb.trim());
   });
 
   // Normalize excessive newlines
@@ -148,14 +162,32 @@ function getRowCells(row: any): string[] {
   return [String(row)];
 }
 
-// Safely extract and normalize sources list from notes (string or string[])
-export function getSourcesList(notes: any): string[] {
+// Safely extract and normalize sources list from notes (string or structured source objects)
+export interface SourceItem {
+  title: string;
+  authority?: string;
+  type?: string;
+  notes?: string;
+  url?: string;
+}
+
+export function getSourcesList(notes: any): (string | SourceItem)[] {
   if (!notes) return [];
   const rawSources = notes.sources || notes.references || notes.authoritativeSources;
-  let list: string[] = [];
+  let list: (string | SourceItem)[] = [];
 
   if (Array.isArray(rawSources)) {
-    list = rawSources.map((s: any) => String(s || '').trim()).filter(Boolean);
+    list = rawSources.map((s: any) => {
+      if (!s) return null;
+      if (typeof s === 'string') {
+        const trimmed = s.trim();
+        return trimmed ? trimmed : null;
+      }
+      if (typeof s === 'object') {
+        return s;
+      }
+      return String(s).trim() || null;
+    }).filter(Boolean) as (string | SourceItem)[];
   } else if (typeof rawSources === 'string' && rawSources.trim()) {
     list = rawSources.split(/[\n•,;]+/).map((s: string) => s.trim()).filter(Boolean);
   }
@@ -321,6 +353,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
   const [isSavedOffline, setIsSavedOffline] = useState<boolean>(false);
   const [offlineToast, setOfflineToast] = useState<string | null>(null);
   const printAreaRef = useRef<HTMLDivElement>(null);
+  const contentContainerRef = useRef<HTMLDivElement>(null);
 
   // Check offline status & fallback loading
   useEffect(() => {
@@ -329,8 +362,10 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
       const saved = localStorage.getItem(`cg_offline_notes_${topic.id}`);
       if (saved) {
         setIsSavedOffline(true);
+        const parsed = JSON.parse(saved);
+        // Only use offline fallback if no notes loaded and offline has overview
         if (!topic.studyNotes && !loadedNotes) {
-          setLoadedNotes(normalizeNotes(JSON.parse(saved)));
+          setLoadedNotes(normalizeNotes(parsed));
         }
       } else {
         setIsSavedOffline(false);
@@ -340,17 +375,29 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
     }
   }, [topic]);
 
-  // Reset quiz answers when switching topics or reopening
+  // Reset quiz answers, selected chapter, and scroll when switching topics or reopening
   useEffect(() => {
     setSelectedAnswers({});
     setRevealedExplanations({});
+    setSelectedChapterIdx(null);
+    setLoadedNotes(null);
+    if (contentContainerRef.current) {
+      contentContainerRef.current.scrollTop = 0;
+    }
   }, [topic?.id, isOpen]);
 
-  // Fetch notes if not already loaded in topic.studyNotes
+  // Reset scroll to top when switching chapters or tabs
+  useEffect(() => {
+    if (contentContainerRef.current) {
+      contentContainerRef.current.scrollTop = 0;
+    }
+  }, [selectedChapterIdx, activeTab]);
+
+  // Fetch notes if not already loaded with full overview
   useEffect(() => {
     if (!isOpen || !topic) return;
 
-    if (topic.studyNotes) {
+    if (topic.studyNotes && topic.studyNotes.overview) {
       setLoadedNotes(normalizeNotes(topic.studyNotes));
       return;
     }
@@ -359,10 +406,16 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
       try {
         setLoading(true);
         setError('');
-        const res = await fetch(getApiUrl(`/api/syllabus/topic-notes?topicId=${encodeURIComponent(topic.id)}${examId ? `&examId=${encodeURIComponent(examId)}` : ''}`));
+        const res = await fetch(getApiUrl(`/api/syllabus/topic-notes?topicId=${encodeURIComponent(topic.id)}${examId ? `&examId=${encodeURIComponent(examId)}` : ''}&refresh=true&_t=${Date.now()}`));
         const data = await res.json();
         if (res.ok && data.studyNotes) {
           setLoadedNotes(normalizeNotes(data.studyNotes));
+          // Keep offline storage in sync if user had saved it
+          try {
+            if (localStorage.getItem(`cg_offline_notes_${topic.id}`)) {
+              localStorage.setItem(`cg_offline_notes_${topic.id}`, JSON.stringify(data.studyNotes));
+            }
+          } catch (_) {}
         } else {
           // If network response failed, try localStorage offline fallback
           const saved = localStorage.getItem(`cg_offline_notes_${topic.id}`);
@@ -955,7 +1008,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
           )}
 
           {/* Reading Content Area */}
-          <div className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 select-text ${getFontSizeClass()}`}>
+          <div ref={contentContainerRef} className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 select-text ${getFontSizeClass()}`}>
           
           {loading && (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-text-muted">
@@ -1556,21 +1609,51 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                         }`}>{allSources.length} प्रामाणिक संदर्भ</span>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        {allSources.map((s: string, idx: number) => (
-                          <div 
-                            key={idx} 
-                            className={`flex items-start gap-2 p-2.5 rounded-xl border ${
-                              readingTheme === 'dark'
-                                ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200'
-                                : readingTheme === 'sepia'
-                                  ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]'
-                                  : 'bg-slate-50 border-slate-200 text-slate-800'
-                            }`}
-                          >
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                            <span className="font-semibold leading-snug">{s}</span>
-                          </div>
-                        ))}
+                        {allSources.map((s: any, idx: number) => {
+                          const isObj = typeof s === 'object' && s !== null;
+                          const title = isObj ? (s.title || s.name || s.source || '') : String(s);
+                          const meta = isObj ? (s.authority || s.author || s.type || '') : '';
+                          const notes = isObj ? (s.notes || s.description || '') : '';
+                          const url = isObj ? s.url : '';
+                          return (
+                            <div 
+                              key={idx} 
+                              className={`flex items-start gap-2.5 p-3 rounded-xl border ${
+                                readingTheme === 'dark'
+                                  ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200'
+                                  : readingTheme === 'sepia'
+                                    ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]'
+                                    : 'bg-slate-50 border-slate-200 text-slate-800'
+                              }`}
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <span className="font-bold leading-snug block text-[12.5px]">{title}</span>
+                                {meta && (
+                                  <span className="text-[10px] text-amber-500 dark:text-amber-400 font-semibold block mt-0.5">
+                                    {meta}
+                                  </span>
+                                )}
+                                {notes && (
+                                  <span className={`text-[11px] block mt-1 leading-snug ${readingTheme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+                                    {notes}
+                                  </span>
+                                )}
+                                {url && (
+                                  <a 
+                                    href={url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="text-[10px] text-blue-500 hover:underline inline-flex items-center gap-1 mt-1 font-medium"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    🔗 आधिकारिक संदर्भ लिंक
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                       <div className={`text-[10px] flex items-center justify-between border-t border-border/40 pt-2 mt-1 ${
                         readingTheme === 'dark' ? 'text-slate-400' : readingTheme === 'sepia' ? 'text-[#7A5B36]' : 'text-slate-500'
@@ -1911,31 +1994,64 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                       इस अध्याय की विषयवस्तु, ऐतिहासिक कालक्रम, आंकड़े तथा परीक्षा-उन्मुख तथ्य निम्नलिखित राज्य स्तरीय प्रामाणिक शोध ग्रंथों, शासकीय प्रतिवेदनों तथा पाठ्यपुस्तकों से सत्यापित हैं:
                     </p>
                     <div className="grid grid-cols-1 gap-2.5 pt-2">
-                      {allSources.map((sourceText: string, sIdx: number) => (
-                        <div 
-                          key={sIdx} 
-                          className={`p-3.5 rounded-xl border flex items-start gap-3 text-xs leading-relaxed transition-all ${
-                            readingTheme === 'dark' 
-                              ? 'bg-[#1E293B]/80 border-[#334155] text-slate-200' 
-                              : readingTheme === 'sepia' 
-                                ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]' 
-                                : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                        >
-                          <span className="w-6 h-6 rounded-lg bg-saffron/15 text-saffron font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                            {sIdx + 1}
-                          </span>
-                          <div className="flex-1">
-                            <span className="font-bold text-[13px] block leading-snug">{sourceText}</span>
-                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-1">
-                              <CheckCircle2 className="w-3 h-3 inline" /> प्रमाणित राज्य प्रतियोगी परीक्षा अध्ययन संदर्भ
+                      {allSources.map((sourceItem: any, sIdx: number) => {
+                        const isObj = typeof sourceItem === 'object' && sourceItem !== null;
+                        const title = isObj ? (sourceItem.title || sourceItem.name || sourceItem.source || '') : String(sourceItem);
+                        const authority = isObj ? (sourceItem.authority || sourceItem.author || '') : '';
+                        const type = isObj ? sourceItem.type : '';
+                        const notes = isObj ? (sourceItem.notes || sourceItem.description || '') : '';
+                        const url = isObj ? sourceItem.url : '';
+                        return (
+                          <div 
+                            key={sIdx} 
+                            className={`p-3.5 rounded-xl border flex items-start gap-3 text-xs leading-relaxed transition-all ${
+                              readingTheme === 'dark' 
+                                ? 'bg-[#1E293B]/80 border-[#334155] text-slate-200' 
+                                : readingTheme === 'sepia' 
+                                  ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]' 
+                                  : 'bg-slate-50 border-slate-200 text-slate-800'
+                            }`}
+                          >
+                            <span className="w-6 h-6 rounded-lg bg-saffron/15 text-saffron font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                              {sIdx + 1}
                             </span>
+                            <div className="flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-bold text-[13px] leading-snug">{title}</span>
+                                {type && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-saffron/15 text-saffron font-bold">
+                                    {type}
+                                  </span>
+                                )}
+                              </div>
+                              {authority && (
+                                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-1">
+                                  <CheckCircle2 className="w-3 h-3 inline" /> {authority}
+                                </span>
+                              )}
+                              {notes && (
+                                <p className={`text-[11px] mt-1 leading-normal ${readingTheme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+                                  {notes}
+                                </p>
+                              )}
+                              {url && (
+                                <a 
+                                  href={url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-[10.5px] text-blue-500 hover:underline inline-flex items-center gap-1 mt-1 font-medium"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  🔗 आधिकारिक संदर्भ लिंक देखें
+                                </a>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="text-[11px] text-text-muted flex flex-wrap items-center justify-between border-t border-border/40 pt-3 mt-4 gap-2">
-                      <span>मानक संदर्भ: छत्तीसगढ़ ग्रंथ अकादमी, राज्य सांख्यिकी विभाग एवं परीक्षा आयोग गजट</span>
+                      <span>मानक संदर्भ: एनसीईआरटी, विश्वविद्यालय संदर्भ ग्रंथ एवं परीक्षा आयोग गजट</span>
                       <span className="font-bold text-saffron">CG GURU Academic Research Team</span>
                     </div>
                   </div>
@@ -1961,21 +2077,51 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                     }`}>कुल {allSources.length} संदर्भ</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    {allSources.map((s: string, idx: number) => (
-                      <div 
-                        key={idx} 
-                        className={`flex items-start gap-2 p-2.5 rounded-xl border ${
-                          readingTheme === 'dark'
-                            ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200'
-                            : readingTheme === 'sepia'
-                              ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]'
-                              : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                      >
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span className="font-semibold leading-snug">{s}</span>
-                      </div>
-                    ))}
+                    {allSources.map((s: any, idx: number) => {
+                      const isObj = typeof s === 'object' && s !== null;
+                      const title = isObj ? (s.title || s.name || s.source || '') : String(s);
+                      const meta = isObj ? (s.authority || s.author || s.type || '') : '';
+                      const notes = isObj ? (s.notes || s.description || '') : '';
+                      const url = isObj ? s.url : '';
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`flex items-start gap-2.5 p-3 rounded-xl border ${
+                            readingTheme === 'dark'
+                              ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200'
+                              : readingTheme === 'sepia'
+                                ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]'
+                                : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <span className="font-bold leading-snug block text-[12.5px]">{title}</span>
+                            {meta && (
+                              <span className="text-[10px] text-amber-500 dark:text-amber-400 font-semibold block mt-0.5">
+                                {meta}
+                              </span>
+                            )}
+                            {notes && (
+                              <span className={`text-[11px] block mt-1 leading-snug ${readingTheme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+                                {notes}
+                              </span>
+                            )}
+                            {url && (
+                              <a 
+                                href={url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-[10px] text-blue-500 hover:underline inline-flex items-center gap-1 mt-1 font-medium"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                🔗 आधिकारिक संदर्भ लिंक
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className={`text-[10px] flex items-center justify-between border-t border-border/40 pt-2 mt-1 ${
                     readingTheme === 'dark' ? 'text-slate-400' : readingTheme === 'sepia' ? 'text-[#7A5B36]' : 'text-slate-500'
@@ -2112,9 +2258,12 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                   <div className="avoid-break" style={{ marginBottom: '20px', padding: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '6px' }}>
                     <h4 style={{ color: '#1E3A8A', margin: '0 0 8px 0', fontSize: '9.5pt' }}>📖 प्रामाणिक स्रोत एवं संदर्भ (Sources & References)</h4>
                     <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '8.5pt', color: '#334155' }}>
-                      {allSources.map((s: string, idx: number) => (
-                        <li key={idx} style={{ marginBottom: '3px' }}>{s}</li>
-                      ))}
+                      {allSources.map((s: any, idx: number) => {
+                        const text = typeof s === 'object' && s !== null ? (s.title ? `${s.title}${s.authority ? ` (${s.authority})` : ''}` : JSON.stringify(s)) : String(s);
+                        return (
+                          <li key={idx} style={{ marginBottom: '3px' }}>{text}</li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
