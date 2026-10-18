@@ -1,0 +1,2187 @@
+[
+  {
+    "id": "test_comp_comp_exam_3_03_1790739411122",
+    "title": "कंप्यूटर समसामयिकी - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:36:51.122Z"
+  },
+  {
+    "id": "test_comp_comp_exam_3_02_1790739398684",
+    "title": "कंप्यूटर समसामयिकी - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:36:38.684Z"
+  },
+  {
+    "id": "test_comp_comp_exam_3_01_1790739384615",
+    "title": "कंप्यूटर समसामयिकी - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:36:24.615Z"
+  },
+  {
+    "id": "test_comp_comp_exam_2_03_1790739372149",
+    "title": "महत्वपूर्ण फुल फॉर्म - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:36:12.149Z"
+  },
+  {
+    "id": "test_comp_comp_exam_2_02_1790739360663",
+    "title": "महत्वपूर्ण फुल फॉर्म - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:36:00.663Z"
+  },
+  {
+    "id": "test_comp_comp_exam_2_01_1790739349452",
+    "title": "महत्वपूर्ण फुल फॉर्म - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:35:49.452Z"
+  },
+  {
+    "id": "test_comp_comp_exam_1_03_1790739338712",
+    "title": "कंप्यूटर संक्षिप्त रूप - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:35:38.712Z"
+  },
+  {
+    "id": "test_comp_comp_exam_1_02_1790739328684",
+    "title": "कंप्यूटर संक्षिप्त रूप - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:35:28.684Z"
+  },
+  {
+    "id": "test_comp_comp_exam_1_01_1790739317290",
+    "title": "कंप्यूटर संक्षिप्त रूप - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:35:17.290Z"
+  },
+  {
+    "id": "test_comp_comp_new_4_03_1790739289684",
+    "title": "इंटरनेट ऑफ थिंग्स - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:34:49.684Z"
+  },
+  {
+    "id": "test_comp_comp_new_4_02_1790739278826",
+    "title": "इंटरनेट ऑफ थिंग्स - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:34:38.826Z"
+  },
+  {
+    "id": "test_comp_comp_new_4_01_1790739268385",
+    "title": "इंटरनेट ऑफ थिंग्स - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:34:28.385Z"
+  },
+  {
+    "id": "test_comp_comp_new_3_03_1790739257559",
+    "title": "ब्लॉकचेन तकनीक - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:34:17.559Z"
+  },
+  {
+    "id": "test_comp_comp_new_3_02_1790739240150",
+    "title": "ब्लॉकचेन तकनीक - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:34:00.150Z"
+  },
+  {
+    "id": "test_comp_comp_new_3_01_1790739219168",
+    "title": "ब्लॉकचेन तकनीक - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:33:39.168Z"
+  },
+  {
+    "id": "test_comp_comp_new_2_03_1790739191641",
+    "title": "कृत्रिम बुद्धिमत्ता - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:33:11.641Z"
+  },
+  {
+    "id": "test_comp_comp_new_2_02_1790739169322",
+    "title": "कृत्रिम बुद्धिमत्ता - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:32:49.322Z"
+  },
+  {
+    "id": "test_comp_comp_new_2_01_1790739155971",
+    "title": "कृत्रिम बुद्धिमत्ता - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:32:35.971Z"
+  },
+  {
+    "id": "test_comp_comp_new_1_03_1790739143880",
+    "title": "क्लाउड कंप्यूटिंग - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:32:23.880Z"
+  },
+  {
+    "id": "test_comp_comp_new_1_02_1790739132116",
+    "title": "क्लाउड कंप्यूटिंग - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:32:12.116Z"
+  },
+  {
+    "id": "test_comp_comp_new_1_01_1790739121438",
+    "title": "क्लाउड कंप्यूटिंग - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:32:01.438Z"
+  },
+  {
+    "id": "test_comp_comp_digi_4_03_1790739111232",
+    "title": "आधार एवं डिजिलॉकर - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:31:51.232Z"
+  },
+  {
+    "id": "test_comp_comp_digi_4_02_1790739097865",
+    "title": "आधार एवं डिजिलॉकर - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:31:37.865Z"
+  },
+  {
+    "id": "test_comp_comp_digi_4_01_1790739084195",
+    "title": "आधार एवं डिजिलॉकर - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:31:24.195Z"
+  },
+  {
+    "id": "test_comp_comp_digi_3_03_1790739072192",
+    "title": "डिजिटल भुगतान - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:31:12.193Z"
+  },
+  {
+    "id": "test_comp_comp_digi_3_02_1790739060406",
+    "title": "डिजिटल भुगतान - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:31:00.406Z"
+  },
+  {
+    "id": "test_comp_comp_digi_3_01_1790739049802",
+    "title": "डिजिटल भुगतान - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:30:49.802Z"
+  },
+  {
+    "id": "test_comp_comp_digi_2_03_1790739038951",
+    "title": "ई-गवर्नेंस - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:30:38.951Z"
+  },
+  {
+    "id": "test_comp_comp_digi_2_02_1790739025764",
+    "title": "ई-गवर्नेंस - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:30:25.764Z"
+  },
+  {
+    "id": "test_comp_comp_digi_2_01_1790739014862",
+    "title": "ई-गवर्नेंस - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:30:14.862Z"
+  },
+  {
+    "id": "test_comp_comp_digi_1_03_1790739002648",
+    "title": "डिजिटल इंडिया मिशन - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:30:02.648Z"
+  },
+  {
+    "id": "test_comp_comp_digi_1_02_1790738991577",
+    "title": "डिजिटल इंडिया मिशन - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:29:51.577Z"
+  },
+  {
+    "id": "test_comp_comp_digi_1_01_1790738980470",
+    "title": "डिजिटल इंडिया मिशन - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:29:40.470Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_4_03_1790738969551",
+    "title": "सुरक्षा उपकरण - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:29:29.551Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_4_02_1790738958264",
+    "title": "सुरक्षा उपकरण - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:29:18.264Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_4_01_1790738947072",
+    "title": "सुरक्षा उपकरण - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:29:07.072Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_3_03_1790738936056",
+    "title": "साइबर अपराध - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:28:56.056Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_3_02_1790738924349",
+    "title": "साइबर अपराध - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:28:44.349Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_3_01_1790738911515",
+    "title": "साइबर अपराध - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:28:31.515Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_2_03_1790738899915",
+    "title": "मैलवेयर - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:28:19.915Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_2_02_1790738888360",
+    "title": "मैलवेयर - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:28:08.360Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_2_01_1790738875630",
+    "title": "मैलवेयर - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:27:55.630Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_1_03_1790738862915",
+    "title": "साइबर सुरक्षा की मूल बातें - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:27:42.915Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_1_02_1790738850673",
+    "title": "साइबर सुरक्षा की मूल बातें - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:27:30.673Z"
+  },
+  {
+    "id": "test_comp_comp_cyber_1_01_1790738839313",
+    "title": "साइबर सुरक्षा की मूल बातें - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:27:19.313Z"
+  },
+  {
+    "id": "test_comp_comp_net_4_03_1790738826040",
+    "title": "ई-मेल - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:27:06.040Z"
+  },
+  {
+    "id": "test_comp_comp_net_4_02_1790738815140",
+    "title": "ई-मेल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:26:55.140Z"
+  },
+  {
+    "id": "test_comp_comp_net_4_01_1790738804640",
+    "title": "ई-मेल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:26:44.640Z"
+  },
+  {
+    "id": "test_comp_comp_net_3_03_1790738793838",
+    "title": "इंटरनेट प्रोटोकॉल - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:26:33.838Z"
+  },
+  {
+    "id": "test_comp_comp_net_3_02_1790738784233",
+    "title": "इंटरनेट प्रोटोकॉल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:26:24.233Z"
+  },
+  {
+    "id": "test_comp_comp_net_3_01_1790738774252",
+    "title": "इंटरनेट प्रोटोकॉल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:26:14.252Z"
+  },
+  {
+    "id": "test_comp_comp_net_2_03_1790738756392",
+    "title": "नेटवर्किंग - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:25:56.392Z"
+  },
+  {
+    "id": "test_comp_comp_net_2_02_1790738745078",
+    "title": "नेटवर्किंग - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:25:45.078Z"
+  },
+  {
+    "id": "test_comp_comp_net_2_01_1790738733474",
+    "title": "नेटवर्किंग - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:25:33.474Z"
+  },
+  {
+    "id": "test_comp_comp_net_1_03_1790738721832",
+    "title": "इंटरनेट की मूल बातें - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:25:21.832Z"
+  },
+  {
+    "id": "test_comp_comp_net_1_02_1790738711514",
+    "title": "इंटरनेट की मूल बातें - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:25:11.514Z"
+  },
+  {
+    "id": "test_comp_comp_net_1_01_1790738700072",
+    "title": "इंटरनेट की मूल बातें - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:25:00.072Z"
+  },
+  {
+    "id": "test_comp_comp_db_3_03_1790738689994",
+    "title": "RDBMS - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:24:49.994Z"
+  },
+  {
+    "id": "test_comp_comp_db_3_02_1790738678528",
+    "title": "RDBMS - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:24:38.528Z"
+  },
+  {
+    "id": "test_comp_comp_db_3_01_1790738667537",
+    "title": "RDBMS - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:24:27.537Z"
+  },
+  {
+    "id": "test_comp_comp_db_2_03_1790738656237",
+    "title": "DBMS - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:24:16.237Z"
+  },
+  {
+    "id": "test_comp_comp_db_2_02_1790738644303",
+    "title": "DBMS - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:24:04.303Z"
+  },
+  {
+    "id": "test_comp_comp_db_2_01_1790738634193",
+    "title": "DBMS - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:23:54.193Z"
+  },
+  {
+    "id": "test_comp_comp_db_1_03_1790738622351",
+    "title": "डेटाबेस की अवधारणाएँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:23:42.351Z"
+  },
+  {
+    "id": "test_comp_comp_db_1_02_1790738611272",
+    "title": "डेटाबेस की अवधारणाएँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:23:31.272Z"
+  },
+  {
+    "id": "test_comp_comp_db_1_01_1790738600053",
+    "title": "डेटाबेस की अवधारणाएँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:23:20.053Z"
+  },
+  {
+    "id": "test_comp_comp_office_4_03_1790738589350",
+    "title": "एमएस एक्सेस - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:23:09.350Z"
+  },
+  {
+    "id": "test_comp_comp_office_4_02_1790738578233",
+    "title": "एमएस एक्सेस - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:22:58.233Z"
+  },
+  {
+    "id": "test_comp_comp_office_4_01_1790738567638",
+    "title": "एमएस एक्सेस - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:22:47.638Z"
+  },
+  {
+    "id": "test_comp_comp_office_3_03_1790738556981",
+    "title": "एमएस पावरपॉइंट - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:22:36.981Z"
+  },
+  {
+    "id": "test_comp_comp_office_3_02_1790738544232",
+    "title": "एमएस पावरपॉइंट - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:22:24.232Z"
+  },
+  {
+    "id": "test_comp_comp_office_3_01_1790738533264",
+    "title": "एमएस पावरपॉइंट - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:22:13.264Z"
+  },
+  {
+    "id": "test_comp_comp_office_2_03_1790738519876",
+    "title": "एमएस एक्सेल - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:21:59.876Z"
+  },
+  {
+    "id": "test_comp_comp_office_2_02_1790738508926",
+    "title": "एमएस एक्सेल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:21:48.926Z"
+  },
+  {
+    "id": "test_comp_comp_office_2_01_1790738498130",
+    "title": "एमएस एक्सेल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:21:38.130Z"
+  },
+  {
+    "id": "test_comp_comp_office_1_03_1790738487911",
+    "title": "एमएस वर्ड - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:21:27.911Z"
+  },
+  {
+    "id": "test_comp_comp_office_1_02_1790738476730",
+    "title": "एमएस वर्ड - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:21:16.730Z"
+  },
+  {
+    "id": "test_comp_comp_office_1_01_1790738465114",
+    "title": "एमएस वर्ड - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:21:05.114Z"
+  },
+  {
+    "id": "test_comp_comp_sw_4_03_1790738454136",
+    "title": "प्रोग्रामिंग भाषाएँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:20:54.136Z"
+  },
+  {
+    "id": "test_comp_comp_sw_4_02_1790738443667",
+    "title": "प्रोग्रामिंग भाषाएँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:20:43.667Z"
+  },
+  {
+    "id": "test_comp_comp_sw_4_01_1790738433154",
+    "title": "प्रोग्रामिंग भाषाएँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:20:33.154Z"
+  },
+  {
+    "id": "test_comp_comp_sw_3_03_1790738421602",
+    "title": "ऑपरेटिंग सिस्टम के कार्य - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:20:21.602Z"
+  },
+  {
+    "id": "test_comp_comp_sw_3_02_1790738411354",
+    "title": "ऑपरेटिंग सिस्टम के कार्य - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:20:11.354Z"
+  },
+  {
+    "id": "test_comp_comp_sw_3_01_1790738399976",
+    "title": "ऑपरेटिंग सिस्टम के कार्य - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:19:59.976Z"
+  },
+  {
+    "id": "test_comp_comp_sw_2_03_1790738388432",
+    "title": "ऑपरेटिंग सिस्टम - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:19:48.432Z"
+  },
+  {
+    "id": "test_comp_comp_sw_2_02_1790738376905",
+    "title": "ऑपरेटिंग सिस्टम - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:19:36.905Z"
+  },
+  {
+    "id": "test_comp_comp_sw_2_01_1790738364332",
+    "title": "ऑपरेटिंग सिस्टम - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:19:24.332Z"
+  },
+  {
+    "id": "test_comp_comp_sw_1_03_1790738352829",
+    "title": "सॉफ्टवेयर की मूल बातें - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:19:12.829Z"
+  },
+  {
+    "id": "test_comp_comp_sw_1_02_1790738341030",
+    "title": "सॉफ्टवेयर की मूल बातें - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:19:01.030Z"
+  },
+  {
+    "id": "test_comp_comp_sw_1_01_1790738329988",
+    "title": "सॉफ्टवेयर की मूल बातें - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:18:49.988Z"
+  },
+  {
+    "id": "test_comp_comp_hw_4_03_1790738318988",
+    "title": "संग्रहण उपकरण - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:18:38.988Z"
+  },
+  {
+    "id": "test_comp_comp_hw_4_02_1790738307100",
+    "title": "संग्रहण उपकरण - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:18:27.100Z"
+  },
+  {
+    "id": "test_comp_comp_hw_4_01_1790738287468",
+    "title": "संग्रहण उपकरण - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:18:07.468Z"
+  },
+  {
+    "id": "test_comp_comp_hw_3_03_1790738275878",
+    "title": "CPU एवं मेमोरी - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:17:55.878Z"
+  },
+  {
+    "id": "test_comp_comp_hw_3_02_1790738264607",
+    "title": "CPU एवं मेमोरी - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:17:44.607Z"
+  },
+  {
+    "id": "test_comp_comp_hw_3_01_1790738252225",
+    "title": "CPU एवं मेमोरी - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:17:32.225Z"
+  },
+  {
+    "id": "test_comp_comp_hw_2_03_1790738240507",
+    "title": "आउटपुट डिवाइस - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:17:20.507Z"
+  },
+  {
+    "id": "test_comp_comp_hw_2_02_1790738228666",
+    "title": "आउटपुट डिवाइस - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:17:08.666Z"
+  },
+  {
+    "id": "test_comp_comp_hw_2_01_1790738216551",
+    "title": "आउटपुट डिवाइस - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:16:56.551Z"
+  },
+  {
+    "id": "test_comp_comp_hw_1_03_1790738205273",
+    "title": "इनपुट डिवाइस - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:16:45.273Z"
+  },
+  {
+    "id": "test_comp_comp_hw_1_02_1790738186242",
+    "title": "इनपुट डिवाइस - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T03:16:26.242Z"
+  },
+  {
+    "id": "test_comp_comp_hw_1_02_1790737149115",
+    "title": "इनपुट डिवाइस - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:59:09.115Z"
+  },
+  {
+    "id": "test_comp_comp_hw_1_01_1790737139160",
+    "title": "इनपुट डिवाइस - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:58:59.160Z"
+  },
+  {
+    "id": "test_comp_comp_basic_4_03_1790737128234",
+    "title": "कंप्यूटर के प्रकार - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:58:48.234Z"
+  },
+  {
+    "id": "test_comp_comp_basic_4_02_1790737118015",
+    "title": "कंप्यूटर के प्रकार - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:58:38.015Z"
+  },
+  {
+    "id": "test_comp_comp_basic_4_01_1790737107613",
+    "title": "कंप्यूटर के प्रकार - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:58:27.613Z"
+  },
+  {
+    "id": "test_comp_comp_basic_3_03_1790737095706",
+    "title": "कंप्यूटर की पीढ़ियाँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:58:15.706Z"
+  },
+  {
+    "id": "test_comp_comp_basic_3_02_1790737085964",
+    "title": "कंप्यूटर की पीढ़ियाँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:58:05.964Z"
+  },
+  {
+    "id": "test_comp_comp_basic_3_01_1790737074944",
+    "title": "कंप्यूटर की पीढ़ियाँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:57:54.944Z"
+  },
+  {
+    "id": "test_comp_comp_basic_2_03_1790737064593",
+    "title": "कंप्यूटर का इतिहास - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:57:44.593Z"
+  },
+  {
+    "id": "test_comp_comp_basic_2_02_1790737045538",
+    "title": "कंप्यूटर का इतिहास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:57:25.538Z"
+  },
+  {
+    "id": "test_comp_comp_basic_2_01_1790737034039",
+    "title": "कंप्यूटर का इतिहास - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:57:14.039Z"
+  },
+  {
+    "id": "test_comp_comp_basic_1_03_1790737022956",
+    "title": "कंप्यूटर का परिचय - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:57:02.956Z"
+  },
+  {
+    "id": "test_comp_comp_basic_1_02_1790737012255",
+    "title": "कंप्यूटर का परिचय - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:56:52.255Z"
+  },
+  {
+    "id": "test_comp_comp_basic_1_01_1790736984310",
+    "title": "कंप्यूटर का परिचय - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "कंप्यूटर ज्ञान (Computer Knowledge)",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T02:56:24.310Z"
+  }
+]

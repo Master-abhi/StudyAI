@@ -1,0 +1,2282 @@
+[
+  {
+    "id": "test_hin_hin_adv_3_03_1790786796297",
+    "title": "अनुवाद - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:46:36.297Z"
+  },
+  {
+    "id": "test_hin_hin_adv_3_02_1790786784570",
+    "title": "अनुवाद - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:46:24.570Z"
+  },
+  {
+    "id": "test_hin_hin_adv_3_01_1790786770977",
+    "title": "अनुवाद - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:46:10.977Z"
+  },
+  {
+    "id": "test_hin_hin_adv_2_03_1790786743767",
+    "title": "प्रशासनिक हिंदी - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:45:43.767Z"
+  },
+  {
+    "id": "test_hin_hin_adv_2_02_1790786726816",
+    "title": "प्रशासनिक हिंदी - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:45:26.816Z"
+  },
+  {
+    "id": "test_hin_hin_adv_2_01_1790786714216",
+    "title": "प्रशासनिक हिंदी - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:45:14.216Z"
+  },
+  {
+    "id": "test_hin_hin_adv_1_03_1790786701375",
+    "title": "राजभाषा हिंदी - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:45:01.375Z"
+  },
+  {
+    "id": "test_hin_hin_adv_1_02_1790786687376",
+    "title": "राजभाषा हिंदी - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:44:47.376Z"
+  },
+  {
+    "id": "test_hin_hin_adv_1_01_1790786672915",
+    "title": "राजभाषा हिंदी - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:44:32.915Z"
+  },
+  {
+    "id": "test_hin_hin_comp_2_03_1790786659491",
+    "title": "गद्यांश आधारित शब्दार्थ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:44:19.491Z"
+  },
+  {
+    "id": "test_hin_hin_comp_2_02_1790786646602",
+    "title": "गद्यांश आधारित शब्दार्थ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:44:06.602Z"
+  },
+  {
+    "id": "test_hin_hin_comp_2_01_1790786633523",
+    "title": "गद्यांश आधारित शब्दार्थ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:43:53.523Z"
+  },
+  {
+    "id": "test_hin_hin_comp_1_03_1790786619739",
+    "title": "अपठित गद्यांश - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:43:39.739Z"
+  },
+  {
+    "id": "test_hin_hin_comp_1_02_1790786598223",
+    "title": "अपठित गद्यांश - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:43:18.223Z"
+  },
+  {
+    "id": "test_hin_hin_comp_1_01_1790786579629",
+    "title": "अपठित गद्यांश - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:42:59.629Z"
+  },
+  {
+    "id": "test_hin_hin_lit_5_03_1790786568129",
+    "title": "प्रमुख साहित्यकार - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:42:48.129Z"
+  },
+  {
+    "id": "test_hin_hin_lit_5_02_1790786556893",
+    "title": "प्रमुख साहित्यकार - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:42:36.893Z"
+  },
+  {
+    "id": "test_hin_hin_lit_5_01_1790786541388",
+    "title": "प्रमुख साहित्यकार - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:42:21.388Z"
+  },
+  {
+    "id": "test_hin_hin_lit_4_03_1790786530742",
+    "title": "हिंदी साहित्य के काल - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:42:10.743Z"
+  },
+  {
+    "id": "test_hin_hin_lit_4_02_1790786520539",
+    "title": "हिंदी साहित्य के काल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:42:00.539Z"
+  },
+  {
+    "id": "test_hin_hin_lit_4_01_1790786511205",
+    "title": "हिंदी साहित्य के काल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:41:51.206Z"
+  },
+  {
+    "id": "test_hin_hin_lit_3_03_1790786499997",
+    "title": "छंद - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:41:39.997Z"
+  },
+  {
+    "id": "test_hin_hin_lit_3_02_1790786485396",
+    "title": "छंद - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:41:25.396Z"
+  },
+  {
+    "id": "test_hin_hin_lit_3_01_1790786472617",
+    "title": "छंद - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:41:12.617Z"
+  },
+  {
+    "id": "test_hin_hin_lit_2_03_1790786457186",
+    "title": "अलंकार - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:40:57.186Z"
+  },
+  {
+    "id": "test_hin_hin_lit_2_02_1790786444554",
+    "title": "अलंकार - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:40:44.554Z"
+  },
+  {
+    "id": "test_hin_hin_lit_2_01_1790786428892",
+    "title": "अलंकार - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:40:28.892Z"
+  },
+  {
+    "id": "test_hin_hin_lit_1_03_1790786413939",
+    "title": "रस - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:40:13.939Z"
+  },
+  {
+    "id": "test_hin_hin_lit_1_02_1790786400680",
+    "title": "रस - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:40:00.680Z"
+  },
+  {
+    "id": "test_hin_hin_lit_1_01_1790786386843",
+    "title": "रस - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:39:46.843Z"
+  },
+  {
+    "id": "test_hin_hin_sent_3_03_1790786374315",
+    "title": "वाक्य रूपांतरण - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:39:34.315Z"
+  },
+  {
+    "id": "test_hin_hin_sent_3_02_1790786359539",
+    "title": "वाक्य रूपांतरण - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:39:19.539Z"
+  },
+  {
+    "id": "test_hin_hin_sent_3_01_1790786343387",
+    "title": "वाक्य रूपांतरण - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:39:03.387Z"
+  },
+  {
+    "id": "test_hin_hin_sent_2_03_1790786328064",
+    "title": "वर्तनी शुद्धि - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:38:48.064Z"
+  },
+  {
+    "id": "test_hin_hin_sent_2_02_1790786313538",
+    "title": "वर्तनी शुद्धि - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:38:33.538Z"
+  },
+  {
+    "id": "test_hin_hin_sent_2_01_1790786296482",
+    "title": "वर्तनी शुद्धि - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:38:16.482Z"
+  },
+  {
+    "id": "test_hin_hin_sent_1_03_1790786279224",
+    "title": "वाक्य शुद्धि - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:37:59.224Z"
+  },
+  {
+    "id": "test_hin_hin_sent_1_02_1790786261499",
+    "title": "वाक्य शुद्धि - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:37:41.499Z"
+  },
+  {
+    "id": "test_hin_hin_sent_1_01_1790786239352",
+    "title": "वाक्य शुद्धि - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:37:19.352Z"
+  },
+  {
+    "id": "test_hin_hin_gram_6_03_1790786221080",
+    "title": "वाच्य - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:37:01.080Z"
+  },
+  {
+    "id": "test_hin_hin_gram_6_02_1790786200266",
+    "title": "वाच्य - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:36:40.266Z"
+  },
+  {
+    "id": "test_hin_hin_gram_6_01_1790786174840",
+    "title": "वाच्य - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:36:14.840Z"
+  },
+  {
+    "id": "test_hin_hin_gram_5_03_1790786151422",
+    "title": "काल - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:35:51.422Z"
+  },
+  {
+    "id": "test_hin_hin_gram_5_02_1790786116137",
+    "title": "काल - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:35:16.137Z"
+  },
+  {
+    "id": "test_hin_hin_gram_5_01_1790786091455",
+    "title": "काल - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:34:51.455Z"
+  },
+  {
+    "id": "test_hin_hin_gram_4_03_1790786080444",
+    "title": "क्रिया - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:34:40.444Z"
+  },
+  {
+    "id": "test_hin_hin_gram_4_02_1790786068894",
+    "title": "क्रिया - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:34:28.894Z"
+  },
+  {
+    "id": "test_hin_hin_gram_4_01_1790786057834",
+    "title": "क्रिया - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:34:17.834Z"
+  },
+  {
+    "id": "test_hin_hin_gram_3_03_1790786046358",
+    "title": "विशेषण - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:34:06.358Z"
+  },
+  {
+    "id": "test_hin_hin_gram_3_02_1790786030571",
+    "title": "विशेषण - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:33:50.571Z"
+  },
+  {
+    "id": "test_hin_hin_gram_3_01_1790786019536",
+    "title": "विशेषण - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:33:39.536Z"
+  },
+  {
+    "id": "test_hin_hin_gram_2_03_1790785995851",
+    "title": "सर्वनाम - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:33:15.851Z"
+  },
+  {
+    "id": "test_hin_hin_gram_2_02_1790785960324",
+    "title": "सर्वनाम - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:32:40.324Z"
+  },
+  {
+    "id": "test_hin_hin_gram_2_01_1790785950357",
+    "title": "सर्वनाम - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:32:30.357Z"
+  },
+  {
+    "id": "test_hin_hin_gram_1_03_1790785938859",
+    "title": "संज्ञा - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:32:18.859Z"
+  },
+  {
+    "id": "test_hin_hin_gram_1_02_1790785918922",
+    "title": "संज्ञा - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:31:58.922Z"
+  },
+  {
+    "id": "test_hin_hin_gram_1_01_1790785905529",
+    "title": "संज्ञा - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:31:45.529Z"
+  },
+  {
+    "id": "test_hin_hin_idiom_2_03_1790785892675",
+    "title": "लोकोक्तियाँ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:31:32.675Z"
+  },
+  {
+    "id": "test_hin_hin_idiom_2_02_1790785877333",
+    "title": "लोकोक्तियाँ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:31:17.333Z"
+  },
+  {
+    "id": "test_hin_hin_idiom_2_01_1790785860041",
+    "title": "लोकोक्तियाँ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:31:00.041Z"
+  },
+  {
+    "id": "test_hin_hin_idiom_1_03_1790785844433",
+    "title": "मुहावरे - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:30:44.433Z"
+  },
+  {
+    "id": "test_hin_hin_idiom_1_02_1790785829303",
+    "title": "मुहावरे - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:30:29.303Z"
+  },
+  {
+    "id": "test_hin_hin_idiom_1_01_1790785816410",
+    "title": "मुहावरे - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:30:16.410Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_4_03_1790785805083",
+    "title": "अनेकार्थी शब्द - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:30:05.083Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_4_02_1790785793841",
+    "title": "अनेकार्थी शब्द - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:29:53.841Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_4_01_1790785782732",
+    "title": "अनेकार्थी शब्द - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:29:42.732Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_3_03_1790785771488",
+    "title": "अनेक शब्दों के लिए एक शब्द - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:29:31.488Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_3_02_1790785760319",
+    "title": "अनेक शब्दों के लिए एक शब्द - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:29:20.319Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_3_01_1790785748910",
+    "title": "अनेक शब्दों के लिए एक शब्द - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:29:08.910Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_2_03_1790785737607",
+    "title": "विलोम शब्द - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:28:57.607Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_2_02_1790785727073",
+    "title": "विलोम शब्द - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:28:47.073Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_2_01_1790785715912",
+    "title": "विलोम शब्द - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:28:35.912Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_1_03_1790785704763",
+    "title": "पर्यायवाची शब्द - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:28:24.763Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_1_02_1790785684484",
+    "title": "पर्यायवाची शब्द - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:28:04.484Z"
+  },
+  {
+    "id": "test_hin_hin_vocab_1_01_1790785674487",
+    "title": "पर्यायवाची शब्द - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:27:54.487Z"
+  },
+  {
+    "id": "test_hin_hin_shabd_3_03_1790785657593",
+    "title": "रूढ़, यौगिक एवं योगरूढ़ - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:27:37.593Z"
+  },
+  {
+    "id": "test_hin_hin_shabd_3_02_1790785644208",
+    "title": "रूढ़, यौगिक एवं योगरूढ़ - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:27:24.208Z"
+  },
+  {
+    "id": "test_hin_hin_shabd_3_01_1790785632389",
+    "title": "रूढ़, यौगिक एवं योगरूढ़ - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:27:12.389Z"
+  },
+  {
+    "id": "test_hin_hin_shabd_2_03_1790785615612",
+    "title": "देशज एवं विदेशी शब्द - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:26:55.612Z"
+  },
+  {
+    "id": "test_hin_hin_shabd_2_02_1790785603717",
+    "title": "देशज एवं विदेशी शब्द - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:26:43.717Z"
+  },
+  {
+    "id": "test_hin_hin_shabd_2_01_1790785590830",
+    "title": "देशज एवं विदेशी शब्द - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:26:30.830Z"
+  },
+  {
+    "id": "test_hin_hin_shabd_1_03_1790785577967",
+    "title": "तत्सम एवं तद्भव - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:26:17.967Z"
+  },
+  {
+    "id": "test_hin_hin_shabd_1_02_1790785564580",
+    "title": "तत्सम एवं तद्भव - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:26:04.580Z"
+  },
+  {
+    "id": "test_hin_hin_shabd_1_01_1790785550789",
+    "title": "तत्सम एवं तद्भव - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:25:50.789Z"
+  },
+  {
+    "id": "test_hin_hin_up_2_03_1790785538091",
+    "title": "प्रत्यय - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:25:38.091Z"
+  },
+  {
+    "id": "test_hin_hin_up_2_02_1790785522120",
+    "title": "प्रत्यय - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:25:22.120Z"
+  },
+  {
+    "id": "test_hin_hin_up_2_01_1790785508221",
+    "title": "प्रत्यय - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:25:08.221Z"
+  },
+  {
+    "id": "test_hin_hin_up_1_03_1790785495620",
+    "title": "उपसर्ग - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:24:55.620Z"
+  },
+  {
+    "id": "test_hin_hin_up_1_02_1790785482466",
+    "title": "उपसर्ग - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:24:42.466Z"
+  },
+  {
+    "id": "test_hin_hin_up_1_01_1790785470428",
+    "title": "उपसर्ग - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:24:30.428Z"
+  },
+  {
+    "id": "test_hin_hin_samas_4_03_1790785458931",
+    "title": "अव्ययीभाव समास - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:24:18.931Z"
+  },
+  {
+    "id": "test_hin_hin_samas_4_02_1790785448288",
+    "title": "अव्ययीभाव समास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:24:08.288Z"
+  },
+  {
+    "id": "test_hin_hin_samas_4_01_1790785432150",
+    "title": "अव्ययीभाव समास - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:23:52.150Z"
+  },
+  {
+    "id": "test_hin_hin_samas_3_03_1790785413631",
+    "title": "बहुव्रीहि समास - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:23:33.631Z"
+  },
+  {
+    "id": "test_hin_hin_samas_3_02_1790785392441",
+    "title": "बहुव्रीहि समास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:23:12.441Z"
+  },
+  {
+    "id": "test_hin_hin_samas_3_01_1790785378433",
+    "title": "बहुव्रीहि समास - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:22:58.433Z"
+  },
+  {
+    "id": "test_hin_hin_samas_2_03_1790785364970",
+    "title": "द्वंद्व समास - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:22:44.970Z"
+  },
+  {
+    "id": "test_hin_hin_samas_2_02_1790785352236",
+    "title": "द्वंद्व समास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:22:32.236Z"
+  },
+  {
+    "id": "test_hin_hin_samas_2_01_1790785340894",
+    "title": "द्वंद्व समास - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:22:20.894Z"
+  },
+  {
+    "id": "test_hin_hin_samas_1_03_1790785326130",
+    "title": "तत्पुरुष समास - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:22:06.130Z"
+  },
+  {
+    "id": "test_hin_hin_samas_1_02_1790785313907",
+    "title": "तत्पुरुष समास - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:21:53.907Z"
+  },
+  {
+    "id": "test_hin_hin_samas_1_01_1790785300181",
+    "title": "तत्पुरुष समास - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:21:40.181Z"
+  },
+  {
+    "id": "test_hin_hin_sandhi_3_03_1790785287305",
+    "title": "विसर्ग संधि - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:21:27.305Z"
+  },
+  {
+    "id": "test_hin_hin_sandhi_3_02_1790785273176",
+    "title": "विसर्ग संधि - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:21:13.176Z"
+  },
+  {
+    "id": "test_hin_hin_sandhi_3_01_1790785259040",
+    "title": "विसर्ग संधि - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:20:59.040Z"
+  },
+  {
+    "id": "test_hin_hin_sandhi_2_03_1790785245227",
+    "title": "व्यंजन संधि - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:20:45.227Z"
+  },
+  {
+    "id": "test_hin_hin_sandhi_2_02_1790785231725",
+    "title": "व्यंजन संधि - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:20:31.725Z"
+  },
+  {
+    "id": "test_hin_hin_sandhi_2_01_1790785217372",
+    "title": "व्यंजन संधि - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:20:17.372Z"
+  },
+  {
+    "id": "test_hin_hin_sandhi_1_03_1790785203003",
+    "title": "स्वर संधि - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:20:03.003Z"
+  },
+  {
+    "id": "test_hin_hin_sandhi_1_02_1790785189391",
+    "title": "स्वर संधि - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:19:49.391Z"
+  },
+  {
+    "id": "test_hin_hin_sandhi_1_01_1790785173404",
+    "title": "स्वर संधि - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:19:33.404Z"
+  },
+  {
+    "id": "test_hin_hin_varn_3_03_1790785159407",
+    "title": "उच्चारण एवं ध्वनि - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:19:19.407Z"
+  },
+  {
+    "id": "test_hin_hin_varn_3_02_1790785144489",
+    "title": "उच्चारण एवं ध्वनि - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:19:04.489Z"
+  },
+  {
+    "id": "test_hin_hin_varn_3_01_1790785129863",
+    "title": "उच्चारण एवं ध्वनि - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:18:49.863Z"
+  },
+  {
+    "id": "test_hin_hin_varn_2_03_1790785116703",
+    "title": "स्वर एवं व्यंजन वर्गीकरण - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:18:36.703Z"
+  },
+  {
+    "id": "test_hin_hin_varn_2_02_1790785103970",
+    "title": "स्वर एवं व्यंजन वर्गीकरण - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:18:23.970Z"
+  },
+  {
+    "id": "test_hin_hin_varn_2_01_1790785090186",
+    "title": "स्वर एवं व्यंजन वर्गीकरण - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:18:10.186Z"
+  },
+  {
+    "id": "test_hin_hin_varn_1_03_1790785079502",
+    "title": "हिंदी वर्णमाला - Test 03",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:17:59.502Z"
+  },
+  {
+    "id": "test_hin_hin_varn_1_02_1790785065623",
+    "title": "हिंदी वर्णमाला - Test 02",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:17:45.623Z"
+  },
+  {
+    "id": "test_hin_hin_varn_1_01_1790784786177",
+    "title": "हिंदी वर्णमाला - Test 01",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cgpsc_sse"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CGPSC SSE"
+    ],
+    "subject": "हिंदी भाषा",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 10,
+    "createdAt": "2026-09-30T16:13:06.177Z"
+  }
+]

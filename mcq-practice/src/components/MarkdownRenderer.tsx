@@ -207,7 +207,7 @@ export const MarkdownRenderer = React.memo(({ content, className = '', pClassNam
     return formatSuperscriptsAndMath(withPreservedNewlines);
   }, [content]);
   return (
-    <div className={`markdown-content select-text font-sans ${className}`}>
+    <div className={`markdown-content select-text font-sans break-words ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeRaw, rehypeKatex]}
@@ -222,7 +222,7 @@ export const MarkdownRenderer = React.memo(({ content, className = '', pClassNam
             <h3 className="text-xs font-bold my-1.5 text-text" {...props} />
           ),
           p: ({ node, ...props }) => (
-            <p className={pClassName !== undefined ? pClassName : "mb-2 last:mb-0 leading-relaxed text-xs sm:text-sm"} {...props} />
+            <p className={pClassName !== undefined ? pClassName : "mb-2 last:mb-0 leading-relaxed text-xs sm:text-sm break-words"} {...props} />
           ),
           ul: ({ node, ...props }) => (
             <ul className="list-disc pl-5 mb-2.5 flex flex-col gap-1 text-xs sm:text-sm" {...props} />

@@ -91,6 +91,9 @@ export const TopicList: React.FC<TopicListProps> = ({
         }[progress.status];
 
         const isCompleted = progress.status === 'Completed' || progress.status === 'Revised';
+        const hasInteractiveNotes = Boolean(topic.hasStudyNotes || topic.studyNotes);
+        const hasPdfNotes = Boolean(topic.pdfPath);
+        const hasUploadedNotes = hasInteractiveNotes || hasPdfNotes;
 
         return (
           <div 
@@ -98,7 +101,9 @@ export const TopicList: React.FC<TopicListProps> = ({
             className={`border rounded-lg transition-all duration-200 overflow-hidden ${
               isExpanded 
                 ? 'bg-bg-s3/40 border-saffron-border/30 shadow-[0_4px_12px_rgba(255,153,51,0.02)]' 
-                : 'bg-bg-s3/20 border-border/80 hover:bg-bg-s3/30'
+                : hasUploadedNotes
+                  ? 'bg-emerald-500/[0.04] border-emerald-500/25 hover:bg-emerald-500/[0.08]'
+                  : 'bg-bg-s3/20 border-border/80 hover:bg-bg-s3/30'
             }`}
           >
             {/* Header / Summary row */}
@@ -130,7 +135,7 @@ export const TopicList: React.FC<TopicListProps> = ({
                       <span className={`w-1 h-1 rounded-full ${stateConfig.indicator}`} />
                       <span>{stateConfig.label}</span>
                     </span>
-                    {(topic.hasStudyNotes || topic.studyNotes) && (
+                    {hasInteractiveNotes && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -153,7 +158,7 @@ export const TopicList: React.FC<TopicListProps> = ({
                         <span>{isLocked ? 'NOTES (LOCKED)' : 'STUDY NOTES'}</span>
                       </button>
                     )}
-                    {topic.pdfPath && !topic.hasStudyNotes && !topic.studyNotes && (
+                    {hasPdfNotes && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

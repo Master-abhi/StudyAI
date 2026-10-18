@@ -1,0 +1,130 @@
+[
+  {
+    "subject": "Aptitude & Maths",
+    "count": 185,
+    "totalQuestions": 1870,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "General Science",
+    "count": 174,
+    "totalQuestions": 1740,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "General Knowledge",
+    "count": 132,
+    "totalQuestions": 1320,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Hindi Language",
+    "count": 120,
+    "totalQuestions": 1200,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Computer Knowledge",
+    "count": 115,
+    "totalQuestions": 1150,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "English Language",
+    "count": 96,
+    "totalQuestions": 960,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Current Affairs",
+    "count": 93,
+    "totalQuestions": 930,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Reasoning",
+    "count": 60,
+    "totalQuestions": 620,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "CG GK",
+    "count": 48,
+    "totalQuestions": 520,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "CG Geography",
+    "count": 36,
+    "totalQuestions": 360,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "CG History",
+    "count": 35,
+    "totalQuestions": 350,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "CG Culture & Tribes",
+    "count": 23,
+    "totalQuestions": 230,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "Full Syllabus / All Subjects",
+    "count": 8,
+    "totalQuestions": 230,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "CG Polity & Governance",
+    "count": 6,
+    "totalQuestions": 60,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "CG Economy",
+    "count": 6,
+    "totalQuestions": 60,
+    "modes": [
+      "mock"
+    ]
+  },
+  {
+    "subject": "CG Government Schemes",
+    "count": 3,
+    "totalQuestions": 30,
+    "modes": [
+      "mock"
+    ]
+  }
+]

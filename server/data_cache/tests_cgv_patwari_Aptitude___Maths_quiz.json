@@ -1,0 +1,76 @@
+[
+  {
+    "id": "test_pool_1785232871627",
+    "title": "Mathematics - Test 5",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mathematics",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-07-28T10:01:11.627Z"
+  },
+  {
+    "id": "test_pool_1785232867413",
+    "title": "Mathematics - Test 4",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mathematics",
+    "mode": "quiz",
+    "language": "hindi",
+    "totalQuestions": 5,
+    "createdAt": "2026-07-28T10:01:07.413Z"
+  }
+]

@@ -146,6 +146,31 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
       const data = await res.json();
       if (res.ok && data.success) {
         setSuccessMessage(`Attached "${file.name}" to topic successfully! 📄`);
+        // Optimistically update topic in local exam state immediately
+        const currentExam = exams.find(e => e.id === examId);
+        if (currentExam && Array.isArray(currentExam.subjects)) {
+          currentExam.subjects.forEach(s => {
+            (s.chapters || []).forEach(c => {
+              (c.topics || []).forEach(t => {
+                if (t.id === topicId || String(t.id) === String(topicId)) {
+                  t.pdfPath = data.pdfPath || `topics/${examId}/${topicId}`;
+                  t.pdfName = data.pdfName || file.name;
+                  t.pdfSize = data.pdfSize || file.size;
+                  t.pdfUpdatedAt = new Date().toISOString();
+                }
+              });
+            });
+            ((s as any).topics || []).forEach((t: any) => {
+              if (t.id === topicId || String(t.id) === String(topicId)) {
+                t.pdfPath = data.pdfPath || `topics/${examId}/${topicId}`;
+                t.pdfName = data.pdfName || file.name;
+                t.pdfSize = data.pdfSize || file.size;
+                t.pdfUpdatedAt = new Date().toISOString();
+              }
+            });
+          });
+        }
+        setForceUpdate(v => v + 1);
         try { localStorage.removeItem('cg_cached_syllabus_time_v1'); } catch (_) {}
         onRefreshExams();
       } else {
@@ -907,13 +932,15 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
                           const isUploading = uploadingTopicId === topic.id;
                           const isDeleting = deletingTopicId === topic.id;
                           const hasPdf = Boolean(topic.pdfPath);
+                          const hasNotes = Boolean(topic.hasStudyNotes || topic.studyNotes);
+                          const isMarked = hasPdf || hasNotes;
 
                           return (
                             <div 
                               key={topic.id}
                               className={`p-3 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
-                                hasPdf 
-                                  ? 'bg-saffron/5 border-saffron/30' 
+                                isMarked 
+                                  ? 'bg-emerald-500/10 border-emerald-500/40 shadow-sm' 
                                   : 'bg-bg-s3/40 border-border/80 hover:bg-bg-s3/70'
                               }`}
                             >
@@ -928,7 +955,7 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
                                       ✓ PDF Attached
                                     </span>
                                   )}
-                                  {(topic.hasStudyNotes || topic.studyNotes) && (
+                                  {hasNotes && (
                                     <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shrink-0">
                                       📖 Formatted Notes Saved
                                     </span>
@@ -1478,6 +1505,10 @@ export const AdminSyllabus: React.FC<AdminSyllabusProps> = ({ currentUser, exams
           topic={studioTopic.topic}
           currentUser={currentUser}
           getApiUrl={getApiUrl}
+          onAttachPdf={async (examId, topicId, file) => {
+            await handleTopicPdfUpload(examId, topicId, file);
+            setStudioTopic(null);
+          }}
           onSaveNotes={async (examId, topicId, studyNotes) => {
             await handleTopicNotesSave(examId, topicId, studyNotes);
             setStudioTopic(null);

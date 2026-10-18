@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import type { Exam } from '../syllabus/syllabusData';
 import { MarkdownRenderer } from '../MarkdownRenderer';
-import { getUniqueSubjectOptions } from '../../utils/subjectUtils';
+import { getUniqueSubjectOptions, isTestMatchingExamSyllabus } from '../../utils/subjectUtils';
 
 const cleanPrefix = (str: string): string => {
   if (!str) return '';
@@ -578,10 +578,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
   // Find active exam data
   const activeExam = exams.find(e => e.id === selectedExamId) || exams[0];
 
-  // Filter tests registry by exam
+  // Filter tests registry by exam (direct or syllabus alignment)
   const filteredRegistryTests = tests.filter(test => {
     if (filterExamId === 'all') return true;
-    return test.examId === filterExamId || (Array.isArray(test.examIds) && test.examIds.includes(filterExamId));
+    const targetExam = exams.find(e => e.id === filterExamId);
+    return isTestMatchingExamSyllabus(test, targetExam || { id: filterExamId });
   });
 
   const getApiUrl = (path: string) => {

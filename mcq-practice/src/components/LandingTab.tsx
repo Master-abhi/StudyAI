@@ -27,7 +27,7 @@ import {
   LogIn
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { SUPABASE_APK_URL } from '../constants';
+import { SUPABASE_APK_URL, getApkFilename } from '../constants';
 
 interface LandingTabProps {
   onStartPractice: () => void;
@@ -192,7 +192,7 @@ export const LandingTab: React.FC<LandingTabProps> = ({
               href={SUPABASE_APK_URL}
               target="_blank"
               rel="noopener noreferrer"
-              download="CG_Guru_App.apk"
+              download={getApkFilename()}
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-saffron/10 hover:bg-saffron/20 border border-saffron/30 text-saffron text-xs font-bold transition-all shadow-sm"
               title="Download Android APK"
             >
@@ -294,7 +294,7 @@ export const LandingTab: React.FC<LandingTabProps> = ({
               href={SUPABASE_APK_URL}
               target="_blank"
               rel="noopener noreferrer"
-              download="CG_Guru_App.apk"
+              download={getApkFilename()}
               className="px-5 py-4 bg-saffron/10 hover:bg-saffron/20 border border-saffron/40 text-saffron font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 shadow-sm"
               title="Download Android APK directly"
             >
@@ -1033,7 +1033,7 @@ export const LandingTab: React.FC<LandingTabProps> = ({
               href={SUPABASE_APK_URL}
               target="_blank"
               rel="noopener noreferrer"
-              download="CG_Guru_App.apk"
+              download={getApkFilename()}
               className="px-8 py-4 bg-saffron hover:bg-orange-600 text-bg-s1 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg hover:shadow-saffron/25 transition-all flex items-center gap-2.5 cursor-pointer shrink-0 active:scale-95"
             >
               <Download className="w-5 h-5" />

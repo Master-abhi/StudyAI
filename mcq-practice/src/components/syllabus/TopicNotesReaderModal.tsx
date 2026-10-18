@@ -1116,22 +1116,22 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                       <span className={`text-[10px] font-black uppercase tracking-wider block mb-2 ${
                         readingTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'
                       }`}>मुख्य तथ्य झलक (Quick Highlights):</span>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="space-y-2">
                         {notes.overview.quickFacts.map((fact: any, idx: number) => {
                           const factText = typeof fact === 'object' && fact !== null
                             ? (fact.label ? `${fact.label}: ${fact.value || ''}` : (fact.value || fact.text || JSON.stringify(fact)))
                             : String(fact || '');
                           return (
-                            <span key={idx} className={`text-xs px-3 py-1.5 rounded-lg border font-semibold flex items-center gap-2 ${
+                            <div key={idx} className={`text-xs px-3.5 py-2 rounded-xl border font-medium flex items-start gap-2.5 leading-relaxed ${
                               readingTheme === 'dark'
                                 ? 'bg-[#1E293B]/70 border-[#334155] text-slate-200'
                                 : readingTheme === 'sepia'
                                   ? 'bg-[#EFE2C8] border-[#DECBB0] text-[#3F3325]'
-                                  : 'bg-slate-100 border-slate-200 text-slate-800'
+                                  : 'bg-slate-50 border-slate-200 text-slate-800'
                             }`}>
-                              <span className="w-1.5 h-1.5 rounded-full bg-saffron shrink-0" />
-                              {factText}
-                            </span>
+                              <span className="w-1.5 h-1.5 rounded-full bg-saffron shrink-0 mt-1.5" />
+                              <div className="flex-1 min-w-0">{renderCardText(factText)}</div>
+                            </div>
                           );
                         })}
                       </div>
@@ -1237,13 +1237,13 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                           )}
 
                           {sec.content && (
-                            <div className="prose prose-sm max-w-none font-normal leading-relaxed text-left space-y-3">
+                            <div className="prose prose-sm max-w-none font-normal leading-relaxed text-left space-y-3 break-words">
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm, remarkMath]}
                                 rehypePlugins={[rehypeRaw, rehypeKatex]}
                                 components={{
                                   p: ({ children }) => (
-                                    <p className={`my-2 leading-relaxed text-left ${
+                                    <p className={`my-2 leading-relaxed text-left break-words ${
                                       readingTheme === 'dark' ? 'text-slate-200' : readingTheme === 'sepia' ? 'text-[#3F3325]' : 'text-slate-800'
                                     }`}>{children}</p>
                                   ),
@@ -1253,13 +1253,13 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                                     }`}>{children}</strong>
                                   ),
                                   ul: ({ children }) => (
-                                    <ul className="list-disc pl-5 my-2.5 space-y-2">{children}</ul>
+                                    <ul className="list-disc pl-5 my-2.5 space-y-2 break-words">{children}</ul>
                                   ),
                                   ol: ({ children, start }: any) => (
-                                    <ol start={start} className="list-decimal pl-5 my-2.5 space-y-2">{children}</ol>
+                                    <ol start={start} className="list-decimal pl-5 my-2.5 space-y-2 break-words">{children}</ol>
                                   ),
                                   li: ({ children, value }: any) => (
-                                    <li value={value} className={`leading-relaxed pl-1 ${
+                                    <li value={value} className={`leading-relaxed pl-1 break-words ${
                                       readingTheme === 'dark' ? 'text-slate-200' : readingTheme === 'sepia' ? 'text-[#3F3325]' : 'text-slate-800'
                                     }`}>{children}</li>
                                   ),

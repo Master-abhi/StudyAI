@@ -653,6 +653,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
         subjectName={selectedTopicForTests?.subjectName}
         topicId={selectedTopicForTests?.topic.id}
         examId={activeExamId}
+        subtopics={selectedTopicForTests?.topic.subtopics}
         onStartTest={async (testId, mode, subject) => {
           await onStartPractice(subject, testId, mode);
         }}

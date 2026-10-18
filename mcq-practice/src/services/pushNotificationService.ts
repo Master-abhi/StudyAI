@@ -1,5 +1,4 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { PushNotifications } from '@capacitor/push-notifications';
 
 export const isCapacitorNative = (): boolean => {
   return typeof window !== 'undefined' && 
@@ -45,13 +44,6 @@ export const requestPushNotificationPermission = async (): Promise<boolean> => {
         console.warn('[LocalNotifications requestPermissions Warning]:', permErr);
       }
 
-      try {
-        const pushPerm = await PushNotifications.requestPermissions();
-        if (pushPerm.receive === 'granted') granted = true;
-      } catch (pushErr) {
-        console.warn('[PushNotifications requestPermissions Warning]:', pushErr);
-      }
-
       return granted;
     } else if (typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'granted') {
@@ -71,16 +63,16 @@ export const requestPushNotificationPermission = async (): Promise<boolean> => {
 let pushListenersInitialized = false;
 
 /**
- * Initializes Native Push Notifications (FCM / Remote Push) and Local Notification click listeners
+ * Initializes Native Local Notification click listeners and deep links
  */
-export const initNativePushNotifications = async (apiUrl?: string) => {
+export const initNativePushNotifications = async (_apiUrl?: string) => {
   if (!isCapacitorNative() || pushListenersInitialized) return;
   pushListenersInitialized = true;
 
   try {
     await ensureNotificationChannel();
 
-    // 1. Setup Local Notification Action Listener (deep link navigation when user taps banner)
+    // Setup Local Notification Action Listener (deep link navigation when user taps banner)
     try {
       await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
         const targetUrl = action.notification.extra?.url;
@@ -91,54 +83,6 @@ export const initNativePushNotifications = async (apiUrl?: string) => {
       });
     } catch (err) {
       console.warn('[LocalNotification Click Listener Error]:', err);
-    }
-
-    // 2. Setup FCM Remote Push Notifications
-    try {
-      const permStatus = await PushNotifications.checkPermissions();
-      if (permStatus.receive === 'prompt' || permStatus.receive === 'prompt-with-rationale') {
-        await PushNotifications.requestPermissions();
-      }
-
-      // Register device with APNs / FCM
-      await PushNotifications.register();
-
-      // Listen for FCM Device Token
-      await PushNotifications.addListener('registration', async (token) => {
-        console.log('[FCM Registration Success] Device Token:', token.value?.substring(0, 20) + '...');
-        if (apiUrl && token.value) {
-          try {
-            await fetch(`${apiUrl}/api/notifications/fcm-token`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                token: token.value,
-                platform: 'android'
-              })
-            });
-            console.log('[FCM Token Sync] Device token synced to backend ✅');
-          } catch (syncErr) {
-            console.warn('[FCM Token Sync Error]:', syncErr);
-          }
-        }
-      });
-
-      await PushNotifications.addListener('registrationError', (err) => {
-        console.warn('[FCM Registration Error]:', err.error);
-      });
-
-      // Handle push notification tap when app is in background or closed
-      await PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-        const data = notification.notification.data;
-        const targetUrl = data?.actionUrl || data?.url;
-        console.log('[Remote Push Clicked]:', targetUrl);
-        if (targetUrl && typeof window !== 'undefined') {
-          window.location.href = targetUrl;
-        }
-      });
-
-    } catch (pushInitErr) {
-      console.warn('[PushNotifications Registration Warning]:', pushInitErr);
     }
   } catch (err) {
     console.warn('[initNativePushNotifications Error]:', err);

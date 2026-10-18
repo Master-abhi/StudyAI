@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, ChevronLeft, Zap, BookOpen, Search, SlidersHorizontal, X, Download, CheckCircle2, HardDriveDownload, Loader2, Share2, FolderOpen, Layers, Crown } from 'lucide-react';
 import type { Question } from '../types';
-import { getCanonicalSubject } from '../utils/subjectUtils';
+import { getCanonicalSubject, isTestMatchingExamSyllabus } from '../utils/subjectUtils';
 import { canTakeMockTest, canSolveMcq, getRemainingMockTests, getRemainingMcqs } from '../utils/userTierLimits';
 
 interface ServerTest {
@@ -326,7 +326,8 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   const fetchSubjectFolders = async () => {
     setLoading(true);
     try {
-      const res = await fetch(getApiUrl(`/api/tests/subjects?examId=${activeExam?.id || ''}&mode=${activeMode}`));
+      const examSubjectsParam = activeExam?.subjects ? encodeURIComponent(activeExam.subjects.map((s: any) => s.name || s.nameHi || '').filter(Boolean).join(',')) : '';
+      const res = await fetch(getApiUrl(`/api/tests/subjects?examId=${activeExam?.id || ''}&mode=${activeMode}&examSubjects=${examSubjectsParam}`));
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -349,10 +350,11 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
 
     setLoadingSubject(true);
     try {
+      const examSubjectsParam = activeExam?.subjects ? encodeURIComponent(activeExam.subjects.map((s: any) => s.name || s.nameHi || '').filter(Boolean).join(',')) : '';
       // 1. Try querying by subject name directly
       let data: ServerTest[] = [];
       try {
-        const res = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&subject=${encodeURIComponent(subjectName)}&mode=${activeMode}`));
+        const res = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&subject=${encodeURIComponent(subjectName)}&mode=${activeMode}&examSubjects=${examSubjectsParam}`));
         if (res.ok) {
           const json = await res.json();
           if (Array.isArray(json) && json.length > 0) {
@@ -369,7 +371,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
         for (const folder of matchingFolders) {
           if (folder.subject && folder.subject.toLowerCase() !== subjectName.toLowerCase()) {
             try {
-              const rawRes = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&subject=${encodeURIComponent(folder.subject)}&mode=${activeMode}`));
+              const rawRes = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&subject=${encodeURIComponent(folder.subject)}&mode=${activeMode}&examSubjects=${examSubjectsParam}`));
               if (rawRes.ok) {
                 const rawJson = await rawRes.json();
                 if (Array.isArray(rawJson) && rawJson.length > 0) {
@@ -384,7 +386,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
       // 3. Fallback: If still 0 tests, fetch tests for this exam & mode and filter by canonical subject locally
       if (data.length === 0) {
         try {
-          const allRes = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&mode=${activeMode}`));
+          const allRes = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&mode=${activeMode}&examSubjects=${examSubjectsParam}`));
           if (allRes.ok) {
             const allJson = await allRes.json();
             if (Array.isArray(allJson) && allJson.length > 0) {
@@ -483,7 +485,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   console.log('[PracticeTab] activeExamId:', activeExam?.id, 'activeMode:', activeMode);
   const baseFilteredTests = tests.filter(t => 
     t.mode === activeMode && 
-    (t.examId === activeExam?.id || (Array.isArray(t.examIds) && t.examIds.includes(activeExam?.id)))
+    isTestMatchingExamSyllabus(t, activeExam)
   );
 
   // 2. Extract unique languages dynamically from base tests
@@ -537,7 +539,17 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     const normalizedTestSubj = getCanonicalSubject(t.subject || 'General Knowledge');
 
     const matchesSubject = selectedSubject
-      ? normalizedTestSubj.toLowerCase() === selectedSubject.toLowerCase()
+      ? (
+          normalizedTestSubj.toLowerCase() === selectedSubject.toLowerCase() ||
+          (selectedSubject.toLowerCase() === 'cg gk' && [
+            'cg history', 'cg geography', 'cg culture & tribes', 
+            'cg polity & governance', 'cg economy', 'cg government schemes'
+          ].includes(normalizedTestSubj.toLowerCase())) ||
+          (selectedSubject.toLowerCase() === 'general knowledge' && [
+            'indian history', 'indian polity', 'indian geography', 
+            'indian economy', 'general science'
+          ].includes(normalizedTestSubj.toLowerCase()))
+        )
       : true;
 
     return matchesSearch && matchesLanguage && matchesLength && matchesSubject;

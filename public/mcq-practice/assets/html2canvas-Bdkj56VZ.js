@@ -1,1 +1,0 @@
-import{t as e}from"./AdminSyllabus-Bg99HGat.js";export default e();

@@ -1,0 +1,19 @@
+[
+  {
+    "id": "test_1780541718459",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "Patwari / RI",
+    "examNames": [
+      "Patwari / RI"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T02:55:18.459Z"
+  }
+]

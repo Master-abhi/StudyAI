@@ -362,7 +362,7 @@ export const AdminBranding: React.FC<AdminBrandingProps> = ({ currentUser, confi
             </div>
           </div>
           <p className="text-[11px] text-[#718096] italic">
-            * Jab yeh toggle ON hoga, tabhi mobile app me users ko top header me "Update" button show hoga. Normal time par yeh button hide rahega.
+            * <strong>Version-based Update:</strong> Jab yeh toggle ON hoga aur yahan naya version (jaise <code>v1.1.0</code>) set hoga, tab keval unhi users ko "Update" button dikhega jinka app version isse purana hai. User app update karke open karega toh update button automatically hide ho jayega!
           </p>
         </div>
 

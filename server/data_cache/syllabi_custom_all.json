@@ -702,7 +702,7 @@
     "stage": "Prelims",
     "daysRemaining": 365,
     "totalMarks": 100,
-    "updatedAt": "2026-10-12T01:51:01.322Z",
+    "updatedAt": "2026-10-18T10:57:51.547Z",
     "subjects": [
       {
         "id": "cgv_master_sub_0",
@@ -2007,7 +2007,8 @@
                   "Weight",
                   "Mass"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_6",
@@ -2017,7 +2018,8 @@
                   "Atmospheric Pressure",
                   "Fluid Pressure"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_7",
@@ -2027,7 +2029,8 @@
                   "Thermometer",
                   "Heat Transfer"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_8",
@@ -2038,7 +2041,8 @@
                   "Frequency",
                   "Ultrasound"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_9",
@@ -2049,7 +2053,8 @@
                   "Refraction",
                   "Lens"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_10",
@@ -2059,7 +2064,8 @@
                   "Vision Defects",
                   "Eye Structure"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_11",
@@ -2070,7 +2076,8 @@
                   "Voltage",
                   "Resistance"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_12",
@@ -2080,7 +2087,8 @@
                   "Magnetic Field",
                   "Electromagnet"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_13",
@@ -2091,7 +2099,8 @@
                   "Radioactivity",
                   "Laser"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_14",
@@ -2101,7 +2110,8 @@
                   "Diode",
                   "Transistor"
                 ],
-                "importanceScore": 7
+                "importanceScore": 7,
+                "hasStudyNotes": true
               },
               {
                 "id": "phy_15",
@@ -2111,7 +2121,8 @@
                   "Fission",
                   "Fusion"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2127,7 +2138,8 @@
                   "States of Matter",
                   "Properties"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_2",
@@ -2137,7 +2149,8 @@
                   "Atomic Structure",
                   "Molecules"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_3",
@@ -2147,7 +2160,8 @@
                   "Groups",
                   "Periods"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_4",
@@ -2157,7 +2171,8 @@
                   "Ionic Bond",
                   "Covalent Bond"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_5",
@@ -2167,7 +2182,8 @@
                   "pH Scale",
                   "Indicators"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_6",
@@ -2177,7 +2193,8 @@
                   "Properties",
                   "Uses"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_7",
@@ -2187,7 +2204,8 @@
                   "Oxidation",
                   "Reduction"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_8",
@@ -2197,7 +2215,8 @@
                   "Hydrocarbons",
                   "Organic Chemistry Basics"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_9",
@@ -2208,7 +2227,8 @@
                   "Petroleum",
                   "LPG"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_10",
@@ -2219,7 +2239,8 @@
                   "Detergent",
                   "Cement"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_11",
@@ -2229,7 +2250,8 @@
                   "Plastic",
                   "Synthetic Fibers"
                 ],
-                "importanceScore": 7
+                "importanceScore": 7,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_12",
@@ -2239,7 +2261,8 @@
                   "NPK",
                   "Insecticides"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "chem_13",
@@ -2249,7 +2272,8 @@
                   "Acid Rain",
                   "Ozone Layer"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2265,7 +2289,8 @@
                   "Cell Structure",
                   "Cell Organelles"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_2",
@@ -2275,7 +2300,8 @@
                   "Plant Tissue",
                   "Animal Tissue"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_3",
@@ -2285,7 +2311,8 @@
                   "Digestive Organs",
                   "Enzymes"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_4",
@@ -2295,7 +2322,8 @@
                   "Lungs",
                   "Respiration"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_5",
@@ -2305,7 +2333,8 @@
                   "Heart",
                   "Blood"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_6",
@@ -2315,7 +2344,8 @@
                   "Brain",
                   "Neuron"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_7",
@@ -2325,7 +2355,8 @@
                   "Hormones",
                   "Glands"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_8",
@@ -2335,7 +2366,8 @@
                   "Human Reproduction",
                   "Health"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_9",
@@ -2346,7 +2378,8 @@
                   "Minerals",
                   "Balanced Diet"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_10",
@@ -2357,7 +2390,8 @@
                   "Viral",
                   "Deficiency Diseases"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_11",
@@ -2367,7 +2401,8 @@
                   "Antibodies",
                   "Vaccination"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_12",
@@ -2378,7 +2413,8 @@
                   "Genes",
                   "Mendel"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_13",
@@ -2388,7 +2424,8 @@
                   "Photosynthesis",
                   "Transpiration"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_14",
@@ -2398,7 +2435,8 @@
                   "Five Kingdom",
                   "Taxonomy"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "bio_15",
@@ -2408,7 +2446,8 @@
                   "GM Crops",
                   "Cloning"
                 ],
-                "importanceScore": 7
+                "importanceScore": 7,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2424,7 +2463,8 @@
                   "Food Chain",
                   "Food Web"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "env_2",
@@ -2434,7 +2474,8 @@
                   "Conservation",
                   "Hotspots"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "env_3",
@@ -2457,7 +2498,8 @@
                   "Global Warming",
                   "Greenhouse Effect"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "env_5",
@@ -2468,7 +2510,8 @@
                   "Wind",
                   "Biogas"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "env_6",
@@ -2479,7 +2522,8 @@
                   "IPCC",
                   "Wildlife Protection Act"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "env_7",
@@ -2489,7 +2533,8 @@
                   "Tiger Reserves",
                   "Biosphere Reserves"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2507,7 +2552,8 @@
                   "क्षुद्रग्रह",
                   "धूमकेतु"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "adv_sci_2",
@@ -2518,7 +2564,8 @@
                   "नक्षत्र",
                   "ब्लैक होल"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "adv_sci_3",
@@ -2530,7 +2577,8 @@
                   "गगनयान",
                   "आदित्य-L1"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "adv_sci_4",
@@ -2542,7 +2590,8 @@
                   "ESA",
                   "Roscosmos"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2560,7 +2609,8 @@
                   "सी.वी. रमन",
                   "जगदीश चंद्र बोस"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "adv_sci_6",
@@ -2572,7 +2622,8 @@
                   "बल्ब",
                   "कंप्यूटर"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "adv_sci_7",
@@ -2583,7 +2634,8 @@
                   "रसायन",
                   "चिकित्सा"
                 ],
-                "importanceScore": 7
+                "importanceScore": 7,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2600,7 +2652,8 @@
                   "उपयोग एवं मापन इकाइयाँ",
                   "दैनिक जीवन में अनुप्रयोग"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               }
             ]
           }
@@ -2629,7 +2682,8 @@
                   "परिमेय संख्या",
                   "अपरिमेय संख्या"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ns_2",
@@ -2638,7 +2692,8 @@
                 "subtopics": [
                   "2,3,4,5,6,8,9,11 के नियम"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ns_3",
@@ -2649,7 +2704,8 @@
                   "HCF",
                   "प्रयोग आधारित प्रश्न"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ns_4",
@@ -2660,7 +2716,8 @@
                   "Cube Root",
                   "Indices Laws"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ns_5",
@@ -2671,7 +2728,8 @@
                   "Fraction",
                   "Decimal"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2687,7 +2745,8 @@
                   "Percentage Conversion",
                   "Increase & Decrease"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ar_2",
@@ -2698,7 +2757,8 @@
                   "Selling Price",
                   "Profit Percentage"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ar_3",
@@ -2708,7 +2768,8 @@
                   "Marked Price",
                   "Successive Discount"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ar_4",
@@ -2718,7 +2779,8 @@
                   "Profit Sharing",
                   "Investment Ratio"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ar_5",
@@ -2728,7 +2790,8 @@
                   "Brokerage",
                   "Commission Calculation"
                 ],
-                "importanceScore": 7
+                "importanceScore": 7,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2744,7 +2807,8 @@
                   "Simple Ratio",
                   "Compound Ratio"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ratio_2",
@@ -2754,7 +2818,8 @@
                   "Direct Proportion",
                   "Inverse Proportion"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ratio_3",
@@ -2764,7 +2829,8 @@
                   "Simple Average",
                   "Weighted Average"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_ratio_4",
@@ -2774,7 +2840,8 @@
                   "Milk-Water",
                   "Alligation Rule"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2791,7 +2858,8 @@
                   "Rate",
                   "Time"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_si_2",
@@ -2801,7 +2869,8 @@
                   "Annual CI",
                   "Half Yearly CI"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_si_3",
@@ -2811,7 +2880,8 @@
                   "Efficiency",
                   "Work Distribution"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_si_4",
@@ -2821,7 +2891,8 @@
                   "Inlet",
                   "Outlet"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2837,7 +2908,8 @@
                   "Average Speed",
                   "Relative Speed"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_tsd_2",
@@ -2847,7 +2919,8 @@
                   "Crossing Problems",
                   "Platform Problems"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_tsd_3",
@@ -2857,7 +2930,8 @@
                   "Upstream",
                   "Downstream"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               }
             ]
           },

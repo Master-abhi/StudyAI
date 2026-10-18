@@ -24,6 +24,7 @@ interface TopicTestsModalProps {
   subjectName?: string;
   topicId?: string;
   examId?: string;
+  subtopics?: string[];
   onStartTest: (testId: string, mode: 'quiz' | 'mock' | 'pyq', subject: string) => void | Promise<void>;
   onMarkComplete?: () => void;
   isCompleted?: boolean;
@@ -40,6 +41,7 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
   subjectName,
   topicId,
   examId,
+  subtopics,
   onStartTest,
   onMarkComplete,
   isCompleted
@@ -83,6 +85,7 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
       if (subjectName) params.append('subjectName', subjectName);
       if (topicId) params.append('topicId', topicId);
       if (examId) params.append('examId', examId);
+      if (subtopics && subtopics.length > 0) params.append('subtopics', subtopics.join(','));
 
       const res = await fetch(getApiUrl(`/api/syllabus/topic-tests?${params.toString()}`));
       const data = await res.json();

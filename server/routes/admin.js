@@ -12,6 +12,8 @@ const { setInMemoryJobsCache, getCachedJobs, updateJobsCacheInFirestore } = requ
 
 function invalidateTestsAndPoolCache() {
   invalidateCache('tests');
+  invalidateCache('test_subjects');
+  invalidateCache('topic_tests_catalog');
   invalidateCache('admin_tests_meta');
   invalidateCache('pool_stats');
 }
@@ -3149,6 +3151,7 @@ router.post('/syllabus/topic-pdf', verifyStaffOrAdmin('syllabus'), upload.single
         }
       });
     }
+    examObj.id = examId;
     examObj.updatedAt = new Date().toISOString();
     const cleanExamObj = sanitizeForFirestore(examObj);
     await docRef.set(cleanExamObj);
@@ -3310,6 +3313,7 @@ router.post('/syllabus/topic-notes', verifyStaffOrAdmin('syllabus'), async (req,
       });
     }
 
+    examObj.id = examId;
     examObj.updatedAt = new Date().toISOString();
     const cleanExamObj = sanitizeForFirestore(examObj);
     await docRef.set(cleanExamObj);

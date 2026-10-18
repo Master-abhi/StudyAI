@@ -1,0 +1,184 @@
+[
+  {
+    "id": "test_pool_1786174925534_4",
+    "title": "Mixed Subjects - Test 2",
+    "examId": "cgpsc_sse",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "cgpsc_sse",
+      "cg_tet",
+      "cgv_teacher",
+      "cgv_steno_deo",
+      "transport_constable",
+      "cgv_food",
+      "cgv_lab_tech",
+      "adeo",
+      "cgv_sub_eng",
+      "cgv_patwari",
+      "cgv_naib",
+      "cgv_police",
+      "cgv_health",
+      "mandi_nirikshak",
+      "cgv_forest",
+      "cgv_accountant"
+    ],
+    "examName": "CGPSC SSE",
+    "examNames": [
+      "CGPSC SSE",
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)",
+      "Shikshak / Teacher (TET)",
+      "Food Inspector (खाद्य निरीक्षक)",
+      "Sub Engineer (Civil/Elec./Mech.)",
+      "Naib Tehsildar / Revenue",
+      "Staff Nurse / ANM / Health",
+      "Accountant / Junior Accountant",
+      "Steno / Data Entry Operator",
+      "Lab Technician / Radiographer"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-08-08T07:42:03.357Z"
+  },
+  {
+    "id": "test_pool_1785232745669",
+    "title": "Mathematics - Test 2",
+    "examId": "cgv_master",
+    "examIds": [
+      "cgv_master",
+      "cg_police_si",
+      "cg_constable",
+      "excise_constable",
+      "mandi_nirikshak",
+      "cg_tet",
+      "transport_constable",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "cgv_forest"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "CG TET",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI",
+      "Forest Guard (वनरक्षक)"
+    ],
+    "subject": "Mathematics",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-07-28T09:59:05.669Z"
+  },
+  {
+    "id": "test_1780974986129",
+    "title": "Mixed Subjects - Test 2",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari",
+      "mandi_nirikshak",
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "Mandi Nirikshak",
+      "Patwari / RI"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-09T03:16:26.129Z"
+  },
+  {
+    "id": "test_1780973161346",
+    "title": "Mixed Subjects - Test 1",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari",
+      "cgv_master"
+    ],
+    "examName": "CG VYAPAM BASICS",
+    "examNames": [
+      "CG VYAPAM BASICS",
+      "Patwari / RI"
+    ],
+    "subject": "Mixed Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-09T02:46:01.346Z"
+  },
+  {
+    "id": "test_1780971943833",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgpsc_sse",
+      "cg_constable",
+      "cg_police_si",
+      "excise_constable",
+      "mandi_nirikshak",
+      "adeo",
+      "cgv_patwari",
+      "cgv_police",
+      "transport_constable"
+    ],
+    "examName": "CG Vyapam Mixed Subjects",
+    "examNames": [
+      "CGPSC SSE",
+      "CG Police SI",
+      "CG Police Constable",
+      "Excise Constable",
+      "Mandi Nirikshak",
+      "Transport Constable",
+      "ADEO",
+      "Patwari / RI",
+      "Police Constable / SI"
+    ],
+    "subject": "All Subjects",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-09T02:25:43.833Z"
+  },
+  {
+    "id": "test_1780541718459",
+    "title": "",
+    "examId": "cgv_patwari",
+    "examIds": [
+      "cgv_patwari"
+    ],
+    "examName": "Patwari / RI",
+    "examNames": [
+      "Patwari / RI"
+    ],
+    "subject": "Chhattisgarh General Knowledge",
+    "mode": "mock",
+    "language": "hindi",
+    "totalQuestions": 20,
+    "createdAt": "2026-06-04T02:55:18.459Z"
+  }
+]

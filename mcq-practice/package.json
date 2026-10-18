@@ -10,6 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "cap:sync": "cap sync",
+    "apk:sync": "node scripts/sync-versioned-apk.cjs",
+    "build:apk": "npm run build && npx cap sync android && cd android && gradlew.bat assembleDebug && cd .. && npm run apk:sync",
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios"
   },
@@ -21,7 +23,6 @@
     "@capacitor/local-notifications": "^8.2.1",
     "@capacitor/network": "^8.0.1",
     "@capacitor/preferences": "^8.0.1",
-    "@capacitor/push-notifications": "^8.1.2",
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",

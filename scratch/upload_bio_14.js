@@ -56,7 +56,8 @@ const topicNotesData = {
 
 ### 3. वर्गिकी पदानुक्रम (Taxonomic Hierarchy)
 जीवों के वर्गीकरण की 7 अनिवार्य मूल श्रेणियां अवरोही क्रम (उच्च से निम्न) में निम्नलिखित हैं:
-$$\\mathbf{जगत\\;(Kingdom) \\longrightarrow संघ/प्रभाग\\;(Phylum/Division) \\longrightarrow वर्ग\\;(Class) \\longrightarrow गण\\;(Order) \\longrightarrow कुल\\;(Family) \\longrightarrow वंश\\;(Genus) \\longrightarrow जाति\\;(Species)}$$
+**पदानुक्रम (उच्च से निम्न क्रम):**  
+**जगत (Kingdom)** ➔ **संघ/प्रभाग (Phylum/Division)** ➔ **वर्ग (Class)** ➔ **गण (Order)** ➔ **कुल (Family)** ➔ **वंश (Genus)** ➔ **जाति (Species)**
 - **वर्गीकरण की सबसे बड़ी / सर्वोच्च इकाई:** **जगत (Kingdom)**।
 - **वर्गीकरण की मूलभूत एवं सबसे छोटी आधारीय इकाई:** **जाति (Species)**।
 - *जैविक जाति संकल्पना (Biological Species Concept):* **अर्न्स्ट मेयर (Ernst Mayr - 20वीं सदी के डार्विन)** के अनुसार, "जाति आपस में प्राकृतिक रूप से अंतःप्रजनन (Interbreeding) करने में सक्षम तथा जननक्षम संतति उत्पन्न करने वाले जीवों का समूह है।" (जैसे घोड़ा और गधा अलग-अलग जातियां हैं, उनके संकरण से उत्पन्न खच्चर / Mule बंध्य होता है)।`

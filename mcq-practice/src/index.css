@@ -346,4 +346,24 @@ textarea::placeholder {
   background-color: #ffffff !important;
 }
 
+/* KaTeX Math Equations Responsive Scroll & Display */
+.katex-display {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  max-width: 100% !important;
+  padding: 0.5rem 0 !important;
+  -webkit-overflow-scrolling: touch;
+}
+.katex-display::-webkit-scrollbar {
+  height: 4px;
+}
+.katex-display::-webkit-scrollbar-thumb {
+  background: rgba(255, 153, 51, 0.4);
+  border-radius: 4px;
+}
+.katex {
+  max-width: 100%;
+}
+
+
 

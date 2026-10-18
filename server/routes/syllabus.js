@@ -96,10 +96,49 @@ router.get('/custom', async (req, res) => {
       invalidateCache('syllabi_custom_all');
     }
     const syllabi = await safeFirestoreQuery('syllabi_custom_all', async () => {
-      const snapshot = await db.collection('syllabi').get();
+      const [snapshot, notesSnap] = await Promise.all([
+        db.collection('syllabi').get(),
+        db.collection('topic_study_notes').select('topicId', 'examId').get()
+      ]);
+
+      const notesTopicIds = new Set();
+      notesSnap.forEach(d => {
+        const data = d.data() || {};
+        if (data.topicId) notesTopicIds.add(String(data.topicId));
+        notesTopicIds.add(d.id);
+        const idx = d.id.indexOf('_');
+        if (idx !== -1) {
+          notesTopicIds.add(d.id.substring(idx + 1));
+        }
+      });
+
       const list = [];
       snapshot.forEach(doc => {
-        list.push(doc.data());
+        const d = doc.data() || {};
+        const examObj = { id: doc.id, ...d };
+        if (Array.isArray(examObj.subjects)) {
+          examObj.subjects.forEach(sub => {
+            if (Array.isArray(sub.chapters)) {
+              sub.chapters.forEach(chap => {
+                if (Array.isArray(chap.topics)) {
+                  chap.topics.forEach(top => {
+                    if (top && (notesTopicIds.has(String(top.id)) || notesTopicIds.has(`${doc.id}_${top.id}`))) {
+                      top.hasStudyNotes = true;
+                    }
+                  });
+                }
+              });
+            }
+            if (Array.isArray(sub.topics)) {
+              sub.topics.forEach(top => {
+                if (top && (notesTopicIds.has(String(top.id)) || notesTopicIds.has(`${doc.id}_${top.id}`))) {
+                  top.hasStudyNotes = true;
+                }
+              });
+            }
+          });
+        }
+        list.push(examObj);
       });
       return list;
     }, [], 5 * 60 * 1000); // 5-minute cache TTL with instant invalidation on changes
@@ -457,13 +496,11 @@ router.get('/topic-lectures', async (req, res) => {
 // GET /api/syllabus/topic-tests - Search available Quizzes/Mock tests for a specific topic
 router.get('/topic-tests', async (req, res) => {
   try {
-    const { topicName, topicNameHi, subjectName, examId, topicId } = req.query;
+    const { topicName, topicNameHi, subjectName, examId, topicId, subtopics } = req.query;
 
     const norm = str => (str || '')
       .toLowerCase()
-      .replace(/\(.*?\)/g, ' ')
-      .replace(/\[.*?\]/g, ' ')
-      .replace(/[\/—\-–:|]/g, ' ')
+      .replace(/[\/—\-–:|\(\)\[\],;]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
@@ -477,18 +514,32 @@ router.get('/topic-tests', async (req, res) => {
       'का', 'की', 'के', 'में', 'पर', 'एवं', 'तथा', 'और', 'से', 'भाग', 'प्रश्न'
     ]);
 
-    // Extract specific topic parts if separated by dash/hyphen (e.g. "भारतीय इतिहास — प्राचीन भारत" -> ["प्राचीन भारत"])
-    const hiParts = rawHi.split(/[—\-–|:]/).map(p => p.trim()).filter(Boolean);
-    const enParts = rawEn.split(/[—\-–|:]/).map(p => p.trim()).filter(Boolean);
+    // Extract specific topic parts if separated by dash/hyphen/commas/parentheses
+    const hiParts = rawHi.split(/[—\-–|:,\(\)\[\]]/).map(p => p.trim()).filter(Boolean);
+    const enParts = rawEn.split(/[—\-–|:,\(\)\[\]]/).map(p => p.trim()).filter(Boolean);
 
-    // Build target search phrases for the specific topic (strictly topic names, NOT subjectName!)
+    // Build target search phrases for the specific topic
     const targetPhrases = new Set();
     [rawHi, rawEn, ...hiParts, ...enParts].forEach(p => {
       const n = norm(p);
-      if (n.length >= 3 && !stopWords.has(n)) {
+      if (n.length >= 2 && !stopWords.has(n)) {
         targetPhrases.add(n);
       }
     });
+
+    // Also include subtopics if provided
+    if (subtopics) {
+      const subList = Array.isArray(subtopics) ? subtopics : String(subtopics).split(',');
+      subList.forEach(st => {
+        const parts = String(st).split(/[—\-–|:,\(\)\[\]]/).map(p => p.trim()).filter(Boolean);
+        [st, ...parts].forEach(p => {
+          const n = norm(p);
+          if (n.length >= 2 && !stopWords.has(n)) {
+            targetPhrases.add(n);
+          }
+        });
+      });
+    }
 
     if (targetPhrases.size === 0 && !topicId) {
       return res.json({ success: true, tests: [] });

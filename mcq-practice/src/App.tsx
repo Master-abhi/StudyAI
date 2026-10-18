@@ -99,7 +99,7 @@ const TabFallback = () => (
 );
 
 import type { Exam } from './components/syllabus/syllabusData';
-import { SUPABASE_APK_URL } from './constants';
+import { SUPABASE_APK_URL, CURRENT_APP_VERSION, CURRENT_APP_BUILD, isNewerVersion, getApkFilename } from './constants';
 import { 
   EXAMS_DATA, 
   getProgressFromLocalStorage, 
@@ -723,28 +723,105 @@ export default function App() {
     }
   };
 
-  const [appUpdateAvailable, setAppUpdateAvailable] = useState<boolean>(() => {
-    return localStorage.getItem('cg_app_update_available') === 'true';
+  const [deviceAppVersion, setDeviceAppVersion] = useState<string>(() => {
+    return localStorage.getItem('cg_device_app_version') || CURRENT_APP_VERSION;
+  });
+  const [deviceAppBuild, setDeviceAppBuild] = useState<string>(() => {
+    return localStorage.getItem('cg_device_app_build') || CURRENT_APP_BUILD;
+  });
+  const [appUpdateVersion, setAppUpdateVersion] = useState<string>(() => {
+    return localStorage.getItem('cg_app_update_version') || '';
   });
   const [appUpdateUrl, setAppUpdateUrl] = useState<string>(() => {
     return localStorage.getItem('cg_app_update_url') || SUPABASE_APK_URL;
   });
+  const [appUpdateAvailable, setAppUpdateAvailable] = useState<boolean>(() => {
+    const flag = localStorage.getItem('cg_app_update_available') === 'true';
+    const remoteVer = localStorage.getItem('cg_app_update_version') || '';
+    const localVer = localStorage.getItem('cg_device_app_version') || CURRENT_APP_VERSION;
+    const localBuild = localStorage.getItem('cg_device_app_build') || CURRENT_APP_BUILD;
+    if (!flag) return false;
+    if (remoteVer && remoteVer.trim()) {
+      return isNewerVersion(remoteVer, localVer) || isNewerVersion(remoteVer, localBuild);
+    }
+    return flag;
+  });
+
+  // Query installed app version dynamically from native app package info
+  useEffect(() => {
+    const detectAppInfo = async () => {
+      if (isCapacitorNative()) {
+        try {
+          const { App: CapApp } = await import('@capacitor/app');
+          const info = await CapApp.getInfo();
+          if (info.version) {
+            setDeviceAppVersion(info.version);
+            localStorage.setItem('cg_device_app_version', info.version);
+          }
+          if (info.build) {
+            setDeviceAppBuild(info.build);
+            localStorage.setItem('cg_device_app_build', info.build);
+          }
+        } catch (e) {
+          console.warn('[Get App Info Warning]:', e);
+        }
+      }
+    };
+    detectAppInfo();
+  }, []);
 
   const fetchAppUpdateConfig = async () => {
     try {
+      let currentVer = deviceAppVersion;
+      let currentBld = deviceAppBuild;
+
+      if (isCapacitorNative()) {
+        try {
+          const { App: CapApp } = await import('@capacitor/app');
+          const info = await CapApp.getInfo();
+          if (info.version) {
+            currentVer = info.version;
+            setDeviceAppVersion(info.version);
+            localStorage.setItem('cg_device_app_version', info.version);
+          }
+          if (info.build) {
+            currentBld = info.build;
+            setDeviceAppBuild(info.build);
+            localStorage.setItem('cg_device_app_build', info.build);
+          }
+        } catch (_) {}
+      }
+
+      const applyConfig = (data: any) => {
+        const flag = !!data?.appUpdateAvailable;
+        const remoteVersion = (data?.appUpdateVersion || '').trim();
+        const updateUrl = data?.appUpdateUrl || SUPABASE_APK_URL;
+
+        setAppUpdateUrl(updateUrl);
+        setAppUpdateVersion(remoteVersion);
+        localStorage.setItem('cg_app_update_url', updateUrl);
+        localStorage.setItem('cg_app_update_version', remoteVersion);
+
+        // Check if update is strictly newer than installed version on this device
+        let isUpdateNeeded = false;
+        if (flag) {
+          if (remoteVersion) {
+            isUpdateNeeded = isNewerVersion(remoteVersion, currentVer) || isNewerVersion(remoteVersion, currentBld);
+          } else {
+            isUpdateNeeded = true;
+          }
+        }
+
+        setAppUpdateAvailable(isUpdateNeeded);
+        localStorage.setItem('cg_app_update_available', String(isUpdateNeeded));
+      };
+
       const firebase = (window as any).firebase;
       if (firebase) {
         try {
           const doc = await firebase.firestore().collection('config').doc('branding').get();
           if (doc.exists) {
-            const data = doc.data();
-            const hasUpdate = !!data?.appUpdateAvailable;
-            setAppUpdateAvailable(hasUpdate);
-            localStorage.setItem('cg_app_update_available', String(hasUpdate));
-            if (data?.appUpdateUrl) {
-              setAppUpdateUrl(data.appUpdateUrl);
-              localStorage.setItem('cg_app_update_url', data.appUpdateUrl);
-            }
+            applyConfig(doc.data());
             return;
           }
         } catch (_) {}
@@ -753,13 +830,7 @@ export default function App() {
       const res = await fetch(getApiUrl('/api/admin/config/branding'));
       if (res.ok) {
         const data = await res.json();
-        const hasUpdate = !!data?.appUpdateAvailable;
-        setAppUpdateAvailable(hasUpdate);
-        localStorage.setItem('cg_app_update_available', String(hasUpdate));
-        if (data?.appUpdateUrl) {
-          setAppUpdateUrl(data.appUpdateUrl);
-          localStorage.setItem('cg_app_update_url', data.appUpdateUrl);
-        }
+        applyConfig(data);
       }
     } catch (_) {}
   };
@@ -870,7 +941,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetchCustomSyllabi();
+    fetchCustomSyllabi(activeTab === 'syllabus' || activeTab === 'admin' || activeTab === 'staff');
     fetchTabVisibility();
     fetchExamVisibility();
     fetchAppUpdateConfig();
@@ -2706,7 +2777,7 @@ export default function App() {
             currentUser={currentUser}
             onGoBack={() => setActiveTab('profile')}
             exams={exams}
-            onRefreshExams={fetchCustomSyllabi}
+            onRefreshExams={() => fetchCustomSyllabi(true)}
           />
         );
       case 'staff':
@@ -2733,7 +2804,7 @@ export default function App() {
             roles={staffRoles}
             onGoBack={() => setActiveTab('profile')}
             exams={exams}
-            onRefreshExams={fetchCustomSyllabi}
+            onRefreshExams={() => fetchCustomSyllabi(true)}
           />
         );
       case 'syllabus':
@@ -2998,13 +3069,29 @@ export default function App() {
               </button>
             )}
 
+            {/* Native APK App: Show Update button in sidebar when an update is available */}
+            {isCapacitorNative() && appUpdateAvailable && (
+              <a
+                href={appUpdateUrl || SUPABASE_APK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={getApkFilename(appUpdateVersion)}
+                className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-orange-600 text-bg-s1 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all active:scale-[0.98] animate-pulse"
+                title={`Update Available ${appUpdateVersion ? `(${appUpdateVersion})` : ''} — Download New Version`}
+              >
+                <Smartphone className="w-3.5 h-3.5 shrink-0" />
+                <span>Update App{appUpdateVersion ? ` ${appUpdateVersion.startsWith('v') ? appUpdateVersion : `v${appUpdateVersion}`}` : ''}</span>
+                <Download className="w-3.5 h-3.5 shrink-0" />
+              </a>
+            )}
+
             {/* Desktop Browser Download APK button (Only visible in browser, hidden inside native APK app) */}
             {!isCapacitorNative() && (
               <a
                 href={SUPABASE_APK_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                download="CG_Guru_App.apk"
+                download={getApkFilename()}
                 className="w-full py-2 px-3 rounded-lg bg-saffron/15 hover:bg-saffron/25 border border-saffron/40 text-saffron font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
                 title="Download CG Guru Android App"
               >
@@ -3049,12 +3136,12 @@ export default function App() {
                     href={appUpdateUrl || SUPABASE_APK_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    download="CG_Guru_App.apk"
+                    download={getApkFilename(appUpdateVersion)}
                     className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-saffron to-orange-500 hover:from-orange-500 hover:to-orange-600 text-bg-s1 font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer transition-all active:scale-[0.96] animate-pulse"
-                    title="Update Available — Download New Version"
+                    title={`Update Available ${appUpdateVersion ? `(${appUpdateVersion})` : ''} — Download New Version`}
                   >
                     <Smartphone className="w-3.5 h-3.5 shrink-0" />
-                    <span className="font-extrabold text-[10px]">Update</span>
+                    <span className="font-extrabold text-[10px]">Update{appUpdateVersion ? ` ${appUpdateVersion.startsWith('v') ? appUpdateVersion : `v${appUpdateVersion}`}` : ''}</span>
                     <Download className="w-3 h-3 shrink-0" />
                   </a>
                 )
@@ -3064,7 +3151,7 @@ export default function App() {
                   href={SUPABASE_APK_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  download="CG_Guru_App.apk"
+                  download={getApkFilename()}
                   className="px-2.5 py-1.5 rounded-lg bg-saffron/15 border border-saffron/40 hover:bg-saffron/25 text-saffron font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-xs cursor-pointer transition-all active:scale-[0.96]"
                   title="Download Official Android App"
                 >
