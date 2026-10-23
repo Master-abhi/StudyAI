@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { chat, chatStream } = require('../services/aiManager');
 const { db } = require('../firebase-admin');
-const { optionalFirebaseToken } = require('../middleware/verifyFirebaseToken');
+const { optionalFirebaseToken, verifyFirebaseToken } = require('../middleware/verifyFirebaseToken');
 const { aiRateLimiter } = require('../middleware/rateLimiter');
 
 router.post('/', optionalFirebaseToken, aiRateLimiter, async (req, res) => {
@@ -110,6 +110,66 @@ router.post('/', optionalFirebaseToken, aiRateLimiter, async (req, res) => {
   } catch (err) {
     console.error('[Chat Error]:', err.message);
     res.status(500).json({ error: 'Failed to get AI response. Please check your API key and try again.' });
+  }
+});
+
+// GET /api/chat/history - Retrieve user's chat history for an exam across all logged-in devices
+router.get('/history', verifyFirebaseToken, async (req, res) => {
+  try {
+    const examId = req.query.examId || 'default';
+    const docRef = db.collection('users').doc(req.user.uid).collection('chats').doc(examId);
+    const snap = await docRef.get();
+    if (snap.exists) {
+      const data = snap.data();
+      return res.json({ success: true, messages: data.messages || [] });
+    }
+    return res.json({ success: true, messages: [] });
+  } catch (err) {
+    console.error('[Chat History GET Error]:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve chat history.' });
+  }
+});
+
+// POST /api/chat/history - Save/sync user's chat history across all logged-in devices
+router.post('/history', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { examId = 'default', messages } = req.body;
+    if (!Array.isArray(messages)) {
+      return res.status(400).json({ error: 'Messages array is required.' });
+    }
+
+    // Sanitize messages array (keep last 100 messages max to prevent document overflow)
+    const cleanMessages = messages.slice(-100).map(m => ({
+      id: String(m.id || Date.now()),
+      role: m.role === 'user' ? 'user' : 'ai',
+      content: String(m.content || ''),
+      timestamp: String(m.timestamp || '')
+    }));
+
+    const docRef = db.collection('users').doc(req.user.uid).collection('chats').doc(examId);
+    await docRef.set({
+      examId,
+      messages: cleanMessages,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    res.json({ success: true, count: cleanMessages.length });
+  } catch (err) {
+    console.error('[Chat History POST Error]:', err.message);
+    res.status(500).json({ error: 'Failed to save chat history.' });
+  }
+});
+
+// DELETE /api/chat/history - Clear chat history for an exam across all devices
+router.delete('/history', verifyFirebaseToken, async (req, res) => {
+  try {
+    const examId = req.query.examId || req.body?.examId || 'default';
+    const docRef = db.collection('users').doc(req.user.uid).collection('chats').doc(examId);
+    await docRef.delete();
+    res.json({ success: true, message: 'Chat history cleared.' });
+  } catch (err) {
+    console.error('[Chat History DELETE Error]:', err.message);
+    res.status(500).json({ error: 'Failed to delete chat history.' });
   }
 });
 

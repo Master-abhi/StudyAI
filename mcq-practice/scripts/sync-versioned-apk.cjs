@@ -32,20 +32,10 @@ if (!sourceApk) {
 }
 
 const apkTargets = [
-  // Standard fixed names for backwards-compatibility
+  // Output to project root only (avoids packaging APK inside public/assets)
   path.resolve(rootDir, 'cgguru.apk'),
-  path.resolve(rootDir, 'public/cgguru.apk'),
-  path.resolve(rootDir, 'public/mcq-practice/cgguru.apk'),
-
-  // Versioned filenames (e.g. CG_Guru_v1.0.apk)
   path.resolve(rootDir, `CG_Guru_v${cleanVer}.apk`),
-  path.resolve(rootDir, `public/CG_Guru_v${cleanVer}.apk`),
-  path.resolve(rootDir, `public/mcq-practice/CG_Guru_v${cleanVer}.apk`),
-
-  // Lowercase versioned filenames (e.g. cgguru_v1.0.apk)
-  path.resolve(rootDir, `cgguru_v${cleanVer}.apk`),
-  path.resolve(rootDir, `public/cgguru_v${cleanVer}.apk`),
-  path.resolve(rootDir, `public/mcq-practice/cgguru_v${cleanVer}.apk`)
+  path.resolve(rootDir, `cgguru_v${cleanVer}.apk`)
 ];
 
 console.log(`[Sync APK] Syncing v${cleanVer} (Code: ${versionCode}) from: ${sourceApk}`);

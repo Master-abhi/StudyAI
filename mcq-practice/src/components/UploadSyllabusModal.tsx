@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { UploadCloud, Sparkles, AlertCircle } from 'lucide-react';
+import { getApiUrl } from '../utils/api';
 
 interface UploadSyllabusModalProps {
   isOpen: boolean;
@@ -17,21 +18,6 @@ export const UploadSyllabusModal: React.FC<UploadSyllabusModalProps> = ({
   const [pastedText, setPastedText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-
-    const getApiUrl = (path: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${path}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${path}`;
-    }
-    return path;
-  };
 
   if (!isOpen) return null;
 

@@ -4,6 +4,7 @@ import {
   Bell, X, Tag, Megaphone, AlertTriangle, RefreshCw, Pin, 
   ExternalLink, CheckCheck, Loader2, Sparkles, Inbox
 } from 'lucide-react';
+import { getApiUrl } from '../utils/api';
 
 export interface NotificationItem {
   id: string;
@@ -41,21 +42,6 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
       return [];
     }
   });
-
-  const getApiUrl = (path: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${path}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${path}`;
-    }
-    return path;
-  };
 
   const fetchNotifications = async () => {
     setLoading(true);

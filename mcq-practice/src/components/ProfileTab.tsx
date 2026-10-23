@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
+import { getApiUrl } from '../utils/api';
 
 export const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
   const IconComponent = (LucideIcons as any)[name];
@@ -374,21 +375,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
   const rankInfo = getRankInfo(xp);
   const rankProgress = rankInfo.maxXp === 100000 ? 100 : Math.round(((xp - rankInfo.minXp) / (rankInfo.maxXp - rankInfo.minXp)) * 100);
-
-  const getApiUrl = (path: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${path}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${path}`;
-    }
-    return path;
-  };
 
   const DEFAULT_ACHIEVEMENTS = [
     {

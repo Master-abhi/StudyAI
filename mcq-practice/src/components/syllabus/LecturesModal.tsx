@@ -359,7 +359,12 @@ export const LecturesModal: React.FC<LecturesModalProps> = ({
           className="bg-bg-s2 border-0 sm:border sm:border-border rounded-none sm:rounded-2xl w-full max-w-[98vw] 2xl:max-w-[1700px] h-[100dvh] sm:h-[96vh] max-h-[100dvh] sm:max-h-[96vh] flex flex-col shadow-2xl overflow-hidden font-sans"
         >
           {/* Header Bar */}
-          <div className="px-3 py-2 sm:px-6 sm:py-3.5 bg-bg-s3 border-b border-border flex items-center justify-between gap-3 shrink-0">
+          <div 
+            style={{
+              paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px)) + 0.65rem)'
+            }}
+            className="pt-safe-modal px-3.5 pb-2.5 sm:px-6 sm:pb-3.5 bg-bg-s3 border-b border-border flex items-center justify-between gap-3 shrink-0"
+          >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-red-600/15 border border-red-600/30 flex items-center justify-center text-red-500 shrink-0">
                 <Video className="w-4 h-4" />

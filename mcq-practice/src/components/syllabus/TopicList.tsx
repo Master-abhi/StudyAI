@@ -43,6 +43,15 @@ export const TopicList: React.FC<TopicListProps> = ({
 
   const topics = Array.isArray(chapter?.topics) ? chapter.topics : [];
 
+  const isGeo3DMapTopic = (top: Topic) => {
+    if (!top) return false;
+    if (top.id === 'geo-ind-3d-map') return true;
+    const name = (top.name || '').toLowerCase();
+    const nameHi = top.nameHi || '';
+    const isMap = name.includes('map') || nameHi.includes('मानचित्र') || nameHi.includes('नक्शा');
+    return isMap && (name.includes('3d') || nameHi.includes('3d'));
+  };
+
   return (
     <div className="flex flex-col gap-3 pl-3 border-l border-border/80">
       {topics.map(topic => {
@@ -180,7 +189,7 @@ export const TopicList: React.FC<TopicListProps> = ({
                         <span>{isLocked ? 'PDF (LOCKED)' : 'PDF NOTES'}</span>
                       </button>
                     )}
-                    {(topic.id === 'geo-ind-3d-map' || topic.name.toLowerCase().includes('3d')) && onOpen3DMap && (
+                    {isGeo3DMapTopic(topic) && onOpen3DMap && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -358,8 +367,8 @@ export const TopicList: React.FC<TopicListProps> = ({
                           <span className="ml-auto text-xs shrink-0">{isLocked ? '🔒' : progress.mcqCompleted ? '✓' : '🎯'}</span>
                         </button>
 
-                        {/* Task 4: 3D Map Explorer for Geography & 3D Topics */}
-                        {(topic.id === 'geo-ind-3d-map' || topic.name.toLowerCase().includes('3d')) && onOpen3DMap && (
+                        {/* Task 4: 3D Map Explorer for Geography & 3D Map Topics */}
+                        {isGeo3DMapTopic(topic) && onOpen3DMap && (
                           <button
                             onClick={() => onOpen3DMap()}
                             className="col-span-1 sm:col-span-3 flex items-center justify-between p-2.5 sm:p-3 rounded-lg border border-saffron/40 bg-gradient-to-r from-saffron/15 via-amber-500/10 to-sky-500/15 text-saffron hover:from-saffron/25 hover:to-sky-500/25 transition-all cursor-pointer shadow-sm"

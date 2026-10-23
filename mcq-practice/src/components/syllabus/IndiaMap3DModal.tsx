@@ -15,6 +15,7 @@ import {
   getStateDetailedProfile
 } from './indiaMapDetailedData';
 import { INDIA_HIGH_POLY_GEO } from './indiaHighPolyGeo';
+import { CG_33_DISTRICTS_GEO } from './cg33DistrictsGeo';
 
 interface IndiaMap3DModalProps {
   isOpen: boolean;
@@ -1703,94 +1704,190 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     const stateVec2 = stateBoundaryPoly.map(([x, y]) => new THREE.Vector2(x, y));
     const triIndices = THREE.ShapeUtils.triangulateShape(stateVec2, []);
 
-    const sites = districts.map(d => ({
-      dist: d,
-      x: (d.lon - cLon) * scale,
-      y: (d.lat - cLat) * scale * 1.08
-    }));
+    if (st.id === 'CG') {
+      // -------------------------------------------------------------
+      // Authentic Real-World GIS Boundaries for Chhattisgarh 33 Districts
+      // -------------------------------------------------------------
+      CG_33_DISTRICTS_GEO.forEach((geoDist, idx) => {
+        const dData = CG_33_DISTRICTS.find(d => d.id === geoDist.id) || {
+          id: geoDist.id,
+          name: geoDist.name,
+          hq: geoDist.name.split(' (')[0],
+          div: 'छत्तीसगढ़ संभाग',
+          formed: '2000',
+          lon: 82.0,
+          lat: 21.5,
+          info: 'छत्तीसगढ़ का प्रशासनिक जिला'
+        } as DistrictData;
 
-    sites.forEach((s, idx) => {
-      const divColor = CG_DIV_COLORS[s.dist.div] || (0x60a5fa + (idx * 0x172512) % 0x888888);
-      const mat = new THREE.MeshStandardMaterial({
-        color: divColor,
-        roughness: 0.35,
-        metalness: 0.08
-      });
-
-      const distShapes: THREE.Shape[] = [];
-
-      triIndices.forEach(([i0, i1, i2]) => {
-        let poly: [number, number][] = [stateBoundaryPoly[i0], stateBoundaryPoly[i1], stateBoundaryPoly[i2]];
-        sites.forEach((other, j) => {
-          if (idx === j || poly.length < 3) return;
-          const dx = other.x - s.x;
-          const dy = other.y - s.y;
-          const len = Math.hypot(dx, dy);
-          if (len < 0.001) return;
-          const nx = dx / len;
-          const ny = dy / len;
-          const midX = (s.x + other.x) / 2 - nx * 0.04;
-          const midY = (s.y + other.y) / 2 - ny * 0.04;
-          const c = midX * nx + midY * ny;
-          poly = clipPolygonByHalfPlane(poly, nx, ny, c);
+        const divColor = CG_DIV_COLORS[dData.div] || (0x60a5fa + (idx * 0x172512) % 0x888888);
+        const mat = new THREE.MeshStandardMaterial({
+          color: divColor,
+          roughness: 0.35,
+          metalness: 0.08
         });
 
-        if (poly.length >= 3) {
-          const sh = new THREE.Shape();
-          poly.forEach(([px, py], k) => {
-            if (k === 0) sh.moveTo(px, py);
-            else sh.lineTo(px, py);
+        const shape = new THREE.Shape();
+        geoDist.coords.forEach(([ln, lt], k) => {
+          const x = (ln - cLon) * scale;
+          const y = (lt - cLat) * scale * 1.08;
+          if (k === 0) shape.moveTo(x, y);
+          else shape.lineTo(x, y);
+        });
+        shape.closePath();
+
+        const geo = new THREE.ExtrudeGeometry(shape, {
+          depth: 0.95,
+          bevelEnabled: true,
+          bevelSegments: 2,
+          bevelSize: 0.02,
+          bevelThickness: 0.02,
+          steps: 1
+        });
+
+        const mesh = new THREE.Mesh(geo, mat);
+        const center3D = new THREE.Vector3(
+          (dData.lon - cLon) * scale,
+          (dData.lat - cLat) * scale * 1.08,
+          1.05
+        );
+
+        mesh.userData = {
+          kind: "DISTRICT",
+          data: dData,
+          stateData: st,
+          targetPosZ: 0,
+          center3D: center3D
+        };
+
+        // Realistic district border line
+        const edges = new THREE.EdgesGeometry(geo, 22);
+        const edgeLine = new THREE.LineSegments(
+          edges,
+          new THREE.LineBasicMaterial({
+            color: 0x1e293b,
+            opacity: 0.45,
+            transparent: true
+          })
+        );
+        mesh.add(edgeLine);
+
+        districtGrp.add(mesh);
+        r.districtMeshes.push(mesh);
+
+        // Marker Pin
+        const pin = new THREE.Mesh(
+          new THREE.SphereGeometry(0.12, 8, 8),
+          new THREE.MeshBasicMaterial({ color: 0x111827 })
+        );
+        pin.position.set(center3D.x, center3D.y, 0.92);
+        mesh.add(pin);
+
+        // Label
+        if (labelsContainerRef.current) {
+          const div = document.createElement("div");
+          div.className = "absolute transform -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-900 bg-white/90 px-1.5 py-0.5 rounded shadow pointer-events-none border border-slate-300";
+          div.textContent = dData.name.split(" (")[0];
+          labelsContainerRef.current.appendChild(div);
+          r.labelElements.push({
+            el: div,
+            pos3D: center3D,
+            type: 'district',
+            stateId: st.id
           });
-          sh.closePath();
-          distShapes.push(sh);
         }
       });
+    } else {
+      // Voronoi tessellation fallback for other states
+      const sites = districts.map(d => ({
+        dist: d,
+        x: (d.lon - cLon) * scale,
+        y: (d.lat - cLat) * scale * 1.08
+      }));
 
-      if (distShapes.length === 0) return;
-
-      const geo = new THREE.ExtrudeGeometry(distShapes, {
-        depth: 0.95,
-        bevelEnabled: true,
-        bevelSegments: 2,
-        bevelSize: 0.02,
-        bevelThickness: 0.02,
-        steps: 1
-      });
-
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.userData = {
-        kind: "DISTRICT",
-        data: s.dist,
-        stateData: st,
-        targetPosZ: 0,
-        center3D: new THREE.Vector3(s.x, s.y, 1.05)
-      };
-
-      districtGrp.add(mesh);
-      r.districtMeshes.push(mesh);
-
-      // Pin
-      const pin = new THREE.Mesh(
-        new THREE.SphereGeometry(0.12, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0x111827 })
-      );
-      pin.position.set(s.x, s.y, 0.92);
-      mesh.add(pin);
-
-      // Label
-      if (labelsContainerRef.current) {
-        const div = document.createElement("div");
-        div.className = "absolute transform -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-900 bg-white/90 px-1.5 py-0.5 rounded shadow pointer-events-none border border-slate-300";
-        div.textContent = s.dist.name.split(" (")[0];
-        labelsContainerRef.current.appendChild(div);
-        r.labelElements.push({
-          el: div,
-          pos3D: mesh.userData.center3D,
-          type: 'district',
-          stateId: st.id
+      sites.forEach((s, idx) => {
+        const divColor = CG_DIV_COLORS[s.dist.div] || (0x60a5fa + (idx * 0x172512) % 0x888888);
+        const mat = new THREE.MeshStandardMaterial({
+          color: divColor,
+          roughness: 0.35,
+          metalness: 0.08
         });
-      }
-    });
+
+        const distShapes: THREE.Shape[] = [];
+
+        triIndices.forEach(([i0, i1, i2]) => {
+          let poly: [number, number][] = [stateBoundaryPoly[i0], stateBoundaryPoly[i1], stateBoundaryPoly[i2]];
+          sites.forEach((other, j) => {
+            if (idx === j || poly.length < 3) return;
+            const dx = other.x - s.x;
+            const dy = other.y - s.y;
+            const len = Math.hypot(dx, dy);
+            if (len < 0.001) return;
+            const nx = dx / len;
+            const ny = dy / len;
+            const midX = (s.x + other.x) / 2 - nx * 0.04;
+            const midY = (s.y + other.y) / 2 - ny * 0.04;
+            const c = midX * nx + midY * ny;
+            poly = clipPolygonByHalfPlane(poly, nx, ny, c);
+          });
+
+          if (poly.length >= 3) {
+            const sh = new THREE.Shape();
+            poly.forEach(([px, py], k) => {
+              if (k === 0) sh.moveTo(px, py);
+              else sh.lineTo(px, py);
+            });
+            sh.closePath();
+            distShapes.push(sh);
+          }
+        });
+
+        if (distShapes.length === 0) return;
+
+        const geo = new THREE.ExtrudeGeometry(distShapes, {
+          depth: 0.95,
+          bevelEnabled: true,
+          bevelSegments: 2,
+          bevelSize: 0.02,
+          bevelThickness: 0.02,
+          steps: 1
+        });
+
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.userData = {
+          kind: "DISTRICT",
+          data: s.dist,
+          stateData: st,
+          targetPosZ: 0,
+          center3D: new THREE.Vector3(s.x, s.y, 1.05)
+        };
+
+        districtGrp.add(mesh);
+        r.districtMeshes.push(mesh);
+
+        // Pin
+        const pin = new THREE.Mesh(
+          new THREE.SphereGeometry(0.12, 8, 8),
+          new THREE.MeshBasicMaterial({ color: 0x111827 })
+        );
+        pin.position.set(s.x, s.y, 0.92);
+        mesh.add(pin);
+
+        // Label
+        if (labelsContainerRef.current) {
+          const div = document.createElement("div");
+          div.className = "absolute transform -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-900 bg-white/90 px-1.5 py-0.5 rounded shadow pointer-events-none border border-slate-300";
+          div.textContent = s.dist.name.split(" (")[0];
+          labelsContainerRef.current.appendChild(div);
+          r.labelElements.push({
+            el: div,
+            pos3D: mesh.userData.center3D,
+            type: 'district',
+            stateId: st.id
+          });
+        }
+      });
+    }
 
     // Outer border elevated slightly above district surface
     const outerPts = stateBoundaryPoly.map(([x, y]) => new THREE.Vector3(x, y, 1.01));
@@ -1820,55 +1917,82 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
         {
           name: "महानदी (Mahanadi)",
           length: "851 किमी (छ.ग. में 286 किमी)",
-          origin: "सिहावा पर्वत (धमतरी) → राजिम → शिवरीनारायण → ओडिशा",
+          origin: "सिहावा पर्वत (धमतरी) - श्रृंगी ऋषि आश्रम",
+          outfall: "बंगाल की खाड़ी (पारादीप, ओडिशा)",
+          tributaries: "शिवनाथ, हसदेव, मांड, ईब, बोराई (उत्तर से); पैरी, सोंढूर, सूखा, जोंक, लात (दक्षिण से)",
+          facts: "छत्तीसगढ़ की जीवनरेखा व सबसे बड़ा अपवाह तंत्र। प्रमुख बांध: गंगरेल (पंडित रविशंकर शुक्ल जलाशय), दुधावा व सोंढूर बांध। राजिम में महानदी-पैरी-सोंढूर का त्रिवेणी संगम (छ.ग. का प्रयाग)। शिवरीनारायण में महानदी-शिवनाथ-जोंक का संगम।",
           path: [[81.92, 20.35], [81.82, 20.65], [81.78, 20.95], [81.88, 21.05], [82.00, 21.32], [82.35, 21.48], [82.60, 21.65], [82.85, 21.68], [83.35, 21.60], [83.60, 21.50]]
         },
         {
           name: "शिवनाथ नदी (Shivnath)",
           length: "290 किमी (छ.ग. में सर्वाधिक बहने वाली नदी)",
-          origin: "पानाबरस पहाड़ी (मोहला-मानपुर) → दुर्ग → शिवरीनारायण संगम",
+          origin: "पानाबरस पहाड़ी / गोडरी पहाड़ी (मोहला-मानपुर-अंबागढ़ चौकी)",
+          outfall: "महानदी (शिवरीनारायण संगम, जांजगीर-चांपा)",
+          tributaries: "आमनेर, सकरी, हाफ, मनियारी, अरपा, लीलागर, खारून, जमुनिया",
+          facts: "छत्तीसगढ़ राज्य की सीमा के भीतर बहने वाली सबसे लंबी नदी (290 किमी)। राजनांदगांव, दुर्ग, बेमेतरा, बिलासपुर व बलौदाबाजार से प्रवाहित। मोंगरा बैराज परियोजना एवं मड़वा-तेंदूभाठा ताप विद्युत गृह को जल आपूर्ति।",
           path: [[80.65, 20.55], [80.78, 20.85], [80.95, 21.15], [81.30, 21.20], [81.52, 21.65], [81.80, 21.70], [82.55, 21.65]]
         },
         {
           name: "हसदेव नदी (Hasdeo)",
           length: "176 किमी",
-          origin: "कोरिया (देवगढ़ पहाड़ी) → कोरबा (मिनीमाता बांगो बांध) → चांपा",
+          origin: "देवगढ़ पहाड़ी (चांगभखार, कोरिया जिला)",
+          outfall: "महानदी (केरासिला संगम, जांजगीर-चांपा)",
+          tributaries: "गेज, चोरनई, तान, झींक, अहिरन",
+          facts: "छत्तीसगढ़ का सबसे ऊंचा बहुउद्देशीय बांध 'मिनीमाता बांगो बांध' (माचाडोली, कोरबा - 87 मीटर) इसी पर स्थित है। हसदेव-अरण्य सघन वन व समृद्ध कोयला घाटी हेतु विख्यात।",
           path: [[82.20, 23.45], [82.38, 23.10], [82.62, 22.55], [82.68, 22.30], [82.58, 21.85], [82.65, 21.65]]
         },
         {
           name: "इंद्रावती नदी (Indravati)",
           length: "264 किमी (बस्तर की जीवनरेखा)",
-          origin: "कालाहांडी → जगदलपुर (चित्रकोट जलप्रपात) → बारसूर → भोपालपटनम",
+          origin: "थुआमुल रामपुर / मंदर पर्वत (कालाहांडी, ओडिशा)",
+          outfall: "गोदावरी नदी (भद्रकाली / भोपालपटनम, बीजापुर)",
+          tributaries: "नारंगी, बोर्डिंग, कोतरी (परलकोट), निब्रा, गुडरा, डंकिनी-शंखिनी",
+          facts: "बस्तर संभाग की जीवनरेखा। भारत का विख्यात नियाग्रा प्रपात 'चित्रकोट जलप्रपात' (घोड़े की नाल स्वरूप - 90 फीट ऊंचा) इसी पर है। इंद्रावती राष्ट्रीय उद्यान के मध्य से बहती है।",
           path: [[82.30, 19.20], [81.95, 19.10], [81.65, 19.18], [81.25, 19.10], [80.75, 18.90], [80.30, 18.80]]
         },
         {
           name: "अरपा नदी (Arpa)",
           length: "100 किमी",
-          origin: "खोंगसरा (गौरेला-पेंड्रा-मरवाही) → बिलासपुर नगर → मानिकचौरी",
+          origin: "खोंगसरा पहाड़ी (गौरेला-पेंड्रा-मरवाही)",
+          outfall: "शिवनाथ नदी (मानिकचौरी, बिलासपुर-बलौदाबाजार सीमा)",
+          tributaries: "खारंग नदी (खूंटाघाट / संजय गांधी जलाशय)",
+          facts: "छत्तीसगढ़ के राज्यगीत 'अरपा पैरी के धार...' में उल्लेखित। न्यायधानी बिलासपुर नगर इसी नदी के तट पर बसा है। भैंसाझार बैराज परियोजना कोटा में स्थित है।",
           path: [[81.88, 22.75], [82.02, 22.40], [82.15, 22.15], [82.10, 21.80]]
         },
         {
           name: "सबरी नदी (Sabari)",
-          length: "173 किमी",
-          origin: "बैलाडीला → सुकमा → कोण्टा → गोदावरी संगम",
+          length: "173 किमी (छ.ग. में जल परिवहन वाली नदी)",
+          origin: "बैलाडीला पहाड़ी (दंतेवाड़ा / कोरापुट ओडिशा)",
+          outfall: "गोदावरी नदी (कुनावरम, आंध्र प्रदेश)",
+          tributaries: "कांकेर नदी, मलेगर नदी",
+          facts: "छत्तीसगढ़ की एकमात्र नदी जहां जल परिवहन (Water Transport) होता है (कोण्टा से आंध्र प्रदेश सीमा तक - 36 किमी)। इसकी रेत में स्वर्ण कण (Gold Placers) पाए जाते हैं। गुप्तेश्वर जलप्रपात स्थित है।",
           path: [[81.80, 18.75], [81.75, 18.65], [81.60, 18.35], [81.40, 17.78]]
         },
         {
-          name: "रिहंद नदी (Rihand)",
+          name: "रिहंद नदी (Rihand / रेणुका)",
           length: "145 किमी (सरगुजा की जीवनरेखा)",
-          origin: "मैनपाट → अंबिकापुर → सूरजपुर → रिहंद जलाशय (उ.प्र.)",
+          origin: "मतिरंगा पहाड़ी (मैनपाट, सरगुजा जिला)",
+          outfall: "सोन नदी (सोनभद्र जिला, उत्तर प्रदेश)",
+          tributaries: "मोरनी, महान, गोबरी, सूर्या, घुनघुट्टा",
+          facts: "उत्तर की ओर प्रवाहित होने वाली नदी (सोन-गंगा अपवाह तंत्र)। गोविंद वल्लभ पंत सागर (रिहंद जलाशय) पर जल विद्युत उत्पादन। पुरातात्विक स्थल महेशपुर इसी के तट पर है।",
           path: [[83.15, 22.85], [82.95, 23.35], [82.85, 23.75], [82.90, 24.10]]
         },
         {
           name: "मांड नदी (Mand)",
           length: "173 किमी",
-          origin: "मैनपाट → धर्मजयगढ़ → रायगढ़ → चंद्रपुर (महानदी संगम)",
+          origin: "मैनपाट पठार (सरगुजा)",
+          outfall: "महानदी (चंद्रपुर संगम, सारंगढ़-बिलाईगढ़)",
+          tributaries: "कुरकुट, कोइराज",
+          facts: "चंद्रपुर में महानदी, मांड एवं लात नदियों का त्रिवेणी संगम है, जहां मां चंद्रहासिनी देवी मंदिर स्थित है। मांड घाटी समृद्ध कोयला खनन क्षेत्र है।",
           path: [[83.25, 22.80], [83.18, 22.45], [83.12, 22.05], [83.35, 21.65]]
         },
         {
           name: "ईब नदी (Eeb)",
-          length: "87 किमी (छ.ग. में - स्वर्ण कण)",
-          origin: "खुर्जा पहाड़ी (जशपुर) → ओडिशा → महानदी",
+          length: "87 किमी (छ.ग. में) / कुल 202 किमी",
+          origin: "खुर्जा पहाड़ी (रानीझूला, पंडरापाठ, जशपुर)",
+          outfall: "महानदी (हीराकुंड जलाशय, संबलपुर, ओडिशा)",
+          tributaries: "मैनी नदी, सिरी नदी",
+          facts: "नदी की रेत में सोने के कण (Gold Placers) मिलने के कारण प्रसिद्ध। जशपुर के पाट प्रदेश से होकर ओडिशा में प्रवेश करती है।",
           path: [[83.85, 23.05], [83.92, 22.70], [83.95, 22.25], [83.90, 21.85]]
         }
       ];
@@ -1916,13 +2040,76 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
 
       // 2. 3D Mountain Peaks of Chhattisgarh (Base Z = 0.97, prominent 3D cones)
       const cgPeaks = [
-        { name: "गौरलाटा (1225m - सर्वोच्च शिखर)", peak: "गौरलाटा 1225m", lon: 83.82, lat: 23.88, h: 0.65, color: 0xf59e0b, note: "सामरी पाट (बलरामपुर) - छत्तीसगढ़ का सर्वोच्च शिखर" },
-        { name: "नंदीराज (1210m - बैलाडीला)", peak: "नंदीराज 1210m", lon: 81.25, lat: 18.75, h: 0.60, color: 0xe2e8f0, note: "बैलाडीला श्रेणी (दंतेवाड़ा) - दक्षिण छ.ग. का सर्वोच्च शिखर" },
-        { name: "बदरगढ़ (1176m - मैकल श्रेणी)", peak: "बदरगढ़ 1176m", lon: 81.10, lat: 22.15, h: 0.55, color: 0xd97706, note: "मैकल श्रेणी (कबीरधाम)" },
-        { name: "मैनपाट (1152m - छ.ग. का शिमला)", peak: "मैनपाट 1152m", lon: 83.25, lat: 22.80, h: 0.52, color: 0x10b981, note: "सरगुजा - तिब्बती शरणार्थी स्थल एवं पर्यटन केंद्र" },
-        { name: "देवगढ़ (1033m - चांगभखार)", peak: "देवगढ़ 1033m", lon: 82.25, lat: 23.55, h: 0.48, color: 0x78350f, note: "कोरिया जिला - हसदेव नदी का उद्गम क्षेत्र" },
-        { name: "लाफागढ़ / चैतुरगढ़ (1048m)", peak: "लाफागढ़ 1048m", lon: 82.30, lat: 22.45, h: 0.48, color: 0x64748b, note: "कोरबा - छत्तीसगढ़ का कश्मीर / महिषासुरमर्दिनी मंदिर" },
-        { name: "दल्हा पहाड़ (720m)", peak: "दल्हा पहाड़ 720m", lon: 82.40, lat: 21.95, h: 0.40, color: 0xb45309, note: "जांजगीर-चांपा (अकलतरा)" }
+        {
+          name: "गौरलाटा (Gaurlata Peak)",
+          peak: "गौरलाटा 1225m",
+          elevation: "1225 मीटर (4019 फीट)",
+          states: "छत्तीसगढ़ (बलरामपुर-रामानुजगंज जिला)",
+          range: "सामरी पाट / जमीर पाट श्रेणी",
+          facts: "छत्तीसगढ़ राज्य की सर्वोच्च पर्वत चोटी (1225 मीटर)। यह सामरी पाट तहसील के सेंदुर नदी बेसिन के पास स्थित है। CGPSC व व्यापम परीक्षाओं में सर्वाधिक बार पूछा गया प्रश्न।",
+          lon: 83.82, lat: 23.88, h: 0.65, color: 0xf59e0b,
+          note: "सामरी पाट (बलरामपुर) - छत्तीसगढ़ का सर्वोच्च शिखर"
+        },
+        {
+          name: "नंदीराज शिखर (Nandiraj Peak)",
+          peak: "नंदीराज 1210m",
+          elevation: "1210 मीटर (3970 फीट)",
+          states: "छत्तीसगढ़ (दंतेवाड़ा जिला)",
+          range: "बैलाडीला पर्वत श्रृंखला",
+          facts: "दक्षिण छत्तीसगढ़ एवं बस्तर संभाग की सर्वोच्च चोटी। बैलाडीला का आकार बैल के कूबड़ (Hump of Ox) जैसा होने से बैलाडीला नाम पड़ा। विश्व प्रसिद्ध उच्च कोटि का हेमेटाइट लौह अयस्क निक्षेप (आयरन ओर डिपो नं. 14 व 5) यहीं स्थित है।",
+          lon: 81.25, lat: 18.75, h: 0.60, color: 0xe2e8f0,
+          note: "बैलाडीला श्रेणी (दंतेवाड़ा) - दक्षिण छ.ग. का सर्वोच्च शिखर"
+        },
+        {
+          name: "बदरगढ़ चोटी (Badargarh Peak)",
+          peak: "बदरगढ़ 1176m",
+          elevation: "1176 मीटर (3858 फीट)",
+          states: "छत्तीसगढ़ (कबीरधाम / कवर्धा जिला)",
+          range: "मैकल पर्वत श्रेणी (Maikal Range)",
+          facts: "मैकल श्रेणी की छत्तीसगढ़ में सबसे ऊंची चोटी। यह श्रेणी वृष्टिछाया क्षेत्र (Rain Shadow Area) का निर्माण करती है, जिसके कारण कवर्धा में कम वर्षा होती है। भोरमदेव अभयारण्य से घिरा हुआ।",
+          lon: 81.10, lat: 22.15, h: 0.55, color: 0xd97706,
+          note: "मैकल श्रेणी (कबीरधाम)"
+        },
+        {
+          name: "मैनपाट (Mainpat Plateau)",
+          peak: "मैनपाट 1152m",
+          elevation: "1152 मीटर (3779 फीट)",
+          states: "छत्तीसगढ़ (सरगुजा जिला)",
+          range: "पाट प्रदेश (बॉक्साइट पठार)",
+          facts: "'छत्तीसगढ़ का शिमला' उपनाम। 1962 में तिब्बती शरणार्थियों को यहां बसाया गया था (छोटा तिब्बत)। प्रमुख आकर्षण: टाइगर पॉइंट जलप्रपात, फिश पॉइंट, दलदली (उल्टा पानी / बिसिंग लैंड), बॉक्साइट की विशाल खदानें और बौद्ध मंदिर।",
+          lon: 83.25, lat: 22.80, h: 0.52, color: 0x10b981,
+          note: "सरगुजा - तिब्बती शरणार्थी स्थल एवं पर्यटन केंद्र"
+        },
+        {
+          name: "देवगढ़ पहाड़ी (Devgarh Peak)",
+          peak: "देवगढ़ 1033m",
+          elevation: "1033 मीटर (3389 फीट)",
+          states: "छत्तीसगढ़ (कोरिया जिला)",
+          range: "चांगभखार - देवगढ़ पहाड़ियां",
+          facts: "हसदेव नदी का उद्गम स्थल इसी पहाड़ी से होता है। बघेलखंड पठार का प्रमुख उच्च भूभाग। यहां सर्वाधिक वर्षा होती है।",
+          lon: 82.25, lat: 23.55, h: 0.48, color: 0x78350f,
+          note: "कोरिया जिला - हसदेव नदी का उद्गम क्षेत्र"
+        },
+        {
+          name: "लाफागढ़ / चैतुरगढ़ (Lafagarh Fort)",
+          peak: "लाफागढ़ 1048m",
+          elevation: "1048 मीटर (3438 फीट)",
+          states: "छत्तीसगढ़ (कोरबा जिला)",
+          range: "मैकल पर्वत श्रृंखला का पूर्वी विस्तार",
+          facts: "'छत्तीसगढ़ का कश्मीर' उपनाम। कलचुरी शासक पृथ्वीदेव प्रथम द्वारा निर्मित प्रसिद्ध महिषासुरमर्दिनी मंदिर एवं अभेद्य प्राकृतिक किला। सिंहद्वार, मेनका द्वार, हुंकरा द्वार प्रमुख प्रवेश द्वार हैं।",
+          lon: 82.30, lat: 22.45, h: 0.48, color: 0x64748b,
+          note: "कोरबा - छत्तीसगढ़ का कश्मीर / महिषासुरमर्दिनी मंदिर"
+        },
+        {
+          name: "दल्हा पहाड़ (Dalha Hill)",
+          peak: "दल्हा पहाड़ 720m",
+          elevation: "720 मीटर (2362 फीट)",
+          states: "छत्तीसगढ़ (जांजगीर-चांपा जिला)",
+          range: "मध्य मैदान का एकाकी शैल (Inselberg)",
+          facts: "अकलतरा के समीप स्थित प्रमुख पहाड़ी। नागपंचमी के दिन यहां विशाल मेला लगता है। यहां सिद्ध मुनि आश्रम एवं प्राचीन सूर्य कुंड व पाताली कुंड स्थित हैं।",
+          lon: 82.40, lat: 21.95, h: 0.40, color: 0xb45309,
+          note: "जांजगीर-चांपा (अकलतरा)"
+        }
       ];
 
       cgPeaks.forEach(pk => {
@@ -1946,6 +2133,7 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
         cone.add(cap);
 
         cone.userData = { kind: "MOUNTAIN", data: pk };
+        cap.userData = { kind: "MOUNTAIN", data: pk };
         cgMountainsGrp.add(cone);
         cgMountainMeshes.push(cone);
 
@@ -2558,6 +2746,7 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
         cone.add(cap);
 
         cone.userData = { kind: "MOUNTAIN", data: mtn };
+        cap.userData = { kind: "MOUNTAIN", data: mtn };
         rangeGroup.add(cone);
         mountainMeshes.push(cone);
 
@@ -2937,22 +3126,39 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
       targets.push(...r.stateMeshes);
     }
 
-    const hits = raycaster.intersectObjects(targets, false);
+    const hits = raycaster.intersectObjects(targets, true);
     if (hits.length > 0) {
-      // Prioritize clicking features (railway, highway, river, mountain) over underlying state
+      // Prioritize clicking features (railway, highway, river, mountain) over underlying district/state
+      const findKindData = (o: THREE.Object3D | null): { kind?: string; data?: any; stateData?: any; mesh?: THREE.Mesh } => {
+        let cur: THREE.Object3D | null = o;
+        while (cur) {
+          if (cur.userData && cur.userData.kind) {
+            return {
+              kind: cur.userData.kind,
+              data: cur.userData.data,
+              stateData: cur.userData.stateData,
+              mesh: cur as THREE.Mesh
+            };
+          }
+          cur = cur.parent;
+        }
+        return {};
+      };
+
       const featureHit = hits.find(h => {
-        const k = h.object.userData?.kind;
-        return k === 'RAILWAY' || k === 'HIGHWAY' || k === 'RIVER' || k === 'MOUNTAIN';
+        const { kind } = findKindData(h.object);
+        return kind === 'RAILWAY' || kind === 'HIGHWAY' || kind === 'RIVER' || kind === 'MOUNTAIN';
       });
+
       const chosenHit = featureHit || hits[0];
-      const obj = chosenHit.object as THREE.Mesh;
-      const kind = obj.userData?.kind;
-      if (kind === "STATE") selectState(obj.userData.data);
-      else if (kind === "RIVER") selectRiver(obj.userData.data);
-      else if (kind === "MOUNTAIN") selectMountain(obj.userData.data);
-      else if (kind === "HIGHWAY") selectHighway(obj.userData.data);
-      else if (kind === "RAILWAY") selectRailway(obj.userData.data);
-      else if (kind === "DISTRICT") selectDistrict(obj.userData.data, obj.userData.stateData);
+      const { kind, data, stateData } = findKindData(chosenHit.object);
+
+      if (kind === "STATE") selectState(data);
+      else if (kind === "RIVER") selectRiver(data);
+      else if (kind === "MOUNTAIN") selectMountain(data);
+      else if (kind === "HIGHWAY") selectHighway(data);
+      else if (kind === "RAILWAY") selectRailway(data);
+      else if (kind === "DISTRICT") selectDistrict(data, stateData);
     }
   };
 
@@ -3005,7 +3211,7 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
       targets.push(...r.stateMeshes);
     }
 
-    const hits = raycaster.intersectObjects(targets, false);
+    const hits = raycaster.intersectObjects(targets, true);
 
     // Completely prevent state mesh from lifting up along Z on hover!
     // All states stay firmly flat at targetPosZ = 0 so they never bury or block rivers, roads, and tracks.
@@ -3019,18 +3225,31 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
     }
 
     if (hits.length > 0) {
-      // Prioritize features (railway, highway, river, mountain) over underlying state
+      const findKindData = (o: THREE.Object3D | null): { kind?: string; data?: any; mesh?: THREE.Mesh } => {
+        let cur: THREE.Object3D | null = o;
+        while (cur) {
+          if (cur.userData && cur.userData.kind) {
+            return {
+              kind: cur.userData.kind,
+              data: cur.userData.data,
+              mesh: cur as THREE.Mesh
+            };
+          }
+          cur = cur.parent;
+        }
+        return {};
+      };
+
       const featureHit = hits.find(h => {
-        const k = h.object.userData?.kind;
-        return k === 'RAILWAY' || k === 'HIGHWAY' || k === 'RIVER' || k === 'MOUNTAIN';
+        const { kind } = findKindData(h.object);
+        return kind === 'RAILWAY' || kind === 'HIGHWAY' || kind === 'RIVER' || kind === 'MOUNTAIN';
       });
+
       const activeHit = featureHit || hits[0];
-      const obj = activeHit.object as THREE.Mesh;
-      const kind = obj.userData?.kind;
-      const d = obj.userData?.data;
+      const { kind, data: d, mesh: obj } = findKindData(activeHit.object);
 
       // Subtle emissive glow on hovered state without moving it
-      if (kind === 'STATE' && obj !== r.selectedMesh && obj.material && obj.material instanceof THREE.MeshStandardMaterial) {
+      if (kind === 'STATE' && obj && obj !== r.selectedMesh && obj.material && obj.material instanceof THREE.MeshStandardMaterial) {
         obj.material.emissive.setHex(isLightModeRef.current ? 0x1e293b : 0x1e3a5f);
       }
 
@@ -4071,31 +4290,39 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
               <>
                 <div className="border-b border-slate-800 pb-3">
                   <span className="inline-block px-2 py-0.5 bg-sky-500/20 text-sky-400 font-bold text-[10px] uppercase rounded">
-                    🌊 भारतीय नदी अपवाह तंत्र
+                    🌊 {isDistrictMode ? 'छत्तीसगढ़ नदी अपवाह तंत्र' : 'भारतीय नदी अपवाह तंत्र'}
                   </span>
                   <h2 className="text-lg font-black text-sky-300 mt-1">{selectedEntity.name}</h2>
-                  <p className="text-xs text-slate-400">कुल लंबाई: {selectedEntity.length}</p>
+                  <p className="text-xs text-slate-400">कुल लंबाई: {selectedEntity.length || 'विस्तृत अपवाह क्षेत्र'}</p>
                 </div>
 
-                <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-400 uppercase font-black">🏔️ उद्गम स्थल</span>
-                  <p className="text-slate-200 text-[11px]">{selectedEntity.origin}</p>
-                </div>
+                {selectedEntity.origin && (
+                  <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-black">🏔️ उद्गम स्थल</span>
+                    <p className="text-slate-200 text-[11px]">{selectedEntity.origin}</p>
+                  </div>
+                )}
 
-                <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-400 uppercase font-black">🌊 मुहाना / समागम</span>
-                  <p className="text-slate-200 text-[11px]">{selectedEntity.outfall}</p>
-                </div>
+                {selectedEntity.outfall && (
+                  <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-black">🌊 मुहाना / समागम</span>
+                    <p className="text-slate-200 text-[11px]">{selectedEntity.outfall}</p>
+                  </div>
+                )}
 
-                <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-400 uppercase font-black">🌿 सहायक नदियां (Tributaries)</span>
-                  <p className="text-slate-200 text-[11px] leading-relaxed">{selectedEntity.tributaries}</p>
-                </div>
+                {selectedEntity.tributaries && (
+                  <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-black">🌿 सहायक नदियां (Tributaries)</span>
+                    <p className="text-slate-200 text-[11px] leading-relaxed">{selectedEntity.tributaries}</p>
+                  </div>
+                )}
 
-                <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
-                  <span className="text-[10px] text-saffron uppercase font-black">⭐ परीक्षा उपयोगी तथ्य</span>
-                  <p className="text-slate-200 text-[11px] leading-relaxed">{selectedEntity.facts}</p>
-                </div>
+                {(selectedEntity.facts || selectedEntity.note) && (
+                  <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
+                    <span className="text-[10px] text-saffron uppercase font-black">⭐ परीक्षा उपयोगी तथ्य</span>
+                    <p className="text-slate-200 text-[11px] leading-relaxed">{selectedEntity.facts || selectedEntity.note}</p>
+                  </div>
+                )}
               </>
             )}
 
@@ -4103,26 +4330,39 @@ export const IndiaMap3DModal: React.FC<IndiaMap3DModalProps> = ({
               <>
                 <div className="border-b border-slate-800 pb-3">
                   <span className="inline-block px-2 py-0.5 bg-amber-500/20 text-amber-400 font-bold text-[10px] uppercase rounded">
-                    🏔️ पर्वत श्रृंखला एवं शिखर
+                    🏔️ {isDistrictMode ? 'छत्तीसगढ़ पर्वत शिखर' : 'पर्वत श्रृंखला एवं शिखर'}
                   </span>
                   <h2 className="text-lg font-black text-amber-300 mt-1">{selectedEntity.name}</h2>
-                  <p className="text-xs text-slate-400">सर्वोच्च शिखर: {selectedEntity.peak}</p>
+                  <p className="text-xs text-slate-400">शिखर / चोटी: {selectedEntity.peak}</p>
                 </div>
 
-                <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-400 uppercase font-black">📏 ऊंचाई / एलिवेशन</span>
-                  <p className="text-slate-200 text-[11px] font-bold">{selectedEntity.elevation}</p>
-                </div>
+                {(selectedEntity.elevation || selectedEntity.h) && (
+                  <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-black">📏 ऊंचाई / एलिवेशन</span>
+                    <p className="text-slate-200 text-[11px] font-bold">{selectedEntity.elevation || `${selectedEntity.peak}`}</p>
+                  </div>
+                )}
 
-                <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-400 uppercase font-black">🗺️ भौगोलिक विस्तार / राज्य</span>
-                  <p className="text-slate-200 text-[11px]">{selectedEntity.states}</p>
-                </div>
+                {(selectedEntity.range || selectedEntity.note) && (
+                  <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-black">⛰️ पर्वत श्रृंखला / श्रेणी</span>
+                    <p className="text-slate-200 text-[11px]">{selectedEntity.range || selectedEntity.note}</p>
+                  </div>
+                )}
 
-                <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
-                  <span className="text-[10px] text-saffron uppercase font-black">⭐ मुख्य विशेषताएं एवं तथ्य</span>
-                  <p className="text-slate-200 text-[11px] leading-relaxed">{selectedEntity.facts}</p>
-                </div>
+                {selectedEntity.states && (
+                  <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-black">🗺️ भौगोलिक विस्तार / जिला</span>
+                    <p className="text-slate-200 text-[11px]">{selectedEntity.states}</p>
+                  </div>
+                )}
+
+                {(selectedEntity.facts || selectedEntity.note) && (
+                  <div className="p-3 bg-slate-900/70 border border-slate-800 rounded-xl text-xs flex flex-col gap-1">
+                    <span className="text-[10px] text-saffron uppercase font-black">⭐ मुख्य विशेषताएं एवं परीक्षा तथ्य</span>
+                    <p className="text-slate-200 text-[11px] leading-relaxed">{selectedEntity.facts || selectedEntity.note}</p>
+                  </div>
+                )}
               </>
             )}
 

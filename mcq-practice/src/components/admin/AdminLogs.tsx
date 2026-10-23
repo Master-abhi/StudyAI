@@ -380,8 +380,11 @@ export const AdminLogs: React.FC<AdminLogsProps> = ({ currentUser }) => {
                       <td className="py-4 px-5 text-center font-mono text-[11px] font-bold text-text">
                         {log.timeSpentSeconds > 0 ? (
                           <span>
-                            {Math.floor(log.timeSpentSeconds / 60) > 0 
-                              ? `${Math.floor(log.timeSpentSeconds / 60)}m ` 
+                            {Math.floor(log.timeSpentSeconds / 3600) > 0 
+                              ? `${Math.floor(log.timeSpentSeconds / 3600)}h ` 
+                              : ''}
+                            {Math.floor((log.timeSpentSeconds % 3600) / 60) > 0 
+                              ? `${Math.floor((log.timeSpentSeconds % 3600) / 60)}m ` 
                               : ''}
                             {log.timeSpentSeconds % 60}s
                           </span>

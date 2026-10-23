@@ -9,7 +9,7 @@ import {
   X, BookOpen, CheckCircle2, 
   Sparkles, FileText, Check, Copy, 
   Layers, Lightbulb, Bookmark, Sun, Moon,
-  Save, Menu, ChevronLeft, ChevronRight
+  Save, Menu, ChevronLeft, ChevronRight, Share2
 } from 'lucide-react';
 import type { Topic } from './syllabusData';
 
@@ -74,18 +74,34 @@ export function formatNotesContent(content: any): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
 
-  // Format bullet points (•, ●) so each is on its own line as markdown '-'
+  // 1. Break numbered items like (1), (2), (3) or (१), (२) onto new lines as distinct bold bullets
+  str = str.replace(/(?<![-*•●][ \t]*\*\*)\s*([:।!?\.\)]|[A-Za-z\u0900-\u097F]{2,})\s*(?<![-*•●][ \t]*\*\*)\(([0-9\u0966-\u096F]{1,2})\)\s*([A-Za-z\u0900-\u097F])/g, '$1\n\n- **($2) $3');
+  str = str.replace(/(?:^|\n)[ \t]*(?<![-*•●][ \t]*\*\*)\(([0-9\u0966-\u096F]{1,2})\)\s*([A-Za-z\u0900-\u097F])/g, '\n\n- **($1) $2');
+
+  // Close unclosed bold tags for - **(1) Title: text -> - **(1) Title:** text
+  str = str.replace(/^(- \*\*\([0-9\u0966-\u096F]{1,2}\)[^:\n*]+):(?!\*)(.*)$/gm, '$1:**$2');
+
+  // 2. Break letter sub-points like (क), (ख), (ग), (घ) or (a), (b), (c) onto their own indented sub-bullets
+  str = str.replace(/(?<![-*•●][ \t]*\*\*)\s*([:;,।!?\.\)\*]|[A-Za-z\u0900-\u097F]{2,})\s*(?<![-*•●][ \t]*\*\*)\(([क-हa-dA-D])\)\s*([A-Za-z\u0900-\u097F])/g, (_match, p1, p2, p3) => {
+    return `${p1}\n  - **(${p2}) ${p3}`;
+  });
+  str = str.replace(/(?:^|\n)[ \t]*(?<![-*•●][ \t]*\*\*)\(([क-हa-dA-D])\)\s*([A-Za-z\u0900-\u097F])/g, '\n  - **($1) $2');
+
+  // Close unclosed bold tags for sub-bullets
+  str = str.replace(/^(  - \*\*\([क-हa-dA-D]\)[^:\n*]+):(?!\*)(.*)$/gm, '$1:**$2');
+
+  // 3. Clean up any stray empty bullet lines with just asterisks or spaces (e.g. "- **" or "  - **")
+  str = str.replace(/^[ \t]*[-*•●][ \t]*\*{1,2}[ \t]*$/gm, '');
+
+  // 4. Format bullet points (•, ●) so each is on its own line as markdown '-'
   str = str.replace(/([^\n])\s*[•●]\s*/g, '$1\n\n- ');
   str = str.replace(/^[ \t]*[•●]\s*/gm, '- ');
 
-  // If a numbered list item (1., 2.) is stuck on the same line after sentence ending punctuation, insert newlines
+  // 5. If a numbered list item (1., 2.) is stuck on the same line after sentence ending punctuation, insert newlines
   str = str.replace(/([^\n\r#])\s*([।!?\.])\s*(\d+\.)\s+(\*\*|[A-Za-z\u0900-\u097F])/g, '$1$2\n\n$3 $4');
 
   // Ensure numbered list items that start on a new line have a double newline before them so markdown creates proper <ol>
   str = str.replace(/([^\n])\n[ \t]*(\d+\.)\s+/g, '$1\n\n$2 ');
-
-  // Format Devanagari / English subheadings like (क), (ख) on their own line without #### to have ####
-  str = str.replace(/(?<!#.*)(?:^|\n)[ \t]*\(([क-हa-z0-9])\)\s*(\*\*|[A-Za-z\u0900-\u097F])/gi, '\n\n#### ($1) $2');
 
   // Restore protected blocks intact
   protectedBlocks.forEach((pb, i) => {
@@ -100,6 +116,7 @@ export function formatNotesContent(content: any): string {
 // Helper to normalize notes object and unpack any sanitized Firestore table rows
 function normalizeNotes(val: any): any {
   if (!val) return val;
+  if (val.__normalized) return val;
   if (typeof val === 'string') {
     return val;
   }
@@ -112,6 +129,9 @@ function normalizeNotes(val: any): any {
     });
   }
   if (typeof val === 'object') {
+    if (val.studyNotes && typeof val.studyNotes === 'object') {
+      return normalizeNotes(val.studyNotes);
+    }
     if (val.__isRow === true && Array.isArray(val.cells)) {
       return val.cells;
     }
@@ -124,7 +144,7 @@ function normalizeNotes(val: any): any {
       }
     }
     // If an object represents a chapter with content or subsections, ensure sections exists
-    if ((res.content || res.subsections) && !res.sections) {
+    if ((res.content || res.subsections || res.keyPoints || res.examples) && !res.sections) {
       const generatedSections: any[] = [];
       if (res.content && typeof res.content === 'string') {
         generatedSections.push({
@@ -146,8 +166,41 @@ function normalizeNotes(val: any): any {
           });
         });
       }
+      if (Array.isArray(res.keyPoints) && res.keyPoints.length > 0) {
+        const kpContent = res.keyPoints.map((p: any) => `- ${typeof p === 'object' ? (p.point || p.text || JSON.stringify(p)) : p}`).join('\n');
+        generatedSections.push({
+          heading: 'महत्वपूर्ण परीक्षा तथ्य एवं मुख्य बिंदु (Key Exam Facts)',
+          content: formatNotesContent(kpContent)
+        });
+      }
+      if (Array.isArray(res.examples) && res.examples.length > 0) {
+        const exContent = res.examples.map((p: any) => `- ${typeof p === 'object' ? (p.example || p.text || JSON.stringify(p)) : p}`).join('\n');
+        generatedSections.push({
+          heading: 'व्यावहारिक उदाहरण एवं अनुप्रयोग (Practical Examples)',
+          content: formatNotesContent(exContent)
+        });
+      }
       res.sections = generatedSections;
+    } else if (Array.isArray(res.sections)) {
+      // If sections already exist, ensure keyPoints and examples are integrated
+      const hasKeyPoints = res.sections.some((s: any) => (s.heading || '').includes('Key Exam Facts') || (s.heading || '').includes('मुख्य बिंदु'));
+      if (!hasKeyPoints && Array.isArray(res.keyPoints) && res.keyPoints.length > 0) {
+        const kpContent = res.keyPoints.map((p: any) => `- ${typeof p === 'object' ? (p.point || p.text || JSON.stringify(p)) : p}`).join('\n');
+        res.sections.push({
+          heading: 'महत्वपूर्ण परीक्षा तथ्य एवं मुख्य बिंदु (Key Exam Facts)',
+          content: formatNotesContent(kpContent)
+        });
+      }
+      const hasExamples = res.sections.some((s: any) => (s.heading || '').includes('Practical Examples') || (s.heading || '').includes('उदाहरण'));
+      if (!hasExamples && Array.isArray(res.examples) && res.examples.length > 0) {
+        const exContent = res.examples.map((p: any) => `- ${typeof p === 'object' ? (p.example || p.text || JSON.stringify(p)) : p}`).join('\n');
+        res.sections.push({
+          heading: 'व्यावहारिक उदाहरण एवं अनुप्रयोग (Practical Examples)',
+          content: formatNotesContent(exContent)
+        });
+      }
     }
+    res.__normalized = true;
     return res;
   }
   return val;
@@ -655,8 +708,8 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
 
         {/* Top Header Bar with Safe-Area padding on mobile and clean padding on desktop */}
         <div 
-          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)' }} 
-          className={`px-3 sm:px-6 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 sm:gap-3 shrink-0 ${getHeaderBgClass()}`}
+          style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px)) + 0.65rem)' }} 
+          className={`pt-safe-modal px-3 sm:px-6 pb-2.5 sm:pb-3 border-b flex items-center justify-between gap-2 sm:gap-3 shrink-0 ${getHeaderBgClass()}`}
         >
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {/* Sidebar Toggle Button */}
@@ -791,7 +844,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
             </button>
 
             {/* 3D Map Explorer Button */}
-            {onOpen3DMap && (topic?.id === 'geo-ind-3d-map' || topic?.name?.toLowerCase().includes('3d') || topic?.nameHi?.includes('मानचित्र') || topic?.nameHi?.includes('भूगोल')) && (
+            {onOpen3DMap && (topic?.id === 'geo-ind-3d-map' || ((topic?.name?.toLowerCase().includes('map') || topic?.nameHi?.includes('मानचित्र') || topic?.nameHi?.includes('नक्शा')) && topic?.name?.toLowerCase().includes('3d'))) && (
               <button
                 onClick={() => onOpen3DMap()}
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black bg-gradient-to-r from-saffron to-amber-500 text-slate-950 hover:brightness-110 shadow-sm transition-all cursor-pointer"
@@ -816,6 +869,35 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
                 <span className="hidden sm:inline">{isCompleted ? 'Completed' : 'Mark Done'}</span>
               </button>
             )}
+
+            {/* Share / Copy Direct Link to Notes */}
+            <button
+              onClick={async () => {
+                const shareUrl = window.location.href;
+                const title = `${topic.nameHi || topic.name} - CG Guru Notes`;
+                const text = `Read study notes for ${topic.nameHi || topic.name} on CG Guru:`;
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ title, text, url: shareUrl });
+                  } catch (_) {}
+                } else {
+                  try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    alert('Notes direct link copied to clipboard!');
+                  } catch (_) {}
+                }
+              }}
+              className={`p-2 rounded-lg border transition-all cursor-pointer ${
+                readingTheme === 'dark' 
+                  ? 'bg-[#1E293B] border-[#334155] text-slate-300 hover:text-white hover:bg-[#283548]' 
+                  : readingTheme === 'sepia' 
+                    ? 'bg-[#E5D2B1] border-[#C9B38F] text-[#3F3325] hover:bg-[#D9C4A1]' 
+                    : 'bg-[#F1F5F9] border-[#E2E8F0] text-slate-700 hover:text-slate-900 hover:bg-slate-200'
+              }`}
+              title="Share / Copy direct link to notes"
+            >
+              <Share2 className="w-4 h-4 text-saffron" />
+            </button>
 
             {/* Close Modal */}
             <button
@@ -848,7 +930,7 @@ export const TopicNotesReaderModalContent: React.FC<TopicNotesReaderModalProps> 
           {/* Left Sidebar for Tabs and Chapters */}
           {notes && (
             <aside 
-              style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)' }}
+              style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px)) + 0.5rem)' }}
               className={`${
               isSidebarOpen ? 'translate-x-0' : '-translate-x-full sm:hidden'
             } fixed sm:static inset-y-0 left-0 z-40 sm:z-auto w-72 sm:w-64 md:w-72 shrink-0 border-r flex flex-col h-full overflow-hidden transition-transform duration-200 ease-in-out ${

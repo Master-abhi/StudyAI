@@ -50,8 +50,11 @@ import {
   scheduleRecurringReminders,
   scheduleJobDeadlineNotifications,
   initNativePushNotifications,
+  sendSystemPushNotification,
+  playNotificationChime,
   isCapacitorNative
 } from './services/pushNotificationService';
+import { getApiUrl } from './utils/api';
 
 // Instant Home Dashboard Component
 import { DashboardTab } from './components/DashboardTab';
@@ -86,14 +89,13 @@ import {
 import { getCurrentDeviceInfo } from './utils/deviceSession';
 
 const TabFallback = () => (
-  <div className="flex flex-col items-center justify-center min-h-[350px] w-full py-12 gap-3 text-text-muted">
+  <div className="flex flex-col items-center justify-center min-h-[260px] w-full py-8 gap-2.5 text-text-muted select-none">
     <div className="relative flex items-center justify-center">
-      <div className="absolute w-20 h-20 rounded-full bg-saffron/10 animate-ping" />
-      <img src="/CG_GURU.png" alt="CG Guru" className="w-16 h-16 object-contain relative z-10 drop-shadow-lg" />
+      <img src="/CG_GURU.png" alt="CG Guru" className="w-10 h-10 object-contain drop-shadow-sm" />
     </div>
-    <div className="flex items-center gap-2 mt-2">
-      <div className="w-4 h-4 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
-      <span className="text-[11px] font-black uppercase tracking-wider text-saffron">Loading...</span>
+    <div className="flex items-center gap-2 mt-1">
+      <div className="w-3.5 h-3.5 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
+      <span className="text-[10px] font-black uppercase tracking-wider text-saffron">Loading...</span>
     </div>
   </div>
 );
@@ -224,6 +226,9 @@ export default function App() {
       if (params.get('testId')) {
         return 'practice';
       }
+      if (params.get('notes') || params.get('topicId')) {
+        return 'syllabus';
+      }
       if (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) {
         return 'admin';
       }
@@ -332,6 +337,18 @@ export default function App() {
       }
     }
 
+    // Clean up syllabus notes param if navigating to a non-syllabus tab
+    if (activeTab !== 'syllabus') {
+      if (url.searchParams.has('notes')) {
+        url.searchParams.delete('notes');
+        changed = true;
+      }
+      if (url.searchParams.has('topicId')) {
+        url.searchParams.delete('topicId');
+        changed = true;
+      }
+    }
+
     if (changed) {
       const newSearch = url.searchParams.toString();
       const newRelativePath = url.pathname + (newSearch ? '?' + newSearch : '') + url.hash;
@@ -345,6 +362,7 @@ export default function App() {
       const params = new URLSearchParams(window.location.search);
       const urlTab = params.get('tab') || params.get('page');
       const urlTestId = params.get('testId');
+      const urlNotes = params.get('notes') || params.get('topicId');
 
       if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff', 'landing'].includes(urlTab)) {
         setActiveTab(urlTab as any);
@@ -352,6 +370,8 @@ export default function App() {
         setActiveTab('admin');
       } else if (!urlTab && urlTestId) {
         setActiveTab('practice');
+      } else if (!urlTab && urlNotes) {
+        setActiveTab('syllabus');
       } else if (!urlTab) {
         setActiveTab('landing');
       }
@@ -411,12 +431,11 @@ export default function App() {
             } catch (_) {}
             try {
               const info = await StatusBar.getInfo();
-              if (info.overlays && info.height > 0) {
-                document.documentElement.style.setProperty('--app-status-bar-height', `${info.height}px`);
-              } else {
-                document.documentElement.style.setProperty('--app-status-bar-height', '0px');
-              }
-            } catch (_) {}
+              const h = info && info.height > 0 ? info.height : 28;
+              document.documentElement.style.setProperty('--app-status-bar-height', `${h}px`);
+            } catch (_) {
+              document.documentElement.style.setProperty('--app-status-bar-height', '28px');
+            }
             StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => {});
             StatusBar.setBackgroundColor({ color: isDark ? '#121620' : '#ffffff' }).catch(() => {});
           });
@@ -477,6 +496,11 @@ export default function App() {
 
   // Syllabus / Exam State
   const [activeExamId, setActiveExamId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlExam = params.get('examId') || params.get('exam');
+      if (urlExam) return urlExam;
+    }
     return localStorage.getItem('examprep_selectedExam') || 'cgpsc_sse';
   });
   const [activeExamTargetDate, setActiveExamTargetDate] = useState<string>(() => {
@@ -610,20 +634,6 @@ export default function App() {
   })();
   const activeExam = visibleExams.find(e => e.id === activeExamId) || visibleExams[0];
 
-    const getApiUrl = (path: string = '') => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${path}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${path}`;
-    }
-    return path;
-  };
 
   const fetchCustomSyllabi = async (forceRefresh = false) => {
     try {
@@ -878,9 +888,19 @@ export default function App() {
         }
       };
 
-      const processNotifications = (notifs: any[]) => {
+      const getDismissedToastIds = (): string[] => {
+        try {
+          const d = sessionStorage.getItem('cgguru_dismissed_toasts');
+          return d ? JSON.parse(d) : [];
+        } catch {
+          return [];
+        }
+      };
+
+      const processNotifications = (notifs: any[], _isLiveSnapshot: boolean = false) => {
         const todayStr = new Date().toISOString().split('T')[0];
         const currentReadIds = getReadIds();
+        const dismissedToastIds = getDismissedToastIds();
         
         // Filter out expired job deadline notifications (deadline < today)
         const validNotifs = notifs.filter(n => {
@@ -895,13 +915,46 @@ export default function App() {
         // Schedule future job deadline reminders in Android AlarmManager so alarms trigger when app is closed
         scheduleJobDeadlineNotifications(validNotifs);
 
-        // Display In-App Floating Toast for the latest unread alert so user sees it inside the app
+        // Display In-App Floating Toast & System push for latest unread alert
         if (unreadNotifs.length > 0) {
           const topAlert = unreadNotifs[0];
-          const dismissedId = sessionStorage.getItem('cgguru_dismissed_toast');
-          if (dismissedId !== topAlert.id) {
+          
+          if (!dismissedToastIds.includes(topAlert.id)) {
             setLatestNotificationAlert(topAlert);
+
+            // Trigger sound & push notification if not alerted yet in this session
+            const alertedIds: string[] = (() => {
+              try {
+                const a = sessionStorage.getItem('cgguru_alerted_notifs');
+                return a ? JSON.parse(a) : [];
+              } catch { return []; }
+            })();
+
+            if (!alertedIds.includes(topAlert.id)) {
+              // 1. Play sweet audio chime
+              playNotificationChime();
+
+              // 2. Vibrate phone if supported
+              if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+                try { navigator.vibrate([150, 75, 150]); } catch (_) {}
+              }
+
+              // 3. Trigger native status bar or browser push notification
+              sendSystemPushNotification(
+                topAlert.title || '🔔 CG Guru Alert',
+                topAlert.message || 'New notification update',
+                '/icon-192.png',
+                topAlert.actionUrl || '/?tab=tests',
+                topAlert.id
+              );
+
+              // 4. Record to alerted session list
+              alertedIds.push(topAlert.id);
+              sessionStorage.setItem('cgguru_alerted_notifs', JSON.stringify(alertedIds));
+            }
           }
+        } else {
+          setLatestNotificationAlert(null);
         }
       };
 
@@ -911,22 +964,60 @@ export default function App() {
           if (res.ok) {
             const data = await res.json();
             if (data && Array.isArray(data.notifications)) {
-              processNotifications(data.notifications);
+              processNotifications(data.notifications, false);
             }
           }
         } catch (e) {}
       };
 
-      // Initial API fetch from cached server endpoint
+      // 1. Initial API fetch from cached server endpoint
       await fetchNotificationsApi();
 
-      // Periodic check while app is open (every 5 mins)
+      // 2. Attach Firestore Realtime Snapshot Listener for instant broadcast delivery
+      let unsubscribeFirestore: (() => void) | null = null;
+      const setupFirestoreListener = () => {
+        try {
+          const firebase = (window as any).firebase;
+          if (firebase && firebase.apps && firebase.apps.length > 0) {
+            const db = firebase.firestore();
+            unsubscribeFirestore = db.collection('notifications')
+              .orderBy('createdAt', 'desc')
+              .limit(20)
+              .onSnapshot(
+                (snapshot: any) => {
+                  if (snapshot && !snapshot.empty) {
+                    const docs = snapshot.docs.map((d: any) => ({
+                      id: d.id,
+                      ...d.data()
+                    }));
+                    processNotifications(docs, true);
+                  }
+                },
+                (err: any) => {
+                  console.warn('[Realtime Firestore Notification Listener Warn]:', err.message);
+                }
+              );
+          }
+        } catch (err) {
+          console.warn('[Setup Realtime Notification Listener Warn]:', err);
+        }
+      };
+
+      setupFirestoreListener();
+
+      // 3. Periodic fallback check every 30 seconds (ensures fresh notifications even if realtime drops)
       const pollInterval = setInterval(() => {
+        if (!unsubscribeFirestore) {
+          setupFirestoreListener();
+        }
         fetchNotificationsApi();
-      }, 5 * 60 * 1000);
+      }, 30 * 1000);
 
       return () => {
         clearInterval(pollInterval);
+        if (unsubscribeFirestore) {
+          try { unsubscribeFirestore(); } catch (_) {}
+        }
         if (appStateListenerSub && typeof appStateListenerSub.remove === 'function') {
           appStateListenerSub.remove();
         }
@@ -1081,12 +1172,11 @@ export default function App() {
 
               try {
                 const info = await StatusBar.getInfo();
-                if (info.overlays && info.height > 0) {
-                  document.documentElement.style.setProperty('--app-status-bar-height', `${info.height}px`);
-                } else {
-                  document.documentElement.style.setProperty('--app-status-bar-height', '0px');
-                }
-              } catch (_) {}
+                const h = info && info.height > 0 ? info.height : 28;
+                document.documentElement.style.setProperty('--app-status-bar-height', `${h}px`);
+              } catch (_) {
+                document.documentElement.style.setProperty('--app-status-bar-height', '28px');
+              }
 
               const currentTheme = localStorage.getItem('cg_theme') || 'dark';
               const isDark = currentTheme === 'dark' || (currentTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -1786,7 +1876,7 @@ export default function App() {
       };
       fetchAndStartTest();
     } else {
-      if (pageParam === 'syllabus') {
+      if (pageParam === 'syllabus' || params.get('notes') || params.get('topicId')) {
         setActiveTab('syllabus');
       }
       isMountTestChecked.current = true;
@@ -3046,9 +3136,12 @@ export default function App() {
                 >
                   <Bell className={`w-4 h-4 text-saffron ${unreadNotificationsCount > 0 ? 'animate-bounce' : ''}`} />
                   {unreadNotificationsCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white text-[8.5px] font-black rounded-full flex items-center justify-center shadow">
-                      {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
-                    </span>
+                    <>
+                      <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 rounded-full animate-ping opacity-75 pointer-events-none" />
+                      <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white text-[8.5px] font-black rounded-full flex items-center justify-center shadow z-10">
+                        {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                      </span>
+                    </>
                   )}
                 </button>
                 <button
@@ -3173,9 +3266,12 @@ export default function App() {
               >
                 <Bell className={`w-4 h-4 text-saffron ${unreadNotificationsCount > 0 ? 'animate-bounce' : ''}`} />
                 {unreadNotificationsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow">
-                    {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
-                  </span>
+                  <>
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-ping opacity-75 pointer-events-none" />
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow z-10">
+                      {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                    </span>
+                  </>
                 )}
               </button>
 
@@ -3271,46 +3367,6 @@ export default function App() {
             </div>
           )}
 
-          {/* Floating In-App Alert for Latest Unread Notification */}
-          {latestNotificationAlert && !isTestActive && (
-            <div className="w-full bg-gradient-to-r from-bg-s2 via-bg-s3 to-bg-s2 border border-saffron-border rounded-xl p-3 mb-3 flex items-center justify-between gap-3 text-xs shadow-md animate-fade-in">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-7 h-7 rounded-full bg-saffron/20 flex items-center justify-center shrink-0 text-saffron">
-                  <Bell className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-text text-xs leading-tight truncate">
-                    {latestNotificationAlert.title || '📢 New Notification'}
-                  </p>
-                  <p className="text-[11px] text-text-muted truncate">
-                    {latestNotificationAlert.message}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  onClick={() => {
-                    setNotificationsModalOpen(true);
-                    sessionStorage.setItem('cgguru_dismissed_toast', latestNotificationAlert.id);
-                    setLatestNotificationAlert(null);
-                  }}
-                  className="px-2.5 py-1 bg-saffron-dim/25 hover:bg-saffron text-saffron hover:text-bg-s1 font-bold text-xs rounded-md transition-all border border-saffron-border cursor-pointer"
-                >
-                  {appLanguage === 'hi' ? 'देखें' : 'View'}
-                </button>
-                <button
-                  onClick={() => {
-                    sessionStorage.setItem('cgguru_dismissed_toast', latestNotificationAlert.id);
-                    setLatestNotificationAlert(null);
-                  }}
-                  className="p-1 rounded text-text-muted hover:text-text cursor-pointer"
-                  title="Dismiss"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
 
           <AnimatePresence mode="wait">
             {!isTestActive ? (
@@ -3546,7 +3602,11 @@ export default function App() {
                             const correctCount = answers.filter((ans, idx) => ans !== null && ans === questions[idx].correctIndex).length;
                             const totalCount = questions.length;
                             const pct = Math.round((correctCount / totalCount) * 100);
-                            const shareText = `🎯 CG Guru Practice Test Score:\nSubject: ${subjectName}\nScore: ${correctCount}/${totalCount} (${pct}% Accuracy)\nTime Taken: ${Math.floor(elapsedTime / 60)}m ${elapsedTime % 60}s\n\nPractice mock tests on CG Guru!`;
+                            const hSpent = Math.floor(elapsedTime / 3600);
+                            const mSpent = Math.floor((elapsedTime % 3600) / 60);
+                            const sSpent = elapsedTime % 60;
+                            const timeTakenStr = hSpent > 0 ? `${hSpent}h ${mSpent}m ${sSpent}s` : `${mSpent}m ${sSpent}s`;
+                            const shareText = `🎯 CG Guru Practice Test Score:\nSubject: ${subjectName}\nScore: ${correctCount}/${totalCount} (${pct}% Accuracy)\nTime Taken: ${timeTakenStr}\n\nPractice mock tests on CG Guru!`;
                             
                             const shareUrl = activeTestId
                               ? `${window.location.origin}${window.location.pathname}?tab=practice&testId=${encodeURIComponent(activeTestId)}`
@@ -3698,6 +3758,81 @@ export default function App() {
             }
           }}
         />
+
+        {/* Global Fixed Floating In-App Broadcast Toast Alert (Top Viewport) */}
+        <AnimatePresence>
+          {latestNotificationAlert && !isTestActive && (
+            <motion.div
+              initial={{ opacity: 0, y: -60, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -30, scale: 0.95 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className="fixed top-4 left-1/2 -translate-x-1/2 z-[99999] w-[94%] max-w-lg bg-bg-s1/95 backdrop-blur-xl border-2 border-saffron/80 shadow-2xl shadow-saffron/20 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-saffron to-amber-500 flex items-center justify-center text-slate-950 font-black shadow-md">
+                    <Bell className="w-5 h-5 animate-bounce" />
+                  </div>
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full animate-ping pointer-events-none" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-saffron bg-saffron/15 px-2 py-0.5 rounded border border-saffron/30">
+                      {appLanguage === 'hi' ? '📢 नया ब्रॉडकास्ट अलर्ट' : '📢 Broadcast Alert'}
+                    </span>
+                  </div>
+                  <p className="font-black text-text text-xs sm:text-sm leading-tight truncate mt-1">
+                    {latestNotificationAlert.title || '📢 New Notification'}
+                  </p>
+                  <p className="text-[11px] text-text-muted line-clamp-1 mt-0.5">
+                    {latestNotificationAlert.message}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => {
+                    const dismissed = (() => {
+                      try {
+                        const d = sessionStorage.getItem('cgguru_dismissed_toasts');
+                        return d ? JSON.parse(d) : [];
+                      } catch { return []; }
+                    })();
+                    if (!dismissed.includes(latestNotificationAlert.id)) {
+                      dismissed.push(latestNotificationAlert.id);
+                      sessionStorage.setItem('cgguru_dismissed_toasts', JSON.stringify(dismissed));
+                    }
+                    setLatestNotificationAlert(null);
+                    setNotificationsModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 bg-gradient-to-r from-saffron to-amber-500 hover:brightness-110 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md cursor-pointer whitespace-nowrap active:scale-95"
+                >
+                  {appLanguage === 'hi' ? 'अभी देखें ↗' : 'View ↗'}
+                </button>
+                <button
+                  onClick={() => {
+                    const dismissed = (() => {
+                      try {
+                        const d = sessionStorage.getItem('cgguru_dismissed_toasts');
+                        return d ? JSON.parse(d) : [];
+                      } catch { return []; }
+                    })();
+                    if (!dismissed.includes(latestNotificationAlert.id)) {
+                      dismissed.push(latestNotificationAlert.id);
+                      sessionStorage.setItem('cgguru_dismissed_toasts', JSON.stringify(dismissed));
+                    }
+                    setLatestNotificationAlert(null);
+                  }}
+                  className="p-1.5 rounded-lg bg-bg-s3 hover:bg-bg-s2 text-text-muted hover:text-text cursor-pointer transition-colors"
+                  title="Dismiss"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Notifications & Announcements Drawer Overlay */}
         <NotificationsModal

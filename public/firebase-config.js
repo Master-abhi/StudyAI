@@ -22,7 +22,14 @@ const firebaseConfig = {
   appId: "1:166390114183:web:397f8c629cebf14ec71522"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-
-console.log('[Firebase] Client SDK initialized ✅');
+// Initialize Firebase safely (fallback gracefully when offline)
+if (typeof firebase !== 'undefined' && typeof firebase.initializeApp === 'function') {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    console.log('[Firebase] Client SDK initialized ✅');
+  } catch (err) {
+    console.warn('[Firebase] Init notice:', err);
+  }
+} else {
+  console.log('[Firebase] Offline mode or SDK not loaded yet');
+}

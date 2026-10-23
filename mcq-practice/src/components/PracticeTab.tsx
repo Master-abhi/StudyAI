@@ -4,6 +4,7 @@ import { Trophy, AlertCircle, Play, Bookmark, Trash2, ChevronRight, ChevronLeft,
 import type { Question } from '../types';
 import { getCanonicalSubject, isTestMatchingExamSyllabus } from '../utils/subjectUtils';
 import { canTakeMockTest, canSolveMcq, getRemainingMockTests, getRemainingMcqs } from '../utils/userTierLimits';
+import { getApiUrl } from '../utils/api';
 
 interface ServerTest {
   id: string;
@@ -302,40 +303,36 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
     return { completed, inProgress, total };
   };
 
-  const getApiUrl = (path: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${path}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${path}`;
-    }
-    return path;
-  };
-
   // Subject Folders (Lazy-load: load only folder metadata first)
   const [subjectFolders, setSubjectFolders] = useState<{ subject: string; count: number; totalQuestions?: number }[]>([]);
   const [subjectTestsCache, setSubjectTestsCache] = useState<Record<string, ServerTest[]>>({});
   const [loadingSubject, setLoadingSubject] = useState<boolean>(false);
 
-  // Fetch subject folders on mount or mode/exam change
+  // Fetch subject folders or tests on mount or mode/exam change
   const fetchSubjectFolders = async () => {
     setLoading(true);
     try {
-      const examSubjectsParam = activeExam?.subjects ? encodeURIComponent(activeExam.subjects.map((s: any) => s.name || s.nameHi || '').filter(Boolean).join(',')) : '';
-      const res = await fetch(getApiUrl(`/api/tests/subjects?examId=${activeExam?.id || ''}&mode=${activeMode}&examSubjects=${examSubjectsParam}`));
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setSubjectFolders(data);
+      if (activeMode === 'pyq') {
+        // Fetch all PYQ tests directly for the active exam
+        const res = await fetch(getApiUrl(`/api/tests?examId=${activeExam?.id || ''}&mode=pyq`));
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setTests(data);
+          }
+        }
+      } else {
+        const examSubjectsParam = activeExam?.subjects ? encodeURIComponent(activeExam.subjects.map((s: any) => s.name || s.nameHi || '').filter(Boolean).join(',')) : '';
+        const res = await fetch(getApiUrl(`/api/tests/subjects?examId=${activeExam?.id || ''}&mode=${activeMode}&examSubjects=${examSubjectsParam}`));
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setSubjectFolders(data);
+          }
         }
       }
     } catch (err) {
-      console.warn('Failed to load subject folders from server:', err);
+      console.warn('Failed to load subject folders/tests from server:', err);
     } finally {
       setLoading(false);
     }
@@ -485,7 +482,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   console.log('[PracticeTab] activeExamId:', activeExam?.id, 'activeMode:', activeMode);
   const baseFilteredTests = tests.filter(t => 
     t.mode === activeMode && 
-    isTestMatchingExamSyllabus(t, activeExam)
+    (activeMode === 'pyq' || isTestMatchingExamSyllabus(t, activeExam))
   );
 
   // 2. Extract unique languages dynamically from base tests
@@ -657,6 +654,26 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
             <div className="flex flex-col gap-3">
               <div className="border-b border-border pb-1.5 flex items-center justify-between">
                 <h4 className="text-xs font-black text-text uppercase">Available PYQ Papers ({filteredTests.length})</h4>
+              </div>
+
+              {/* Search bar for PYQ Papers */}
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-text-muted" />
+                <input
+                  type="text"
+                  placeholder="Search PYQ papers by exam name, year (e.g. 2024, Patwari, SI, Hostel Warden, CGPSC)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-bg-s3 border border-border focus:border-saffron/50 rounded-lg pl-9 pr-8 py-2 text-xs font-semibold text-text placeholder-text-muted outline-none transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-2.5 text-text-muted hover:text-text cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
               {filteredTests.length === 0 ? (

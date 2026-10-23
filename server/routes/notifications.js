@@ -174,7 +174,7 @@ router.post('/admin', verifyStaffOrAdmin('news'), async (req, res) => {
       return res.status(400).json({ error: 'Title and message are required.' });
     }
 
-    const notifId = `notif_${Date.now()}`;
+    const notifId = (req.body.id && typeof req.body.id === 'string') ? req.body.id.trim() : `notif_${Date.now()}`;
     const newNotif = {
       id: notifId,
       title: title.trim(),

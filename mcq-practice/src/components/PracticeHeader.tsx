@@ -23,16 +23,18 @@ export const PracticeHeader: React.FC<PracticeHeaderProps> = ({
   onTogglePalette,
 }) => {
   const formatTime = (seconds: number) => {
-    if (mode === 'mock' || mode === 'pyq') {
-      const remaining = Math.max(0, testDuration - seconds);
-      const m = Math.floor(remaining / 60);
-      const s = remaining % 60;
-      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    } else {
-      const m = Math.floor(seconds / 60);
-      const s = seconds % 60;
-      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    const totalSecs = (mode === 'mock' || mode === 'pyq')
+      ? Math.max(0, testDuration - seconds)
+      : seconds;
+
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+
+    if (h > 0) {
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   const isMock = mode === 'mock' || mode === 'pyq';

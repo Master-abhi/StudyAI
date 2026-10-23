@@ -112,7 +112,7 @@ async function updateJobsCacheInFirestore() {
     const timestamp = new Date().toISOString();
     let allStored = [];
     try {
-      const snap = await db.collection('job_alerts').orderBy('createdAt', 'desc').limit(100).get();
+      const snap = await db.collection('job_alerts').orderBy('createdAt', 'desc').limit(300).get();
       allStored = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (readErr) {
       console.warn('[Update Jobs Cache Firestore read fail]:', readErr.message);
@@ -127,7 +127,7 @@ async function updateJobsCacheInFirestore() {
       return createB - createA;
     });
 
-    const cacheArticles = allStored.slice(0, 50).map(art => ({
+    const cacheArticles = allStored.map(art => ({
       ...art,
       category: 'jobs',
       date: art.date || art.pubDate || timestamp.split('T')[0],
@@ -136,8 +136,11 @@ async function updateJobsCacheInFirestore() {
 
     const cacheData = {
       lastUpdated: timestamp,
+      totalArticles: cacheArticles.length,
       articles: cacheArticles
     };
+
+    setInMemoryJobsCache(cacheData);
 
     try {
       await JOBS_CACHE_DOC.set(cacheData);
@@ -145,7 +148,6 @@ async function updateJobsCacheInFirestore() {
       console.warn('[Update Jobs Cache Firestore write fail]:', writeErr.message);
     }
 
-    setInMemoryJobsCache(cacheData);
     return cacheData;
   } catch (err) {
     console.error('[Update Jobs Cache Error]:', err.message);

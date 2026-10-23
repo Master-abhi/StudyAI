@@ -54,7 +54,10 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
           }`}
         >
           {/* Header Bar */}
-          <div className="px-3 py-2.5 sm:px-6 sm:py-3 bg-bg-s3 border-b border-border flex items-center justify-between gap-3 shrink-0">
+          <div 
+            style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px)) + 0.65rem)' }}
+            className="pt-safe-modal px-3.5 pb-2.5 sm:px-6 sm:pb-3 bg-bg-s3 border-b border-border flex items-center justify-between gap-3 shrink-0"
+          >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-saffron/15 border border-saffron-border/30 flex items-center justify-center text-saffron shrink-0">
                 <FileText className="w-4 h-4" />

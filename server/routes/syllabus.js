@@ -252,16 +252,24 @@ router.get('/topic-notes', async (req, res) => {
       if (topicId) invalidateCache(topicId);
     }
 
+    const extractNotesPayload = (data) => {
+      if (!data) return null;
+      if (data.studyNotes) return data.studyNotes;
+      if (data.overview || data.chapters || data.sections || data.comparativeTables) return data;
+      return null;
+    };
+
     let result = await safeFirestoreQuery(cacheKey, async () => {
       // 1. Fast lookup: Check specified exam first
       if (examId && topicId) {
         const cachedSnap = await db.collection('topic_study_notes').doc(`${examId}_${topicId}`).get();
         if (cachedSnap.exists) {
           const data = cachedSnap.data();
-          if (data && data.studyNotes) {
+          const notes = extractNotesPayload(data);
+          if (notes) {
             return {
               success: true,
-              studyNotes: desanitizeFromFirestore(data.studyNotes),
+              studyNotes: desanitizeFromFirestore(notes),
               topicId,
               examId
             };
@@ -275,10 +283,11 @@ router.get('/topic-notes', async (req, res) => {
           const masterSnap = await db.collection('topic_study_notes').doc(`cgv_master_${topicId}`).get();
           if (masterSnap.exists) {
             const data = masterSnap.data();
-            if (data && data.studyNotes) {
+            const notes = extractNotesPayload(data);
+            if (notes) {
               return {
                 success: true,
-                studyNotes: desanitizeFromFirestore(data.studyNotes),
+                studyNotes: desanitizeFromFirestore(notes),
                 topicId,
                 examId: 'cgv_master',
                 inheritedFrom: 'CG VYAPAM BASICS'
@@ -294,10 +303,11 @@ router.get('/topic-notes', async (req, res) => {
           const topicNotesQuery = await db.collection('topic_study_notes').where('topicId', '==', topicId).limit(1).get();
           if (!topicNotesQuery.empty) {
             const data = topicNotesQuery.docs[0].data();
-            if (data && data.studyNotes) {
+            const notes = extractNotesPayload(data);
+            if (notes) {
               return {
                 success: true,
-                studyNotes: desanitizeFromFirestore(data.studyNotes),
+                studyNotes: desanitizeFromFirestore(notes),
                 topicId,
                 examId: data.examId || examId
               };

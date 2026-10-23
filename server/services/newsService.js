@@ -139,10 +139,23 @@ async function updateNewsCacheInFirestore() {
     const timestamp = new Date().toISOString();
     let allStored = [];
     try {
-      const snap = await db.collection('news_articles').orderBy('createdAt', 'desc').limit(100).get();
+      const snap = await db.collection('news_articles').orderBy('createdAt', 'desc').limit(500).get();
       allStored = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (readErr) {
       console.warn('[Update News Cache Firestore read fail]:', readErr.message);
+    }
+
+    // Merge with any existing in-memory / local disk cache articles to prevent dropping
+    if (inMemoryNewsCache && Array.isArray(inMemoryNewsCache.articles)) {
+      const existingMap = new Map();
+      allStored.forEach(a => existingMap.set(a.id || a.url || a.title, a));
+      inMemoryNewsCache.articles.forEach(a => {
+        const key = a.id || a.url || a.title;
+        if (!existingMap.has(key)) {
+          allStored.push(a);
+          existingMap.set(key, a);
+        }
+      });
     }
 
     // Filter out any accidentally mixed job articles
@@ -160,25 +173,65 @@ async function updateNewsCacheInFirestore() {
       return createB - createA;
     });
 
-    const cacheArticles = allStored.slice(0, 50).map(art => ({
-      ...art,
+    // Clean up redundant fields so each article stays compact and hundreds fit cleanly
+    const cleanedArticles = allStored.map(art => ({
+      id: art.id,
+      title: art.title,
+      title_hi: art.title_hi || art.title,
+      description: art.description || art.summary || '',
+      description_hi: art.description_hi || art.summary_hi || '',
+      summary: art.summary || art.description || '',
+      summary_hi: art.summary_hi || art.description_hi || '',
+      history: art.history || art.historicalContext || '',
+      history_hi: art.history_hi || art.historicalContext_hi || '',
+      source: art.source || 'News',
+      category: art.category || 'general',
+      state: art.state || 'CG',
+      pubDate: art.pubDate || art.date || timestamp.split('T')[0],
       date: art.date || art.pubDate || timestamp.split('T')[0],
-      pubDate: art.pubDate || art.date || timestamp.split('T')[0]
+      url: art.url || '',
+      examRelevance: art.examRelevance || true,
+      icon: art.icon || '📰',
+      lang: art.lang || 'hi',
+      intelligence: art.intelligence || null,
+      createdAt: art.createdAt || null
     }));
 
-    const cacheData = {
+    // In-memory and local disk cache holds ALL articles without any 50-article cap
+    const fullCacheData = {
       lastUpdated: timestamp,
-      articles: cacheArticles
+      totalArticles: cleanedArticles.length,
+      articles: cleanedArticles
+    };
+    setInMemoryNewsCache(fullCacheData);
+
+    // Prepare Firestore cache doc ensuring it never exceeds Firestore 1MB binary limit
+    // Full intelligence for every article is stored in news_intelligence collection & local disk cache
+    let firestoreArticles = cleanedArticles.map((art, idx) => {
+      if (idx >= 25 && art.intelligence) {
+        const { intelligence, ...rest } = art;
+        return rest;
+      }
+      return art;
+    });
+
+    while (JSON.stringify({ lastUpdated: timestamp, articles: firestoreArticles }).length > 700000 && firestoreArticles.length > 50) {
+      firestoreArticles = firestoreArticles.slice(0, firestoreArticles.length - 10);
+    }
+
+    const firestoreCacheData = {
+      lastUpdated: timestamp,
+      totalArticles: firestoreArticles.length,
+      articles: firestoreArticles
     };
 
     try {
-      await NEWS_DOC.set(cacheData);
+      await NEWS_DOC.set(firestoreCacheData);
     } catch (writeErr) {
       console.warn('[Update News Cache Firestore write fail]:', writeErr.message);
     }
 
-    setInMemoryNewsCache(cacheData);
-    return cacheData;
+    return fullCacheData;
   } catch (err) {
     console.error('[Update News Cache Error]:', err.message);
   }

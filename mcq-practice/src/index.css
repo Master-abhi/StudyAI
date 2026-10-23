@@ -49,6 +49,23 @@ textarea::placeholder {
   --amber-l: #fbbf24;
 }
 
+/* Set sensible default status bar height in standalone PWA / full-screen mobile app */
+@media all and (display-mode: standalone), (display-mode: fullscreen) {
+  :root {
+    --app-status-bar-height: 28px;
+  }
+}
+
+/* Fullscreen modal header safe-area padding for mobile / Capacitor / PWA */
+.pt-safe-modal {
+  padding-top: calc(max(env(safe-area-inset-top, 0px), var(--app-status-bar-height, 0px)) + 0.65rem);
+}
+@media (min-width: 640px) {
+  .pt-safe-modal {
+    padding-top: 0.875rem !important;
+  }
+}
+
 /* Light Theme Variables - Soft Eye-Care Palette */
 :root[data-theme="light"], .light-theme {
   --bg-s0: #E2E8F0;

@@ -123,12 +123,12 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ currentU
     try {
       const token = await currentUser.getIdToken();
       let savedDirectly = false;
+      const notifId = `notif_${Date.now()}`;
 
-      // Try direct Firestore write first
+      // Try direct Firestore write first for immediate broadcast
       const firebase = (window as any).firebase;
       if (firebase && currentUser) {
         try {
-          const notifId = `notif_${Date.now()}`;
           const notifRecord = {
             id: notifId,
             ...newPayload,
@@ -143,14 +143,17 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ currentU
         }
       }
 
-      // Also send to Server API
+      // Also send to Server API to update server cache & send push notifications
       const res = await fetch(getApiUrl('/api/notifications/admin'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newPayload)
+        body: JSON.stringify({
+          ...newPayload,
+          id: notifId
+        })
       });
 
       if (res.ok || savedDirectly) {

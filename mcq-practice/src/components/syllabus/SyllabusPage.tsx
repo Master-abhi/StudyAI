@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, BrainCircuit, RefreshCw, BarChart3, 
@@ -19,6 +19,31 @@ import { TopicTestsModal } from './TopicTestsModal';
 import { TopicNotesReaderModal } from './TopicNotesReaderModal';
 import { IndiaMap3DModal } from './IndiaMap3DModal';
 import type { Exam, Subject, Chapter, Topic } from './syllabusData';
+
+// Helper to look up topic across exams
+export const findTopicInAllExams = (
+  examsList: Exam[],
+  targetTopicId: string,
+  preferredExamId?: string
+): { topic: Topic; subjectName: string; examId: string; subjectId: string } | null => {
+  if (!targetTopicId || !Array.isArray(examsList)) return null;
+
+  const preferred = preferredExamId ? examsList.find(e => e.id === preferredExamId) : null;
+  const list = preferred ? [preferred, ...examsList.filter(e => e.id !== preferredExamId)] : examsList;
+
+  for (const ex of list) {
+    for (const sub of ex.subjects || []) {
+      for (const chap of sub.chapters || []) {
+        for (const top of chap.topics || []) {
+          if (top.id === targetTopicId) {
+            return { topic: top, subjectName: sub.name, examId: ex.id, subjectId: sub.id };
+          }
+        }
+      }
+    }
+  }
+  return null;
+};
 
 interface SyllabusPageProps {
   exams: Exam[];
@@ -75,8 +100,87 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   const [selectedPdfTopic, setSelectedPdfTopic] = useState<Topic | null>(null);
   const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
 
-  // Formatted In-App Study Notes Reader State
-  const [selectedNotesTopic, setSelectedNotesTopic] = useState<{ topic: Topic; subjectName: string } | null>(null);
+  // Formatted In-App Study Notes Reader State - initialize from URL query params (notes or topicId)
+  const [selectedNotesTopic, setSelectedNotesTopic] = useState<{ topic: Topic; subjectName: string } | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const targetTopicId = params.get('notes') || params.get('topicId');
+    if (!targetTopicId) return null;
+
+    const found = findTopicInAllExams(exams, targetTopicId, activeExamId);
+    if (found) {
+      return { topic: found.topic, subjectName: found.subjectName };
+    }
+    return {
+      topic: {
+        id: targetTopicId,
+        name: 'अध्ययन नोट्स',
+        nameHi: 'अध्ययन नोट्स',
+        subtopics: [],
+        importanceScore: 5
+      },
+      subjectName: 'सामान्य अध्ययन'
+    };
+  });
+
+  // Sync selectedNotesTopic if URL has notes and exams load or update
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const targetTopicId = params.get('notes') || params.get('topicId');
+    if (!targetTopicId) return;
+
+    if (!selectedNotesTopic || selectedNotesTopic.topic.id !== targetTopicId || selectedNotesTopic.topic.name === 'अध्ययन नोट्स') {
+      const found = findTopicInAllExams(exams, targetTopicId, activeExamId);
+      if (found) {
+        setSelectedNotesTopic({ topic: found.topic, subjectName: found.subjectName });
+        if (found.subjectId && !expandedSubjectId) {
+          setExpandedSubjectId(found.subjectId);
+        }
+        if (found.examId && found.examId !== activeExamId && onSelectExam) {
+          onSelectExam(found.examId);
+        }
+      }
+    }
+  }, [exams, activeExamId]);
+
+  // Handle browser Back / Forward popstate navigation for notes modal
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlNotesId = params.get('notes') || params.get('topicId');
+
+      if (urlNotesId) {
+        if (!selectedNotesTopic || selectedNotesTopic.topic.id !== urlNotesId) {
+          const found = findTopicInAllExams(exams, urlNotesId, activeExamId);
+          if (found) {
+            setSelectedNotesTopic({ topic: found.topic, subjectName: found.subjectName });
+            if (found.subjectId) {
+              setExpandedSubjectId(found.subjectId);
+            }
+          } else {
+            setSelectedNotesTopic({
+              topic: {
+                id: urlNotesId,
+                name: 'अध्ययन नोट्स',
+                nameHi: 'अध्ययन नोट्स',
+                subtopics: [],
+                importanceScore: 5
+              },
+              subjectName: 'सामान्य अध्ययन'
+            });
+          }
+        }
+      } else {
+        if (selectedNotesTopic) {
+          setSelectedNotesTopic(null);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [exams, activeExamId, selectedNotesTopic]);
 
   // 3D Map Explorer State
   const [is3DMapOpen, setIs3DMapOpen] = useState<boolean>(false);
@@ -124,13 +228,42 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   };
 
   const handleOpenStudyNotes = (topic: Topic, subjectName: string) => {
+    const isGuest = localStorage.getItem('cg_is_guest') === 'true';
     const fbUser = currentUser || (window as any).firebase?.auth()?.currentUser;
-    if (!fbUser) {
+    if (!fbUser && !isGuest && !localStorage.getItem('cg_has_visited')) {
       if (onOpenAuth) onOpenAuth();
       else alert('Please log in or sign up to read study notes.');
       return;
     }
     setSelectedNotesTopic({ topic, subjectName });
+
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'syllabus');
+      url.searchParams.set('notes', topic.id);
+      url.searchParams.delete('topicId');
+      if (activeExamId) {
+        url.searchParams.set('examId', activeExamId);
+      }
+      const newSearch = url.searchParams.toString();
+      const newRelativePath = url.pathname + (newSearch ? '?' + newSearch : '') + url.hash;
+      window.history.pushState({ tab: 'syllabus', notes: topic.id, examId: activeExamId }, '', newRelativePath);
+    }
+  };
+
+  const handleCloseStudyNotes = () => {
+    setSelectedNotesTopic(null);
+
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('notes') || url.searchParams.has('topicId')) {
+        url.searchParams.delete('notes');
+        url.searchParams.delete('topicId');
+        const newSearch = url.searchParams.toString();
+        const newRelativePath = url.pathname + (newSearch ? '?' + newSearch : '') + url.hash;
+        window.history.pushState({ tab: 'syllabus', examId: activeExamId }, '', newRelativePath);
+      }
+    }
   };
 
   const handleOpenPdf = async (topic: Topic) => {
@@ -701,7 +834,7 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
       {/* Interactive Formatted Study Notes Reader Modal */}
       <TopicNotesReaderModal
         isOpen={Boolean(selectedNotesTopic)}
-        onClose={() => setSelectedNotesTopic(null)}
+        onClose={handleCloseStudyNotes}
         topic={selectedNotesTopic?.topic || null}
         subjectName={selectedNotesTopic?.subjectName}
         examName={activeExam?.name}

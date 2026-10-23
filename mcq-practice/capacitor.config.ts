@@ -4,10 +4,6 @@ const config: CapacitorConfig = {
   appId: 'com.studyai.app',
   appName: 'CG Guru',
   webDir: '../public',
-  server: {
-    url: 'https://cg-guru.web.app',
-    cleartext: false
-  },
   plugins: {
     StatusBar: {
       style: 'DARK',

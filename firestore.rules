@@ -40,10 +40,14 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.token.admin == true;
     }
 
-    // ── User Profiles ──
-    // Each user can only read/write their own document
+    // ── User Profiles & Subcollections (Chats, Progress, Settings) ──
+    // Each user can only read/write their own document and subcollections
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /{allSubcollections=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // ── Analytics ──

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Video, Play, Sparkles, AlertTriangle } from 'lucide-react';
+import { getApiUrl } from '../utils/api';
 
 interface TopicStudyModalProps {
   isOpen: boolean;
@@ -25,21 +26,6 @@ export const TopicStudyModal: React.FC<TopicStudyModalProps> = ({
   const [videoSummary, setVideoSummary] = useState<string>('');
   const [videoLoading, setVideoLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-
-    const getApiUrl = (path: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${path}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${path}`;
-    }
-    return path;
-  };
 
   const fetchNotes = async () => {
     setNotesLoading(true);

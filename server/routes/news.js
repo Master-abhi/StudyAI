@@ -34,8 +34,28 @@ const userAnalyticsCache = new Map();  // userId -> { data, timestamp }
 router.get('/', async (req, res) => {
   try {
     const { category, includeJobs, admin: isAdminView } = req.query;
-    const cached = await getCachedNews(isAdminView === 'true');
 
+    if (isAdminView === 'true') {
+      let adminArticles = [];
+      try {
+        const snap = await db.collection('news_articles').orderBy('createdAt', 'desc').limit(500).get();
+        adminArticles = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (dbErr) {
+        console.warn('[Admin News DB read fail]:', dbErr.message);
+      }
+      if (!adminArticles || adminArticles.length === 0) {
+        const cached = await getCachedNews(true);
+        adminArticles = cached.articles || [];
+      }
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.json({
+        lastUpdated: new Date().toISOString(),
+        totalArticles: adminArticles.length,
+        articles: adminArticles
+      });
+    }
+
+    const cached = await getCachedNews(false);
     let articles = cached.articles || [];
 
     const isJobCategory = (cat) => {

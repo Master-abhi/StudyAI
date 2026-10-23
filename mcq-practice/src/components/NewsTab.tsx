@@ -5,9 +5,24 @@ import {
   ExternalLink, MessageSquare, Info, ShieldAlert,
   Award, CheckCircle, Brain, Clock,
   ChevronRight, Bookmark,
-  Trophy, FileText,
-  RotateCcw, Flame, BookOpen, Sparkle, ChevronDown
+  Trophy,
+  RotateCcw, Flame, BookOpen, Sparkle, ChevronDown,
+  Printer, X, ArrowLeft, ArrowRight
 } from 'lucide-react';
+import { getApiUrl } from '../utils/api';
+
+export interface CapsuleQuizQuestion {
+  articleTitle: string;
+  category: string;
+  question: string;
+  question_hi?: string;
+  options: string[];
+  options_hi?: string[];
+  correctIndex: number;
+  explanation: string;
+  explanation_hi?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+}
 
 interface Article {
   title: string;
@@ -141,24 +156,18 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
   const [quizScore, setQuizScore] = useState<{ correct: number; total: number } | null>(null);
 
+  // Dedicated Revision Capsule Quiz state
+  const [isCapsuleQuizOpen, setIsCapsuleQuizOpen] = useState<boolean>(false);
+  const [capsuleQuestions, setCapsuleQuestions] = useState<CapsuleQuizQuestion[]>([]);
+  const [currentCapsuleQIdx, setCurrentCapsuleQIdx] = useState<number>(0);
+  const [capsuleAnswers, setCapsuleAnswers] = useState<Record<number, number>>({});
+  const [capsuleQuizSubmitted, setCapsuleQuizSubmitted] = useState<boolean>(false);
+  const [capsuleScore, setCapsuleScore] = useState<{ correct: number; total: number } | null>(null);
+  const [capsuleQuizLang, setCapsuleQuizLang] = useState<'hi' | 'en'>('hi');
+
 
 
   const [openTime, setOpenTime] = useState<number | null>(null);
-
-    const getApiUrl = (path: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${path}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${path}`;
-    }
-    return path;
-  };
 
   // Log interaction events
   const logInteraction = async (title: string, activityType: 'read' | 'bookmark' | 'mcq_attempt' | 'flashcard_revise', timeSpentSeconds: number, mcqScore?: { correct: number; total: number }) => {
@@ -245,13 +254,13 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
   };
 
   // Fetch Capsules Data
-  const fetchCapsules = async () => {
+  const fetchCapsules = async (force: boolean = false) => {
     const cachedCapsules = localStorage.getItem('cg_cached_news_capsules');
     let hasCapsuleCache = false;
-    if (cachedCapsules) {
+    if (cachedCapsules && !force) {
       try {
         const parsed = JSON.parse(cachedCapsules);
-        if (parsed) {
+        if (parsed && (parsed.daily?.length || parsed.monthly?.length)) {
           setCapsuleData(parsed);
           hasCapsuleCache = true;
         }
@@ -261,11 +270,13 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
       setLoadingCapsules(true);
     }
     try {
-      const res = await fetch(getApiUrl('/api/news/capsules'));
+      const res = await fetch(getApiUrl(`/api/news/capsules?_t=${Date.now()}`));
       if (res.ok) {
         const data = await res.json();
-        setCapsuleData(data);
-        localStorage.setItem('cg_cached_news_capsules', JSON.stringify(data));
+        if (data && (data.daily || data.monthly || data.yearly)) {
+          setCapsuleData(data);
+          localStorage.setItem('cg_cached_news_capsules', JSON.stringify(data));
+        }
       }
     } catch (e) {
       console.warn('[News Capsules Error]:', e);
@@ -338,7 +349,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
 
   // Load subtab specific data
   useEffect(() => {
-    if (activeSubTab === 'capsules' && !capsuleData) {
+    if (activeSubTab === 'capsules') {
       fetchCapsules();
     }
     if (activeSubTab === 'analytics' && !analyticsData) {
@@ -519,6 +530,440 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
     if (selectedArticle) {
       logInteraction(selectedArticle.title, 'mcq_attempt', 60, { correct, total: intel.mcqs.length });
     }
+  };
+
+  // Effective capsules with resilient fallback from articles pool
+  const getEffectiveCapsules = () => {
+    const baseArticles = articles.filter(art => !isJobCategory(art.category));
+    const daily = (capsuleData?.daily && capsuleData.daily.length > 0)
+      ? capsuleData.daily
+      : baseArticles.slice(0, 15);
+    const weekly = (capsuleData?.weekly && capsuleData.weekly.length > 0)
+      ? capsuleData.weekly
+      : baseArticles.slice(0, 30);
+    const monthly = (capsuleData?.monthly && capsuleData.monthly.length > 0)
+      ? capsuleData.monthly
+      : baseArticles;
+    const yearly = (capsuleData?.yearly && capsuleData.yearly.length > 0)
+      ? capsuleData.yearly
+      : baseArticles;
+
+    return { daily, weekly, monthly, yearly };
+  };
+
+  const effectiveCapsules = getEffectiveCapsules();
+  const currentCapsuleArticles = effectiveCapsules[activeCapsuleFilter] || [];
+
+  // Start dedicated Capsule Revision Quiz
+  const handleStartCapsuleQuiz = () => {
+    if (!currentUser) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('Please log in or sign up to take revision quizzes.');
+      return;
+    }
+
+    const currentList = currentCapsuleArticles;
+    if (currentList.length === 0) {
+      alert('No articles available in this capsule.');
+      return;
+    }
+
+    // Collect all MCQs from articles in this capsule
+    const collected: CapsuleQuizQuestion[] = [];
+    currentList.forEach(art => {
+      const mcqs = (art as any).intelligence?.mcqs || (art as any).mcqs || [];
+      mcqs.forEach((mcq: any) => {
+        if (mcq.question || mcq.question_hi) {
+          collected.push({
+            articleTitle: art.title_hi || art.title,
+            category: art.category,
+            question: mcq.question || mcq.question_hi || '',
+            question_hi: mcq.question_hi || mcq.question || '',
+            options: mcq.options || mcq.options_hi || [],
+            options_hi: mcq.options_hi || mcq.options || [],
+            correctIndex: typeof mcq.correctIndex === 'number' ? mcq.correctIndex : 0,
+            explanation: mcq.explanation || mcq.explanation_hi || '',
+            explanation_hi: mcq.explanation_hi || mcq.explanation || '',
+            difficulty: mcq.difficulty || 'medium'
+          });
+        }
+      });
+    });
+
+    if (collected.length === 0) {
+      // Fallback if articles don't have embedded intelligence mcqs
+      setSelectedArticle(currentList[0]);
+      fetchArticleIntelligence(currentList[0]);
+      setTimeout(() => setModalTab('quiz'), 400);
+      return;
+    }
+
+    // Shuffle and pick up to 15 questions for a focused revision test
+    const shuffled = [...collected].sort(() => 0.5 - Math.random()).slice(0, 15);
+    setCapsuleQuestions(shuffled);
+    setCurrentCapsuleQIdx(0);
+    setCapsuleAnswers({});
+    setCapsuleQuizSubmitted(false);
+    setCapsuleScore(null);
+    setIsCapsuleQuizOpen(true);
+  };
+
+  const handleSelectCapsuleOption = (optIdx: number) => {
+    if (capsuleQuizSubmitted) return;
+    setCapsuleAnswers(prev => ({
+      ...prev,
+      [currentCapsuleQIdx]: optIdx
+    }));
+  };
+
+  const handleSubmitCapsuleQuiz = () => {
+    let correct = 0;
+    capsuleQuestions.forEach((q, idx) => {
+      if (capsuleAnswers[idx] === q.correctIndex) {
+        correct++;
+      }
+    });
+    const finalScore = { correct, total: capsuleQuestions.length };
+    setCapsuleScore(finalScore);
+    setCapsuleQuizSubmitted(true);
+
+    // Sync score into analytics
+    logInteraction(
+      `${activeCapsuleFilter.toUpperCase()} Capsule Revision Quiz`,
+      'mcq_attempt',
+      capsuleQuestions.length * 25,
+      finalScore
+    );
+  };
+
+  const handleGenerateStudyPdf = () => {
+    const currentList = currentCapsuleArticles;
+    if (currentList.length === 0) {
+      alert('No articles available to generate PDF.');
+      return;
+    }
+
+    const capsuleTitleMap: Record<string, string> = {
+      daily: 'दैनिक समसामयिकी रिवीजन कैप्सूल (Daily Capsule)',
+      weekly: 'साप्ताहिक समसामयिकी रिवीजन कैप्सूल (Weekly Capsule)',
+      monthly: 'मासिक समसामयिकी महा-डाइजेस्ट (Monthly Capsule)',
+      yearly: 'वार्षिक समसामयिकी संदर्भ पुस्तिका (Yearly Book)'
+    };
+    const capsuleTitle = capsuleTitleMap[activeCapsuleFilter] || 'करेंट अफेयर्स रिवीजन कैप्सूल';
+
+    const articlesHtml = currentList.map((art, idx) => {
+      const title = art.title_hi || art.title;
+      const summary = art.summary_hi || art.description_hi || art.summary || art.description || '';
+      const history = (art as any).history_hi || (art as any).history || (art as any).historicalContext_hi || (art as any).historicalContext || '';
+      const intelData = (art as any).intelligence;
+      const keyFacts = (intelData?.keyFacts_hi || intelData?.keyFacts || []).slice(0, 4);
+      const mcqs = (intelData?.mcqs || []).slice(0, 2);
+
+      return `
+        <div class="article-box">
+          <div class="article-header">
+            <span class="badge category">${art.category || 'GK'}</span>
+            <span class="meta">${art.date || ''} • ${art.source || 'CG GURU'}</span>
+          </div>
+          <h3 class="article-title">${idx + 1}. ${title}</h3>
+          <p class="article-summary">${summary}</p>
+          
+          ${history ? `
+            <div class="history-box">
+              <strong>📜 ऐतिहासिक संदर्भ एवं पृष्ठभूमि:</strong>
+              <p>${history}</p>
+            </div>
+          ` : ''}
+
+          ${keyFacts.length > 0 ? `
+            <div class="facts-section">
+              <strong>📌 महत्वपूर्ण परीक्षा तथ्य:</strong>
+              <ul>
+                ${keyFacts.map((f: string) => `<li>${f}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          ${mcqs.length > 0 ? `
+            <div class="mcq-preview">
+              <strong>🎯 अभ्यास प्रश्न:</strong>
+              ${mcqs.map((m: any) => `
+                <div class="mini-mcq">
+                  <p><strong>प्र. ${m.question_hi || m.question}</strong></p>
+                  <div class="mcq-opts">
+                    ${(m.options_hi || m.options || []).map((opt: string, oIdx: number) => `
+                      <span class="opt ${oIdx === m.correctIndex ? 'correct-opt' : ''}">(${String.fromCharCode(65 + oIdx)}) ${opt}</span>
+                    `).join(' ')}
+                  </div>
+                  <p class="ans-exp"><strong>उत्तर:</strong> (${String.fromCharCode(65 + m.correctIndex)}) ${(m.options_hi || m.options)[m.correctIndex]} — <em>${m.explanation_hi || m.explanation || ''}</em></p>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="hi">
+        <head>
+          <meta charset="utf-8">
+          <title>${capsuleTitle} - CG GURU</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 12mm 12mm 14mm 12mm;
+            }
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            body {
+              margin: 0;
+              padding: 16px;
+              font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+              color: #1E293B;
+              background: #FFFFFF;
+              font-size: 10pt;
+              line-height: 1.6;
+            }
+            .header-banner {
+              border-bottom: 2.5px solid #F97316;
+              padding-bottom: 12px;
+              margin-bottom: 18px;
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+            }
+            .title-area h1 {
+              margin: 0;
+              font-size: 17pt;
+              color: #C2410C;
+              font-weight: 800;
+            }
+            .title-area h2 {
+              margin: 4px 0 0 0;
+              font-size: 12pt;
+              color: #334155;
+              font-weight: 600;
+            }
+            .badge-row {
+              margin-top: 6px;
+              display: flex;
+              gap: 8px;
+              font-size: 8.5pt;
+              color: #64748B;
+              font-weight: 600;
+            }
+            .org-badge {
+              text-align: right;
+              font-size: 9pt;
+              font-weight: 800;
+              color: #F97316;
+            }
+            .org-sub {
+              font-size: 8pt;
+              color: #64748B;
+              font-weight: 600;
+            }
+            .digest-box {
+              background: #FFF7ED;
+              border: 1px solid #FFEDD5;
+              border-left: 4px solid #F97316;
+              padding: 10px 14px;
+              border-radius: 6px;
+              margin-bottom: 18px;
+              font-size: 9.5pt;
+              color: #9A3412;
+            }
+            .article-box {
+              border: 1px solid #E2E8F0;
+              border-radius: 8px;
+              padding: 14px;
+              margin-bottom: 14px;
+              page-break-inside: avoid;
+              background: #FAFAFA;
+            }
+            .article-header {
+              display: flex;
+              justify-content: space-between;
+              font-size: 8pt;
+              margin-bottom: 6px;
+            }
+            .badge.category {
+              background: #FFEDD5;
+              color: #C2410C;
+              padding: 2px 8px;
+              border-radius: 4px;
+              font-weight: 800;
+              text-transform: uppercase;
+            }
+            .meta {
+              color: #64748B;
+              font-weight: 600;
+            }
+            .article-title {
+              margin: 4px 0 8px 0;
+              font-size: 11pt;
+              color: #0F172A;
+              font-weight: 800;
+              line-height: 1.4;
+            }
+            .article-summary {
+              margin: 0 0 8px 0;
+              font-size: 9pt;
+              color: #334155;
+              line-height: 1.5;
+            }
+            .history-box {
+              background: #FEF3C7;
+              border: 1px solid #FDE68A;
+              padding: 8px 10px;
+              border-radius: 6px;
+              font-size: 8.5pt;
+              color: #92400E;
+              margin: 8px 0;
+            }
+            .history-box strong {
+              display: block;
+              margin-bottom: 2px;
+            }
+            .history-box p {
+              margin: 0;
+            }
+            .facts-section {
+              background: #F1F5F9;
+              padding: 8px 12px;
+              border-radius: 6px;
+              margin: 8px 0;
+              font-size: 8.5pt;
+            }
+            .facts-section strong {
+              color: #1E293B;
+            }
+            .facts-section ul {
+              margin: 4px 0 0 0;
+              padding-left: 18px;
+            }
+            .facts-section li {
+              margin-bottom: 3px;
+              color: #334155;
+            }
+            .mcq-preview {
+              border-top: 1px dashed #CBD5E1;
+              padding-top: 8px;
+              margin-top: 8px;
+              font-size: 8.5pt;
+            }
+            .mini-mcq {
+              margin-top: 6px;
+              padding: 6px 8px;
+              background: #FFFFFF;
+              border: 1px solid #E2E8F0;
+              border-radius: 6px;
+            }
+            .mini-mcq p {
+              margin: 0 0 4px 0;
+              color: #0F172A;
+            }
+            .mcq-opts {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 10px;
+              font-size: 8pt;
+              color: #475569;
+              margin-bottom: 4px;
+            }
+            .correct-opt {
+              font-weight: bold;
+              color: #15803D;
+            }
+            .ans-exp {
+              font-size: 7.5pt;
+              color: #166534;
+              background: #DCFCE7;
+              padding: 4px 6px;
+              border-radius: 4px;
+              margin: 2px 0 0 0 !important;
+            }
+            .footer {
+              margin-top: 20px;
+              border-top: 1px solid #E2E8F0;
+              padding-top: 8px;
+              display: flex;
+              justify-content: space-between;
+              font-size: 8pt;
+              color: #94A3B8;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header-banner">
+            <div class="title-area">
+              <h1>CG GURU — AI PREP PLATFORM</h1>
+              <h2>${capsuleTitle}</h2>
+              <div class="badge-row">
+                <span>📅 संकलन दिनांक: ${new Date().toLocaleDateString('hi-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <span>•</span>
+                <span>📚 कुल लेख: ${currentList.length}</span>
+                <span>•</span>
+                <span>🎯 लक्ष्य: CGPSC SSE, Vyapam & State Exams</span>
+              </div>
+            </div>
+            <div class="org-badge">
+              <div>CG GURU</div>
+              <div class="org-sub">Study Smart with AI</div>
+            </div>
+          </div>
+
+          <div class="digest-box">
+            <strong>💡 AI कैप्सूल रिवीजन सारांश:</strong>
+            ${
+              activeCapsuleFilter === 'daily' ? 'दैनिक समसामयिकी त्वरित रिवीजन: छत्तीसगढ़ एवं राष्ट्रीय स्तर के प्रमुख घटनाक्रम, सरकारी योजनाएं, नवीनतम नियुक्तियां एवं मुख्य परीक्षा हेतु उपयोगी तथ्यों का संकलन।' :
+              activeCapsuleFilter === 'weekly' ? 'साप्ताहिक समसामयिकी संकलन: पिछले 7 दिनों के अति-महत्वपूर्ण नीतिगत निर्णय, आर्थिक समीक्षा, राज्य स्तरीय योजनाएं तथा प्रतियोगी परीक्षाओं हेतु महत्वपूर्ण प्रश्नोत्तरी।' :
+              activeCapsuleFilter === 'monthly' ? 'मासिक समसामयिकी महा-डाइजेस्ट: पूरे माह के छत्तीसगढ़ बजट, संवैधानिक संशोधन, पुरस्कार, खेल, कृषि एवं आर्थिक सूचकांकों का संपूर्ण विस्तृत सार संग्रह।' :
+              'वार्षिक संदर्भ पुस्तिका: विगत वर्ष के सभी ऐतिहासिक परिदृश्य, आयोग द्वारा पूछे जाने वाले संभावित प्रश्न, राज्य के मुख्य घटनाक्रम एवं परीक्षा उपयोगी तथ्य।'
+            }
+          </div>
+
+          ${articlesHtml}
+
+          <div class="footer">
+            <span>CG GURU Exam Prep Platform • https://cg-guru.web.app</span>
+            <span>रिवीजन सामग्री • सर्वाधिकार सुरक्षित</span>
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        try {
+          document.body.removeChild(iframe);
+        } catch (_) {}
+      }, 2000);
+    }, 400);
   };
 
 
@@ -757,41 +1202,55 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
           >
             <div className="p-4 bg-bg-s2 border border-border rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
               <div className="flex flex-col gap-0.5">
-                <h4 className="text-xs font-black text-text uppercase">Current Affairs Revision System</h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-black text-text uppercase">Current Affairs Revision System</h4>
+                  <button
+                    onClick={() => fetchCapsules(true)}
+                    className="p-1 rounded text-text-muted hover:text-saffron hover:bg-bg-s3 transition-colors cursor-pointer"
+                    title="Refresh Capsules Data"
+                  >
+                    <RotateCcw className={`w-3.5 h-3.5 ${loadingCapsules ? 'animate-spin text-saffron' : ''}`} />
+                  </button>
+                </div>
                 <p className="text-[10px] text-text-muted leading-relaxed">
                   Daily, Weekly, Monthly, and Yearly Capsules automatically compiled from scraped resources.
                 </p>
               </div>
 
-              {/* Capsule length filter */}
+              {/* Capsule length filter with real counts */}
               <div className="flex bg-bg-s3 border border-border p-1 rounded-lg shrink-0 overflow-x-auto no-scrollbar">
                 {[
-                  { id: 'daily', label: 'Daily Capsule' },
-                  { id: 'weekly', label: 'Weekly Capsule' },
-                  { id: 'monthly', label: 'Monthly Capsule' },
-                  { id: 'yearly', label: 'Yearly Book' }
+                  { id: 'daily', label: 'Daily Capsule', count: effectiveCapsules.daily.length },
+                  { id: 'weekly', label: 'Weekly Capsule', count: effectiveCapsules.weekly.length },
+                  { id: 'monthly', label: 'Monthly Capsule', count: effectiveCapsules.monthly.length },
+                  { id: 'yearly', label: 'Yearly Book', count: effectiveCapsules.yearly.length }
                 ].map(capFilter => (
                   <button
                     key={capFilter.id}
                     onClick={() => setActiveCapsuleFilter(capFilter.id as any)}
-                    className={`px-3 py-1 text-[10px] font-black uppercase rounded cursor-pointer whitespace-nowrap ${
+                    className={`px-3 py-1.5 text-[10px] font-black uppercase rounded cursor-pointer whitespace-nowrap flex items-center gap-1.5 transition-all ${
                       activeCapsuleFilter === capFilter.id
                         ? 'bg-saffron text-bg-s1 font-black shadow-sm'
                         : 'text-text-muted hover:text-text'
                     }`}
                   >
-                    {capFilter.label}
+                    <span>{capFilter.label}</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono leading-none ${
+                      activeCapsuleFilter === capFilter.id ? 'bg-bg-s1/20 text-bg-s1 font-bold' : 'bg-bg-s2 text-text-muted'
+                    }`}>
+                      {capFilter.count}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {loadingCapsules ? (
+            {loadingCapsules && currentCapsuleArticles.length === 0 ? (
               <div className="flex flex-col gap-3 py-10 items-center justify-center text-text-muted">
                 <div className="w-8 h-8 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
                 <span className="text-[10px] font-bold uppercase tracking-wider">Generating revision packet...</span>
               </div>
-            ) : capsuleData && capsuleData[activeCapsuleFilter] ? (
+            ) : currentCapsuleArticles.length > 0 ? (
               <div className="flex flex-col gap-4">
                 {/* Digest card */}
                 <div className="p-5 bg-gradient-to-br from-bg-s2 to-bg-s3 border border-border rounded-xl flex flex-col gap-3 relative overflow-hidden">
@@ -800,58 +1259,37 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                     <span className="text-lg">📚</span>
                     <div className="flex flex-col">
                       <h4 className="text-xs font-black uppercase text-gold">AI revision summary digest</h4>
-                      <span className="text-[9px] text-text-muted font-bold">{capsuleData[activeCapsuleFilter].length} Articles included</span>
+                      <span className="text-[9px] text-text-muted font-bold">{currentCapsuleArticles.length} Articles included</span>
                     </div>
                   </div>
                   <p className="text-sm text-text leading-relaxed tracking-wide pt-1">
-                    {activeCapsuleFilter === 'daily' && 'Here is your daily revision digest. Focus on State Government Schemes launched today, local appointments in CG Secretariat, and the new wildlife census reports.'}
-                    {activeCapsuleFilter === 'weekly' && 'Weekly Digest: Key developments include discussions on GST collections, state boundary disputes, central scheme extensions, and sports awards received by Chhattisgarh players.'}
+                    {activeCapsuleFilter === 'daily' && 'दैनिक त्वरित रिवीजन: छत्तीसगढ़ एवं राष्ट्रीय समसामयिकी के मुख्य बिंदु, नई सरकारी योजनाएं, सचिवालयीन नियुक्तियां और नवीनतम परीक्षा उपयोगी तथ्यों का संकलन।'}
+                    {activeCapsuleFilter === 'weekly' && 'साप्ताहिक रिवीजन डाइजेस्ट: विगत 7 दिनों के प्रमुख नीतिगत निर्णय, आर्थिक समीक्षा, राज्य बजट आवंटन और परीक्षा में संभावित प्रश्नोत्तर।'}
                     {activeCapsuleFilter === 'monthly' && 'Monthly Digest: Main focus is on budget sessions, financial allocations across core areas, environment policies, and agriculture yield patterns in Chhattisgarh plains.'}
-                    {activeCapsuleFilter === 'yearly' && 'Yearly Digest: Comprehensive notes summarizing key appointments, reports, budget allocations, bills passed, and sports achievements for full year SSE preparations.'}
+                    {activeCapsuleFilter === 'yearly' && 'वार्षिक संदर्भ पुस्तिका: पूरे वर्ष की प्रमुख नियुक्तियां, पुरस्कार, खेलकूद, राष्ट्रीय सूचकांक और CGPSC SSE व व्यापम हेतु अति-महत्वपूर्ण तथ्य।'}
                   </p>
 
                   <div className="flex gap-3 border-t border-border/40 pt-3 mt-1 flex-wrap">
                     <button
-                      onClick={() => {
-                        if (!currentUser) {
-                          if (onOpenAuth) onOpenAuth();
-                          else alert('Please log in or sign up to take revision quizzes.');
-                          return;
-                        }
-                        // Triggers fake MCQ test from capsule
-                        if (capsuleData[activeCapsuleFilter].length > 0) {
-                          setSelectedArticle(capsuleData[activeCapsuleFilter][0]);
-                          fetchArticleIntelligence(capsuleData[activeCapsuleFilter][0]);
-                          setTimeout(() => setModalTab('quiz'), 600);
-                        } else {
-                          alert('No articles available in this capsule.');
-                        }
-                      }}
-                      className="px-4 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow flex items-center gap-1.5"
+                      onClick={handleStartCapsuleQuiz}
+                      className="px-4 py-2.5 bg-saffron hover:bg-orange-500 text-bg-s1 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors shadow flex items-center gap-1.5"
                     >
                       <Trophy className="w-3.5 h-3.5" />
                       <span>Take Revision Quiz</span>
                     </button>
                     <button
-                      onClick={() => {
-                        if (!currentUser) {
-                          if (onOpenAuth) onOpenAuth();
-                          else alert('Please log in or sign up to generate study notes PDF.');
-                          return;
-                        }
-                        alert('Revision Capsule generated! Summary note saved to local coach files.');
-                      }}
-                      className="px-4 py-2 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1.5 text-text"
+                      onClick={handleGenerateStudyPdf}
+                      className="px-4 py-2.5 bg-bg-s1 hover:bg-bg-s1/90 border border-border text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors flex items-center gap-1.5 text-text"
                     >
-                      <FileText className="w-3.5 h-3.5 text-saffron" />
-                      <span>Generate Study PDF</span>
+                      <Printer className="w-3.5 h-3.5 text-saffron" />
+                      <span>Generate Study PDF / Print</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Capsule list */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {capsuleData[activeCapsuleFilter].map((art, idx) => (
+                  {currentCapsuleArticles.map((art, idx) => (
                     <button
                       key={idx}
                       onClick={() => {
@@ -868,7 +1306,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                         
                         <span className="text-[9px] text-text-muted font-bold flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
-                          <span>{art.date || 'Today'}</span>
+                          <span>{art.date || (art as any).pubDate || 'Recent'}</span>
                         </span>
                       </div>
 
@@ -1409,6 +1847,255 @@ export const NewsTab: React.FC<NewsTabProps> = ({ currentUser, onAskAi, initialA
                 </div>
               ) : null}
 
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 6. Dedicated Capsule Revision Quiz Modal */}
+      <AnimatePresence>
+        {isCapsuleQuizOpen && capsuleQuestions.length > 0 && (
+          <div className="fixed inset-0 bg-[#0B0E14]/85 backdrop-blur-md z-[999] flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="w-full max-w-xl bg-bg-s2 border border-border rounded-xl shadow-2xl p-5 flex flex-col gap-4 max-h-[92vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center border-b border-border pb-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-saffron animate-bounce" />
+                  <span className="text-[10px] font-black uppercase text-saffron bg-saffron-dim/30 px-2.5 py-0.5 rounded border border-saffron-border/30">
+                    {activeCapsuleFilter.toUpperCase()} Revision Quiz • {capsuleQuestions.length} Questions
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCapsuleQuizLang(prev => prev === 'hi' ? 'en' : 'hi')}
+                    className="px-2 py-1 bg-bg-s3 border border-border rounded text-[9px] font-bold text-text-muted hover:text-text flex items-center gap-1 cursor-pointer"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-saffron" />
+                    <span>{capsuleQuizLang === 'hi' ? 'हिन्दी' : 'English'}</span>
+                  </button>
+                  <button
+                    onClick={() => setIsCapsuleQuizOpen(false)}
+                    className="p-1 rounded text-text-muted hover:text-text hover:bg-bg-s3 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {!capsuleQuizSubmitted ? (
+                /* Test in progress */
+                <div className="flex flex-col gap-4">
+                  {/* Progress info */}
+                  <div className="flex justify-between items-center text-[10px] text-text-muted font-bold uppercase tracking-wider">
+                    <span>Question {currentCapsuleQIdx + 1} of {capsuleQuestions.length}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-black uppercase text-saffron bg-saffron-dim/20 px-2 py-0.5 rounded">
+                        {capsuleQuestions[currentCapsuleQIdx].category}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                        capsuleQuestions[currentCapsuleQIdx].difficulty === 'hard' ? 'bg-redL/15 text-redL' :
+                        capsuleQuestions[currentCapsuleQIdx].difficulty === 'medium' ? 'bg-orange-500/15 text-orange-400' : 'bg-greenL/15 text-greenL'
+                      }`}>
+                        {capsuleQuestions[currentCapsuleQIdx].difficulty || 'medium'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-bg-s3 h-1.5 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-saffron h-full transition-all duration-300"
+                      style={{ width: `${((currentCapsuleQIdx + 1) / capsuleQuestions.length) * 100}%` }}
+                    />
+                  </div>
+
+                  {/* Question Box */}
+                  <div className="p-4 bg-bg-s3 border border-border rounded-xl flex flex-col gap-1.5">
+                    <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider">
+                      स्रोत: {capsuleQuestions[currentCapsuleQIdx].articleTitle}
+                    </span>
+                    <h3 className="text-sm font-black text-text leading-relaxed tracking-wide">
+                      {capsuleQuizLang === 'hi'
+                        ? (capsuleQuestions[currentCapsuleQIdx].question_hi || capsuleQuestions[currentCapsuleQIdx].question)
+                        : (capsuleQuestions[currentCapsuleQIdx].question || capsuleQuestions[currentCapsuleQIdx].question_hi)}
+                    </h3>
+                  </div>
+
+                  {/* Options */}
+                  <div className="flex flex-col gap-2.5">
+                    {((capsuleQuizLang === 'hi' && capsuleQuestions[currentCapsuleQIdx].options_hi?.length)
+                      ? capsuleQuestions[currentCapsuleQIdx].options_hi
+                      : capsuleQuestions[currentCapsuleQIdx].options
+                    ).map((opt, oIdx) => {
+                      const isSelected = capsuleAnswers[currentCapsuleQIdx] === oIdx;
+                      return (
+                        <button
+                          key={oIdx}
+                          onClick={() => handleSelectCapsuleOption(oIdx)}
+                          className={`p-3.5 rounded-lg border text-left text-sm font-bold transition-all cursor-pointer flex items-center justify-between ${
+                            isSelected 
+                              ? 'bg-saffron-dim/30 border-saffron text-saffron'
+                              : 'bg-bg-s3 border-border hover:bg-bg-s3/80 text-text-muted hover:text-text'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="text-xs font-mono font-bold text-text-muted">({String.fromCharCode(65 + oIdx)})</span>
+                            <span>{opt}</span>
+                          </span>
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                            isSelected ? 'border-saffron bg-saffron text-bg-s1 font-black text-[9px]' : 'border-border'
+                          }`}>
+                            {isSelected && '✓'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Question navigation footer */}
+                  <div className="flex justify-between items-center pt-2 border-t border-border/60">
+                    <button
+                      disabled={currentCapsuleQIdx === 0}
+                      onClick={() => setCurrentCapsuleQIdx(prev => prev - 1)}
+                      className="px-4 py-2 bg-bg-s3 hover:bg-bg-s1 border border-border text-xs font-black uppercase rounded-lg disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Prev</span>
+                    </button>
+
+                    <div className="flex items-center gap-1 overflow-x-auto max-w-[200px] no-scrollbar py-1">
+                      {capsuleQuestions.map((_, dotIdx) => (
+                        <button
+                          key={dotIdx}
+                          onClick={() => setCurrentCapsuleQIdx(dotIdx)}
+                          className={`w-6 h-6 rounded text-[9px] font-mono font-bold flex items-center justify-center cursor-pointer transition-colors ${
+                            currentCapsuleQIdx === dotIdx
+                              ? 'bg-saffron text-bg-s1 font-black'
+                              : capsuleAnswers[dotIdx] !== undefined
+                                ? 'bg-greenL/20 text-greenL border border-greenL/40'
+                                : 'bg-bg-s3 text-text-muted border border-border'
+                          }`}
+                        >
+                          {dotIdx + 1}
+                        </button>
+                      ))}
+                    </div>
+
+                    {currentCapsuleQIdx < capsuleQuestions.length - 1 ? (
+                      <button
+                        onClick={() => setCurrentCapsuleQIdx(prev => prev + 1)}
+                        className="px-4 py-2 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>Next</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleSubmitCapsuleQuiz}
+                        className="px-5 py-2 bg-greenL hover:bg-green-600 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer shadow-lg animate-pulse"
+                      >
+                        Submit Test
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Scorecard & Review */
+                <div className="flex flex-col gap-4">
+                  <div className="text-center flex flex-col items-center justify-center p-6 bg-gradient-to-br from-bg-s3 to-bg-s2 border border-border rounded-xl">
+                    <Award className="w-14 h-14 text-saffron fill-saffron/10 mb-2 animate-bounce" />
+                    <h4 className="text-xs font-black text-text uppercase">Capsule Revision Complete!</h4>
+                    <span className="text-3xl font-black text-saffron mt-2">
+                      {capsuleScore?.correct} / {capsuleScore?.total}
+                    </span>
+                    <span className="text-xs font-bold text-greenL mt-0.5">
+                      {Math.round(((capsuleScore?.correct || 0) / (capsuleScore?.total || 1)) * 100)}% Accuracy
+                    </span>
+                    <p className="text-[10px] text-text-muted mt-2 max-w-xs leading-relaxed">
+                      Revision interaction saved! Your mastery score and readiness index have been updated.
+                    </p>
+                  </div>
+
+                  {/* Review Questions list */}
+                  <div className="flex flex-col gap-3 max-h-[45vh] overflow-y-auto pr-1">
+                    <h5 className="text-[10px] font-black text-text-muted uppercase tracking-widest sticky top-0 bg-bg-s2 py-1 z-10">
+                      Answer Review & Explanations ({capsuleQuestions.length})
+                    </h5>
+
+                    {capsuleQuestions.map((q, idx) => {
+                      const chosen = capsuleAnswers[idx];
+                      const isCorrect = chosen === q.correctIndex;
+                      const chosenText = chosen !== undefined
+                        ? ((capsuleQuizLang === 'hi' && q.options_hi) ? q.options_hi[chosen] : q.options[chosen])
+                        : (capsuleQuizLang === 'hi' ? 'छोड़ दिया' : 'Skipped');
+                      const correctText = (capsuleQuizLang === 'hi' && q.options_hi)
+                        ? q.options_hi[q.correctIndex]
+                        : q.options[q.correctIndex];
+
+                      return (
+                        <div key={idx} className="p-4 bg-bg-s3 border border-border rounded-xl flex flex-col gap-2 text-sm">
+                          <div className="flex justify-between items-center text-[10px] text-text-muted">
+                            <span className="font-bold text-saffron uppercase">Q{idx + 1} • {q.category}</span>
+                            <span className={isCorrect ? 'text-greenL font-black' : 'text-redL font-black'}>
+                              {isCorrect ? '✓ सही' : '✕ गलत'}
+                            </span>
+                          </div>
+
+                          <h4 className="font-bold text-text text-xs leading-relaxed">
+                            {capsuleQuizLang === 'hi' ? (q.question_hi || q.question) : (q.question || q.question_hi)}
+                          </h4>
+
+                          <div className="flex flex-col gap-1 text-[11px] font-bold mt-1">
+                            <div className={isCorrect ? 'text-greenL' : 'text-redL'}>
+                              <span>आपका उत्तर: </span>
+                              <span>{chosenText}</span>
+                            </div>
+                            {!isCorrect && (
+                              <div className="text-greenL">
+                                <span>सही उत्तर: </span>
+                                <span>{correctText}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="text-[11px] text-text-muted leading-relaxed border-t border-border/40 pt-2 mt-1">
+                            <strong className="text-text">व्याख्या: </strong>
+                            <span>{capsuleQuizLang === 'hi' ? (q.explanation_hi || q.explanation) : (q.explanation || q.explanation_hi)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 border-t border-border pt-3">
+                    <button
+                      onClick={() => {
+                        setCapsuleAnswers({});
+                        setCapsuleQuizSubmitted(false);
+                        setCapsuleScore(null);
+                        setCurrentCapsuleQIdx(0);
+                      }}
+                      className="flex-1 py-3 bg-bg-s3 hover:bg-bg-s1 border border-border text-xs font-black uppercase text-text rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <RotateCcw className="w-4 h-4 text-saffron" />
+                      <span>Retake Test</span>
+                    </button>
+                    <button
+                      onClick={() => setIsCapsuleQuizOpen(false)}
+                      className="flex-1 py-3 bg-saffron hover:bg-orange-500 text-bg-s1 text-xs font-black uppercase rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <span>Done</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         )}

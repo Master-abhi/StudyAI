@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, User, Key, ShieldAlert, ShieldCheck, Mail, Phone, AtSign, Smartphone, Laptop, AlertTriangle, X } from 'lucide-react';
 import { getCurrentDeviceInfo } from '../utils/deviceSession';
+import { getApiUrl } from '../utils/api';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,21 +10,6 @@ interface AuthModalProps {
   onSuccess: (user: any) => void;
   onGuest: () => void;
 }
-
-const getApiUrl = (path: string): string => {
-  const hostname = window.location.hostname;
-  const isLocal = hostname === 'localhost' || 
-                  hostname === '127.0.0.1' || 
-                  hostname === '[::1]' ||
-                  hostname.startsWith('192.168.');
-  if (isLocal && window.location.port !== '3000') {
-    return `http://localhost:3000${path}`;
-  }
-  if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-    return `https://study-ai-olive.vercel.app${path}`;
-  }
-  return path;
-};
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,

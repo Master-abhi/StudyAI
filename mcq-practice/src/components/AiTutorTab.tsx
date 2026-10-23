@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { canAskAiQuestion, getRemainingAiQuestions, incrementDailyAiQuestions } from '../utils/userTierLimits';
+import { getApiUrl } from '../utils/api';
 
 interface ChatMessage {
   id: string;
@@ -22,6 +23,7 @@ interface AiTutorTabProps {
   currentUser?: any;
   onOpenAuth?: () => void;
 }
+
 
 export const AiTutorTab: React.FC<AiTutorTabProps> = ({ 
   activeExam, 
@@ -53,36 +55,167 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
     scrollToBottom();
   }, [messages]);
 
-  // Load chat history from LocalStorage
+  // Real-time chat sync across all logged-in devices & LocalStorage cache
   useEffect(() => {
-    const key = `cg_chat_history_${activeExam?.id || 'default'}`;
+    const examId = activeExam?.id || 'default';
+    const key = `cg_chat_history_${examId}`;
+
+    // Step 1: Immediate local storage load for 0-latency display
     const stored = localStorage.getItem(key);
     if (stored) {
       try {
         setMessages(JSON.parse(stored));
       } catch (e) {
-        console.error('Failed to parse chat history', e);
+        console.error('Failed to parse local chat history', e);
       }
     } else {
       setMessages([]);
     }
-  }, [activeExam]);
 
-  // Save chat history to LocalStorage
-  const saveChatHistory = (msgs: ChatMessage[]) => {
-    const key = `cg_chat_history_${activeExam?.id || 'default'}`;
-    localStorage.setItem(key, JSON.stringify(msgs));
-  };
+    if (!currentUser?.uid) return;
 
-  const handleClearHistory = () => {
-    if (window.confirm('Clear all chat conversation history?')) {
-      setMessages([]);
-      const key = `cg_chat_history_${activeExam?.id || 'default'}`;
-      localStorage.removeItem(key);
+    let isCancelled = false;
+    let unsubscribe: (() => void) | null = null;
+
+    const fetchServerHistory = async () => {
+      if (isCancelled || !currentUser) return;
+      try {
+        const token = await currentUser.getIdToken();
+        const res = await fetch(getApiUrl(`/api/chat/history?examId=${encodeURIComponent(examId)}`), {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.messages) && !isCancelled && !abortControllerRef.current) {
+            setMessages(data.messages);
+            try {
+              localStorage.setItem(key, JSON.stringify(data.messages));
+            } catch (_) {}
+          }
+        }
+      } catch (e) {
+        console.warn('[Fetch Server Chat History Error]:', e);
+      }
+    };
+
+    // Step 2: Real-time listener across all devices via Firestore Client SDK
+    const firebase = (window as any).firebase;
+    if (firebase && firebase.apps && firebase.apps.length > 0) {
+      try {
+        const db = firebase.firestore();
+        const chatDocRef = db.collection('users').doc(currentUser.uid).collection('chats').doc(examId);
+        unsubscribe = chatDocRef.onSnapshot(
+          (docSnap: any) => {
+            if (isCancelled) return;
+            // Never overwrite while locally generating AI response
+            if (abortControllerRef.current) return;
+
+            if (docSnap && docSnap.exists) {
+              const data = docSnap.data();
+              if (Array.isArray(data.messages)) {
+                setMessages(data.messages);
+                try {
+                  localStorage.setItem(key, JSON.stringify(data.messages));
+                } catch (_) {}
+              }
+            } else {
+              fetchServerHistory();
+            }
+          },
+          (err: any) => {
+            console.warn('[Realtime Chat Listener error, using server fallback]:', err);
+            fetchServerHistory();
+          }
+        );
+      } catch (e) {
+        console.warn('[Firestore Chat Listener Setup Error]:', e);
+        fetchServerHistory();
+      }
+    } else {
+      fetchServerHistory();
+    }
+
+    return () => {
+      isCancelled = true;
+      if (unsubscribe) unsubscribe();
+    };
+  }, [activeExam?.id, currentUser?.uid]);
+
+  // Save chat history to LocalStorage & Firestore (Cloud sync across all logged-in devices)
+  const saveChatHistory = async (msgs: ChatMessage[]) => {
+    const examId = activeExam?.id || 'default';
+    const key = `cg_chat_history_${examId}`;
+    try {
+      localStorage.setItem(key, JSON.stringify(msgs));
+    } catch (_) {}
+
+    if (currentUser?.uid) {
+      const clean = msgs.slice(-100).map(m => ({
+        id: String(m.id),
+        role: m.role === 'user' ? 'user' : 'ai',
+        content: String(m.content || ''),
+        timestamp: String(m.timestamp || '')
+      }));
+
+      // 1. Direct Firestore write for instant real-time sync across devices
+      const firebase = (window as any).firebase;
+      if (firebase && firebase.apps && firebase.apps.length > 0) {
+        try {
+          const db = firebase.firestore();
+          await db.collection('users').doc(currentUser.uid).collection('chats').doc(examId).set({
+            examId,
+            messages: clean,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch (fsErr) {
+          console.warn('[Firestore direct chat save failed, fallback to API]:', fsErr);
+        }
+      }
+
+      // 2. Server API fallback
+      try {
+        const token = await currentUser.getIdToken();
+        await fetch(getApiUrl('/api/chat/history'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            examId,
+            messages: clean
+          })
+        });
+      } catch (_) {}
     }
   };
 
+  const handleClearHistory = async () => {
+    if (window.confirm('Clear all chat conversation history?')) {
+      const examId = activeExam?.id || 'default';
+      setMessages([]);
+      const key = `cg_chat_history_${examId}`;
+      try {
+        localStorage.removeItem(key);
+      } catch (_) {}
 
+      if (currentUser?.uid) {
+        const firebase = (window as any).firebase;
+        if (firebase && firebase.apps && firebase.apps.length > 0) {
+          try {
+            await firebase.firestore().collection('users').doc(currentUser.uid).collection('chats').doc(examId).delete();
+          } catch (_) {}
+        }
+        try {
+          const token = await currentUser.getIdToken();
+          await fetch(getApiUrl(`/api/chat/history?examId=${encodeURIComponent(examId)}`), {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        } catch (_) {}
+      }
+    }
+  };
 
   const handleSend = async (textToSend: string) => {
     const query = textToSend.trim();
@@ -134,20 +267,6 @@ export const AiTutorTab: React.FC<AiTutorTabProps> = ({
 
     setMessages(prev => [...prev, initialAiMsg]);
 
-    const getApiUrl = (path: string) => {
-      const hostname = window.location.hostname;
-      const isLocal = hostname === 'localhost' || 
-                      hostname === '127.0.0.1' || 
-                      hostname === '[::1]' ||
-                      hostname.startsWith('192.168.');
-      if (isLocal && window.location.port !== '3000') {
-        return `http://localhost:3000${path}`;
-      }
-      if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-        return `https://study-ai-olive.vercel.app${path}`;
-      }
-      return path;
-    };
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 

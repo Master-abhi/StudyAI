@@ -7,6 +7,7 @@ import {
   CheckCircle2, Share2, BookOpen, Calendar, HelpCircle,
   FileText, Sparkles, ChevronRight, ArrowRight, ChevronDown
 } from 'lucide-react';
+import { getApiUrl } from '../utils/api';
 
 interface JobArticle {
   title: string;
@@ -79,21 +80,6 @@ export const JobsTab: React.FC<JobsTabProps> = ({ onNavigateToTab }) => {
   const [selectedJob, setSelectedJob] = useState<JobArticle | null>(null);
   const [activeModalTab, setActiveModalTab] = useState<'overview' | 'eligibility' | 'syllabus' | 'selection'>('overview');
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
-
-  const getApiUrl = (path: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${path}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${path}`;
-    }
-    return path;
-  };
 
   const isStructuredJob = (job: JobArticle) => {
     const title = (job.title || '').toLowerCase() + ' ' + (job.title_hi || '').toLowerCase();

@@ -4,6 +4,7 @@ import {
   X, CheckCircle, Sparkles, Crown, Lock,
   AlertCircle, Loader2
 } from 'lucide-react';
+import { getApiUrl } from '../utils/api';
 
 export type UpgradeReason = 'mock_limit' | 'mcq_limit' | 'ai_limit' | 'syllabus_locked' | 'general';
 
@@ -77,21 +78,6 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
     title: 'अपग्रेड करें Pro Pass',
     desc: 'सभी फीचर्स का असीमित लाभ उठाएं।',
     icon: Crown
-  };
-
-  const getApiUrl = (p: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${p}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${p}`;
-    }
-    return p;
   };
 
   const loadRazorpayScript = () => {

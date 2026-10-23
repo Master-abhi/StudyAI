@@ -2948,7 +2948,8 @@
                   "(a-b)²",
                   "a²-b²"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_alg_2",
@@ -2958,7 +2959,8 @@
                   "One Variable",
                   "Two Variables"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_alg_3",
@@ -2968,7 +2970,8 @@
                   "Roots",
                   "Factorization"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_alg_4",
@@ -2978,7 +2981,8 @@
                   "Log Rules",
                   "Applications"
                 ],
-                "importanceScore": 7
+                "importanceScore": 7,
+                "hasStudyNotes": true
               }
             ]
           },
@@ -2994,7 +2998,8 @@
                   "Types of Angles",
                   "Parallel Lines"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_geo_2",
@@ -3004,7 +3009,8 @@
                   "Congruence",
                   "Similarity"
                 ],
-                "importanceScore": 10
+                "importanceScore": 10,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_geo_3",
@@ -3015,7 +3021,8 @@
                   "Square",
                   "Rhombus"
                 ],
-                "importanceScore": 8
+                "importanceScore": 8,
+                "hasStudyNotes": true
               },
               {
                 "id": "math_geo_4",
@@ -3026,7 +3033,8 @@
                   "Tangent",
                   "Arc"
                 ],
-                "importanceScore": 9
+                "importanceScore": 9,
+                "hasStudyNotes": true
               }
             ]
           },
