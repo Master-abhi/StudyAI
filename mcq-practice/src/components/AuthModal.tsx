@@ -168,6 +168,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
 
       // Success: Proceed
+      localStorage.setItem('cg_active_device_id', deviceInfo.deviceId);
       setDeviceConflict(null);
       setPendingUser(null);
       onSuccess(user);

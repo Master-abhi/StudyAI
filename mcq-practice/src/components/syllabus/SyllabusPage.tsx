@@ -54,7 +54,7 @@ interface SyllabusPageProps {
   onToggleActivity: (topicId: string, activityType: 'notesRead' | 'mcqCompleted' | 'videoWatched') => void;
   onMarkRevised: (topicId: string) => void;
   streak: number;
-  onStartPractice: (subjectName: string, testId?: string, mode?: 'quiz' | 'mock' | 'pyq') => void | Promise<void>;
+  onStartPractice: (subjectName: string, testId?: string, mode?: 'quiz' | 'mock' | 'pyq', durationMinutes?: number) => void | Promise<void>;
   onGoBack: () => void;
   tabVisibility?: Record<string, boolean>;
   targetExamDate: string;
@@ -787,8 +787,8 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
         topicId={selectedTopicForTests?.topic.id}
         examId={activeExamId}
         subtopics={selectedTopicForTests?.topic.subtopics}
-        onStartTest={async (testId, mode, subject) => {
-          await onStartPractice(subject, testId, mode);
+        onStartTest={async (testId, mode, subject, durationMinutes) => {
+          await onStartPractice(subject, testId, mode, durationMinutes);
         }}
         onMarkComplete={() => {
           if (selectedTopicForTests) {

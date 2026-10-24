@@ -25,13 +25,21 @@ interface TopicTestsModalProps {
   topicId?: string;
   examId?: string;
   subtopics?: string[];
-  onStartTest: (testId: string, mode: 'quiz' | 'mock' | 'pyq', subject: string) => void | Promise<void>;
+  onStartTest: (testId: string, mode: 'quiz' | 'mock' | 'pyq', subject: string, durationMinutes?: number) => void | Promise<void>;
   onMarkComplete?: () => void;
   isCompleted?: boolean;
 }
 
 // Module-level in-memory cache for instant 0ms topic tests switching
 const clientTopicTestsCache = new Map<string, TopicTestItem[]>();
+
+export const getEffectiveTopicTestDuration = (t: TopicTestItem): number => {
+  const qCount = t.totalQuestions || 10;
+  if (!t.durationMinutes || (qCount <= 25 && t.durationMinutes >= 60)) {
+    return qCount <= 10 ? 15 : qCount <= 25 ? Math.round(qCount * 1.5) : 15;
+  }
+  return t.durationMinutes;
+};
 
 export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
   isOpen,
@@ -227,7 +235,7 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
                         <span>•</span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          <span>{test.durationMinutes} Mins</span>
+                          <span>{getEffectiveTopicTestDuration(test)} Mins</span>
                         </span>
                         {test.totalMarks && (
                           <>
@@ -243,7 +251,8 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
                       onClick={async () => {
                         try {
                           setStartingTestId(test.id);
-                          await onStartTest(test.id, test.mode, test.subject);
+                          const dur = getEffectiveTopicTestDuration(test);
+                          await onStartTest(test.id, test.mode, test.subject, dur);
                           onClose();
                         } catch (err) {
                           console.error('[Start Test Error]:', err);

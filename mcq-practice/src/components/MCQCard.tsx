@@ -266,15 +266,17 @@ export const MCQCard: React.FC<MCQCardProps> = ({
                 if (!stmt) return null;
                 const label = question.statementLabels?.[i] || `${i + 1}`;
                 return (
-                  <div key={i} className="flex items-center gap-3 bg-bg-s3/30 border border-border/50 rounded-xl px-4 py-3 shadow-sm hover:border-saffron-border/30 transition-all">
-                    <span className="w-7 h-7 bg-bg-s3 border border-border/80 rounded-lg flex items-center justify-center text-[10px] font-black text-saffron select-none shrink-0">
+                  <div key={i} className="flex items-start gap-3 bg-bg-s3/30 border border-border/50 rounded-xl px-4 py-3 shadow-sm hover:border-saffron-border/30 transition-all">
+                    <span className="min-w-7 h-7 px-2.5 bg-bg-s3 border border-border/80 rounded-lg flex items-center justify-center text-xs font-black text-saffron select-none shrink-0 whitespace-nowrap shadow-sm mt-0.5">
                       {label}
                     </span>
-                    <MarkdownRenderer 
-                      content={stmt}
-                      className="text-xs sm:text-sm font-semibold text-text font-hindi"
-                      pClassName="text-xs sm:text-sm font-semibold text-text leading-relaxed font-hindi inline-block"
-                    />
+                    <div className="flex-1 min-w-0">
+                      <MarkdownRenderer 
+                        content={stmt}
+                        className="text-xs sm:text-sm font-semibold text-text font-hindi"
+                        pClassName="text-xs sm:text-sm font-semibold text-text leading-relaxed font-hindi"
+                      />
+                    </div>
                   </div>
                 );
               })}

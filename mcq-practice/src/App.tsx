@@ -1098,7 +1098,8 @@ export default function App() {
       'examprep_typingResults',
       'userName',
       'cg_is_guest',
-      'cg_active_tab'
+      'cg_active_tab',
+      'cg_active_device_id'
     ];
     keysToRemove.forEach(key => localStorage.removeItem(key));
 
@@ -1389,12 +1390,17 @@ export default function App() {
                 }
 
                 // Real-time device session check (1 Mobile + 1 Computer/Tablet policy)
-                if (data.activeDevices && typeof data.activeDevices === 'object') {
+                const isUserAdmin = isAdmin || data.role === 'admin' || data.isAdmin === true || data.email === 'a8hi.sao@gmail.com';
+                if (!isUserAdmin && data.activeDevices && typeof data.activeDevices === 'object') {
                   const currentDev = getCurrentDeviceInfo();
                   const slot = data.activeDevices[currentDev.deviceType];
-                  if (slot && slot.deviceId && slot.deviceId !== currentDev.deviceId) {
-                    // This device has been superseded by a newer login on another device of same type
+                  const registeredDeviceId = localStorage.getItem('cg_active_device_id');
+
+                  // Only kick out if this device was already registered as the active device
+                  // and has now been superseded by a newer login on another device
+                  if (registeredDeviceId === currentDev.deviceId && slot && slot.deviceId && slot.deviceId !== currentDev.deviceId) {
                     console.warn(`[Device Session] Logged out because account logged into another ${currentDev.deviceType === 'mobile' ? 'Mobile' : 'Computer/Tablet'}.`);
+                    localStorage.removeItem('cg_active_device_id');
                     alert(`आपका अकाउंट किसी अन्य ${currentDev.deviceType === 'mobile' ? 'Mobile' : 'Computer/Tablet'} (${slot.deviceName || 'Device'}) पर लॉग इन हुआ है। इस डिवाइस से लॉग आउट किया जा रहा है।`);
                     handleLogout();
                     return;
@@ -2336,11 +2342,17 @@ export default function App() {
     // Calculate dynamic test duration in seconds
     let durationSeconds = 30 * 60; // default 30 mins
     if (durationMinutes && durationMinutes > 0) {
-      durationSeconds = durationMinutes * 60;
+      if (testQuestions.length <= 25 && durationMinutes >= 60) {
+        durationSeconds = (testQuestions.length <= 10 ? 15 : Math.round(testQuestions.length * 1.5)) * 60;
+      } else {
+        durationSeconds = durationMinutes * 60;
+      }
     } else if (testMode === 'quiz') {
-      durationSeconds = 5 * 60; // 5 mins default for quiz
+      durationSeconds = (testQuestions.length <= 10 ? 15 : Math.round(testQuestions.length * 1.5)) * 60;
     } else if (testMode === 'mock' || testMode === 'pyq') {
-      durationSeconds = 120 * 60; // 120 mins default for mock exam / PYQ
+      durationSeconds = testQuestions.length <= 25 
+        ? (testQuestions.length <= 10 ? 15 : Math.round(testQuestions.length * 1.5)) * 60 
+        : 120 * 60;
     }
     setTestDuration(durationSeconds);
 
@@ -2914,7 +2926,7 @@ export default function App() {
             onToggleActivity={onToggleActivity}
             onMarkRevised={onMarkRevised}
             streak={streak}
-            onStartPractice={async (subject, testId, mode) => {
+            onStartPractice={async (subject, testId, mode, preferredDuration) => {
               const testMode = mode || 'quiz';
               if (testId) {
                 // 1. Check internal app offline storage first
@@ -2965,7 +2977,7 @@ export default function App() {
                         data.questions,
                         data.mode || testMode,
                         data.title || data.subject || `${subject} Practice Test`,
-                        data.pattern?.durationMinutes || data.durationMinutes || (testMode === 'mock' ? 120 : 15),
+                        data.pattern?.durationMinutes || preferredDuration || data.durationMinutes || (data.questions.length <= 25 ? 15 : (testMode === 'mock' ? 120 : 15)),
                         testId
                       );
                       return;

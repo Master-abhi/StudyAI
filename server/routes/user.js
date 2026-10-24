@@ -272,6 +272,18 @@ router.post('/session/verify', async (req, res) => {
       return res.status(400).json({ error: 'deviceId is required' });
     }
     const cleanType = (deviceType === 'desktop' || deviceType === 'mobile') ? deviceType : 'desktop';
+
+    // Admin bypass: Admins can log in on multiple devices without restrictions
+    if (req.user && req.user.admin) {
+      return res.json({
+        allowed: true,
+        isCurrentActive: true,
+        conflict: false,
+        deviceType: cleanType,
+        isAdmin: true
+      });
+    }
+
     const userDocRef = db.collection('users').doc(req.user.uid);
     const userDoc = await userDocRef.get();
     const data = userDoc.exists ? userDoc.data() : {};
@@ -316,6 +328,21 @@ router.post('/session/register', async (req, res) => {
     const cleanType = (deviceType === 'mobile' || deviceType === 'desktop') ? deviceType : 'desktop';
     const cleanName = cleanString(deviceName, 100) || (cleanType === 'mobile' ? 'Mobile Device' : 'Computer/Tablet');
     const userDocRef = db.collection('users').doc(req.user.uid);
+
+    // Admin bypass: Admins have unlimited device sessions
+    if (req.user && req.user.admin) {
+      await userDocRef.set({
+        activeDevices: admin.firestore.FieldValue.delete(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      return res.json({
+        success: true,
+        deviceType: cleanType,
+        isAdmin: true
+      });
+    }
+
     const userDoc = await userDocRef.get();
     const data = userDoc.exists ? userDoc.data() : {};
     const activeDevices = { ...(data.activeDevices || {}) };

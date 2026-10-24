@@ -586,9 +586,14 @@ router.get('/topic-tests', async (req, res) => {
                       examName: ct.examName || '',
                       subject: ct.subject || 'General Knowledge',
                       mode: ct.mode || 'quiz',
-                      totalQuestions: ct.questions ? ct.questions.length : (ct.totalQuestions || 10),
-                      durationMinutes: ct.durationMinutes || (ct.mode === 'mock' ? 120 : 15),
-                      totalMarks: ct.totalMarks || (ct.questions ? ct.questions.length : 10),
+                      totalQuestions: ct.pattern?.totalQuestions || (ct.questions ? ct.questions.length : (ct.totalQuestions || 10)),
+                      durationMinutes: (() => {
+                        const qc = ct.pattern?.totalQuestions || (ct.questions ? ct.questions.length : (ct.totalQuestions || 10));
+                        const rd = ct.pattern?.durationMinutes || ct.durationMinutes;
+                        if (rd && !(qc <= 25 && rd >= 60)) return rd;
+                        return qc <= 10 ? 15 : qc <= 25 ? Math.round(qc * 1.5) : (ct.mode === 'mock' ? 120 : 15);
+                      })(),
+                      totalMarks: ct.pattern?.totalMarks || ct.totalMarks || (ct.questions ? ct.questions.length : 10),
                       createdAt: ct.createdAt || ''
                     });
                   }
@@ -608,10 +613,18 @@ router.get('/topic-tests', async (req, res) => {
         const snapshot = await db.collection('tests').select(
           'id', 'title', 'topic', 'topicId', 'topicIds', 'topicName', 'topicNameHi', 
           'subject', 'mode', 'examId', 'examIds', 'examName', 'totalQuestions', 
-          'durationMinutes', 'totalMarks', 'createdAt'
+          'durationMinutes', 'totalMarks', 'createdAt', 'pattern'
         ).get();
         snapshot.forEach(doc => {
           const d = doc.data() || {};
+          const pat = d.pattern || {};
+          const qCount = pat.totalQuestions || d.totalQuestions || (d.questions ? d.questions.length : 10);
+          const rawDur = pat.durationMinutes || d.durationMinutes;
+          const durMins = (rawDur && !(qCount <= 25 && rawDur >= 60))
+            ? rawDur
+            : (qCount <= 10 ? 15 : qCount <= 25 ? Math.round(qCount * 1.5) : (d.mode === 'mock' ? 120 : 15));
+          const marks = pat.totalMarks || d.totalMarks || (d.questions ? d.questions.length : 10);
+
           catalogMap.set(d.id || doc.id, {
             id: d.id || doc.id,
             title: d.title || '',
@@ -623,9 +636,9 @@ router.get('/topic-tests', async (req, res) => {
             examName: d.examName || '',
             subject: d.subject || 'General Knowledge',
             mode: d.mode || 'quiz',
-            totalQuestions: d.totalQuestions || 10,
-            durationMinutes: d.durationMinutes || (d.mode === 'mock' ? 120 : 15),
-            totalMarks: d.totalMarks || 10,
+            totalQuestions: qCount,
+            durationMinutes: durMins,
+            totalMarks: marks,
             createdAt: d.createdAt || ''
           });
         });
@@ -722,9 +735,9 @@ router.get('/topic-tests', async (req, res) => {
           title: t.title || `${t.subject || 'Practice'} ${t.mode === 'mock' ? 'Mock Test' : t.mode === 'pyq' ? 'PYQ Paper' : 'Quiz'}`,
           subject: t.subject || 'General Knowledge',
           mode: t.mode || 'quiz',
-          totalQuestions: t.questions ? t.questions.length : (t.totalQuestions || t.pattern?.totalQuestions || 10),
-          durationMinutes: t.durationMinutes || t.pattern?.durationMinutes || (t.mode === 'mock' ? 120 : 15),
-          totalMarks: t.totalMarks || t.pattern?.totalMarks || (t.questions ? t.questions.length : 10),
+          totalQuestions: t.totalQuestions || 10,
+          durationMinutes: t.durationMinutes || (t.totalQuestions <= 10 ? 15 : t.totalQuestions <= 25 ? Math.round(t.totalQuestions * 1.5) : (t.mode === 'mock' ? 120 : 15)),
+          totalMarks: t.totalMarks || t.totalQuestions || 10,
           createdAt: t.createdAt,
           matchScore
         });

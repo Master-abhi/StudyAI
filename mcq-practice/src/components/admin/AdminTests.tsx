@@ -268,8 +268,8 @@ export const QuestionBodyRenderer: React.FC<{ q: any; textClassName?: string }> 
             if (!stmt) return null;
             const label = normQ.statementLabels?.[i] || `${i + 1}`;
             return (
-              <div key={i} className="flex items-center gap-3 bg-bg-s2 border border-border/30 rounded-xl px-3.5 py-2.5 shadow-sm">
-                <span className="w-6 h-6 bg-bg-s3 border border-border/80 rounded flex items-center justify-center text-[10px] font-black text-saffron select-none shrink-0">
+              <div key={i} className="flex items-start gap-3 bg-bg-s2 border border-border/30 rounded-xl px-3.5 py-2.5 shadow-sm">
+                <span className="min-w-6 h-6 px-2 bg-bg-s3 border border-border/80 rounded flex items-center justify-center text-[10px] font-black text-saffron select-none shrink-0 whitespace-nowrap mt-0.5">
                   {label}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -3431,11 +3431,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                           if (!stmt) return null;
                           const label = q.statementLabels?.[i] || `${i + 1}`;
                           return (
-                            <div key={i} className="flex items-center gap-3 bg-bg-s2 border border-border/30 rounded-xl px-3 py-2.5 shadow-sm">
-                              <span className="w-6 h-6 bg-bg-s3 border border-border/60 rounded-lg flex items-center justify-center text-[10px] font-black text-saffron shrink-0 select-none">
+                            <div key={i} className="flex items-start gap-3 bg-bg-s2 border border-border/30 rounded-xl px-3 py-2.5 shadow-sm">
+                              <span className="min-w-6 h-6 px-2 bg-bg-s3 border border-border/60 rounded-lg flex items-center justify-center text-[10px] font-black text-saffron shrink-0 select-none whitespace-nowrap mt-0.5">
                                 {label}
                               </span>
-                              <span className="text-xs sm:text-sm text-text font-semibold whitespace-pre-wrap leading-relaxed">{stmt}</span>
+                              <span className="flex-1 min-w-0 text-xs sm:text-sm text-text font-semibold whitespace-pre-wrap leading-relaxed">{stmt}</span>
                             </div>
                           );
                         })}
@@ -3983,11 +3983,11 @@ export const AdminTests: React.FC<AdminTestsProps> = ({ currentUser, exams }) =>
                                 if (!stmt) return null;
                                 const label = q.statementLabels?.[sIdx] || `${sIdx + 1}`;
                                 return (
-                                  <div key={sIdx} className="flex items-center gap-2 bg-bg-s2 border border-border/40 rounded px-2.5 py-1.5">
-                                    <span className="w-5 h-5 bg-bg-s3 border border-border/60 rounded flex items-center justify-center text-[8.5px] font-black text-saffron shrink-0 select-none">
+                                  <div key={sIdx} className="flex items-start gap-2 bg-bg-s2 border border-border/40 rounded px-2.5 py-1.5">
+                                    <span className="min-w-5 h-5 px-1.5 bg-bg-s3 border border-border/60 rounded flex items-center justify-center text-[9px] font-black text-saffron shrink-0 select-none whitespace-nowrap mt-0.5">
                                       {label}
                                     </span>
-                                    <span className="text-xs text-text font-semibold whitespace-pre-wrap">{stmt}</span>
+                                    <span className="flex-1 min-w-0 text-xs text-text font-semibold whitespace-pre-wrap">{stmt}</span>
                                   </div>
                                 );
                               })}
