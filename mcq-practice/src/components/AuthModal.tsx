@@ -137,7 +137,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const checkDeviceAndComplete = async (user: any, forceReplace = false) => {
+  const checkDeviceAndComplete = async (user: any, _forceReplace = false) => {
     try {
       const deviceInfo = getCurrentDeviceInfo();
       // Ensure local active device id is recorded immediately
@@ -176,9 +176,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         return;
       }
 
-      let res: Response | null = null;
       try {
-        res = await fetch(getApiUrl('/api/user/session/register'), {
+        await fetch(getApiUrl('/api/user/session/register'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -188,37 +187,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             deviceId: deviceInfo.deviceId,
             deviceType: deviceInfo.deviceType,
             deviceName: deviceInfo.deviceName,
-            forceReplace
+            forceReplace: true
           })
         });
       } catch (networkErr: any) {
-        console.warn('[Device Registration Warning] Network/server unreachable, allowing session:', networkErr?.message);
-        // Fail-open on network issues so valid users are never locked or logged out
-        setDeviceConflict(null);
-        setPendingUser(null);
-        onSuccess(user);
-        onClose();
-        return;
+        console.warn('[Device Registration Warning] Best effort sync notice:', networkErr?.message);
       }
 
-      if (res && res.status === 409) {
-        const data = await res.json().catch(() => ({}));
-        setPendingUser(user);
-        setDeviceConflict({
-          deviceType: data.deviceType || deviceInfo.deviceType,
-          existingDevice: data.existingDevice
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (res && !res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        console.warn('[Device Registration Warning] Server returned non-ok:', errData?.error || res.status);
-        // Fail-open: Never sign out legitimate user due to backend session registration glitch
-      }
-
-      // Success / Fail-open Proceed
+      // Success Proceed
       setDeviceConflict(null);
       setPendingUser(null);
       onSuccess(user);

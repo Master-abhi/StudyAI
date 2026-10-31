@@ -377,19 +377,7 @@ router.post('/session/register', async (req, res) => {
     }
     const activeDevices = { ...(data.activeDevices || {}) };
 
-    const existingSlot = activeDevices[cleanType] || null;
-
-    // If slot occupied by another device and forceReplace not requested
-    if (existingSlot && existingSlot.deviceId !== deviceId && !forceReplace) {
-      return res.status(409).json({
-        error: `A ${cleanType === 'mobile' ? 'mobile' : 'computer/tablet'} is already logged in (${existingSlot.deviceName || cleanType}).`,
-        conflict: true,
-        deviceType: cleanType,
-        existingDevice: existingSlot
-      });
-    }
-
-    // Register/update device slot
+    // Register/update device slot (new login always takes active slot)
     activeDevices[cleanType] = {
       deviceId,
       deviceType: cleanType,

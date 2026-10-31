@@ -1428,41 +1428,10 @@ export default function App() {
                   localStorage.setItem('cg_theme', data.theme);
                 }
 
-                // Real-time device session check (1 Mobile + 1 Computer/Tablet policy)
-                // Admins and Staff members have UNLIMITED multi-device sessions and must NEVER be kicked out!
-                const isUserAdmin = 
-                  isAdmin || 
-                  isStaff || 
-                  currentUser?.email === 'a8hi.sao@gmail.com' ||
-                  currentUser?.email?.endsWith('@studyworld.app') ||
-                  data.role === 'admin' ||
-                  data.role === 'staff' ||
-                  data.isAdmin === true ||
-                  data.isStaff === true ||
-                  data.email === 'a8hi.sao@gmail.com' ||
-                  data.email?.endsWith('@studyworld.app');
-
-                if (!isUserAdmin && data.activeDevices && typeof data.activeDevices === 'object') {
+                if (data.activeDevices && typeof data.activeDevices === 'object') {
                   const currentDev = getCurrentDeviceInfo();
-                  const slot = data.activeDevices[currentDev.deviceType];
-
-                  if (slot && slot.deviceId === currentDev.deviceId) {
-                    // Confirmed: This device is now registered and active in Firestore
-                    localStorage.setItem('cg_synced_device_id', currentDev.deviceId);
-                    localStorage.setItem('cg_active_device_id', currentDev.deviceId);
-                  } else {
-                    const syncedDeviceId = localStorage.getItem('cg_synced_device_id');
-                    // Only kick out if THIS SPECIFIC DEVICE was previously confirmed active in Firestore
-                    // and has now been superseded by a newer login on another device
-                    if (syncedDeviceId === currentDev.deviceId && slot && slot.deviceId && slot.deviceId !== currentDev.deviceId) {
-                      console.warn(`[Device Session] Logged out because account logged into another ${currentDev.deviceType === 'mobile' ? 'Mobile' : 'Computer/Tablet'}.`);
-                      localStorage.removeItem('cg_active_device_id');
-                      localStorage.removeItem('cg_synced_device_id');
-                      alert(`आपका अकाउंट किसी अन्य ${currentDev.deviceType === 'mobile' ? 'Mobile' : 'Computer/Tablet'} (${slot.deviceName || 'Device'}) पर लॉग इन हुआ है। इस डिवाइस से लॉग आउट किया जा रहा है।`);
-                      handleLogout();
-                      return;
-                    }
-                  }
+                  localStorage.setItem('cg_active_device_id', currentDev.deviceId);
+                  localStorage.setItem('cg_synced_device_id', currentDev.deviceId);
                 }
               }
             }

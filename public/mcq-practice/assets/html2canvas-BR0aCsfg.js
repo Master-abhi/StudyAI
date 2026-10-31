@@ -1,1 +1,0 @@
-import{t as e}from"./AdminSyllabus-D5zltUN7.js";export default e();
