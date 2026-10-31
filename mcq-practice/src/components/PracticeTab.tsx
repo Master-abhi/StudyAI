@@ -27,6 +27,7 @@ interface PracticeTabProps {
   onToggleBookmark?: (question: Question) => void;
   testHistory?: any[];
   currentUser?: any;
+  isGuest?: boolean;
   onOpenAuth?: () => void;
   onSaveTypingResults?: (netWpm: number, grossWpm: number, accuracy: number, correctChars: number, incorrectChars: number, language: string, duration: number, topicId: string, topicTitle: string) => void;
   tabVisibility?: Record<string, boolean>;
@@ -44,6 +45,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   userPlan = 'free',
   onOpenUpgrade,
   currentUser,
+  isGuest,
   onOpenAuth
 }) => {
   const [activeMode, setActiveMode] = useState<'quiz' | 'mock' | 'pyq' | 'offline' | 'saved'>('quiz');
@@ -427,7 +429,7 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
   }, [activeExam?.id, activeMode]);
 
   const handleStartEducatorTest = async (testId: string, testMode: 'quiz' | 'mock' | 'pyq', subject: string) => {
-    if (!currentUser) {
+    if (!currentUser && !isGuest) {
       if (onOpenAuth) onOpenAuth();
       else alert('Please log in or sign up to attempt tests.');
       return;

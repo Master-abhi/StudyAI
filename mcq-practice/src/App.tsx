@@ -1036,6 +1036,44 @@ export default function App() {
     fetchTabVisibility();
     fetchExamVisibility();
     fetchAppUpdateConfig();
+
+    // Listen to real-time branding & app update configuration changes from Firestore
+    const firebase = (window as any).firebase;
+    if (firebase && firebase.firestore) {
+      try {
+        const unsubscribe = firebase.firestore().collection('config').doc('branding').onSnapshot(
+          (doc: any) => {
+            if (doc && doc.exists) {
+              const data = doc.data();
+              const remoteUrl = data?.appUpdateUrl || SUPABASE_APK_URL;
+              const remoteVer = (data?.appUpdateVersion || '').trim();
+              setAppUpdateUrl(remoteUrl);
+              setAppUpdateVersion(remoteVer);
+              localStorage.setItem('cg_app_update_url', remoteUrl);
+              localStorage.setItem('cg_app_update_version', remoteVer);
+
+              const flag = !!data?.appUpdateAvailable;
+              let isUpdateNeeded = false;
+              if (flag) {
+                if (remoteVer) {
+                  isUpdateNeeded = isNewerVersion(remoteVer, deviceAppVersion) || isNewerVersion(remoteVer, deviceAppBuild);
+                } else {
+                  isUpdateNeeded = true;
+                }
+              }
+              setAppUpdateAvailable(isUpdateNeeded);
+              localStorage.setItem('cg_app_update_available', String(isUpdateNeeded));
+            }
+          },
+          (err: any) => {
+            console.warn('[Branding Listener Notice]:', err?.message);
+          }
+        );
+        return () => {
+          if (typeof unsubscribe === 'function') unsubscribe();
+        };
+      } catch (_) {}
+    }
   }, [activeTab]);
 
   // Ensure active exam is valid and visible for regular users
@@ -1099,7 +1137,8 @@ export default function App() {
       'userName',
       'cg_is_guest',
       'cg_active_tab',
-      'cg_active_device_id'
+      'cg_active_device_id',
+      'cg_synced_device_id'
     ];
     keysToRemove.forEach(key => localStorage.removeItem(key));
 
@@ -1390,20 +1429,39 @@ export default function App() {
                 }
 
                 // Real-time device session check (1 Mobile + 1 Computer/Tablet policy)
-                const isUserAdmin = isAdmin || data.role === 'admin' || data.isAdmin === true || data.email === 'a8hi.sao@gmail.com';
+                // Admins and Staff members have UNLIMITED multi-device sessions and must NEVER be kicked out!
+                const isUserAdmin = 
+                  isAdmin || 
+                  isStaff || 
+                  currentUser?.email === 'a8hi.sao@gmail.com' ||
+                  currentUser?.email?.endsWith('@studyworld.app') ||
+                  data.role === 'admin' ||
+                  data.role === 'staff' ||
+                  data.isAdmin === true ||
+                  data.isStaff === true ||
+                  data.email === 'a8hi.sao@gmail.com' ||
+                  data.email?.endsWith('@studyworld.app');
+
                 if (!isUserAdmin && data.activeDevices && typeof data.activeDevices === 'object') {
                   const currentDev = getCurrentDeviceInfo();
                   const slot = data.activeDevices[currentDev.deviceType];
-                  const registeredDeviceId = localStorage.getItem('cg_active_device_id');
 
-                  // Only kick out if this device was already registered as the active device
-                  // and has now been superseded by a newer login on another device
-                  if (registeredDeviceId === currentDev.deviceId && slot && slot.deviceId && slot.deviceId !== currentDev.deviceId) {
-                    console.warn(`[Device Session] Logged out because account logged into another ${currentDev.deviceType === 'mobile' ? 'Mobile' : 'Computer/Tablet'}.`);
-                    localStorage.removeItem('cg_active_device_id');
-                    alert(`आपका अकाउंट किसी अन्य ${currentDev.deviceType === 'mobile' ? 'Mobile' : 'Computer/Tablet'} (${slot.deviceName || 'Device'}) पर लॉग इन हुआ है। इस डिवाइस से लॉग आउट किया जा रहा है।`);
-                    handleLogout();
-                    return;
+                  if (slot && slot.deviceId === currentDev.deviceId) {
+                    // Confirmed: This device is now registered and active in Firestore
+                    localStorage.setItem('cg_synced_device_id', currentDev.deviceId);
+                    localStorage.setItem('cg_active_device_id', currentDev.deviceId);
+                  } else {
+                    const syncedDeviceId = localStorage.getItem('cg_synced_device_id');
+                    // Only kick out if THIS SPECIFIC DEVICE was previously confirmed active in Firestore
+                    // and has now been superseded by a newer login on another device
+                    if (syncedDeviceId === currentDev.deviceId && slot && slot.deviceId && slot.deviceId !== currentDev.deviceId) {
+                      console.warn(`[Device Session] Logged out because account logged into another ${currentDev.deviceType === 'mobile' ? 'Mobile' : 'Computer/Tablet'}.`);
+                      localStorage.removeItem('cg_active_device_id');
+                      localStorage.removeItem('cg_synced_device_id');
+                      alert(`आपका अकाउंट किसी अन्य ${currentDev.deviceType === 'mobile' ? 'Mobile' : 'Computer/Tablet'} (${slot.deviceName || 'Device'}) पर लॉग इन हुआ है। इस डिवाइस से लॉग आउट किया जा रहा है।`);
+                      handleLogout();
+                      return;
+                    }
                   }
                 }
               }
@@ -1714,7 +1772,7 @@ export default function App() {
   };
 
   const handleStartRandomPractice = async (modeType: 'quiz' | 'mock') => {
-    if (!currentUser || isGuest) {
+    if (!currentUser && !isGuest) {
       setAuthModalOpen(true);
       return;
     }
@@ -2240,18 +2298,15 @@ export default function App() {
   };
 
   const handleToggleBookmark = (question: Question) => {
-    if (!currentUser || isGuest) {
-      setAuthModalOpen(true);
-      return;
-    }
-
     setBookmarks(prev => {
       const exists = prev.some(q => q.question === question.question || (question.id && q.id === question.id));
       const updated = exists 
         ? prev.filter(q => q.question !== question.question && (!question.id || q.id !== question.id))
         : [...prev, question];
       localStorage.setItem('examprep_bookmarks', JSON.stringify(updated));
-      syncUserDataDirectly({ bookmarks: updated });
+      if (currentUser) {
+        syncUserDataDirectly({ bookmarks: updated });
+      }
       return updated;
     });
   };
@@ -2272,7 +2327,7 @@ export default function App() {
     durationMinutes?: number,
     testId?: string
   ) => {
-    if (!currentUser || isGuest) {
+    if (!currentUser && !isGuest) {
       setAuthModalOpen(true);
       return;
     }
@@ -2735,10 +2790,6 @@ export default function App() {
             onSelectExam={handleSelectExam}
             onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
             onStartPracticeMode={async (modeType) => {
-              if (!currentUser || isGuest) {
-                setAuthModalOpen(true);
-                return;
-              }
               if (modeType === 'quiz' || modeType === 'mock') {
                 await handleStartRandomPractice(modeType);
               } else {
@@ -2768,6 +2819,7 @@ export default function App() {
             tabVisibility={tabVisibility}
             userPlan={userPlan}
             currentUser={currentUser}
+            isGuest={isGuest}
             onOpenAuth={() => setAuthModalOpen(true)}
             onOpenUpgrade={(reason) => {
               setUpgradeModalReason(reason as any || 'general');
@@ -3029,6 +3081,8 @@ export default function App() {
               if (plan) setUpgradeModalInitialPlan(plan);
               setUpgradeModalOpen(true);
             }}
+            appUpdateUrl={appUpdateUrl}
+            appUpdateVersion={appUpdateVersion}
           />
         );
       default:
@@ -3193,15 +3247,15 @@ export default function App() {
             {/* Desktop Browser Download APK button (Only visible in browser, hidden inside native APK app) */}
             {!isCapacitorNative() && (
               <a
-                href={SUPABASE_APK_URL}
+                href={appUpdateUrl || SUPABASE_APK_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                download={getApkFilename()}
+                download={getApkFilename(appUpdateVersion)}
                 className="w-full py-2 px-3 rounded-lg bg-saffron/15 hover:bg-saffron/25 border border-saffron/40 text-saffron font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
-                title="Download CG Guru Android App"
+                title={`Download CG Guru Android App${appUpdateVersion ? ` (${appUpdateVersion})` : ''}`}
               >
                 <Smartphone className="w-3.5 h-3.5 shrink-0 text-saffron" />
-                <span>Download App</span>
+                <span>Download App{appUpdateVersion ? ` ${appUpdateVersion.startsWith('v') ? appUpdateVersion : `v${appUpdateVersion}`}` : ''}</span>
                 <Download className="w-3.5 h-3.5 shrink-0 text-saffron" />
               </a>
             )}
@@ -3253,15 +3307,15 @@ export default function App() {
               ) : (
                 /* If running in Web Browser (Mobile Browser): Always show App Download button */
                 <a 
-                  href={SUPABASE_APK_URL}
+                  href={appUpdateUrl || SUPABASE_APK_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  download={getApkFilename()}
+                  download={getApkFilename(appUpdateVersion)}
                   className="px-2.5 py-1.5 rounded-lg bg-saffron/15 border border-saffron/40 hover:bg-saffron/25 text-saffron font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-xs cursor-pointer transition-all active:scale-[0.96]"
-                  title="Download Official Android App"
+                  title={`Download Official Android App${appUpdateVersion ? ` (${appUpdateVersion})` : ''}`}
                 >
                   <Smartphone className="w-3.5 h-3.5 shrink-0 text-saffron" />
-                  <span className="font-extrabold text-[10px]">App</span>
+                  <span className="font-extrabold text-[10px]">App{appUpdateVersion ? ` ${appUpdateVersion.startsWith('v') ? appUpdateVersion : `v${appUpdateVersion}`}` : ''}</span>
                   <Download className="w-3 h-3 shrink-0 text-saffron" />
                 </a>
               )}

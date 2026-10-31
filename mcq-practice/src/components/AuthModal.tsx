@@ -98,11 +98,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    const trimmedEmail = loginEmail.trim();
-    if (!trimmedEmail || !loginPass) {
+    const trimmedInput = loginEmail.trim();
+    if (!trimmedInput || !loginPass) {
       setError('Please fill in all fields');
       return;
     }
+
+    // Automatically resolve admin/staff ID (e.g. "abhi", "admin01") to full email if no @ present
+    const resolvedEmail = trimmedInput.includes('@') 
+      ? trimmedInput 
+      : `${trimmedInput.toLowerCase()}@studyworld.app`;
 
     setLoading(true);
     setError('');
@@ -110,7 +115,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setPendingUser(null);
 
     try {
-      const cred = await firebase.auth().signInWithEmailAndPassword(trimmedEmail, loginPass);
+      const cred = await firebase.auth().signInWithEmailAndPassword(resolvedEmail, loginPass);
       
       // Reload user to sync status if needed
       await cred.user.reload();
@@ -124,7 +129,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } catch (err: any) {
       console.error('[Login Error]:', err);
       let msg = err.message || 'Login failed. Check your email and password.';
-      if (err.code === 'auth/user-not-found') msg = 'Account not found. Please sign up.';
+      if (err.code === 'auth/user-not-found') msg = 'Account not found. Please sign up or verify your Admin ID.';
       else if (err.code === 'auth/wrong-password') msg = 'Incorrect password.';
       else if (err.code === 'auth/invalid-email') msg = 'Invalid email address format.';
       setError(msg);
@@ -135,51 +140,97 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const checkDeviceAndComplete = async (user: any, forceReplace = false) => {
     try {
       const deviceInfo = getCurrentDeviceInfo();
-      const token = await user.getIdToken(true);
+      // Ensure local active device id is recorded immediately
+      localStorage.setItem('cg_active_device_id', deviceInfo.deviceId);
 
-      const res = await fetch(getApiUrl('/api/user/session/register'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          deviceId: deviceInfo.deviceId,
-          deviceType: deviceInfo.deviceType,
-          deviceName: deviceInfo.deviceName,
-          forceReplace
-        })
-      });
+      const tokenResult = await user.getIdTokenResult(true);
+      const isUserAdminOrStaff = !!(
+        tokenResult?.claims?.admin ||
+        tokenResult?.claims?.staff ||
+        user?.email === 'a8hi.sao@gmail.com' ||
+        user?.email?.endsWith('@studyworld.app')
+      );
 
-      if (res.status === 409) {
-        const data = await res.json();
+      // If user is Admin or Staff: Never block login, trigger conflict or limit devices!
+      if (isUserAdminOrStaff) {
+        setDeviceConflict(null);
+        setPendingUser(null);
+        // Best effort notify server in background
+        try {
+          await fetch(getApiUrl('/api/user/session/register'), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${tokenResult.token}`
+            },
+            body: JSON.stringify({
+              deviceId: deviceInfo.deviceId,
+              deviceType: deviceInfo.deviceType,
+              deviceName: deviceInfo.deviceName,
+              forceReplace: true
+            })
+          });
+        } catch (_) {}
+        onSuccess(user);
+        onClose();
+        return;
+      }
+
+      let res: Response | null = null;
+      try {
+        res = await fetch(getApiUrl('/api/user/session/register'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${tokenResult.token}`
+          },
+          body: JSON.stringify({
+            deviceId: deviceInfo.deviceId,
+            deviceType: deviceInfo.deviceType,
+            deviceName: deviceInfo.deviceName,
+            forceReplace
+          })
+        });
+      } catch (networkErr: any) {
+        console.warn('[Device Registration Warning] Network/server unreachable, allowing session:', networkErr?.message);
+        // Fail-open on network issues so valid users are never locked or logged out
+        setDeviceConflict(null);
+        setPendingUser(null);
+        onSuccess(user);
+        onClose();
+        return;
+      }
+
+      if (res && res.status === 409) {
+        const data = await res.json().catch(() => ({}));
         setPendingUser(user);
         setDeviceConflict({
-          deviceType: data.deviceType,
+          deviceType: data.deviceType || deviceInfo.deviceType,
           existingDevice: data.existingDevice
         });
         setLoading(false);
         return;
       }
 
-      if (!res.ok) {
+      if (res && !res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to register device session');
+        console.warn('[Device Registration Warning] Server returned non-ok:', errData?.error || res.status);
+        // Fail-open: Never sign out legitimate user due to backend session registration glitch
       }
 
-      // Success: Proceed
-      localStorage.setItem('cg_active_device_id', deviceInfo.deviceId);
+      // Success / Fail-open Proceed
       setDeviceConflict(null);
       setPendingUser(null);
       onSuccess(user);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Device verification failed.');
-      // If error, sign out user from client to prevent unauthorized session
-      const firebase = (window as any).firebase;
-      if (firebase) {
-        try { await firebase.auth().signOut(); } catch (_) {}
-      }
+      console.warn('[Device Verification Notice]:', err?.message);
+      // Fallback: Never kick out an authenticated user due to a client-side verification error
+      localStorage.setItem('cg_active_device_id', getCurrentDeviceInfo().deviceId);
+      setDeviceConflict(null);
+      setPendingUser(null);
+      onSuccess(user);
+      onClose();
     } finally {
       setLoading(false);
     }
@@ -605,11 +656,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 Enter your registered email address below. We will send you a link to reset your password.
               </p>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Email Address</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">Email Address or Admin ID</label>
                 <div className="relative">
                   <input
-                    type="email"
-                    placeholder="Enter your email address"
+                    type="text"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    placeholder="Enter email or Admin ID (e.g. admin01)"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     required
@@ -643,11 +697,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             /* Log In Form */
             <form onSubmit={handleLogin} className="flex flex-col gap-3.5">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase text-text-muted">Email Address</label>
+                <label className="text-[10px] font-black uppercase text-text-muted">Email Address or Admin ID</label>
                 <div className="relative">
                   <input
-                    type="email"
-                    placeholder="Enter your email address"
+                    type="text"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    placeholder="Enter email or Admin ID (e.g. admin01)"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     required

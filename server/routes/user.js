@@ -273,8 +273,16 @@ router.post('/session/verify', async (req, res) => {
     }
     const cleanType = (deviceType === 'desktop' || deviceType === 'mobile') ? deviceType : 'desktop';
 
-    // Admin bypass: Admins can log in on multiple devices without restrictions
-    if (req.user && req.user.admin) {
+    // Admin & Staff bypass: Admins and staff can log in on multiple devices without restrictions
+    const isAdminOrStaff = !!(
+      req.user && (
+        req.user.admin ||
+        req.user.staff ||
+        req.user.email === 'a8hi.sao@gmail.com' ||
+        req.user.email?.endsWith('@studyworld.app')
+      )
+    );
+    if (isAdminOrStaff) {
       return res.json({
         allowed: true,
         isCurrentActive: true,
@@ -329,8 +337,16 @@ router.post('/session/register', async (req, res) => {
     const cleanName = cleanString(deviceName, 100) || (cleanType === 'mobile' ? 'Mobile Device' : 'Computer/Tablet');
     const userDocRef = db.collection('users').doc(req.user.uid);
 
-    // Admin bypass: Admins have unlimited device sessions
-    if (req.user && req.user.admin) {
+    // Admin & Staff bypass: Admins and staff have unlimited device sessions
+    const isAdminOrStaff = !!(
+      req.user && (
+        req.user.admin ||
+        req.user.staff ||
+        req.user.email === 'a8hi.sao@gmail.com' ||
+        req.user.email?.endsWith('@studyworld.app')
+      )
+    );
+    if (isAdminOrStaff) {
       await userDocRef.set({
         activeDevices: admin.firestore.FieldValue.delete(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -345,6 +361,20 @@ router.post('/session/register', async (req, res) => {
 
     const userDoc = await userDocRef.get();
     const data = userDoc.exists ? userDoc.data() : {};
+
+    // Firestore role fallback check for Admin & Staff
+    if (data.role === 'admin' || data.role === 'staff' || data.isAdmin === true || data.isStaff === true) {
+      await userDocRef.set({
+        activeDevices: admin.firestore.FieldValue.delete(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      return res.json({
+        success: true,
+        deviceType: cleanType,
+        isAdmin: true
+      });
+    }
     const activeDevices = { ...(data.activeDevices || {}) };
 
     const existingSlot = activeDevices[cleanType] || null;

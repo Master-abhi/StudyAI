@@ -4,6 +4,7 @@ import {
   X, CheckCircle2, Play, Clock, 
   Sparkles, Loader2, BookOpen, Award
 } from 'lucide-react';
+import { getApiUrl } from '../../utils/api';
 
 export interface TopicTestItem {
   id: string;
@@ -58,21 +59,6 @@ export const TopicTestsModal: React.FC<TopicTestsModalProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [startingTestId, setStartingTestId] = useState<string | null>(null);
-
-  const getApiUrl = (p: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${p}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${p}`;
-    }
-    return p;
-  };
 
   const fetchTopicTests = async () => {
     const cacheKey = `${examId || 'all'}_${topicId || topicName || 'unknown'}`;

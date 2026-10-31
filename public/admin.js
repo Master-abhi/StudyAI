@@ -86,9 +86,13 @@ async function getAuthHeader() {
 adminAuthPersistenceReady.then(() => {
   firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
-      // Check admin custom claim
+      // Check admin custom claim or known admin credentials
       const tokenResult = await user.getIdTokenResult();
-      if (tokenResult.claims.admin === true) {
+      const isAllowedAdmin = tokenResult.claims.admin === true || 
+                            tokenResult.claims.staff === true || 
+                            user.email === 'a8hi.sao@gmail.com' || 
+                            user.email === 'abhi@studyworld.app';
+      if (isAllowedAdmin) {
         document.getElementById('login-container').classList.add('hidden');
         document.getElementById('dashboard-container').classList.remove('hidden');
         loadDashboard();
@@ -113,8 +117,8 @@ async function loginAdmin() {
     return;
   }
 
-  // Admins also use the userID@studyworld.app email scheme internally
-  const email = `${id.toLowerCase()}@studyworld.app`;
+  // Admins also use the userID@studyworld.app email scheme internally, or full email
+  const email = id.includes('@') ? id.toLowerCase() : `${id.toLowerCase()}@studyworld.app`;
 
   try {
     await adminAuthPersistenceReady;

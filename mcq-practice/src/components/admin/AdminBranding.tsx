@@ -338,13 +338,13 @@ export const AdminBranding: React.FC<AdminBrandingProps> = ({ currentUser, confi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-[#cbd5e0] mb-1.5">
-                Update APK Download URL (Optional)
+                APK Download / Update URL (Landing Page & Mobile App)
               </label>
               <input 
                 type="url"
                 value={appUpdateUrl}
                 onChange={(e) => setAppUpdateUrl(e.target.value)}
-                placeholder="Leave blank to use default APK URL..."
+                placeholder="https://... (Leave blank to use default APK URL)"
                 className="w-full px-3 py-2 text-xs bg-[#1a202c] border border-white/10 rounded-lg text-white placeholder-[#718096] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
               />
             </div>
@@ -362,7 +362,7 @@ export const AdminBranding: React.FC<AdminBrandingProps> = ({ currentUser, confi
             </div>
           </div>
           <p className="text-[11px] text-[#718096] italic">
-            * <strong>Version-based Update:</strong> Jab yeh toggle ON hoga aur yahan naya version (jaise <code>v1.1.0</code>) set hoga, tab keval unhi users ko "Update" button dikhega jinka app version isse purana hai. User app update karke open karega toh update button automatically hide ho jayega!
+            * <strong>Landing Page & App Sync:</strong> Yahan dala gaya APK link seedhe Landing Page ke Download Buttons par aur Mobile App ke Update Button par instantly update ho jayega. Jab toggle ON hoga aur version set hoga, tab purane version wale users ko app me "Update App" notification button bhi dikhega.
           </p>
         </div>
 

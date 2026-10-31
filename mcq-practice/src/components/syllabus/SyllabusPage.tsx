@@ -208,12 +208,6 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   };
 
   const handleOpenPracticeMcqs = (topic: Topic, subjectName: string) => {
-    const fbUser = currentUser || (window as any).firebase?.auth()?.currentUser;
-    if (!fbUser) {
-      if (onOpenAuth) onOpenAuth();
-      else alert('Please log in or sign up to access topic tests.');
-      return;
-    }
     setSelectedTopicForTests({ topic, subjectName });
   };
 

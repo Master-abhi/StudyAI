@@ -46,9 +46,13 @@ const defaultAllowedOrigins = [
   'https://www.cgguru.in',
   'https://cg-guru.web.app',
   'https://cg-guru.firebaseapp.com',
+  'http://localhost',
+  'capacitor://localhost',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-  'http://localhost:5000'
+  'http://localhost:5000',
+  'http://localhost:5173',
+  'https://study-ai-olive.vercel.app'
 ];
 
 const finalAllowedOrigins = [...new Set([...defaultAllowedOrigins, ...allowedOrigins])];
