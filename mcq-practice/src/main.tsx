@@ -5,8 +5,18 @@ import './index.css'
 import App from './App.tsx'
 import { Capacitor } from '@capacitor/core'
 
-// Redirect API calls to the production server when running as a native app
-if (Capacitor.isNativePlatform()) {
+// Expose Capacitor globally on window so any module or legacy script can access it
+if (typeof window !== 'undefined') {
+  (window as any).Capacitor = Capacitor;
+}
+
+// Redirect API calls to the production server when running as a native app or in native webview
+const isNative = typeof window !== 'undefined' && (
+  Capacitor.isNativePlatform() ||
+  (window.location.hostname === 'localhost' && (!window.location.port || window.location.port === '' || window.location.port === '80' || window.location.port === '443'))
+);
+
+if (isNative) {
   const originalFetch = window.fetch;
   window.fetch = function (input: RequestInfo | URL, init?: RequestInit) {
     let url = typeof input === 'string' ? input : (input instanceof URL ? input.toString() : input.url);
@@ -29,8 +39,8 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Register Service Worker in production environment for offline PWA support
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+// Register Service Worker in production web environment for offline PWA support (skip in native APK)
+if (!isNative && 'serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
@@ -41,4 +51,3 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
       });
   });
 }
-

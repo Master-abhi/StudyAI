@@ -5,6 +5,7 @@ import {
   Sparkles, ExternalLink, RefreshCw, Loader2, Video,
   Pin, RotateCcw
 } from 'lucide-react';
+import { getApiUrl } from '../../utils/api';
 
 export interface LectureVideo {
   videoId: string;
@@ -75,22 +76,6 @@ export const LecturesModal: React.FC<LecturesModalProps> = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const lastSavedSecRef = useRef<number>(0);
   const topicKey = (topicName || topicNameHi || 'default').trim().toLowerCase();
-
-  // Helper to get full API URL
-  const getApiUrl = (p: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${p}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${p}`;
-    }
-    return p;
-  };
 
   // Helper: Read topic-specific watch history from localStorage
   const getStoredTopicProgress = (topic: string): Record<string, VideoProgress> => {

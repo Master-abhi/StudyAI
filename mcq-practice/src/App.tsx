@@ -30,7 +30,8 @@ import {
   BellRing,
   Gift,
   Zap,
-  Lock
+  Lock,
+  ReceiptIndianRupee
 } from 'lucide-react';
 
 import type { Question } from './types';
@@ -70,6 +71,7 @@ const SyllabusPage = lazy(() => import('./components/syllabus/SyllabusPage').the
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const StaffDashboard = lazy(() => import('./components/staff/StaffDashboard').then(m => ({ default: m.StaffDashboard })));
 const LandingTab = lazy(() => import('./components/LandingTab').then(m => ({ default: m.LandingTab })));
+const ReceiptScannerTab = lazy(() => import('./components/ReceiptScannerTab').then(m => ({ default: m.ReceiptScannerTab })));
 
 // Lazy Loaded Modals
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
@@ -215,13 +217,13 @@ const MOCK_QUESTIONS: Question[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'typing' | 'chat' | 'news' | 'jobs' | 'profile' | 'syllabus' | 'admin' | 'staff' | 'landing'>(() => {
+  const [activeTab, setActiveTab] = useState<'home' | 'practice' | 'typing' | 'chat' | 'news' | 'jobs' | 'profile' | 'syllabus' | 'admin' | 'staff' | 'landing' | 'receipt'>(() => {
     if (typeof window !== 'undefined') {
       const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
       const params = new URLSearchParams(window.location.search);
       const urlTab = params.get('tab') || params.get('page');
-      if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff', 'landing'].includes(urlTab)) {
-        return urlTab as any;
+      if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff', 'landing', 'receipt', 'parchi', 'scanner'].includes(urlTab)) {
+        return (urlTab === 'parchi' || urlTab === 'scanner') ? 'receipt' : (urlTab as any);
       }
       if (params.get('testId')) {
         return 'practice';
@@ -235,7 +237,7 @@ export default function App() {
       // If running inside Android/iOS native app, go straight to home or saved tab!
       if (isNative) {
         const savedTab = localStorage.getItem('cg_active_tab');
-        if (savedTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus'].includes(savedTab)) {
+        if (savedTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'receipt'].includes(savedTab)) {
           return savedTab as any;
         }
         return 'home';
@@ -252,6 +254,7 @@ export default function App() {
     chat: true,
     news: true,
     jobs: true,
+    receipt: true,
     syllabus: true,
     profile: true,
     practice_pyq: true,
@@ -364,8 +367,8 @@ export default function App() {
       const urlTestId = params.get('testId');
       const urlNotes = params.get('notes') || params.get('topicId');
 
-      if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff', 'landing'].includes(urlTab)) {
-        setActiveTab(urlTab as any);
+      if (urlTab && ['home', 'practice', 'typing', 'chat', 'news', 'jobs', 'profile', 'syllabus', 'admin', 'staff', 'landing', 'receipt', 'parchi', 'scanner'].includes(urlTab)) {
+        setActiveTab((urlTab === 'parchi' || urlTab === 'scanner') ? 'receipt' : (urlTab as any));
       } else if (!urlTab && window.location.pathname.startsWith('/admin')) {
         setActiveTab('admin');
       } else if (!urlTab && urlTestId) {
@@ -3031,6 +3034,13 @@ export default function App() {
             }}
           />
         );
+      case 'receipt':
+        return (
+          <ReceiptScannerTab
+            currentUser={currentUser}
+            onNavigateToTab={(tabId) => setActiveTab(tabId as any)}
+          />
+        );
       case 'landing':
         return (
           <LandingTab
@@ -3086,6 +3096,7 @@ export default function App() {
               { id: 'home', label: 'Home', icon: Home },
               { id: 'practice', label: 'Tests', icon: Trophy },
               { id: 'typing', label: 'Typing Test', icon: Keyboard },
+              { id: 'receipt', label: 'Receipt Scanner', icon: ReceiptIndianRupee, badge: '< 100KB' },
               { id: 'chat', label: 'AI Guru', icon: MessageSquare },
               { id: 'news', label: 'News', icon: Newspaper },
               { id: 'jobs', label: 'Jobs', icon: Briefcase },
@@ -3096,6 +3107,7 @@ export default function App() {
               const Icon = item.icon;
               const isSelected = activeTab === item.id;
               const isOffer = (item as any).isOffer;
+              const badge = (item as any).badge;
               return (
                 <button
                   key={item.id}
@@ -3115,6 +3127,11 @@ export default function App() {
                   {isOffer && !isSelected && (
                     <span className="text-[9px] bg-redL text-white font-black px-1.5 py-0.5 rounded-full animate-pulse">
                       60% OFF
+                    </span>
+                  )}
+                  {badge && !isSelected && (
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.5 rounded-md border border-emerald-500/30">
+                      {badge}
                     </span>
                   )}
                 </button>

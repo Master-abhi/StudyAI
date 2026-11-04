@@ -1,0 +1,1 @@
+import{t as e}from"./AdminSyllabus-ClUIENVq.js";export default e();

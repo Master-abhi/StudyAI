@@ -47,11 +47,15 @@ const defaultAllowedOrigins = [
   'https://cg-guru.web.app',
   'https://cg-guru.firebaseapp.com',
   'http://localhost',
+  'https://localhost',
   'capacitor://localhost',
+  'ionic://localhost',
   'http://localhost:3000',
+  'https://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost:5000',
   'http://localhost:5173',
+  'http://localhost:5174',
   'https://study-ai-olive.vercel.app'
 ];
 
@@ -59,16 +63,29 @@ const finalAllowedOrigins = [...new Set([...defaultAllowedOrigins, ...allowedOri
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, server-to-server)
-    if (!origin || finalAllowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps, curl, native webviews, server-to-server)
+    if (
+      !origin ||
+      origin === 'null' ||
+      origin.includes('localhost') ||
+      origin.startsWith('capacitor://') ||
+      origin.startsWith('ionic://') ||
+      origin.startsWith('http://192.168.') ||
+      origin.startsWith('http://10.0.2.2') ||
+      finalAllowedOrigins.includes(origin) ||
+      /\.vercel\.app$/.test(origin) ||
+      /\.web\.app$/.test(origin) ||
+      /\.firebaseapp\.com$/.test(origin) ||
+      /\.cgguru\.in$/.test(origin)
+    ) {
       callback(null, true);
     } else {
       console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   credentials: true
 };
 

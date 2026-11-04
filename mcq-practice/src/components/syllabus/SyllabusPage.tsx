@@ -18,6 +18,7 @@ import { LecturesModal } from './LecturesModal';
 import { TopicTestsModal } from './TopicTestsModal';
 import { TopicNotesReaderModal } from './TopicNotesReaderModal';
 import { IndiaMap3DModal } from './IndiaMap3DModal';
+import { getApiUrl } from '../../utils/api';
 import type { Exam, Subject, Chapter, Topic } from './syllabusData';
 
 // Helper to look up topic across exams
@@ -190,21 +191,6 @@ export const SyllabusPage: React.FC<SyllabusPageProps> = ({
   const handleOpen3DMap = (stateId?: string) => {
     setInitialMapStateId(stateId);
     setIs3DMapOpen(true);
-  };
-
-  const getApiUrl = (p: string) => {
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                    hostname === '127.0.0.1' || 
-                    hostname === '[::1]' ||
-                    hostname.startsWith('192.168.');
-    if (isLocal && window.location.port !== '3000') {
-      return `http://localhost:3000${p}`;
-    }
-    if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
-      return `https://study-ai-olive.vercel.app${p}`;
-    }
-    return p;
   };
 
   const handleOpenPracticeMcqs = (topic: Topic, subjectName: string) => {
