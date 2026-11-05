@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Flame, BookOpen, ChevronRight, Trophy, Zap, Landmark, Home, Shield, Bot, Sparkles,
-  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard, Loader2, ReceiptIndianRupee
+  CheckCircle2, Circle, Award, Newspaper, RefreshCw, Target, Keyboard, Loader2
 } from 'lucide-react';
 import { ProgressRing } from './syllabus/ProgressRing';
 
@@ -415,17 +415,6 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 <span className="text-[9px] text-text-muted font-bold leading-tight truncate">
                   {startingQuickMode === 'mock' ? 'Loading questions...' : 'Full Pattern'}
                 </span>
-              </button>
-            )}
-
-                        {tabVisibility?.receipt !== false && (
-              <button
-                onClick={() => onNavigateToTab('receipt')}
-                className="p-3 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/15 rounded-xl text-left flex flex-col gap-1 transition-all hover:scale-[1.01] cursor-pointer"
-              >
-                <ReceiptIndianRupee className="w-5 h-5 text-emerald-400" />
-                <span className="text-xs font-bold text-text mt-0.5">पर्ची स्कैनर</span>
-                <span className="text-[9px] text-emerald-400/90 font-bold leading-tight truncate">&lt; 100 KB Auto-Crop</span>
               </button>
             )}
 {tabVisibility?.typing !== false && (

@@ -3,8 +3,7 @@ import {
   Sliders, Save, Loader2, CheckCircle, ShieldAlert, 
   Home, Trophy, MessageSquare, Newspaper, BookOpen, User, Eye, EyeOff,
   BrainCircuit, RefreshCw, BarChart3, Lightbulb, Briefcase, Search, Layers, X,
-  Keyboard,
-  ReceiptIndianRupee
+  Keyboard
 } from 'lucide-react';
 
 interface AdminTabsConfigProps {
@@ -24,7 +23,6 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
     home: true,
     practice: true,
     typing: true,
-    receipt: true,
     chat: true,
     news: true,
     jobs: true,
@@ -167,7 +165,6 @@ export const AdminTabsConfig: React.FC<AdminTabsConfigProps> = ({ currentUser })
     { id: 'home', label: 'Home', category: 'main', desc: 'Main student dashboard containing streak progress, target exam details, quick action shortcuts, and subject completion list cards.', icon: Home },
     { id: 'practice', label: 'Tests', category: 'main', desc: 'Interactive test sessions offering custom mock tests, daily speed quizzes, and previous year papers (PYQs).', icon: Trophy },
     { id: 'typing', label: 'Typing Test', category: 'main', desc: 'Official live typing test arena for CG High Court, CPCT KrutiDev, Mangal & English speed tests with real-time WPM calculation.', icon: Keyboard },
-    { id: 'receipt', label: 'Receipt Scanner (<100KB)', category: 'main', desc: '1-Click Bank Slip / Challan auto-crop scanner and <100 KB compressor for exam portal uploads.', icon: ReceiptIndianRupee },
     { id: 'chat', label: 'AI Guru', category: 'main', desc: 'The AI Tutor Chat Bot interface offering instant doubt clearing, spaced repetition recall questions, and study assistance.', icon: MessageSquare },
     { id: 'news', label: 'News & Alerts', category: 'main', desc: 'Bilingual news feeds summarizing state notifications and current affairs updates.', icon: Newspaper },
     { id: 'jobs', label: 'Jobs & Vacancies', category: 'main', desc: 'Dedicated Sarkari Job alerts, recruitment notices, qualification requirements, and direct application links.', icon: Briefcase },
